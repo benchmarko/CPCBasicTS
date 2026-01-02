@@ -139,12 +139,13 @@ export declare class CpcVm implements ICpcVm {
     private timerPriority;
     private zoneValue;
     private modeValue;
+    private progEnd;
     private readonly rsx;
     private static readonly frameTimeMs;
     private static readonly timerCount;
     private static readonly sqTimerCount;
     private static readonly streamCount;
-    private static readonly minHimem;
+    private static readonly progStart;
     private static readonly maxHimem;
     private static readonly emptyParas;
     private static readonly modeData;
@@ -169,6 +170,7 @@ export declare class CpcVm implements ICpcVm {
     vmResetData(): void;
     private vmResetInks;
     vmReset4Run(): void;
+    vmPutProgramInMem(tokens: string): void;
     setCanvas(canvas: ICanvas): ICanvas;
     vmGetLoadHandler(): LoadHandlerType;
     vmGetMem(): number[];

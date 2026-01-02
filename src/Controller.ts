@@ -1913,19 +1913,14 @@ export class Controller implements IController {
 		} else {
 			outputString = output.text;
 			this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
+
 			// optional: tokenize to put tokens into memory...
-			const tokens = this.encodeTokenizedBasic(input),
-				addr = 0x170;
+			const tokens = this.encodeTokenizedBasic(input);
 
-			for (let i = 0; i < tokens.length; i += 1) {
-				let code = tokens.charCodeAt(i);
-
-				if (code > 255) {
-					Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
-					code = 0x20;
-				}
-				this.vm.poke(addr + i, code);
+			if (Utils.debug) {
+				Utils.console.debug("parse: input length:", input.length, ", tokenized length:", tokens.length);
 			}
+			this.vm.vmPutProgramInMem(tokens);
 		}
 
 		if (outputString && outputString.length > 0) {
@@ -1999,6 +1994,9 @@ export class Controller implements IController {
 			const example = this.model.getProperty<string>(ModelPropID.example);
 
 			if (example !== "") {
+				if (example.indexOf("/") >= 0) {
+					name = example.substring(example.lastIndexOf("/") + 1);
+				}
 				name = example;
 			}
 		}
@@ -2833,7 +2831,9 @@ export class Controller implements IController {
 
 	private fnUpdateUndoRedoButtons() {
 		this.view.setDisabled(ViewID.undoButton, !this.inputStack.canUndoKeepOne());
+		this.view.setDisabled(ViewID.undoButton2, !this.inputStack.canUndoKeepOne());
 		this.view.setDisabled(ViewID.redoButton, !this.inputStack.canRedo());
+		this.view.setDisabled(ViewID.redoButton2, !this.inputStack.canRedo());
 	}
 
 	private fnInitUndoRedoButtons() {

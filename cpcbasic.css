@@ -53,19 +53,42 @@ font-family: monospace;
 }
 
 .popover {
-	margin-top: 1.5em;
 	padding: 2px;
 	border: 0.5px solid #7A7A7A;
 	position: absolute;
 	background-color: WhiteSmoke;
+	z-index: 16;
+  	top: 100%;
+  	margin-top: 5px;
+	white-space: nowrap;
+}
+
+.popover.right-align {
+  right: 0;
 }
 
 .buttonPopoverContainer {
 	display: inline-flex;
+	position: relative;
 }
 
 .popoverElement {
 	margin: 3px;
+}
+
+.toolbarLine {
+  /* padding: 4px; */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.toolbarLineItemRight {
+  margin-left: auto;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
 }
 
 .area {

@@ -790,7 +790,6 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ModelPropID["processFileImports"] = "processFileImports";
         ModelPropID["selectDataFiles"] = "selectDataFiles";
         ModelPropID["showConsoleLog"] = "showConsoleLog";
-        ModelPropID["showConvert"] = "showConvert";
         ModelPropID["showCpc"] = "showCpc";
         ModelPropID["showDisass"] = "showDisass";
         ModelPropID["showExport"] = "showExport";
@@ -801,6 +800,8 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ModelPropID["showKbdSettings"] = "showKbdSettings";
         ModelPropID["showMore"] = "showMore";
         ModelPropID["showOutput"] = "showOutput";
+        ModelPropID["showPretty"] = "showPretty";
+        ModelPropID["showRenum"] = "showRenum";
         ModelPropID["showResult"] = "showResult";
         ModelPropID["showSettings"] = "showSettings";
         ModelPropID["showVariable"] = "showVariable";
@@ -819,8 +820,6 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["consoleLogArea"] = "consoleLogArea";
         ViewID["consoleLogText"] = "consoleLogText";
         ViewID["continueButton"] = "continueButton";
-        ViewID["convertArea"] = "convertArea";
-        ViewID["convertButton"] = "convertButton";
         ViewID["copyTextButton"] = "copyTextButton";
         ViewID["cpcArea"] = "cpcArea";
         ViewID["cpcCanvas"] = "cpcCanvas";
@@ -874,17 +873,22 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["paletteSelect"] = "paletteSelect";
         ViewID["parseButton"] = "parseButton";
         ViewID["parseRunButton"] = "parseRunButton";
+        ViewID["prettyArea"] = "prettyArea";
         ViewID["prettyBracketsInput"] = "prettyBracketsInput";
         ViewID["prettyButton"] = "prettyButton";
         ViewID["prettyColonsInput"] = "prettyColonsInput";
         ViewID["prettyLowercaseVarsInput"] = "prettyLowercaseVarsInput";
+        ViewID["prettyPopoverButton"] = "prettyPopoverButton";
         ViewID["prettySpaceInput"] = "prettySpaceInput";
         ViewID["redoButton"] = "redoButton";
+        ViewID["redoButton2"] = "redoButton2";
         ViewID["reloadButton"] = "reloadButton";
         ViewID["reload2Button"] = "reload2Button";
+        ViewID["renumArea"] = "renumArea";
         ViewID["renumButton"] = "renumButton";
         ViewID["renumKeepInput"] = "renumKeepInput";
         ViewID["renumNewInput"] = "renumNewInput";
+        ViewID["renumPopoverButton"] = "renumPopoverButton";
         ViewID["renumStartInput"] = "renumStartInput";
         ViewID["renumStepInput"] = "renumStepInput";
         ViewID["resetButton"] = "resetButton";
@@ -912,6 +916,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["textCanvasDiv"] = "textCanvasDiv";
         ViewID["textText"] = "textText";
         ViewID["undoButton"] = "undoButton";
+        ViewID["undoButton2"] = "undoButton2";
         ViewID["variableArea"] = "variableArea";
         ViewID["varSelect"] = "varSelect";
         ViewID["varText"] = "varText";
@@ -6600,7 +6605,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
                     }
                 }
             }
-            if (output.length && this.label) {
+            if (this.label || !output.length) {
                 output += CodeGeneratorToken.token2String("_eol") + CodeGeneratorToken.token2String("_eol"); // 2 times eol is eof
             }
             return output;
@@ -11888,14 +11893,6 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                         func: this.onContinueButtonClick
                     },
                     {
-                        id: "convertButton" /* ViewID.convertButton */,
-                        toggleId: "convertArea" /* ViewID.convertArea */,
-                        property: "showConvert" /* ModelPropID.showConvert */,
-                        display: "flex",
-                        isPopover: true,
-                        func: this.toggleAreaHidden
-                    },
-                    {
                         id: "cpcCanvas" /* ViewID.cpcCanvas */,
                         func: this.onCpcCanvasClick
                     },
@@ -11968,8 +11965,20 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                         controllerFunc: this.controller.fnPretty
                     },
                     {
+                        id: "prettyPopoverButton" /* ViewID.prettyPopoverButton */,
+                        toggleId: "prettyArea" /* ViewID.prettyArea */,
+                        property: "showPretty" /* ModelPropID.showPretty */,
+                        display: "flex",
+                        isPopover: true,
+                        func: this.toggleAreaHidden
+                    },
+                    {
                         id: "redoButton" /* ViewID.redoButton */,
                         func: this.onRedoButtonClick
+                    },
+                    {
+                        id: "redoButton2" /* ViewID.redoButton2 */,
+                        func: this.onRedoButtonClick // same redo
                     },
                     {
                         id: "reloadButton" /* ViewID.reloadButton */,
@@ -11982,6 +11991,14 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                     {
                         id: "renumButton" /* ViewID.renumButton */,
                         controllerFunc: this.controller.startRenum
+                    },
+                    {
+                        id: "renumPopoverButton" /* ViewID.renumPopoverButton */,
+                        toggleId: "renumArea" /* ViewID.renumArea */,
+                        property: "showRenum" /* ModelPropID.showRenum */,
+                        display: "flex",
+                        isPopover: true,
+                        func: this.toggleAreaHidden
                     },
                     {
                         id: "resetButton" /* ViewID.resetButton */,
@@ -12017,6 +12034,10 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                     {
                         id: "undoButton" /* ViewID.undoButton */,
                         func: this.onUndoButtonClick
+                    },
+                    {
+                        id: "undoButton2" /* ViewID.undoButton2 */,
+                        func: this.onUndoButtonClick // same undo
                     },
                     {
                         id: "viewButton" /* ViewID.viewButton */,
@@ -13304,6 +13325,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             this.timerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
             this.zoneValue = 13; // print tab zone value
             this.modeValue = -1;
+            this.progEnd = CpcVm.progStart + 3; // initially 370
             this.rsx = new CpcVmRsx_1.CpcVmRsx();
             /* eslint-disable no-invalid-this */
             this.vmInternal = {
@@ -13448,6 +13470,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             this.maxCharHimem = CpcVm.maxHimem;
             this.himemValue = CpcVm.maxHimem;
             this.minCustomChar = 256;
+            this.progEnd = CpcVm.progStart + 3;
         };
         CpcVm.prototype.vmResetRandom = function () {
             this.random.init();
@@ -13559,6 +13582,18 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             this.errorResumeLine = 0;
             this.soundClass.resetQueue();
             this.soundData.length = 0;
+        };
+        CpcVm.prototype.vmPutProgramInMem = function (tokens) {
+            var addr = CpcVm.progStart + 1; // 368=0x170
+            this.progEnd = addr + tokens.length;
+            for (var i = 0; i < tokens.length; i += 1) {
+                var code = tokens.charCodeAt(i);
+                if (code > 255) {
+                    Utils_21.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
+                    code = 0x20;
+                }
+                this.poke(addr + i, code);
+            }
         };
         CpcVm.prototype.setCanvas = function (canvas) {
             this.canvas = canvas;
@@ -14761,7 +14796,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             if (typeof arg !== "number" && typeof arg !== "string") {
                 throw this.vmComposeError(Error(), 2, "FRE"); // Syntax Error
             }
-            return this.himemValue; // example, e.g. 42245;
+            // on a CPC it is start of strings - end of arrays, here we use himem - end of program
+            return this.himemValue - this.progEnd;
         };
         CpcVm.prototype.vmGosub = function (retLabel, n) {
             this.vmGoto(n, "gosub (ret=" + retLabel + ")");
@@ -15237,7 +15273,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         };
         CpcVm.prototype.memory = function (n) {
             n = this.vmRound2Complement(n, "MEMORY");
-            if (n < CpcVm.minHimem || n > this.minCharHimem) {
+            if (n < this.progEnd || n > this.minCharHimem) {
                 throw this.vmComposeError(Error(), 7, "MEMORY " + n); // Memory full
             }
             this.himemValue = n;
@@ -15325,6 +15361,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             this.canvas.move(x, y);
         };
         CpcVm.prototype["new"] = function () {
+            this.progEnd = CpcVm.progStart + 3;
             this.clear();
             var lineParas = {
                 command: "new",
@@ -16389,7 +16426,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 this.maxCharHimem = this.himemValue; // no characters defined => use current himem
             }
             var minCharHimem = this.maxCharHimem - (256 - char) * 8;
-            if (minCharHimem < CpcVm.minHimem) {
+            if (minCharHimem < this.progEnd) {
                 throw this.vmComposeError(Error(), 7, "SYMBOL AFTER " + minCharHimem); // Memory full
             }
             this.himemValue = minCharHimem;
@@ -16695,7 +16732,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         CpcVm.timerCount = 4; // number of timers
         CpcVm.sqTimerCount = 3; // sound queue timers
         CpcVm.streamCount = 10; // 0..7 window, 8 printer, 9 cassette
-        CpcVm.minHimem = 370;
+        CpcVm.progStart = 367;
         CpcVm.maxHimem = 42747; // high memory limit (42747 after symbol after 256)
         CpcVm.emptyParas = {};
         CpcVm.modeData = [
@@ -19684,15 +19721,11 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 outputString = output.text;
                 this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
                 // optional: tokenize to put tokens into memory...
-                var tokens = this.encodeTokenizedBasic(input), addr = 0x170;
-                for (var i = 0; i < tokens.length; i += 1) {
-                    var code = tokens.charCodeAt(i);
-                    if (code > 255) {
-                        Utils_26.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
-                        code = 0x20;
-                    }
-                    this.vm.poke(addr + i, code);
+                var tokens = this.encodeTokenizedBasic(input);
+                if (Utils_26.Utils.debug) {
+                    Utils_26.Utils.console.debug("parse: input length:", input.length, ", tokenized length:", tokens.length);
                 }
+                this.vm.vmPutProgramInMem(tokens);
             }
             if (outputString && outputString.length > 0) {
                 outputString += "\n";
@@ -19747,6 +19780,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             else {
                 var example = this.model.getProperty("example" /* ModelPropID.example */);
                 if (example !== "") {
+                    if (example.indexOf("/") >= 0) {
+                        name = example.substring(example.lastIndexOf("/") + 1);
+                    }
                     name = example;
                 }
             }
@@ -20416,7 +20452,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.fnUpdateUndoRedoButtons = function () {
             this.view.setDisabled("undoButton" /* ViewID.undoButton */, !this.inputStack.canUndoKeepOne());
+            this.view.setDisabled("undoButton2" /* ViewID.undoButton2 */, !this.inputStack.canUndoKeepOne());
             this.view.setDisabled("redoButton" /* ViewID.redoButton */, !this.inputStack.canRedo());
+            this.view.setDisabled("redoButton2" /* ViewID.redoButton2 */, !this.inputStack.canRedo());
         };
         Controller.prototype.fnInitUndoRedoButtons = function () {
             this.inputStack.reset();
@@ -20931,7 +20969,6 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             processFileImports: true,
             selectDataFiles: false,
             showConsoleLog: false,
-            showConvert: false,
             showCpc: true,
             showDisass: false,
             showExport: false,
@@ -20942,6 +20979,8 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             showKbdSettings: false,
             showMore: false,
             showOutput: false,
+            showPretty: false,
+            showRenum: false,
             showResult: false,
             showSettings: false,
             showVariable: false,

@@ -308,14 +308,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         func: this.onContinueButtonClick
                     },
                     {
-                        id: "convertButton" /* ViewID.convertButton */,
-                        toggleId: "convertArea" /* ViewID.convertArea */,
-                        property: "showConvert" /* ModelPropID.showConvert */,
-                        display: "flex",
-                        isPopover: true,
-                        func: this.toggleAreaHidden
-                    },
-                    {
                         id: "cpcCanvas" /* ViewID.cpcCanvas */,
                         func: this.onCpcCanvasClick
                     },
@@ -388,8 +380,20 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         controllerFunc: this.controller.fnPretty
                     },
                     {
+                        id: "prettyPopoverButton" /* ViewID.prettyPopoverButton */,
+                        toggleId: "prettyArea" /* ViewID.prettyArea */,
+                        property: "showPretty" /* ModelPropID.showPretty */,
+                        display: "flex",
+                        isPopover: true,
+                        func: this.toggleAreaHidden
+                    },
+                    {
                         id: "redoButton" /* ViewID.redoButton */,
                         func: this.onRedoButtonClick
+                    },
+                    {
+                        id: "redoButton2" /* ViewID.redoButton2 */,
+                        func: this.onRedoButtonClick // same redo
                     },
                     {
                         id: "reloadButton" /* ViewID.reloadButton */,
@@ -402,6 +406,14 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     {
                         id: "renumButton" /* ViewID.renumButton */,
                         controllerFunc: this.controller.startRenum
+                    },
+                    {
+                        id: "renumPopoverButton" /* ViewID.renumPopoverButton */,
+                        toggleId: "renumArea" /* ViewID.renumArea */,
+                        property: "showRenum" /* ModelPropID.showRenum */,
+                        display: "flex",
+                        isPopover: true,
+                        func: this.toggleAreaHidden
                     },
                     {
                         id: "resetButton" /* ViewID.resetButton */,
@@ -437,6 +449,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     {
                         id: "undoButton" /* ViewID.undoButton */,
                         func: this.onUndoButtonClick
+                    },
+                    {
+                        id: "undoButton2" /* ViewID.undoButton2 */,
+                        func: this.onUndoButtonClick // same undo
                     },
                     {
                         id: "viewButton" /* ViewID.viewButton */,

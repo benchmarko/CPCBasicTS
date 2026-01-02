@@ -285,7 +285,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     }
                 }
             }
-            if (output.length && this.label) {
+            if (this.label || !output.length) {
                 output += CodeGeneratorToken.token2String("_eol") + CodeGeneratorToken.token2String("_eol"); // 2 times eol is eof
             }
             return output;

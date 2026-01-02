@@ -1528,15 +1528,11 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 outputString = output.text;
                 this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
                 // optional: tokenize to put tokens into memory...
-                var tokens = this.encodeTokenizedBasic(input), addr = 0x170;
-                for (var i = 0; i < tokens.length; i += 1) {
-                    var code = tokens.charCodeAt(i);
-                    if (code > 255) {
-                        Utils_1.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
-                        code = 0x20;
-                    }
-                    this.vm.poke(addr + i, code);
+                var tokens = this.encodeTokenizedBasic(input);
+                if (Utils_1.Utils.debug) {
+                    Utils_1.Utils.console.debug("parse: input length:", input.length, ", tokenized length:", tokens.length);
                 }
+                this.vm.vmPutProgramInMem(tokens);
             }
             if (outputString && outputString.length > 0) {
                 outputString += "\n";
@@ -1591,6 +1587,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             else {
                 var example = this.model.getProperty("example" /* ModelPropID.example */);
                 if (example !== "") {
+                    if (example.indexOf("/") >= 0) {
+                        name = example.substring(example.lastIndexOf("/") + 1);
+                    }
                     name = example;
                 }
             }
@@ -2260,7 +2259,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.fnUpdateUndoRedoButtons = function () {
             this.view.setDisabled("undoButton" /* ViewID.undoButton */, !this.inputStack.canUndoKeepOne());
+            this.view.setDisabled("undoButton2" /* ViewID.undoButton2 */, !this.inputStack.canUndoKeepOne());
             this.view.setDisabled("redoButton" /* ViewID.redoButton */, !this.inputStack.canRedo());
+            this.view.setDisabled("redoButton2" /* ViewID.redoButton2 */, !this.inputStack.canRedo());
         };
         Controller.prototype.fnInitUndoRedoButtons = function () {
             this.inputStack.reset();

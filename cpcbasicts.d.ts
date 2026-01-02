@@ -36,7 +36,6 @@ declare module "Constants" {
         processFileImports = "processFileImports",
         selectDataFiles = "selectDataFiles",
         showConsoleLog = "showConsoleLog",
-        showConvert = "showConvert",
         showCpc = "showCpc",
         showDisass = "showDisass",
         showExport = "showExport",
@@ -47,6 +46,8 @@ declare module "Constants" {
         showKbdSettings = "showKbdSettings",
         showMore = "showMore",
         showOutput = "showOutput",
+        showPretty = "showPretty",
+        showRenum = "showRenum",
         showResult = "showResult",
         showSettings = "showSettings",
         showVariable = "showVariable",
@@ -64,8 +65,6 @@ declare module "Constants" {
         consoleLogArea = "consoleLogArea",
         consoleLogText = "consoleLogText",
         continueButton = "continueButton",
-        convertArea = "convertArea",
-        convertButton = "convertButton",
         copyTextButton = "copyTextButton",
         cpcArea = "cpcArea",
         cpcCanvas = "cpcCanvas",
@@ -119,17 +118,22 @@ declare module "Constants" {
         paletteSelect = "paletteSelect",
         parseButton = "parseButton",
         parseRunButton = "parseRunButton",
+        prettyArea = "prettyArea",
         prettyBracketsInput = "prettyBracketsInput",
         prettyButton = "prettyButton",
         prettyColonsInput = "prettyColonsInput",
         prettyLowercaseVarsInput = "prettyLowercaseVarsInput",
+        prettyPopoverButton = "prettyPopoverButton",
         prettySpaceInput = "prettySpaceInput",
         redoButton = "redoButton",
+        redoButton2 = "redoButton2",
         reloadButton = "reloadButton",
         reload2Button = "reload2Button",
+        renumArea = "renumArea",
         renumButton = "renumButton",
         renumKeepInput = "renumKeepInput",
         renumNewInput = "renumNewInput",
+        renumPopoverButton = "renumPopoverButton",
         renumStartInput = "renumStartInput",
         renumStepInput = "renumStepInput",
         resetButton = "resetButton",
@@ -157,6 +161,7 @@ declare module "Constants" {
         textCanvasDiv = "textCanvasDiv",
         textText = "textText",
         undoButton = "undoButton",
+        undoButton2 = "undoButton2",
         variableArea = "variableArea",
         varSelect = "varSelect",
         varText = "varText",
@@ -1856,12 +1861,13 @@ declare module "CpcVm" {
         private timerPriority;
         private zoneValue;
         private modeValue;
+        private progEnd;
         private readonly rsx;
         private static readonly frameTimeMs;
         private static readonly timerCount;
         private static readonly sqTimerCount;
         private static readonly streamCount;
-        private static readonly minHimem;
+        private static readonly progStart;
         private static readonly maxHimem;
         private static readonly emptyParas;
         private static readonly modeData;
@@ -1886,6 +1892,7 @@ declare module "CpcVm" {
         vmResetData(): void;
         private vmResetInks;
         vmReset4Run(): void;
+        vmPutProgramInMem(tokens: string): void;
         setCanvas(canvas: ICanvas): ICanvas;
         vmGetLoadHandler(): LoadHandlerType;
         vmGetMem(): number[];

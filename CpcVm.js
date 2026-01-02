@@ -53,6 +53,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             this.timerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
             this.zoneValue = 13; // print tab zone value
             this.modeValue = -1;
+            this.progEnd = CpcVm.progStart + 3; // initially 370
             this.rsx = new CpcVmRsx_1.CpcVmRsx();
             /* eslint-disable no-invalid-this */
             this.vmInternal = {
@@ -197,6 +198,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             this.maxCharHimem = CpcVm.maxHimem;
             this.himemValue = CpcVm.maxHimem;
             this.minCustomChar = 256;
+            this.progEnd = CpcVm.progStart + 3;
         };
         CpcVm.prototype.vmResetRandom = function () {
             this.random.init();
@@ -308,6 +310,18 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             this.errorResumeLine = 0;
             this.soundClass.resetQueue();
             this.soundData.length = 0;
+        };
+        CpcVm.prototype.vmPutProgramInMem = function (tokens) {
+            var addr = CpcVm.progStart + 1; // 368=0x170
+            this.progEnd = addr + tokens.length;
+            for (var i = 0; i < tokens.length; i += 1) {
+                var code = tokens.charCodeAt(i);
+                if (code > 255) {
+                    Utils_1.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
+                    code = 0x20;
+                }
+                this.poke(addr + i, code);
+            }
         };
         CpcVm.prototype.setCanvas = function (canvas) {
             this.canvas = canvas;
@@ -1510,7 +1524,8 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             if (typeof arg !== "number" && typeof arg !== "string") {
                 throw this.vmComposeError(Error(), 2, "FRE"); // Syntax Error
             }
-            return this.himemValue; // example, e.g. 42245;
+            // on a CPC it is start of strings - end of arrays, here we use himem - end of program
+            return this.himemValue - this.progEnd;
         };
         CpcVm.prototype.vmGosub = function (retLabel, n) {
             this.vmGoto(n, "gosub (ret=" + retLabel + ")");
@@ -1986,7 +2001,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
         };
         CpcVm.prototype.memory = function (n) {
             n = this.vmRound2Complement(n, "MEMORY");
-            if (n < CpcVm.minHimem || n > this.minCharHimem) {
+            if (n < this.progEnd || n > this.minCharHimem) {
                 throw this.vmComposeError(Error(), 7, "MEMORY " + n); // Memory full
             }
             this.himemValue = n;
@@ -2074,6 +2089,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             this.canvas.move(x, y);
         };
         CpcVm.prototype["new"] = function () {
+            this.progEnd = CpcVm.progStart + 3;
             this.clear();
             var lineParas = {
                 command: "new",
@@ -3138,7 +3154,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 this.maxCharHimem = this.himemValue; // no characters defined => use current himem
             }
             var minCharHimem = this.maxCharHimem - (256 - char) * 8;
-            if (minCharHimem < CpcVm.minHimem) {
+            if (minCharHimem < this.progEnd) {
                 throw this.vmComposeError(Error(), 7, "SYMBOL AFTER " + minCharHimem); // Memory full
             }
             this.himemValue = minCharHimem;
@@ -3444,7 +3460,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
         CpcVm.timerCount = 4; // number of timers
         CpcVm.sqTimerCount = 3; // sound queue timers
         CpcVm.streamCount = 10; // 0..7 window, 8 printer, 9 cassette
-        CpcVm.minHimem = 370;
+        CpcVm.progStart = 367;
         CpcVm.maxHimem = 42747; // high memory limit (42747 after symbol after 256)
         CpcVm.emptyParas = {};
         CpcVm.modeData = [

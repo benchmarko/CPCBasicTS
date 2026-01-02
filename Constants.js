@@ -32,7 +32,6 @@ define(["require", "exports"], function (require, exports) {
         ModelPropID["processFileImports"] = "processFileImports";
         ModelPropID["selectDataFiles"] = "selectDataFiles";
         ModelPropID["showConsoleLog"] = "showConsoleLog";
-        ModelPropID["showConvert"] = "showConvert";
         ModelPropID["showCpc"] = "showCpc";
         ModelPropID["showDisass"] = "showDisass";
         ModelPropID["showExport"] = "showExport";
@@ -43,6 +42,8 @@ define(["require", "exports"], function (require, exports) {
         ModelPropID["showKbdSettings"] = "showKbdSettings";
         ModelPropID["showMore"] = "showMore";
         ModelPropID["showOutput"] = "showOutput";
+        ModelPropID["showPretty"] = "showPretty";
+        ModelPropID["showRenum"] = "showRenum";
         ModelPropID["showResult"] = "showResult";
         ModelPropID["showSettings"] = "showSettings";
         ModelPropID["showVariable"] = "showVariable";
@@ -61,8 +62,6 @@ define(["require", "exports"], function (require, exports) {
         ViewID["consoleLogArea"] = "consoleLogArea";
         ViewID["consoleLogText"] = "consoleLogText";
         ViewID["continueButton"] = "continueButton";
-        ViewID["convertArea"] = "convertArea";
-        ViewID["convertButton"] = "convertButton";
         ViewID["copyTextButton"] = "copyTextButton";
         ViewID["cpcArea"] = "cpcArea";
         ViewID["cpcCanvas"] = "cpcCanvas";
@@ -116,17 +115,22 @@ define(["require", "exports"], function (require, exports) {
         ViewID["paletteSelect"] = "paletteSelect";
         ViewID["parseButton"] = "parseButton";
         ViewID["parseRunButton"] = "parseRunButton";
+        ViewID["prettyArea"] = "prettyArea";
         ViewID["prettyBracketsInput"] = "prettyBracketsInput";
         ViewID["prettyButton"] = "prettyButton";
         ViewID["prettyColonsInput"] = "prettyColonsInput";
         ViewID["prettyLowercaseVarsInput"] = "prettyLowercaseVarsInput";
+        ViewID["prettyPopoverButton"] = "prettyPopoverButton";
         ViewID["prettySpaceInput"] = "prettySpaceInput";
         ViewID["redoButton"] = "redoButton";
+        ViewID["redoButton2"] = "redoButton2";
         ViewID["reloadButton"] = "reloadButton";
         ViewID["reload2Button"] = "reload2Button";
+        ViewID["renumArea"] = "renumArea";
         ViewID["renumButton"] = "renumButton";
         ViewID["renumKeepInput"] = "renumKeepInput";
         ViewID["renumNewInput"] = "renumNewInput";
+        ViewID["renumPopoverButton"] = "renumPopoverButton";
         ViewID["renumStartInput"] = "renumStartInput";
         ViewID["renumStepInput"] = "renumStepInput";
         ViewID["resetButton"] = "resetButton";
@@ -154,6 +158,7 @@ define(["require", "exports"], function (require, exports) {
         ViewID["textCanvasDiv"] = "textCanvasDiv";
         ViewID["textText"] = "textText";
         ViewID["undoButton"] = "undoButton";
+        ViewID["undoButton2"] = "undoButton2";
         ViewID["variableArea"] = "variableArea";
         ViewID["varSelect"] = "varSelect";
         ViewID["varText"] = "varText";
