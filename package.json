@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "src/cpcbasic.ts",
   "directories": {
