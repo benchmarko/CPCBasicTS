@@ -626,7 +626,7 @@ export class CodeGeneratorToken {
 				}
 			}
 		}
-		if (output.length && this.label) {
+		if (this.label || !output.length) {
 			output += CodeGeneratorToken.token2String("_eol") + CodeGeneratorToken.token2String("_eol"); // 2 times eol is eof
 		}
 		return output;

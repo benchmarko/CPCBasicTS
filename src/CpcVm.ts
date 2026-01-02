@@ -191,13 +191,15 @@ export class CpcVm implements ICpcVm {
 
 	private modeValue = -1;
 
+	private progEnd = CpcVm.progStart + 3; // initially 370
+
 	private readonly rsx = new CpcVmRsx();
 
 	private static readonly frameTimeMs = 1000 / 50; // 50 Hz => 20 ms
 	private static readonly timerCount = 4; // number of timers
 	private static readonly sqTimerCount = 3; // sound queue timers
 	private static readonly streamCount = 10; // 0..7 window, 8 printer, 9 cassette
-	private static readonly minHimem = 370;
+	private static readonly progStart = 367;
 	private static readonly maxHimem = 42747; // high memory limit (42747 after symbol after 256)
 
 	private static readonly emptyParas = {};
@@ -558,6 +560,7 @@ export class CpcVm implements ICpcVm {
 		this.maxCharHimem = CpcVm.maxHimem;
 		this.himemValue = CpcVm.maxHimem;
 		this.minCustomChar = 256;
+		this.progEnd = CpcVm.progStart + 3;
 	}
 
 	vmResetRandom(): void {
@@ -700,6 +703,21 @@ export class CpcVm implements ICpcVm {
 		this.errorResumeLine = 0;
 		this.soundClass.resetQueue();
 		this.soundData.length = 0;
+	}
+
+	vmPutProgramInMem(tokens: string): void {
+		const addr = CpcVm.progStart + 1; // 368=0x170
+
+		this.progEnd = addr + tokens.length;
+		for (let i = 0; i < tokens.length; i += 1) {
+			let code = tokens.charCodeAt(i);
+
+			if (code > 255) {
+				Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
+				code = 0x20;
+			}
+			this.poke(addr + i, code);
+		}
 	}
 
 	setCanvas(canvas: ICanvas): ICanvas {
@@ -2094,7 +2112,8 @@ export class CpcVm implements ICpcVm {
 		if (typeof arg !== "number" && typeof arg !== "string") {
 			throw this.vmComposeError(Error(), 2, "FRE"); // Syntax Error
 		}
-		return this.himemValue; // example, e.g. 42245;
+		// on a CPC it is start of strings - end of arrays, here we use himem - end of program
+		return this.himemValue - this.progEnd;
 	}
 
 	private vmGosub(retLabel: string | number, n: number) {
@@ -2640,7 +2659,7 @@ export class CpcVm implements ICpcVm {
 	memory(n: number): void {
 		n = this.vmRound2Complement(n, "MEMORY");
 
-		if (n < CpcVm.minHimem || n > this.minCharHimem) {
+		if (n < this.progEnd || n > this.minCharHimem) {
 			throw this.vmComposeError(Error(), 7, "MEMORY " + n); // Memory full
 		}
 		this.himemValue = n;
@@ -2738,6 +2757,7 @@ export class CpcVm implements ICpcVm {
 	}
 
 	"new"(): void {
+		this.progEnd = CpcVm.progStart + 3;
 		this.clear();
 
 		const lineParas: VmLineParas = {
@@ -3950,7 +3970,7 @@ export class CpcVm implements ICpcVm {
 
 		let minCharHimem = this.maxCharHimem - (256 - char) * 8;
 
-		if (minCharHimem < CpcVm.minHimem) {
+		if (minCharHimem < this.progEnd) {
 			throw this.vmComposeError(Error(), 7, "SYMBOL AFTER " + minCharHimem); // Memory full
 		}
 		this.himemValue = minCharHimem;

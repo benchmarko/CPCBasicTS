@@ -642,8 +642,8 @@ const allTests: AllTestsType = {
 		"": '{"_key":"stop","reason":"waitFrame","priority":40,"paras":{}}'
 	},
 	fre: {
-		'"_testCase1",0': "42747",
-		'"_testCase2",""': "370",
+		'"_testCase1",0': "42377",
+		'"_testCase2",""': "11",
 		'"_testCase1"': 'CpcVm: Syntax Error in 0: FRE -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		'"_testCase2"': 'CpcVm: Syntax Error in 0: FRE -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 	},
@@ -2707,7 +2707,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 			case "_testCase1":
 				break;
 			case "_testCase2":
-				cpcVm.memory(370);
+				cpcVm.memory(381); // ninimum memory to set on a CPC
 				break;
 			default:
 				Utils.console.error("Unknown testCase:", testCase);
