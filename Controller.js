@@ -1590,7 +1590,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     if (example.indexOf("/") >= 0) {
                         name = example.substring(example.lastIndexOf("/") + 1);
                     }
-                    name = example;
                 }
             }
             if (name.indexOf(".") < 0) {

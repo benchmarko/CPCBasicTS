@@ -20,6 +20,7 @@ export declare class BasicTokenizer {
     private fnStringVar;
     private fnFpVar;
     private fnRsx;
+    private static fnControlsToUnicode;
     private fnStringUntilEol;
     private fnApostrophe;
     private fnRem;

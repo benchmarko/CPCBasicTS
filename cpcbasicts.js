@@ -3935,8 +3935,13 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
             name = name.substring(1); // ignore length (offset to tokens following RSX name)
             return "|" + name;
         };
+        BasicTokenizer.fnControlsToUnicode = function (s) {
+            return s.replace(/[\x00-\x1F\x80-\x9F]/g, function (ch) {
+                return String.fromCharCode(ch.charCodeAt(0) + 0x100);
+            });
+        };
         BasicTokenizer.prototype.fnStringUntilEol = function () {
-            var out = this.input.substring(this.pos, this.lineEnd - 1); // take remaining line
+            var out = BasicTokenizer.fnControlsToUnicode(this.input.substring(this.pos, this.lineEnd - 1)); // take remaining line
             this.pos = this.lineEnd;
             return out;
         };
@@ -3950,13 +3955,14 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
             var closingQuotes = this.input.indexOf('"', this.pos);
             var out = "";
             if (closingQuotes < 0 || closingQuotes >= this.lineEnd) { // unclosed quoted string (quotes not found or not in this line)
-                out = this.fnStringUntilEol(); // take remaining line
+                out = BasicTokenizer.fnControlsToUnicode(this.fnStringUntilEol()); // take remaining line
             }
             else {
-                out = this.input.substring(this.pos, closingQuotes + 1);
+                out = BasicTokenizer.fnControlsToUnicode(this.input.substring(this.pos, closingQuotes + 1));
                 this.pos = closingQuotes + 1; // after quotes
             }
             out = '"' + out;
+            //TODO: is this still needed?
             if (out.indexOf("\r") >= 0) {
                 Utils_5.Utils.console.log("BasicTokenizer line", this.line, ": string contains CR, replaced by CHR$(13)");
                 out = out.replace(/\r/g, '"+chr$(13)+"');
@@ -3998,7 +4004,7 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
                     }
                 }
             }
-            this.needSpace = ((token >= 0x02 && token <= 0x1f) || (token === 0x7c)); // constant 0..9; variable, or RSX?
+            this.needSpace = ((token >= 0x05 && token <= 0x0d) || (token === 0x7c)); // variable without suffix, or RSX?
             var tokenValue;
             if (token === 0xff) { // extended token?
                 token = this.fnNum8Dec(); // get it
@@ -4010,7 +4016,8 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
             var tstr;
             if (tokenValue !== undefined) {
                 tstr = typeof tokenValue === "function" ? tokenValue.call(this) : tokenValue;
-                if ((/[a-zA-Z0-9.]$/).test(tstr) && token !== 0xe4) { // last character char, number, dot? (not for token "FN")
+                //if ((/[a-zA-Z0-9.]$/).test(tstr) && token !== 0xe4) { // last character char, number, dot? (not for token "FN")
+                if ((/[a-zA-Z.]$/).test(tstr) && token !== 0xe4) { // last character char, dot? (not for token "FN")
                     this.needSpace = true; // maybe need space next time...
                 }
             }
@@ -4018,7 +4025,8 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
                 tstr = String.fromCharCode(token);
             }
             if (oldNeedSpace) {
-                if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
+                //if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
+                if ((/^[a-zA-Z$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
                     tstr = " " + tstr;
                 }
             }
@@ -13587,11 +13595,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             var addr = CpcVm.progStart + 1; // 368=0x170
             this.progEnd = addr + tokens.length;
             for (var i = 0; i < tokens.length; i += 1) {
-                var code = tokens.charCodeAt(i);
-                if (code > 255) {
-                    Utils_21.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
-                    code = 0x20;
-                }
+                var code = CpcVm.vmGetCharCodeAt(tokens, i);
                 this.poke(addr + i, code);
             }
         };
@@ -14006,6 +14010,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         CpcVm.prototype.vmGetOutBuffer = function () {
             return this.outBuffer;
         };
+        CpcVm.prototype.vmPrint2OutBuffer = function (s) {
+            this.outBuffer += CpcVm.vmWithControlCodes(s);
+        };
         CpcVm.prototype.vmDrawMovePlot = function (type, gPen, gColMode) {
             if (gPen !== undefined) {
                 gPen = this.vmInRangeRound(gPen, 0, 15, type);
@@ -14084,10 +14091,32 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         CpcVm.prototype.afterGosub = function (interval, timer, line) {
             this.vmAfterEveryGosub("AFTER", interval, timer, line);
         };
+        CpcVm.vmGetCharCodeAt = function (s, i) {
+            var code = s.charCodeAt(i);
+            if (code < 0x100 || code >= 0x200) {
+                return code;
+            }
+            return code & 0xFF; // eslint-disable-line no-bitwise
+        };
+        CpcVm.vmWithControlCodes = function (s) {
+            var out = "";
+            for (var i = 0; i < s.length; i += 1) {
+                out += String.fromCharCode(CpcVm.vmGetCharCodeAt(s, i));
+            }
+            return out;
+        };
+        /*
+        private static vmGetCpcCharCode(code: number): number {
+            return code & 0xFF; // eslint-disable-line no-bitwise
+        }
+        */
         CpcVm.vmGetCpcCharCode = function (code) {
-            if (code > 255) { // map some UTF-8 character codes
+            if (code > 0xff) { // map some UTF-8 character codes
                 if (CpcVm.utf8ToCpc[code]) {
                     code = CpcVm.utf8ToCpc[code];
+                }
+                else if (code <= 0x1FF) {
+                    code &= 0xFF; // eslint-disable-line no-bitwise
                 }
             }
             return code;
@@ -15047,7 +15076,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             if (!search.length) {
                 return startPos + 1;
             }
-            return str.indexOf(search, startPos) + 1;
+            return CpcVm.vmWithControlCodes(str).indexOf(CpcVm.vmWithControlCodes(search), startPos) + 1;
         };
         CpcVm.prototype["int"] = function (n) {
             this.vmAssertNumber(n, "INT");
@@ -15670,7 +15699,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             if (x > (right - left)) {
                 y += 1;
                 x = 0;
-                this.outBuffer += "\n";
+                this.vmPrint2OutBuffer("\n");
             }
             if (x < 0) {
                 y -= 1;
@@ -15852,7 +15881,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                     win.vpos = 0;
                     break;
                 case 0x1f: // US
-                    this.vmLocate(stream, para.charCodeAt(0), para.charCodeAt(1));
+                    this.vmLocate(stream, CpcVm.vmGetCharCodeAt(para, 0), CpcVm.vmGetCharCodeAt(para, 1));
                     break;
                 default:
                     Utils_21.Utils.console.warn("vmHandleControlCode: Unknown control code:", code);
@@ -15863,7 +15892,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         CpcVm.prototype.vmPrintCharsOrControls = function (stream, str) {
             var buf = "", out = "", i = 0;
             while (i < str.length) {
-                var code = str.charCodeAt(i);
+                var code = CpcVm.vmGetCharCodeAt(str, i);
                 i += 1;
                 if (code <= 0x1f) { // control code?
                     if (out !== "") {
@@ -15949,10 +15978,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                         }
                         buf = this.vmPrintCharsOrControls(stream, str);
                     }
-                    this.outBuffer += str; // console
+                    this.vmPrint2OutBuffer(str); // console
                 }
                 else if (stream === 8) { // printer?
-                    this.outBuffer += str; // put also in console
+                    this.vmPrint2OutBuffer(str); // put also in console
                 }
                 else { // stream === 9
                     var lastCrPos = buf.lastIndexOf("\r");
@@ -16693,14 +16722,14 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 }
                 else {
                     this.vmDrawUndrawCursor(stream); // undraw
-                    this.vmPrintChars(stream, str);
+                    this.vmPrintCharsOrControls(stream, str);
                     this.vmPrintCharsOrControls(stream, "\r\n");
                     this.vmDrawUndrawCursor(stream); // draw
                 }
-                this.outBuffer += str + "\n"; // console
+                this.vmPrint2OutBuffer(str + "\n"); // console
             }
             else if (stream === 8) { // printer?
-                this.outBuffer += str + "\n"; // console
+                this.vmPrint2OutBuffer(str + "\n"); // console
             }
             else if (stream === 9) {
                 this.outFile.stream = stream;
@@ -19783,7 +19812,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     if (example.indexOf("/") >= 0) {
                         name = example.substring(example.lastIndexOf("/") + 1);
                     }
-                    name = example;
                 }
             }
             if (name.indexOf(".") < 0) {

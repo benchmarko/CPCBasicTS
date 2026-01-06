@@ -218,6 +218,7 @@ export declare class CpcVm implements ICpcVm {
     vmSetSourceMap(sourceMap: Record<string, number[]>): void;
     vmTrace(): void;
     vmGetOutBuffer(): string;
+    private vmPrint2OutBuffer;
     private vmDrawMovePlot;
     private vmAfterEveryGosub;
     private vmCopyFromScreen;
@@ -228,6 +229,8 @@ export declare class CpcVm implements ICpcVm {
     abs(n: number): number;
     addressOf(variable: string): number;
     afterGosub(interval: number, timer: number, line: number): void;
+    private static vmGetCharCodeAt;
+    private static vmWithControlCodes;
     private static vmGetCpcCharCode;
     asc(s: string): number;
     atn(n: number): number;

@@ -315,11 +315,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             var addr = CpcVm.progStart + 1; // 368=0x170
             this.progEnd = addr + tokens.length;
             for (var i = 0; i < tokens.length; i += 1) {
-                var code = tokens.charCodeAt(i);
-                if (code > 255) {
-                    Utils_1.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
-                    code = 0x20;
-                }
+                var code = CpcVm.vmGetCharCodeAt(tokens, i);
                 this.poke(addr + i, code);
             }
         };
@@ -734,6 +730,9 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
         CpcVm.prototype.vmGetOutBuffer = function () {
             return this.outBuffer;
         };
+        CpcVm.prototype.vmPrint2OutBuffer = function (s) {
+            this.outBuffer += CpcVm.vmWithControlCodes(s);
+        };
         CpcVm.prototype.vmDrawMovePlot = function (type, gPen, gColMode) {
             if (gPen !== undefined) {
                 gPen = this.vmInRangeRound(gPen, 0, 15, type);
@@ -812,10 +811,32 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
         CpcVm.prototype.afterGosub = function (interval, timer, line) {
             this.vmAfterEveryGosub("AFTER", interval, timer, line);
         };
+        CpcVm.vmGetCharCodeAt = function (s, i) {
+            var code = s.charCodeAt(i);
+            if (code < 0x100 || code >= 0x200) {
+                return code;
+            }
+            return code & 0xFF; // eslint-disable-line no-bitwise
+        };
+        CpcVm.vmWithControlCodes = function (s) {
+            var out = "";
+            for (var i = 0; i < s.length; i += 1) {
+                out += String.fromCharCode(CpcVm.vmGetCharCodeAt(s, i));
+            }
+            return out;
+        };
+        /*
+        private static vmGetCpcCharCode(code: number): number {
+            return code & 0xFF; // eslint-disable-line no-bitwise
+        }
+        */
         CpcVm.vmGetCpcCharCode = function (code) {
-            if (code > 255) { // map some UTF-8 character codes
+            if (code > 0xff) { // map some UTF-8 character codes
                 if (CpcVm.utf8ToCpc[code]) {
                     code = CpcVm.utf8ToCpc[code];
+                }
+                else if (code <= 0x1FF) {
+                    code &= 0xFF; // eslint-disable-line no-bitwise
                 }
             }
             return code;
@@ -1775,7 +1796,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             if (!search.length) {
                 return startPos + 1;
             }
-            return str.indexOf(search, startPos) + 1;
+            return CpcVm.vmWithControlCodes(str).indexOf(CpcVm.vmWithControlCodes(search), startPos) + 1;
         };
         CpcVm.prototype["int"] = function (n) {
             this.vmAssertNumber(n, "INT");
@@ -2398,7 +2419,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             if (x > (right - left)) {
                 y += 1;
                 x = 0;
-                this.outBuffer += "\n";
+                this.vmPrint2OutBuffer("\n");
             }
             if (x < 0) {
                 y -= 1;
@@ -2580,7 +2601,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                     win.vpos = 0;
                     break;
                 case 0x1f: // US
-                    this.vmLocate(stream, para.charCodeAt(0), para.charCodeAt(1));
+                    this.vmLocate(stream, CpcVm.vmGetCharCodeAt(para, 0), CpcVm.vmGetCharCodeAt(para, 1));
                     break;
                 default:
                     Utils_1.Utils.console.warn("vmHandleControlCode: Unknown control code:", code);
@@ -2591,7 +2612,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
         CpcVm.prototype.vmPrintCharsOrControls = function (stream, str) {
             var buf = "", out = "", i = 0;
             while (i < str.length) {
-                var code = str.charCodeAt(i);
+                var code = CpcVm.vmGetCharCodeAt(str, i);
                 i += 1;
                 if (code <= 0x1f) { // control code?
                     if (out !== "") {
@@ -2677,10 +2698,10 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                         }
                         buf = this.vmPrintCharsOrControls(stream, str);
                     }
-                    this.outBuffer += str; // console
+                    this.vmPrint2OutBuffer(str); // console
                 }
                 else if (stream === 8) { // printer?
-                    this.outBuffer += str; // put also in console
+                    this.vmPrint2OutBuffer(str); // put also in console
                 }
                 else { // stream === 9
                     var lastCrPos = buf.lastIndexOf("\r");
@@ -3421,14 +3442,14 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 }
                 else {
                     this.vmDrawUndrawCursor(stream); // undraw
-                    this.vmPrintChars(stream, str);
+                    this.vmPrintCharsOrControls(stream, str);
                     this.vmPrintCharsOrControls(stream, "\r\n");
                     this.vmDrawUndrawCursor(stream); // draw
                 }
-                this.outBuffer += str + "\n"; // console
+                this.vmPrint2OutBuffer(str + "\n"); // console
             }
             else if (stream === 8) { // printer?
-                this.outBuffer += str + "\n"; // console
+                this.vmPrint2OutBuffer(str + "\n"); // console
             }
             else if (stream === 9) {
                 this.outFile.stream = stream;

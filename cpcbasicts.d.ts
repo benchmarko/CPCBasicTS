@@ -639,6 +639,7 @@ declare module "BasicTokenizer" {
         private fnStringVar;
         private fnFpVar;
         private fnRsx;
+        private static fnControlsToUnicode;
         private fnStringUntilEol;
         private fnApostrophe;
         private fnRem;
@@ -1940,6 +1941,7 @@ declare module "CpcVm" {
         vmSetSourceMap(sourceMap: Record<string, number[]>): void;
         vmTrace(): void;
         vmGetOutBuffer(): string;
+        private vmPrint2OutBuffer;
         private vmDrawMovePlot;
         private vmAfterEveryGosub;
         private vmCopyFromScreen;
@@ -1950,6 +1952,8 @@ declare module "CpcVm" {
         abs(n: number): number;
         addressOf(variable: string): number;
         afterGosub(interval: number, timer: number, line: number): void;
+        private static vmGetCharCodeAt;
+        private static vmWithControlCodes;
         private static vmGetCpcCharCode;
         asc(s: string): number;
         atn(n: number): number;

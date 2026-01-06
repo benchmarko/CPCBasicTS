@@ -355,8 +355,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             name = name.substring(1); // ignore length (offset to tokens following RSX name)
             return "|" + name;
         };
+        BasicTokenizer.fnControlsToUnicode = function (s) {
+            return s.replace(/[\x00-\x1F\x80-\x9F]/g, function (ch) {
+                return String.fromCharCode(ch.charCodeAt(0) + 0x100);
+            });
+        };
         BasicTokenizer.prototype.fnStringUntilEol = function () {
-            var out = this.input.substring(this.pos, this.lineEnd - 1); // take remaining line
+            var out = BasicTokenizer.fnControlsToUnicode(this.input.substring(this.pos, this.lineEnd - 1)); // take remaining line
             this.pos = this.lineEnd;
             return out;
         };
@@ -370,13 +375,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var closingQuotes = this.input.indexOf('"', this.pos);
             var out = "";
             if (closingQuotes < 0 || closingQuotes >= this.lineEnd) { // unclosed quoted string (quotes not found or not in this line)
-                out = this.fnStringUntilEol(); // take remaining line
+                out = BasicTokenizer.fnControlsToUnicode(this.fnStringUntilEol()); // take remaining line
             }
             else {
-                out = this.input.substring(this.pos, closingQuotes + 1);
+                out = BasicTokenizer.fnControlsToUnicode(this.input.substring(this.pos, closingQuotes + 1));
                 this.pos = closingQuotes + 1; // after quotes
             }
             out = '"' + out;
+            //TODO: is this still needed?
             if (out.indexOf("\r") >= 0) {
                 Utils_1.Utils.console.log("BasicTokenizer line", this.line, ": string contains CR, replaced by CHR$(13)");
                 out = out.replace(/\r/g, '"+chr$(13)+"');
@@ -418,7 +424,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     }
                 }
             }
-            this.needSpace = ((token >= 0x02 && token <= 0x1f) || (token === 0x7c)); // constant 0..9; variable, or RSX?
+            this.needSpace = ((token >= 0x05 && token <= 0x0d) || (token === 0x7c)); // variable without suffix, or RSX?
             var tokenValue;
             if (token === 0xff) { // extended token?
                 token = this.fnNum8Dec(); // get it
@@ -430,7 +436,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var tstr;
             if (tokenValue !== undefined) {
                 tstr = typeof tokenValue === "function" ? tokenValue.call(this) : tokenValue;
-                if ((/[a-zA-Z0-9.]$/).test(tstr) && token !== 0xe4) { // last character char, number, dot? (not for token "FN")
+                //if ((/[a-zA-Z0-9.]$/).test(tstr) && token !== 0xe4) { // last character char, number, dot? (not for token "FN")
+                if ((/[a-zA-Z.]$/).test(tstr) && token !== 0xe4) { // last character char, dot? (not for token "FN")
                     this.needSpace = true; // maybe need space next time...
                 }
             }
@@ -438,7 +445,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 tstr = String.fromCharCode(token);
             }
             if (oldNeedSpace) {
-                if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
+                //if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
+                if ((/^[a-zA-Z$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
                     tstr = " " + tstr;
                 }
             }
