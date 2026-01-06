@@ -1997,7 +1997,6 @@ export class Controller implements IController {
 				if (example.indexOf("/") >= 0) {
 					name = example.substring(example.lastIndexOf("/") + 1);
 				}
-				name = example;
 			}
 		}
 

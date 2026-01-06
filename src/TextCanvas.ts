@@ -99,10 +99,10 @@ export class TextCanvas implements ICanvas {
 	resetCustomChars(): void { // eslint-disable-line class-methods-use-this
 	}
 
-	setScreenOffset(_offset: number): void { // eslint-disable-line class-methods-use-this
+	setScreenOffset(_offset: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
-	updateColorsAndCanvasImmediately(_inkList: number[]): void { // eslint-disable-line class-methods-use-this
+	updateColorsAndCanvasImmediately(_inkList: number[]): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
 	updateSpeedInk(): void { // eslint-disable-line class-methods-use-this
@@ -127,52 +127,52 @@ export class TextCanvas implements ICanvas {
 		return 0;
 	}
 
-	getByte(_addr: number): number | null { // eslint-disable-line class-methods-use-this
+	getByte(_addr: number): number | null { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 		return 0;
 	}
 
-	setByte(_addr: number, _byte: number): void { // eslint-disable-line class-methods-use-this
+	setByte(_addr: number, _byte: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
-	draw(_x: number, _y: number): void { // eslint-disable-line class-methods-use-this
+	draw(_x: number, _y: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
-	move(_x: number, _y: number): void { // eslint-disable-line class-methods-use-this
+	move(_x: number, _y: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
-	plot(_x: number, _y: number): void { // eslint-disable-line class-methods-use-this
+	plot(_x: number, _y: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
-	test(_x: number, _y: number): number { // eslint-disable-line class-methods-use-this
+	test(_x: number, _y: number): number { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 		return 0;
 	}
 
-	setInk(_pen: number, _ink1: number, _ink2: number): boolean { // eslint-disable-line class-methods-use-this
+	setInk(_pen: number, _ink1: number, _ink2: number): boolean { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 		return false;
 	}
 
-	setBorder(_ink1: number, _ink2: number): void { // eslint-disable-line class-methods-use-this
+	setBorder(_ink1: number, _ink2: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
-	setGPen(_gPen: number): void { // eslint-disable-line class-methods-use-this
+	setGPen(_gPen: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
 	setGPaper(_gPaper: number): void { // eslint-disable-line class-methods-use-this
 	}
 
-	setGTransparentMode(_transparent: boolean): void { // eslint-disable-line class-methods-use-this
+	setGTransparentMode(_transparent: boolean): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
-	printGChar(_char: number): void { // eslint-disable-line class-methods-use-this
+	printGChar(_char: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
-	drawCursor(_x: number, _y: number, _pen: number, _paper: number): void { // eslint-disable-line class-methods-use-this
+	drawCursor(_x: number, _y: number, _pen: number, _paper: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
-	fill(_fillPen: number): void { // eslint-disable-line class-methods-use-this
+	fill(_fillPen: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
-	setOrigin(_xOrig: number, _yOrig: number): void { // eslint-disable-line class-methods-use-this
+	setOrigin(_xOrig: number, _yOrig: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
 	getXOrigin(): number { // eslint-disable-line class-methods-use-this
@@ -183,29 +183,29 @@ export class TextCanvas implements ICanvas {
 		return 0;
 	}
 
-	setGWindow(_xLeft: number, _xRight: number, _yTop: number, _yBottom: number): void { // eslint-disable-line class-methods-use-this
+	setGWindow(_xLeft: number, _xRight: number, _yTop: number, _yBottom: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
-	setGColMode(_gColMode: number): void { // eslint-disable-line class-methods-use-this
+	setGColMode(_gColMode: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
 	clearGraphicsWindow(): void { // eslint-disable-line class-methods-use-this
 	}
 
-	setSpeedInk(_time1: number, _time2: number): void { // eslint-disable-line class-methods-use-this
+	setSpeedInk(_time1: number, _time2: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
-	setMask(_mask: number): void { // eslint-disable-line class-methods-use-this
+	setMask(_mask: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
-	setMaskFirst(_maskFirst: number): void { // eslint-disable-line class-methods-use-this
+	setMaskFirst(_maskFirst: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
 	getMode(): number { // eslint-disable-line class-methods-use-this
 		return 0;
 	}
 
-	changeMode(_mode: number): void { // eslint-disable-line class-methods-use-this
+	changeMode(_mode: number): void { // eslint-disable-line class-methods-use-this, @typescript-eslint/no-unused-vars
 	}
 
 	takeScreenShot(): string { // eslint-disable-line class-methods-use-this

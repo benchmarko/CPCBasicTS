@@ -153,8 +153,14 @@ export class BasicTokenizer {
 		return "|" + name;
 	}
 
+	private static fnControlsToUnicode(s: string) {
+		return s.replace(/[\x00-\x1F\x80-\x9F]/g, function (ch) { // eslint-disable-line no-control-regex
+			return String.fromCharCode(ch.charCodeAt(0) + 0x100);
+		});
+	}
+
 	private fnStringUntilEol() {
-		const out = this.input.substring(this.pos, this.lineEnd - 1); // take remaining line
+		const out = BasicTokenizer.fnControlsToUnicode(this.input.substring(this.pos, this.lineEnd - 1)); // take remaining line
 
 		this.pos = this.lineEnd;
 		return out;
@@ -173,12 +179,14 @@ export class BasicTokenizer {
 		let out = "";
 
 		if (closingQuotes < 0 || closingQuotes >= this.lineEnd) { // unclosed quoted string (quotes not found or not in this line)
-			out = this.fnStringUntilEol(); // take remaining line
+			out = BasicTokenizer.fnControlsToUnicode(this.fnStringUntilEol()); // take remaining line
 		} else {
-			out = this.input.substring(this.pos, closingQuotes + 1);
+			out = BasicTokenizer.fnControlsToUnicode(this.input.substring(this.pos, closingQuotes + 1));
 			this.pos = closingQuotes + 1; // after quotes
 		}
 		out = '"' + out;
+
+		//TODO: is this still needed?
 		if (out.indexOf("\r") >= 0) {
 			Utils.console.log("BasicTokenizer line", this.line, ": string contains CR, replaced by CHR$(13)");
 			out = out.replace(/\r/g, '"+chr$(13)+"');
@@ -464,7 +472,7 @@ export class BasicTokenizer {
 			}
 		}
 
-		this.needSpace = ((token >= 0x02 && token <= 0x1f) || (token === 0x7c)); // constant 0..9; variable, or RSX?
+		this.needSpace = ((token >= 0x05 && token <= 0x0d) || (token === 0x7c)); // variable without suffix, or RSX?
 
 		let tokenValue: string | (() => string);
 
@@ -480,7 +488,8 @@ export class BasicTokenizer {
 		if (tokenValue !== undefined) {
 			tstr = typeof tokenValue === "function" ? tokenValue.call(this) : tokenValue;
 
-			if ((/[a-zA-Z0-9.]$/).test(tstr) && token !== 0xe4) { // last character char, number, dot? (not for token "FN")
+			//if ((/[a-zA-Z0-9.]$/).test(tstr) && token !== 0xe4) { // last character char, number, dot? (not for token "FN")
+			if ((/[a-zA-Z.]$/).test(tstr) && token !== 0xe4) { // last character char, dot? (not for token "FN")
 				this.needSpace = true; // maybe need space next time...
 			}
 		} else { // normal ASCII
@@ -488,7 +497,8 @@ export class BasicTokenizer {
 		}
 
 		if (oldNeedSpace) {
-			if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
+			//if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
+			if ((/^[a-zA-Z$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
 				tstr = " " + tstr;
 			}
 		}

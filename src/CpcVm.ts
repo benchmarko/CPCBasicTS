@@ -710,12 +710,8 @@ export class CpcVm implements ICpcVm {
 
 		this.progEnd = addr + tokens.length;
 		for (let i = 0; i < tokens.length; i += 1) {
-			let code = tokens.charCodeAt(i);
+			const code = CpcVm.vmGetCharCodeAt(tokens, i);
 
-			if (code > 255) {
-				Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
-				code = 0x20;
-			}
 			this.poke(addr + i, code);
 		}
 	}
@@ -1218,6 +1214,10 @@ export class CpcVm implements ICpcVm {
 		return this.outBuffer;
 	}
 
+	private vmPrint2OutBuffer(s: string) {
+		this.outBuffer += CpcVm.vmWithControlCodes(s);
+	}
+
 	private vmDrawMovePlot(type: string, gPen?: number, gColMode?: number) {
 		if (gPen !== undefined) {
 			gPen = this.vmInRangeRound(gPen, 0, 15, type);
@@ -1317,10 +1317,35 @@ export class CpcVm implements ICpcVm {
 		this.vmAfterEveryGosub("AFTER", interval, timer, line);
 	}
 
+	private static vmGetCharCodeAt(s: string, i: number) {
+		const code = s.charCodeAt(i);
+
+		if (code < 0x100 || code >= 0x200) {
+			return code;
+		}
+		return code & 0xFF; // eslint-disable-line no-bitwise
+	}
+
+	private static vmWithControlCodes(s:string) {
+		let out = "";
+
+		for (let i = 0; i < s.length; i += 1) {
+			out += String.fromCharCode(CpcVm.vmGetCharCodeAt(s, i));
+		}
+		return out;
+	}
+	/*
 	private static vmGetCpcCharCode(code: number): number {
-		if (code > 255) { // map some UTF-8 character codes
+		return code & 0xFF; // eslint-disable-line no-bitwise
+	}
+	*/
+
+	private static vmGetCpcCharCode(code: number): number {
+		if (code > 0xff) { // map some UTF-8 character codes
 			if (CpcVm.utf8ToCpc[code]) {
 				code = CpcVm.utf8ToCpc[code];
+			} else if (code <= 0x1FF) {
+				code &= 0xFF; // eslint-disable-line no-bitwise
 			}
 		}
 		return code;
@@ -2402,7 +2427,7 @@ export class CpcVm implements ICpcVm {
 		if (!search.length) {
 			return startPos + 1;
 		}
-		return str.indexOf(search, startPos) + 1;
+		return CpcVm.vmWithControlCodes(str).indexOf(CpcVm.vmWithControlCodes(search), startPos) + 1;
 	}
 
 	"int"(n: number): number {
@@ -3128,7 +3153,7 @@ export class CpcVm implements ICpcVm {
 		if (x > (right - left)) {
 			y += 1;
 			x = 0;
-			this.outBuffer += "\n";
+			this.vmPrint2OutBuffer("\n");
 		}
 
 		if (x < 0) {
@@ -3326,7 +3351,7 @@ export class CpcVm implements ICpcVm {
 			win.vpos = 0;
 			break;
 		case 0x1f: // US
-			this.vmLocate(stream, para.charCodeAt(0), para.charCodeAt(1));
+			this.vmLocate(stream, CpcVm.vmGetCharCodeAt(para, 0), CpcVm.vmGetCharCodeAt(para, 1));
 			break;
 		default:
 			Utils.console.warn("vmHandleControlCode: Unknown control code:", code);
@@ -3341,7 +3366,7 @@ export class CpcVm implements ICpcVm {
 			i = 0;
 
 		while (i < str.length) {
-			const code = str.charCodeAt(i);
+			const code = CpcVm.vmGetCharCodeAt(str, i);
 
 			i += 1;
 			if (code <= 0x1f) { // control code?
@@ -3429,9 +3454,9 @@ export class CpcVm implements ICpcVm {
 					}
 					buf = this.vmPrintCharsOrControls(stream, str);
 				}
-				this.outBuffer += str; // console
+				this.vmPrint2OutBuffer(str); // console
 			} else if (stream === 8) { // printer?
-				this.outBuffer += str; // put also in console
+				this.vmPrint2OutBuffer(str); // put also in console
 			} else { // stream === 9
 				const lastCrPos = buf.lastIndexOf("\r");
 
@@ -4286,13 +4311,13 @@ export class CpcVm implements ICpcVm {
 				this.vmPrintGraphChars(str + "\r\n");
 			} else {
 				this.vmDrawUndrawCursor(stream); // undraw
-				this.vmPrintChars(stream, str);
+				this.vmPrintCharsOrControls(stream, str);
 				this.vmPrintCharsOrControls(stream, "\r\n");
 				this.vmDrawUndrawCursor(stream); // draw
 			}
-			this.outBuffer += str + "\n"; // console
+			this.vmPrint2OutBuffer(str + "\n"); // console
 		} else if (stream === 8) { // printer?
-			this.outBuffer += str + "\n"; // console
+			this.vmPrint2OutBuffer(str + "\n"); // console
 		} else if (stream === 9) {
 			this.outFile.stream = stream;
 			if (!this.outFile.open) {
