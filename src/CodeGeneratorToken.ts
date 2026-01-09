@@ -13,16 +13,18 @@ interface CodeGeneratorTokenOptions {
 	lexer: BasicLexer
 	parser: BasicParser
 	quiet?: boolean
+	allowLineFragments?: boolean
 	implicitLines?: boolean
 }
 
 export class CodeGeneratorToken {
 	private readonly options: CodeGeneratorTokenOptions;
 
-	private label = ""; // current line (label)
+	private label = "0"; // current line (label)
 
 	constructor(options: CodeGeneratorTokenOptions) {
 		this.options = {
+			allowLineFragments: false, // only for testing
 			implicitLines: false,
 			quiet: false
 		} as CodeGeneratorTokenOptions;
@@ -457,18 +459,22 @@ export class CodeGeneratorToken {
 		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(Number(node.value));
 	}
 	private fnLabel(node: ParserNode) {
-		if (this.options.implicitLines) {
-			if (node.value === "") { // direct
-				node.value = String(Number(this.label) + 1);
+		if (node.value === "") { // direct
+			if (this.options.implicitLines) {
+				node.value = String(Number(this.label) + 1); // no line => we just increase the last line by 1
+			} else if (!this.options.allowLineFragments) {
+				throw this.composeError(Error(), "Direct command found", node.value, node.pos);
 			}
+			// only for allowLineFragments we allow to use an empty label
 		}
+
 		this.label = node.value; // set line before parsing args
 
 		const line = Number(this.label),
 			nodeArgs = this.fnParseArgs(node.args);
 		let value = nodeArgs.join("");
 
-		if (node.value !== "") { // direct
+		if (node.value !== "") { // not direct
 			if (value.charAt(0) === " ") { // remove one space (implicit space after label)
 				value = value.substring(1);
 			}
@@ -626,7 +632,7 @@ export class CodeGeneratorToken {
 				}
 			}
 		}
-		if (this.label || !output.length) {
+		if (this.label) {
 			output += CodeGeneratorToken.token2String("_eol") + CodeGeneratorToken.token2String("_eol"); // 2 times eol is eof
 		}
 		return output;
@@ -637,7 +643,7 @@ export class CodeGeneratorToken {
 			text: ""
 		};
 
-		this.label = "";
+		this.label = "0";
 		try {
 			const tokens = this.options.lexer.lex(input),
 				parseTree = this.options.parser.parse(tokens),

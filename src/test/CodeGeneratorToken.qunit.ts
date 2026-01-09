@@ -777,7 +777,8 @@ function createCodeGeneratorToken() {
 	return new CodeGeneratorToken({
 		quiet: true,
 		lexer: basicLexer,
-		parser: basicParser
+		parser: basicParser,
+		allowLineFragments: true
 	});
 }
 
