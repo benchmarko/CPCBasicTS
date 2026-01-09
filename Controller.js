@@ -724,6 +724,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (lineParts[0] === "") {
                 lineParts.shift(); // remove first empty item
             }
+            if (lineParts.length % 2 !== 0) {
+                Utils_1.Utils.console.warn("splitLines: No line numbers?");
+                var error = this.vm.vmComposeError(Error(), 21, "split"); // "Direct command found"
+                this.outputError(error, true);
+                return lines;
+            }
             for (var i = 0; i < lineParts.length; i += 2) {
                 var number = lineParts[i];
                 var content = lineParts[i + 1];
@@ -1156,7 +1162,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
                 var exampleEntry = _this.model.getExample(example);
                 if (!suppressLog) {
-                    Utils_1.Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + " loaded");
+                    Utils_1.Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + "loaded");
                 }
                 _this.model.setProperty("example" /* ModelPropID.example */, inFile.memorizedExample);
                 _this.vm.vmStop("", 0, true);
@@ -1374,7 +1380,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             var error;
             if (lines.length) {
                 for (var i = 0; i < lines.length; i += 1) {
-                    var line = parseInt(lines[i], 10);
+                    var line = Controller.parseLineNumber(lines[i]);
                     if (isNaN(line)) {
                         error = this.vm.vmComposeError(Error(), 21, paras.command); // "Direct command found"
                         this.outputError(error, true);
@@ -1643,13 +1649,14 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     }
                     if (exportTokenized && meta.typeString === "A") { // do we need to tokenize it?
                         var tokens = this.encodeTokenizedBasic(data);
-                        if (tokens) { // successful?
-                            data = tokens;
-                            meta.typeString = "T";
-                            meta.start = 0x170;
-                            meta.length = data.length;
-                            meta.entry = 0;
+                        if (!tokens) { // not successful?
+                            return;
                         }
+                        data = tokens;
+                        meta.typeString = "T";
+                        meta.start = 0x170;
+                        meta.length = data.length;
+                        meta.entry = 0;
                     }
                     if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
                         var _a = DiskImage_1.DiskImage.getFilenameAndExtension(name), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline
@@ -1813,7 +1820,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (input !== "") { // direct input
                 this.vm.cursor(stream, 0);
                 var inputText = this.view.getAreaValue("inputText" /* ViewID.inputText */);
-                if ((/^\d+($| )/).test(input)) { // start with number?
+                if (!isNaN(Controller.parseLineNumber(input))) { // start with number?
                     if (Utils_1.Utils.debug > 0) {
                         Utils_1.Utils.console.debug("fnDirectInput: insert line=" + input);
                     }
@@ -1829,7 +1836,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 Utils_1.Utils.console.log("fnDirectInput: execute:", input);
                 var codeGeneratorJs = this.codeGeneratorJs;
                 var output = void 0, outputString = void 0;
-                if (inputText && ((/^\d+($| )/).test(inputText) || this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */))) { // do we have a program starting with a line number?
+                if (inputText && (!isNaN(Controller.parseLineNumber(inputText)) || this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */))) { // do we have a program starting with a line number?
                     var separator = inputText.endsWith("\n") ? "" : "\n";
                     this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);
                     output = codeGeneratorJs.generate(inputText + separator + input, this.variables, true); // compile both; allow direct command

@@ -873,10 +873,18 @@ export class Controller implements IController {
 
 		// get numbers starting at the beginning of a line (allows some simple multi line strings)
 		const lineParts = input.split(/^(\s*\d+)/m),
-			lines = [];
+			lines: string[] = [];
 
 		if (lineParts[0] === "") {
 			lineParts.shift(); // remove first empty item
+		}
+
+		if (lineParts.length % 2 !== 0) {
+			Utils.console.warn("splitLines: No line numbers?");
+			const error = this.vm.vmComposeError(Error(), 21, "split"); // "Direct command found"
+
+			this.outputError(error, true);
+			return lines;
 		}
 
 		for (let i = 0; i < lineParts.length; i += 2) {
@@ -1451,7 +1459,7 @@ export class Controller implements IController {
 			const exampleEntry = this.model.getExample(example);
 
 			if (!suppressLog) {
-				Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + " loaded");
+				Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + "loaded");
 			}
 			this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
 			this.vm.vmStop("", 0, true);
@@ -1714,7 +1722,7 @@ export class Controller implements IController {
 
 		if (lines.length) {
 			for (let i = 0; i < lines.length; i += 1) {
-				const line = parseInt(lines[i], 10);
+				const line = Controller.parseLineNumber(lines[i]);
 
 				if (isNaN(line)) {
 					error = this.vm.vmComposeError(Error(), 21, paras.command); // "Direct command found"
@@ -2073,13 +2081,15 @@ export class Controller implements IController {
 				if (exportTokenized && meta.typeString === "A") { // do we need to tokenize it?
 					const tokens = this.encodeTokenizedBasic(data);
 
-					if (tokens) { // successful?
-						data = tokens;
-						meta.typeString = "T";
-						meta.start = 0x170;
-						meta.length = data.length;
-						meta.entry = 0;
+					if (!tokens) { // not successful?
+						return;
 					}
+
+					data = tokens;
+					meta.typeString = "T";
+					meta.start = 0x170;
+					meta.length = data.length;
+					meta.entry = 0;
 				}
 
 				if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
@@ -2274,7 +2284,7 @@ export class Controller implements IController {
 			this.vm.cursor(stream, 0);
 			const inputText = this.view.getAreaValue(ViewID.inputText);
 
-			if ((/^\d+($| )/).test(input)) { // start with number?
+			if (!isNaN(Controller.parseLineNumber(input))) { // start with number?
 				if (Utils.debug > 0) {
 					Utils.console.debug("fnDirectInput: insert line=" + input);
 				}
@@ -2296,7 +2306,7 @@ export class Controller implements IController {
 			let	output: IOutput | undefined,
 				outputString: string;
 
-			if (inputText && ((/^\d+($| )/).test(inputText) || this.model.getProperty<boolean>(ModelPropID.implicitLines))) { // do we have a program starting with a line number?
+			if (inputText && (!isNaN(Controller.parseLineNumber(inputText)) || this.model.getProperty<boolean>(ModelPropID.implicitLines))) { // do we have a program starting with a line number?
 				const separator = inputText.endsWith("\n") ? "" : "\n";
 
 				this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);

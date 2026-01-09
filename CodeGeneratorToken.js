@@ -9,7 +9,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.CodeGeneratorToken = void 0;
     var CodeGeneratorToken = /** @class */ (function () {
         function CodeGeneratorToken(options) {
-            this.label = ""; // current line (label)
+            this.label = "0"; // current line (label)
             /* eslint-disable no-invalid-this */
             this.parseFunctions = {
                 args: this.fnArgs,
@@ -36,6 +36,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 "'": this.fnElseOrApostrophe
             };
             this.options = {
+                allowLineFragments: false,
                 implicitLines: false,
                 quiet: false
             };
@@ -170,15 +171,19 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(Number(node.value));
         };
         CodeGeneratorToken.prototype.fnLabel = function (node) {
-            if (this.options.implicitLines) {
-                if (node.value === "") { // direct
-                    node.value = String(Number(this.label) + 1);
+            if (node.value === "") { // direct
+                if (this.options.implicitLines) {
+                    node.value = String(Number(this.label) + 1); // no line => we just increase the last line by 1
                 }
+                else if (!this.options.allowLineFragments) {
+                    throw this.composeError(Error(), "Direct command found", node.value, node.pos);
+                }
+                // only for allowLineFragments we allow to use an empty label
             }
             this.label = node.value; // set line before parsing args
             var line = Number(this.label), nodeArgs = this.fnParseArgs(node.args);
             var value = nodeArgs.join("");
-            if (node.value !== "") { // direct
+            if (node.value !== "") { // not direct
                 if (value.charAt(0) === " ") { // remove one space (implicit space after label)
                     value = value.substring(1);
                 }
@@ -285,7 +290,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     }
                 }
             }
-            if (this.label || !output.length) {
+            if (this.label) {
                 output += CodeGeneratorToken.token2String("_eol") + CodeGeneratorToken.token2String("_eol"); // 2 times eol is eof
             }
             return output;
@@ -294,7 +299,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var out = {
                 text: ""
             };
-            this.label = "";
+            this.label = "0";
             try {
                 var tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);
                 out.text = output;

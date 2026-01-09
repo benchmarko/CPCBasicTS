@@ -924,6 +924,7 @@ declare module "CodeGeneratorToken" {
         lexer: BasicLexer;
         parser: BasicParser;
         quiet?: boolean;
+        allowLineFragments?: boolean;
         implicitLines?: boolean;
     }
     export class CodeGeneratorToken {

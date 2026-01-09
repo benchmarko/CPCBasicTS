@@ -756,7 +756,8 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
         return new CodeGeneratorToken_1.CodeGeneratorToken({
             quiet: true,
             lexer: basicLexer,
-            parser: basicParser
+            parser: basicParser,
+            allowLineFragments: true
         });
     }
     QUnit.module("CodeGeneratorToken: Tests", function (hooks) {

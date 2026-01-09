@@ -5,6 +5,7 @@ interface CodeGeneratorTokenOptions {
     lexer: BasicLexer;
     parser: BasicParser;
     quiet?: boolean;
+    allowLineFragments?: boolean;
     implicitLines?: boolean;
 }
 export declare class CodeGeneratorToken {
