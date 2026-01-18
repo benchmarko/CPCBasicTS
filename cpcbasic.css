@@ -61,6 +61,7 @@ font-family: monospace;
   	top: 100%;
   	margin-top: 5px;
 	white-space: nowrap;
+	flex-direction: column;
 }
 
 .popover.right-align {
@@ -130,6 +131,7 @@ font-family: monospace;
 .kbdArea {
 	width: auto;
 	user-select: none;
+	float: left;
 }
 
 .displayFlex {
