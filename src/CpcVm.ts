@@ -705,15 +705,22 @@ export class CpcVm implements ICpcVm {
 		this.soundData.length = 0;
 	}
 
-	vmPutProgramInMem(tokens: string): void {
-		const addr = CpcVm.progStart + 1; // 368=0x170
+	vmPutProgramInMem(tokens: string): number {
+		const addr = CpcVm.progStart + 1, // 368=0x170
+			tokensLen = addr + tokens.length > 0xffff ? 0xffff - addr : tokens.length; // prevent overflow
 
-		this.progEnd = addr + tokens.length;
-		for (let i = 0; i < tokens.length; i += 1) {
+		this.progEnd = addr + tokensLen;
+		for (let i = 0; i < tokensLen; i += 1) {
 			const code = CpcVm.vmGetCharCodeAt(tokens, i);
 
 			this.poke(addr + i, code);
 		}
+		if (tokensLen < tokens.length) {
+			if (!this.quiet) {
+				Utils.console.warn("vmPutProgramInMem: program too large (" + tokens.length + "), truncated by", tokens.length - tokensLen, "to fit in memory");
+			}
+		}
+		return tokensLen;
 	}
 
 	setCanvas(canvas: ICanvas): ICanvas {

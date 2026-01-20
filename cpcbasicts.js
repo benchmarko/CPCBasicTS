@@ -13597,12 +13597,19 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             this.soundData.length = 0;
         };
         CpcVm.prototype.vmPutProgramInMem = function (tokens) {
-            var addr = CpcVm.progStart + 1; // 368=0x170
-            this.progEnd = addr + tokens.length;
-            for (var i = 0; i < tokens.length; i += 1) {
+            var addr = CpcVm.progStart + 1, // 368=0x170
+            tokensLen = addr + tokens.length > 0xffff ? 0xffff - addr : tokens.length; // prevent overflow
+            this.progEnd = addr + tokensLen;
+            for (var i = 0; i < tokensLen; i += 1) {
                 var code = CpcVm.vmGetCharCodeAt(tokens, i);
                 this.poke(addr + i, code);
             }
+            if (tokensLen < tokens.length) {
+                if (!this.quiet) {
+                    Utils_21.Utils.console.warn("vmPutProgramInMem: program too large (" + tokens.length + "), truncated by", tokens.length - tokensLen, "to fit in memory");
+                }
+            }
+            return tokensLen;
         };
         CpcVm.prototype.setCanvas = function (canvas) {
             this.canvas = canvas;

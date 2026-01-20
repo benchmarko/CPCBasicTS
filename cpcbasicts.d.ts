@@ -1894,7 +1894,7 @@ declare module "CpcVm" {
         vmResetData(): void;
         private vmResetInks;
         vmReset4Run(): void;
-        vmPutProgramInMem(tokens: string): void;
+        vmPutProgramInMem(tokens: string): number;
         setCanvas(canvas: ICanvas): ICanvas;
         vmGetLoadHandler(): LoadHandlerType;
         vmGetMem(): number[];
