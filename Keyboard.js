@@ -298,9 +298,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var keyBuffer = this.keyBuffer, key = keyBuffer.length ? keyBuffer.shift() : "";
             return key;
         };
-        Keyboard.prototype.putKeyInBuffer = function (key, triggerOnkeydown) {
+        Keyboard.prototype.putKeyInBuffer = function (key, triggerOnKeyDown) {
             this.keyBuffer.push(key);
-            if (triggerOnkeydown) {
+            if (triggerOnKeyDown) {
                 var keyDownHandler = this.options.fnOnKeyDown;
                 if (keyDownHandler) {
                     keyDownHandler();

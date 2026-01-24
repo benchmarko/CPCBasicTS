@@ -8988,9 +8988,9 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
             var keyBuffer = this.keyBuffer, key = keyBuffer.length ? keyBuffer.shift() : "";
             return key;
         };
-        Keyboard.prototype.putKeyInBuffer = function (key, triggerOnkeydown) {
+        Keyboard.prototype.putKeyInBuffer = function (key, triggerOnKeyDown) {
             this.keyBuffer.push(key);
-            if (triggerOnkeydown) {
+            if (triggerOnKeyDown) {
                 var keyDownHandler = this.options.fnOnKeyDown;
                 if (keyDownHandler) {
                     keyDownHandler();
@@ -13984,6 +13984,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         };
         CpcVm.prototype.vmGetInFileObject = function () {
             return this.inFile;
+        };
+        CpcVm.prototype.vmGetKeyboard = function () {
+            return this.keyboard;
         };
         CpcVm.prototype.vmGetOutFileObject = function () {
             return this.outFile;

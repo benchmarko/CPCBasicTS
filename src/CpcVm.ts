@@ -1172,6 +1172,10 @@ export class CpcVm implements ICpcVm {
 		return this.inFile;
 	}
 
+	vmGetKeyboard(): Keyboard {
+		return this.keyboard;
+	}
+
 	vmGetOutFileObject(): OutFile {
 		return this.outFile;
 	}

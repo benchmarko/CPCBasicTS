@@ -700,6 +700,9 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
         CpcVm.prototype.vmGetInFileObject = function () {
             return this.inFile;
         };
+        CpcVm.prototype.vmGetKeyboard = function () {
+            return this.keyboard;
+        };
         CpcVm.prototype.vmGetOutFileObject = function () {
             return this.outFile;
         };

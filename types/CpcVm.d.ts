@@ -212,6 +212,7 @@ export declare class CpcVm implements ICpcVm {
     private vmUsingFormat;
     vmGetStopObject(): VmStopEntry;
     vmGetInFileObject(): InFile;
+    vmGetKeyboard(): Keyboard;
     vmGetOutFileObject(): OutFile;
     vmAdaptFilename(name: string, err: string): string;
     vmGetSoundData(): SoundData[];

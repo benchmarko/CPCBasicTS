@@ -42,7 +42,7 @@ export declare class Keyboard {
     private fnKeyboardKeydown;
     private fnKeyboardKeyup;
     getKeyFromBuffer(): string;
-    putKeyInBuffer(key: string, triggerOnkeydown?: boolean): void;
+    putKeyInBuffer(key: string, triggerOnKeyDown?: boolean): void;
     putKeysInBuffer(input: string): void;
     getKeyState(cpcKeyCode: number): number;
     getJoyState(joy: number): number;
