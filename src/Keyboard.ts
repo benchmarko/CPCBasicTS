@@ -571,10 +571,10 @@ export class Keyboard {
 		return key;
 	}
 
-	putKeyInBuffer(key: string, triggerOnkeydown?: boolean): void {
+	putKeyInBuffer(key: string, triggerOnKeyDown?: boolean): void {
 		this.keyBuffer.push(key);
 
-		if (triggerOnkeydown) {
+		if (triggerOnKeyDown) {
 			const keyDownHandler = this.options.fnOnKeyDown;
 
 			if (keyDownHandler) {
