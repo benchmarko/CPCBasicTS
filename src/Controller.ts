@@ -1928,7 +1928,11 @@ export class Controller implements IController {
 			if (Utils.debug) {
 				Utils.console.debug("parse: input length:", input.length, ", tokenized length:", tokens.length);
 			}
-			this.vm.vmPutProgramInMem(tokens);
+			try {
+				this.vm.vmPutProgramInMem(tokens);
+			} catch (e) {
+				Utils.console.error("vmPutProgramInMem", e);
+			}
 		}
 
 		if (outputString && outputString.length > 0) {

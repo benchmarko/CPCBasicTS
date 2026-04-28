@@ -710,10 +710,21 @@ export class CpcVm implements ICpcVm {
 			tokensLen = addr + tokens.length > 0xffff ? 0xffff - addr : tokens.length; // prevent overflow
 
 		this.progEnd = addr + tokensLen;
-		for (let i = 0; i < tokensLen; i += 1) {
-			const code = CpcVm.vmGetCharCodeAt(tokens, i);
+		let nonAscii = "";
 
-			this.poke(addr + i, code);
+		for (let i = 0; i < tokensLen; i += 1) {
+			const code = CpcVm.vmGetCharCodeAt(tokens, i),
+				code2Poke = code & 0xff; // eslint-disable-line no-bitwise
+
+			if (code !== code2Poke) {
+				nonAscii += String.fromCharCode(code);
+			}
+			this.poke(addr + i, code2Poke);
+		}
+		if (!this.quiet) {
+			if (!this.quiet) {
+				Utils.console.warn("vmPutProgramInMem: Non-ASCII characters found: " + nonAscii);
+			}
 		}
 		if (tokensLen < tokens.length) {
 			if (!this.quiet) {
