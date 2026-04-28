@@ -1538,7 +1538,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 if (Utils_1.Utils.debug) {
                     Utils_1.Utils.console.debug("parse: input length:", input.length, ", tokenized length:", tokens.length);
                 }
-                this.vm.vmPutProgramInMem(tokens);
+                try {
+                    this.vm.vmPutProgramInMem(tokens);
+                }
+                catch (e) {
+                    Utils_1.Utils.console.error("vmPutProgramInMem", e);
+                }
             }
             if (outputString && outputString.length > 0) {
                 outputString += "\n";
