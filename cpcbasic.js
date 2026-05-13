@@ -63,7 +63,9 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                 decoded = decodeURIComponent(s.replace(rPlus, " "));
             }
             catch (err) {
-                err.message += ": " + s;
+                if (err instanceof Error) {
+                    err.message += ": " + s;
+                }
                 Utils_1.Utils.console.error(err);
             }
             return decoded;
@@ -206,6 +208,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             prettyLowercaseVars: false,
             prettySpace: false,
             processFileImports: true,
+            random: "cpc",
             selectDataFiles: false,
             showConsoleLog: false,
             showCpc: true,

@@ -5,6 +5,7 @@ import { Utils } from "../Utils";
 import { CpcVm, CpcVmOptions, FileMeta } from "../CpcVm";
 import { ICanvas, VmInputParas } from "../Interfaces";
 import { Keyboard } from "../Keyboard";
+import { Random } from "../Random";
 import { Sound } from "../Sound";
 import { Variables } from "../Variables";
 import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
@@ -1363,10 +1364,10 @@ const allTests: AllTestsType = {
 		"": ""
 	},
 	randomize: {
-		"10 ": "undefined",
-		"-17.5": "undefined",
-		"0x89656c07": "undefined",
-		"0 ": "undefined",
+		"10 ": "init:10 -- undefined",
+		"-17.5": "init:-17.5 -- undefined",
+		"0x89656c07": "init:2305125383 -- undefined",
+		"0 ": "init:0 -- undefined",
 		"": 'printChar:82,0,0,1,0,false , printChar:97,1,0,1,0,false , printChar:110,2,0,1,0,false , printChar:100,3,0,1,0,false , printChar:111,4,0,1,0,false , printChar:109,5,0,1,0,false , printChar:32,6,0,1,0,false , printChar:110,7,0,1,0,false , printChar:117,8,0,1,0,false , printChar:109,9,0,1,0,false , printChar:98,10,0,1,0,false , printChar:101,11,0,1,0,false , printChar:114,12,0,1,0,false , printChar:32,13,0,1,0,false , printChar:115,14,0,1,0,false , printChar:101,15,0,1,0,false , printChar:101,16,0,1,0,false , printChar:100,17,0,1,0,false , printChar:32,18,0,1,0,false , printChar:63,19,0,1,0,false , printChar:32,20,0,1,0,false -- 12.76 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"randomize","stream":0,"message":"Random number seed ? ","input":"12.76","line":0}} -- {"_key":"win0","pos":21}',
 		'""': 'CpcVm: Type mismatch in 0: RANDOMIZE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 	},
@@ -1456,10 +1457,10 @@ const allTests: AllTestsType = {
 		"0,1": 'CpcVm: Type mismatch in 0: RIGHT$ 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 	},
 	rnd: {
-		"-1 ": "0.000007826369259425611",
-		"0 ": "0.00000782636925942561",
-		"2 ": "0.000007826369259425611",
-		"": "0.000007826369259425611",
+		"-1 ": "random: -- 0.5",
+		"0 ": "random: -- 0.5",
+		"2 ": "random: -- 0.5",
+		"": "random: -- 0.5",
 		'""': 'CpcVm: Type mismatch in 0: RND  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 	},
 	round: {
@@ -1945,7 +1946,7 @@ const allTests: AllTestsType = {
 		"": "updateSpeedInk: , scheduler: -- true"
 	},
 	vmReset: {
-		"": "resetCustomChars: , setMode:1 , clearFullWindow: , reset: , reset: , reset:"
+		"": "init: , resetCustomChars: , setMode:1 , clearFullWindow: , reset: , reset: , reset:"
 	},
 	vmTrace: {
 		"": 'printChar:91,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:51,3,0,1,0,false , printChar:93,4,0,1,0,false -- {"_key":"win0","pos":5}'
@@ -2357,6 +2358,20 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 		}
 	} as Sound,
 
+	mockRandom = {
+		init: function (...args) {
+			lastTestFunctions.push({
+				init: args
+			});
+		},
+		random: function (...args) {
+			lastTestFunctions.push({
+				random: args
+			});
+			return 0.5;
+		}
+	} as Random,
+
 	mockVariables = {
 		dimVariable: function (...args) {
 			const varName = args[0],
@@ -2409,6 +2424,7 @@ function createCpcVm() {
 	const options: CpcVmOptions = {
 		canvas: mockCanvas,
 		keyboard: mockKeyboard,
+		random: mockRandom,
 		sound: mockSound,
 		variables: mockVariables,
 		quiet: true
@@ -3043,13 +3059,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 			return String(cpcVm.right$.apply(cpcVm, input));
 		},
 		rnd: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			let result = String(cpcVm.rnd.apply(cpcVm, input));
-
-			if (input[0] === 0) {
-				result = result.substring(0, result.length - 1); // IE: remove last digit, on IE11 it is 4, otherwise 5
-			}
-
-			return result;
+			return String(cpcVm.rnd.apply(cpcVm, input));
 		},
 		round: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			return String(cpcVm.round.apply(cpcVm, input));
@@ -3403,6 +3413,7 @@ QUnit.module("CpcVm: vm functions", function (hooks) {
 		const config: CpcVmOptions = {
 			canvas: mockCanvas,
 			keyboard: mockKeyboard,
+			random: mockRandom,
 			sound: mockSound,
 			variables: mockVariables,
 			quiet: true
@@ -3419,6 +3430,7 @@ QUnit.module("CpcVm: vm functions", function (hooks) {
 			minimalKeyboard = {
 				reset: () => undefined
 			} as Keyboard,
+			minimalRandom = {} as Random,
 			minimalSound = {
 				reset: () => undefined
 			} as Sound,
@@ -3426,6 +3438,7 @@ QUnit.module("CpcVm: vm functions", function (hooks) {
 			cpcVm = new CpcVm({
 				canvas: minimalCanvas,
 				keyboard: minimalKeyboard,
+				random: minimalRandom,
 				sound: minimalSound,
 				variables: minimalVariables
 			});

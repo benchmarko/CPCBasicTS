@@ -34,6 +34,7 @@ declare module "Constants" {
         prettyLowercaseVars = "prettyLowercaseVars",
         prettySpace = "prettySpace",
         processFileImports = "processFileImports",
+        random = "random",
         selectDataFiles = "selectDataFiles",
         showConsoleLog = "showConsoleLog",
         showCpc = "showCpc",
@@ -1577,8 +1578,8 @@ declare module "CommonEventHandler" {
 }
 declare module "Random" {
     export class Random {
-        private x;
-        constructor(seed?: number);
+        private rndGen;
+        constructor(useCpcRandom?: boolean);
         init(seed?: number): void;
         random(): number;
     }
@@ -1725,11 +1726,13 @@ declare module "CpcVm" {
     import { CustomError } from "Utils";
     import { ICpcVm, ICanvas, VariableValue, VmStopParas, ICpcVmRsx } from "Interfaces";
     import { Keyboard } from "Keyboard";
+    import { Random } from "Random";
     import { Sound, SoundData } from "Sound";
     import { Variables, VariableMap, VariableTypeMap } from "Variables";
     export interface CpcVmOptions {
         canvas: ICanvas;
         keyboard: Keyboard;
+        random: Random;
         sound: Sound;
         variables: Variables;
         quiet?: boolean;
@@ -2103,7 +2106,6 @@ declare module "CpcVm" {
         private vmPrintGraphChars;
         print(stream: number, ...args: (string | number | PrintObjectType)[]): void;
         rad(): void;
-        private static vmHashCode;
         private vmRandomizeCallback;
         randomize(n?: number): void;
         read(varType: string): string | number;

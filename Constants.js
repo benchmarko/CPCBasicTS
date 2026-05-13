@@ -30,6 +30,7 @@ define(["require", "exports"], function (require, exports) {
         ModelPropID["prettyLowercaseVars"] = "prettyLowercaseVars";
         ModelPropID["prettySpace"] = "prettySpace";
         ModelPropID["processFileImports"] = "processFileImports";
+        ModelPropID["random"] = "random";
         ModelPropID["selectDataFiles"] = "selectDataFiles";
         ModelPropID["showConsoleLog"] = "showConsoleLog";
         ModelPropID["showCpc"] = "showCpc";

@@ -1,11 +1,13 @@
 import { CustomError } from "./Utils";
 import { ICpcVm, ICanvas, VariableValue, VmStopParas, ICpcVmRsx } from "./Interfaces";
 import { Keyboard } from "./Keyboard";
+import { Random } from "./Random";
 import { Sound, SoundData } from "./Sound";
 import { Variables, VariableMap, VariableTypeMap } from "./Variables";
 export interface CpcVmOptions {
     canvas: ICanvas;
     keyboard: Keyboard;
+    random: Random;
     sound: Sound;
     variables: Variables;
     quiet?: boolean;
@@ -379,7 +381,6 @@ export declare class CpcVm implements ICpcVm {
     private vmPrintGraphChars;
     print(stream: number, ...args: (string | number | PrintObjectType)[]): void;
     rad(): void;
-    private static vmHashCode;
     private vmRandomizeCallback;
     randomize(n?: number): void;
     read(varType: string): string | number;

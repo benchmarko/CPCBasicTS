@@ -11,7 +11,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     }
     return to.concat(ar || Array.prototype.slice.call(from));
 };
-define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (require, exports, Utils_1, Random_1, CpcVmRsx_1) {
+define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, exports, Utils_1, CpcVmRsx_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CpcVm = void 0;
@@ -76,11 +76,12 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             this.setOptions(options);
             this.canvas = this.setCanvas(options.canvas);
             this.keyboard = options.keyboard;
+            this.random = options.random;
             this.soundClass = options.sound;
             this.variables = options.variables;
             this.quiet = Boolean(options.quiet);
             this.onClickKey = options.onClickKey;
-            this.random = new Random_1.Random();
+            //this.random = new Random();
             this.stopCount = this.initialStop;
             this.stopEntry = {
                 reason: "",
@@ -2748,21 +2749,6 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
         CpcVm.prototype.rad = function () {
             this.degFlag = false;
         };
-        // https://en.wikipedia.org/wiki/Jenkins_hash_function
-        CpcVm.vmHashCode = function (s) {
-            var hash = 0;
-            /* eslint-disable no-bitwise */
-            for (var i = 0; i < s.length; i += 1) {
-                hash += s.charCodeAt(i);
-                hash += hash << 10;
-                hash ^= hash >> 6;
-            }
-            hash += hash << 3;
-            hash ^= hash >> 11;
-            hash += hash << 15;
-            /* eslint-enable no-bitwise */
-            return hash;
-        };
         CpcVm.prototype.vmRandomizeCallback = function () {
             var inputParas = this.vmGetStopObject().paras, input = inputParas.input, value = this.vmVal(input); // convert to number (also binary, hex)
             var inputOk = true;
@@ -2780,8 +2766,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             return inputOk;
         };
         CpcVm.prototype.randomize = function (n) {
-            var rndInit = 0x89656c07, // an arbitrary 32 bit number <> 0 (this one is used by the CPC)
-            stream = 0;
+            var stream = 0;
             if (n === undefined) { // no argument? input...
                 var msg = "Random number seed ? ";
                 this.print(stream, msg);
@@ -2795,12 +2780,8 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 };
                 this.vmStop("waitInput", 45, false, inputParas);
             }
-            else { // n can also be floating point, so compute a hash value of n
+            else { // n can also be floating point
                 this.vmAssertNumber(n, "RANDOMIZE");
-                n = CpcVm.vmHashCode(String(n));
-                if (n === 0) {
-                    n = rndInit;
-                }
                 if (Utils_1.Utils.debug > 1) {
                     Utils_1.Utils.console.debug("randomize:", n);
                 }

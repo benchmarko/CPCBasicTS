@@ -21,6 +21,7 @@ export declare const enum ModelPropID {
     prettyLowercaseVars = "prettyLowercaseVars",
     prettySpace = "prettySpace",
     processFileImports = "processFileImports",
+    random = "random",
     selectDataFiles = "selectDataFiles",
     showConsoleLog = "showConsoleLog",
     showCpc = "showCpc",

@@ -1,6 +1,6 @@
 export declare class Random {
-    private x;
-    constructor(seed?: number);
+    private rndGen;
+    constructor(useCpcRandom?: boolean);
     init(seed?: number): void;
     random(): number;
 }

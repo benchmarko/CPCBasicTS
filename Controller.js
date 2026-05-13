@@ -2,7 +2,7 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./NoCanvas", "./TextCanvas", "./VirtualKeyboard", "./Snapshot", "./Sound", "./Variables", "./View", "./DragElement", "./RsxAmsdos", "./RsxCpcBasic", "./Z80Disass"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Snapshot_1, Sound_1, Variables_1, View_1, DragElement_1, RsxAmsdos_1, RsxCpcBasic_1, Z80Disass_1) {
+define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./NoCanvas", "./TextCanvas", "./VirtualKeyboard", "./Snapshot", "./Sound", "./Variables", "./View", "./DragElement", "./Random", "./RsxAmsdos", "./RsxCpcBasic", "./Z80Disass"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Snapshot_1, Sound_1, Variables_1, View_1, DragElement_1, Random_1, RsxAmsdos_1, RsxCpcBasic_1, Z80Disass_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
@@ -145,9 +145,11 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.getVirtualKeyboard();
             }
             this.commonEventHandler.fnSetUserAction(this.fnOnUserActionHandler); // check first user action, also if sound is not yet on
+            var random = new Random_1.Random(model.getProperty("random" /* ModelPropID.random */) === "cpc");
             this.vm = new CpcVm_1.CpcVm({
                 canvas: this.canvas,
                 keyboard: this.keyboard,
+                random: random,
                 sound: this.sound,
                 variables: this.variables,
                 onClickKey: this.fnPutKeyInBufferHandler
