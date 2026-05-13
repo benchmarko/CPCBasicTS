@@ -38,6 +38,7 @@ class cpcBasic {
 		prettyLowercaseVars: false, // pretty print: lowercase variables
 		prettySpace: false, // pretty print: spaces
 		processFileImports: true, // open ZIP, DSK files on import
+		random: "cpc", // cpc or minstd
 		selectDataFiles: false, // select data files in example selection
 		showConsoleLog: false,
 		showCpc: true,
@@ -129,7 +130,9 @@ class cpcBasic {
 		try {
 			decoded = decodeURIComponent(s.replace(rPlus, " "));
 		} catch	(err) {
-			err.message += ": " + s;
+			if (err instanceof Error) {
+				err.message += ": " + s;
+			}
 			Utils.console.error(err);
 		}
 		return decoded;

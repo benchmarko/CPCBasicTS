@@ -25,6 +25,10 @@ cpcBasic.addIndex("./examples", {
 			"meta": "D"
 		},
 		{
+			"key": "test/testrnd",
+			"title": "Test Random numbers TS"
+		},
+		{
 			"key": "test/testrsx",
 			"title": "Test RSX TS"
 		},

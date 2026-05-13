@@ -14,6 +14,7 @@ import { CpcVmRsx } from "./CpcVmRsx";
 export interface CpcVmOptions {
 	canvas: ICanvas
 	keyboard: Keyboard
+	random: Random,
 	sound: Sound
 	variables: Variables
 	quiet?: boolean
@@ -104,7 +105,7 @@ export class CpcVm implements ICpcVm {
 	private readonly fnCloseoutHandler: () => void;
 	private readonly fnLoadHandler: LoadHandlerType;
 	private readonly fnRunHandler: LoadHandlerType;
-	private readonly fnOnCanvasClickHandler: () => void;
+	private readonly fnOnCanvasClickHandler: (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
 	private readonly fnInputCallbackHandler: () => boolean;
 	private readonly fnLineInputCallbackHandler: () => boolean;
 	private readonly fnRandomizeCallbackHandler: () => boolean;
@@ -395,12 +396,13 @@ export class CpcVm implements ICpcVm {
 
 		this.canvas = this.setCanvas(options.canvas);
 		this.keyboard = options.keyboard;
+		this.random = options.random;
 		this.soundClass = options.sound;
 		this.variables = options.variables;
 		this.quiet = Boolean(options.quiet);
 		this.onClickKey = options.onClickKey;
 
-		this.random = new Random();
+		//this.random = new Random();
 
 		this.stopCount = this.initialStop;
 
@@ -3507,23 +3509,6 @@ export class CpcVm implements ICpcVm {
 		this.degFlag = false;
 	}
 
-	// https://en.wikipedia.org/wiki/Jenkins_hash_function
-	private static vmHashCode(s: string) {
-		let hash = 0;
-
-		/* eslint-disable no-bitwise */
-		for (let i = 0; i < s.length; i += 1) {
-			hash += s.charCodeAt(i);
-			hash += hash << 10;
-			hash ^= hash >> 6;
-		}
-		hash += hash << 3;
-		hash ^= hash >> 11;
-		hash += hash << 15;
-		/* eslint-enable no-bitwise */
-		return hash;
-	}
-
 	private vmRandomizeCallback() {
 		const inputParas = this.vmGetStopObject().paras as VmInputParas,
 			input = inputParas.input,
@@ -3544,8 +3529,7 @@ export class CpcVm implements ICpcVm {
 	}
 
 	randomize(n?: number): void {
-		const rndInit = 0x89656c07, // an arbitrary 32 bit number <> 0 (this one is used by the CPC)
-			stream = 0;
+		const stream = 0;
 
 		if (n === undefined) { // no argument? input...
 			const msg = "Random number seed ? ";
@@ -3561,12 +3545,8 @@ export class CpcVm implements ICpcVm {
 			};
 
 			this.vmStop("waitInput", 45, false, inputParas);
-		} else { // n can also be floating point, so compute a hash value of n
+		} else { // n can also be floating point
 			this.vmAssertNumber(n, "RANDOMIZE");
-			n = CpcVm.vmHashCode(String(n));
-			if (n === 0) {
-				n = rndInit;
-			}
 			if (Utils.debug > 1) {
 				Utils.console.debug("randomize:", n);
 			}

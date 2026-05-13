@@ -1,0 +1,34 @@
+/* globals cpcBasic */
+
+"use strict";
+
+cpcBasic.addItem("", function () { /*
+REM testrnd - Test Random numbers TS
+REM Marco Vieth, 2026
+CLS
+DIM m(4)
+r0=0:GOSUB 90
+PRINT
+r0=1+2+8+64+1024+32768:GOSUB 90
+END
+'
+90 PRINT "randomize";r0
+RANDOMIZE r0
+FOR k=1 TO 10
+r=RND
+PRINT r
+r$=DEC$(r,"#.#########")
+READ ex$
+IF ex$="0.934601486" OR ex$="6.34897E-02" THEN 180:'skip
+IF r$<>ex$ THEN ?r$;" <> ";ex$:'ERROR 33
+180 NEXT
+RETURN
+'
+' randomize 0
+DATA 0.271940658,0.528612386,0.021330127,0.175138616,0.657773343
+DATA 0.653729687,0.601031218,0.934601486,0.545995176,6.34897E-02
+' randomize 33867
+DATA 0.232084701,0.458544026,0.766447315,0.397794866,0.704648343
+DATA 0.716229687,0.351031218,0.934601486,0.545995176,6.34897E-02
+'
+*/ });

@@ -32,6 +32,7 @@ import { Sound, SoundData } from "./Sound";
 import { Variables } from "./Variables";
 import { View, SelectOptionElement, AreaInputElement } from "./View";
 import { DragElement, DragElementOptions } from "./DragElement";
+import { Random } from "./Random";
 import { RsxAmsdos } from "./RsxAmsdos";
 import { RsxCpcBasic } from "./RsxCpcBasic";
 import { Z80Disass } from "./Z80Disass"; // test
@@ -150,9 +151,12 @@ export class Controller implements IController {
 
 		this.commonEventHandler.fnSetUserAction(this.fnOnUserActionHandler); // check first user action, also if sound is not yet on
 
+		const random = new Random(model.getProperty<string>(ModelPropID.random) === "cpc");
+
 		this.vm = new CpcVm({
 			canvas: this.canvas,
 			keyboard: this.keyboard,
+			random: random,
 			sound: this.sound,
 			variables: this.variables,
 			onClickKey: this.fnPutKeyInBufferHandler
