@@ -12333,7 +12333,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
     exports.CommonEventHandler = CommonEventHandler;
 });
 // Random.ts - Random Number Generator
-// (c) Marco Vieth, 2019
+// (c) Marco Vieth, 2019-2026
 // https://benchmarko.github.io/CPCBasicTS/
 define("Random", ["require", "exports"], function (require, exports) {
     "use strict";
@@ -12345,13 +12345,14 @@ define("Random", ["require", "exports"], function (require, exports) {
     // and: C6_last_random_number, last_random_number
     // https://github.com/Bread80/CPC6128-Firmware-Source/blob/main/Includes/MemoryFirmware.asm
     /* eslint-disable no-bitwise */
+    var randomCpcInitState = 0x6c078965;
     var RandomCpc = /** @class */ (function () {
         function RandomCpc(seed) {
-            this.state = 0x6c078965;
+            this.state = randomCpcInitState;
             this.init(seed);
         }
         RandomCpc.prototype.init = function (seed) {
-            this.state = 0x6c078965;
+            this.state = randomCpcInitState;
             seed || (seed = 0);
             if (seed !== 0) {
                 this.randomizeMantissa(RandomCpc.encodeCpcMantissa(seed));
@@ -12382,21 +12383,19 @@ define("Random", ["require", "exports"], function (require, exports) {
             var xorMask = (((((bytes[1] << 8) | bytes[0]) << 16) | ((bytes[3] << 8) | bytes[2])) >>> 0);
             this.state = (this.state ^ xorMask) >>> 0;
         };
-        RandomCpc.rndWord32 = function (oldWord, param) {
-            var r = ((oldWord & 0xffff) << 16) >>> 0;
-            for (var i = 0; i < 16; i += 1) {
-                var msb = r >>> 31;
-                r = (r << 1) >>> 0;
-                if (msb) {
-                    r = (r + param) >>> 0;
-                }
-            }
-            return r >>> 0;
+        RandomCpc.nextStateU32 = function (state) {
+            var initLow = 0x8965, // randomCpcInitState & 0xffff
+            initHigh = 0x6C07, // randomCpcInitState >>> 16
+            mulLow = 0xf56c, // (initLow + initHigh) & 0xffff
+            high = state >>> 16, low = state & 0xffff, highAcc = (high * initLow) + initLow, // carry item for low part in upper 16 bit
+            newHigh = highAcc & 0xffff, // high_{n+1} = (high_n * 0x8965 + 0x8965) mod 2^16
+            newLow = ((low * mulLow) + initHigh + (highAcc >>> 16)) & 0xffff; // low_{n+1} = (low_n * 0xF56C + 0x6C07 + carry(highAcc)) mod 2^16
+            return ((newHigh << 16) | newLow) >>> 0;
         };
         RandomCpc.prototype.random = function () {
-            var high = this.state >>> 16, low = this.state & 0xffff, word1 = RandomCpc.rndWord32(low, 0x6c07) & 0xffff, r2 = RandomCpc.rndWord32(high, 0x8965), word2 = r2 & 0xffff, highWord2 = r2 >>> 16, word3 = RandomCpc.rndWord32(low, 0x8965) & 0xffff, highSum = word2 + 0x8965, newHigh = highSum & 0xffff, newLow = (word3 + 0x6c07 + (highSum >>> 16) + highWord2 + word1) & 0xffff;
-            this.state = (((newHigh & 0xffff) << 16) | newLow) >>> 0;
-            return ((((newLow & 0xffff) << 16) | (newHigh & 0xffff)) >>> 0) / 0x100000000;
+            this.state = RandomCpc.nextStateU32(this.state);
+            var high = this.state >>> 16, low = this.state & 0xffff;
+            return (((low << 16) | high) >>> 0) / 0x100000000;
         };
         return RandomCpc;
     }());
