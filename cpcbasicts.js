@@ -19981,14 +19981,16 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                     if (exportTokenized && meta.typeString === "A") { // do we need to tokenize it?
                         var tokens = this.encodeTokenizedBasic(data);
-                        if (!tokens) { // not successful?
-                            return;
+                        if (tokens) { // successful?
+                            data = tokens;
+                            meta.typeString = "T";
+                            meta.start = 0x170;
+                            meta.length = data.length;
+                            meta.entry = 0;
                         }
-                        data = tokens;
-                        meta.typeString = "T";
-                        meta.start = 0x170;
-                        meta.length = data.length;
-                        meta.entry = 0;
+                        else {
+                            Utils_26.Utils.console.warn("Controller: Cannot tokenize, keeping ASCII: " + item.value);
+                        }
                     }
                     if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
                         var _a = DiskImage_2.DiskImage.getFilenameAndExtension(name), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline

@@ -2089,15 +2089,15 @@ export class Controller implements IController {
 				if (exportTokenized && meta.typeString === "A") { // do we need to tokenize it?
 					const tokens = this.encodeTokenizedBasic(data);
 
-					if (!tokens) { // not successful?
-						return;
+					if (tokens) { // successful?
+						data = tokens;
+						meta.typeString = "T";
+						meta.start = 0x170;
+						meta.length = data.length;
+						meta.entry = 0;
+					} else {
+						Utils.console.warn("Controller: Cannot tokenize, keeping ASCII: " + item.value);
 					}
-
-					data = tokens;
-					meta.typeString = "T";
-					meta.start = 0x170;
-					meta.length = data.length;
-					meta.entry = 0;
 				}
 
 				if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
