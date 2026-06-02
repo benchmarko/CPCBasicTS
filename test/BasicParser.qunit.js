@@ -104,7 +104,12 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "./
             "2 cls\n1 cls": '[{"type":"label","value":"2","pos":0,"args":[{"type":"cls","value":"cls","pos":2,"args":[{"type":"#","value":"","pos":0,"len":0,"right":{"type":"null","value":"0","pos":0,"len":0}}]}]},{"type":"label","value":"1","pos":6,"args":[{"type":"cls","value":"cls","pos":8,"args":[{"type":"#","value":"","pos":0,"len":0,"right":{"type":"null","value":"0","pos":0,"len":0}}]}]}]'
         },
         special: {
-            "!": '{"message":"Unrecognized token at pos 0-1: !","name":"BasicLexer","pos":0,"shortMessage":"Unrecognized token at pos 0-1: !","value":"!"}'
+            "!": '{"message":"Unrecognized token at pos 0-1: !","name":"BasicLexer","pos":0,"shortMessage":"Unrecognized token at pos 0-1: !","value":"!"}',
+            "inkey!": '{"message":"Invalid identifier at pos 0-6: inkey!","name":"BasicLexer","pos":0,"shortMessage":"Invalid identifier at pos 0-6: inkey!","value":"inkey!"}',
+            "inkey%": '{"message":"Invalid identifier at pos 0-6: inkey%","name":"BasicLexer","pos":0,"shortMessage":"Invalid identifier at pos 0-6: inkey%","value":"inkey%"}',
+            "key$": '{"message":"Invalid identifier at pos 0-4: key$","name":"BasicLexer","pos":0,"shortMessage":"Invalid identifier at pos 0-4: key$","value":"key$"}',
+            "key!": '{"message":"Invalid identifier at pos 0-4: key!","name":"BasicLexer","pos":0,"shortMessage":"Invalid identifier at pos 0-4: key!","value":"key!"}',
+            "key%": '{"message":"Invalid identifier at pos 0-4: key%","name":"BasicLexer","pos":0,"shortMessage":"Invalid identifier at pos 0-4: key%","value":"key%"}'
         },
         "abs, after gosub, and, asc, atn, auto": {
             "a=abs(2.3)": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"abs","value":"abs","pos":2,"args":[{"type":"number","value":"2.3","pos":6}]}}]}]',

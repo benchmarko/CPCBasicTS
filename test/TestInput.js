@@ -104,7 +104,12 @@ define(["require", "exports"], function (require, exports) {
             "2 cls\n1 cls": ""
         },
         special: {
-            "!": ""
+            "!": "",
+            "inkey!": "",
+            "inkey%": "",
+            "key$": "",
+            "key!": "",
+            "key%": ""
         },
         "abs, after gosub, and, asc, atn, auto": {
             "a=abs(2.3)": "",

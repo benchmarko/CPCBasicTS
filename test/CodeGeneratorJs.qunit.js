@@ -103,7 +103,12 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "2 cls\n1 cls": "CodeGeneratorJs: Expected increasing line number in 0 at pos 6-7: 1"
         },
         special: {
-            "!": "BasicLexer: Unrecognized token at pos 0-1: !"
+            "!": "BasicLexer: Unrecognized token at pos 0-1: !",
+            "inkey!": "BasicLexer: Invalid identifier at pos 0-6: inkey!",
+            "inkey%": "BasicLexer: Invalid identifier at pos 0-6: inkey%",
+            "key$": "BasicLexer: Invalid identifier at pos 0-4: key$",
+            "key!": "BasicLexer: Invalid identifier at pos 0-4: key!",
+            "key%": "BasicLexer: Invalid identifier at pos 0-4: key%"
         },
         "abs, after gosub, and, asc, atn, auto": {
             "a=abs(2.3)": " v.aR = o.abs(2.3);",

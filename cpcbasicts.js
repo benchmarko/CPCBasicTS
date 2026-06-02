@@ -1747,8 +1747,10 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
                 token += this.advanceWhile(char, BasicLexer.isIdentifierMiddle);
                 char = this.getChar();
             }
+            var idEnd = "";
             if (BasicLexer.isIdentifierEnd(char)) {
                 token += char;
+                idEnd = char;
                 char = this.advance();
             }
             lcToken = token.toLowerCase();
@@ -1763,6 +1765,9 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
                 }
             }
             else {
+                if (idEnd && this.options.keywords[lcToken.substring(0, lcToken.length - 1)]) {
+                    throw this.composeError(Error(), "Invalid identifier", token, startPos);
+                }
                 this.addToken("identifier", token, startPos);
             }
         };

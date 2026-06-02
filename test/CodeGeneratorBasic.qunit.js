@@ -103,7 +103,12 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             "2 cls\n1 cls": "2 CLS\n1 CLS"
         },
         special: {
-            "!": "BasicLexer: Unrecognized token at pos 0-1: !"
+            "!": "BasicLexer: Unrecognized token at pos 0-1: !",
+            "inkey!": "BasicLexer: Invalid identifier at pos 0-6: inkey!",
+            "inkey%": "BasicLexer: Invalid identifier at pos 0-6: inkey%",
+            "key$": "BasicLexer: Invalid identifier at pos 0-4: key$",
+            "key!": "BasicLexer: Invalid identifier at pos 0-4: key!",
+            "key%": "BasicLexer: Invalid identifier at pos 0-4: key%"
         },
         "abs, after gosub, and, asc, atn, auto": {
             "a=abs(2.3)": "a=ABS(2.3)",
