@@ -311,6 +311,7 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
             this.errorResumeLine = 0;
             this.soundClass.resetQueue();
             this.soundData.length = 0;
+            this.canvas.setGColMode(0);
         };
         CpcVm.prototype.vmPutProgramInMem = function (tokens) {
             var addr = CpcVm.progStart + 1, // 368=0x170
@@ -1031,8 +1032,11 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
                 case 0xbc07: // Works on all CPC 464/664/6128
                     this.vmSetScreenBase(args[0]);
                     break;
-                case 0xbc0e: // SCR SET MODE (ROM &0ACE), depending on number of args
+                case 0xbc0e: // SCR SET MODE (ROM &0ACA), depending on number of args
                     this.mode(args.length % 4); // 3 is valid also on CPC
+                    break;
+                case 0xbc59: // SCR ACCESS (ROM &0C49), depending on number of args
+                    this.canvas.setGColMode(args.length % 4);
                     break;
                 case 0xbca7: // SOUND Reset (ROM &1E68)
                     this.soundClass.reset();

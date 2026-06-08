@@ -109,6 +109,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.applyBorderColor();
             this.setGPen(1);
             this.setGPaper(0);
+            this.setGColMode(0);
             this.resetCustomChars();
             this.setMode(1);
             this.clearGraphicsWindow();
@@ -954,7 +955,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.changeMode(mode);
             this.setOrigin(0, 0);
             this.setGWindow(0, this.width - 1, this.height - 1, 0);
-            this.setGColMode(0);
             this.setMask(255);
             this.setMaskFirst(1);
             this.setGPen(this.gPen); // keep, but maybe different for other mode

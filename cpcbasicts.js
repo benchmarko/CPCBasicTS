@@ -10143,6 +10143,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.applyBorderColor();
             this.setGPen(1);
             this.setGPaper(0);
+            this.setGColMode(0);
             this.resetCustomChars();
             this.setMode(1);
             this.clearGraphicsWindow();
@@ -10988,7 +10989,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.changeMode(mode);
             this.setOrigin(0, 0);
             this.setGWindow(0, this.width - 1, this.height - 1, 0);
-            this.setGColMode(0);
             this.setMask(255);
             this.setMaskFirst(1);
             this.setGPen(this.gPen); // keep, but maybe different for other mode
@@ -13699,6 +13699,7 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
             this.errorResumeLine = 0;
             this.soundClass.resetQueue();
             this.soundData.length = 0;
+            this.canvas.setGColMode(0);
         };
         CpcVm.prototype.vmPutProgramInMem = function (tokens) {
             var addr = CpcVm.progStart + 1, // 368=0x170
@@ -14419,8 +14420,11 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
                 case 0xbc07: // Works on all CPC 464/664/6128
                     this.vmSetScreenBase(args[0]);
                     break;
-                case 0xbc0e: // SCR SET MODE (ROM &0ACE), depending on number of args
+                case 0xbc0e: // SCR SET MODE (ROM &0ACA), depending on number of args
                     this.mode(args.length % 4); // 3 is valid also on CPC
+                    break;
+                case 0xbc59: // SCR ACCESS (ROM &0C49), depending on number of args
+                    this.canvas.setGColMode(args.length % 4);
                     break;
                 case 0xbca7: // SOUND Reset (ROM &1E68)
                     this.soundClass.reset();
