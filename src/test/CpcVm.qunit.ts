@@ -168,6 +168,8 @@ const allTests: AllTestsType = {
 		"0xbc0e,1,2": 'setMode:2 , clearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
 		"0xbc0e,1,2,3": 'setMode:3 , clearFullWindow: -- {"_key":"win0","right":79,"bottom":49} -- {"_key":"win1","right":79,"bottom":49} -- {"_key":"win2","right":79,"bottom":49} -- {"_key":"win3","right":79,"bottom":49} -- {"_key":"win4","right":79,"bottom":49} -- {"_key":"win5","right":79,"bottom":49} -- {"_key":"win6","right":79,"bottom":49} -- {"_key":"win7","right":79,"bottom":49} -- {"_key":"win8","bottom":49} -- {"_key":"win9","bottom":49}',
 		"0xbc0e,1,2,3,4": 'setMode:0 , clearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
+		"0xbc59": "setGColMode:0",
+		"0xbc59,1": "setGColMode:1",
 		"0xbca7": "reset:",
 		"0xbcbc": "",
 		"0xbcb6": "",
@@ -1948,6 +1950,9 @@ const allTests: AllTestsType = {
 	vmReset: {
 		"": "init: , resetCustomChars: , setMode:1 , clearFullWindow: , reset: , reset: , reset:"
 	},
+	vmReset4Run: {
+		"": "clearInput: , resetQueue: , setGColMode:0"
+	},
 	vmTrace: {
 		"": 'printChar:91,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:51,3,0,1,0,false , printChar:93,4,0,1,0,false -- {"_key":"win0","pos":5}'
 	}
@@ -3234,6 +3239,9 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 		},
 		vmReset: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.vmReset.apply(cpcVm, input);
+		},
+		vmReset4Run: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.vmReset4Run.apply(cpcVm, input);
 		},
 		vmTrace: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.vmGoto(123);

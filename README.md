@@ -208,6 +208,7 @@ A list of *CALL*s which are supported. Other *CALL*s are ignored.
 - *CALL &BC06,nn*: SCR SET BASE (really &BC08; set screen start high byte: &00, &40, &80 or &C0; not for CPC 664)
 - *CALL &BC07,nn*: SCR SET BASE (really &BC08; compatible with all CPC 464/664/6128)
 - *CALL &BC0E*: SCR Set Mode (set *MODE* depending on number of arguments)
+- *CALL &BC59*: SCR Access (set graphics mode depending on number of arguments)
 - *CALL &BCA7*: SOUND Reset
 - *CALL &BCB6*: SOUND Hold (TODO)
 - *CALL &BCB9*: SOUND Continue (TODO)
