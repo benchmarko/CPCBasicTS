@@ -111,7 +111,7 @@ export interface VmInputParas extends VmBaseParas {
 export type VmStopParas = VmFileParas | VmInputParas | VmLineParas | VmLineRenumParas
 
 // Same as VariableValue in Variables.ts
-export type VariableValue = string | number | Function | [] | VariableValue[]; // eslint-disable-line @typescript-eslint/ban-types
+export type VariableValue = string | number | Function | [] | VariableValue[]; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
 
 export interface ICpcVm {
     line: string | number

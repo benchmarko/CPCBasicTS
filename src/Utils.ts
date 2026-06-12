@@ -148,7 +148,7 @@ export class Utils {
 	private static testIsSupported(testExpression: string) { // does the browser support something?
 		try {
 			Function(testExpression); // eslint-disable-line no-new-func
-		} catch (e) {
+		} catch (_e) {
 			return false;
 		}
 		return true;

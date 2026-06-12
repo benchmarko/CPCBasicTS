@@ -84,8 +84,8 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
             //this.random = new Random();
             this.stopCount = this.initialStop;
             this.stopEntry = {
-                reason: "",
-                priority: 0,
+                reason: "", // stop reason
+                priority: 0, // stop priority (higher number means higher priority which can overwrite lower priority)
                 paras: {}
             };
             this.inputValues = []; // values to input into script
@@ -207,13 +207,13 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
         };
         CpcVm.prototype.vmResetTimers = function () {
             var data = {
-                line: 0,
-                repeat: false,
-                intervalMs: 0,
-                active: false,
-                nextTimeMs: 0,
-                handlerRunning: false,
-                stackIndexReturn: 0,
+                line: 0, // gosub line when timer expires
+                repeat: false, // flag if timer is repeating (every) or one time (after)
+                intervalMs: 0, // interval or timeout
+                active: false, // flag if timer is active
+                nextTimeMs: 0, // next expiration time
+                handlerRunning: false, // flag if handler (subroutine) is running
+                stackIndexReturn: 0, // index in gosub stack with return, if handler is running
                 savedPriority: 0 // priority befora calling the handler
             }, timer = this.timerList, sqTimer = this.sqTimer;
             for (var i = 0; i < CpcVm.timerCount; i += 1) {
@@ -238,12 +238,12 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
                 this.vmResetPenPaperWindowData();
             }
             var data = {
-                pos: 0,
+                pos: 0, // current text position in line
                 vpos: 0,
-                textEnabled: true,
-                tag: false,
-                transparent: false,
-                cursorOn: false,
+                textEnabled: true, // text enabled
+                tag: false, // tag=text at graphics
+                transparent: false, // transparent mode
+                cursorOn: false, // system switch
                 cursorEnabled: true // user switch
             }, printData = {
                 pos: 0,
@@ -1336,7 +1336,7 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
             }
             this.vmStop("deleteLines", 85, false, {
                 command: "DELETE",
-                stream: 0,
+                stream: 0, // unused
                 first: first,
                 last: last,
                 line: this.line // unused
@@ -1376,9 +1376,9 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
         CpcVm.prototype.edit = function (line) {
             var lineParas = {
                 command: "edit",
-                stream: 0,
+                stream: 0, // unused
                 first: line,
-                last: 0,
+                last: 0, // unused,
                 line: this.line // unused
             };
             this.vmStop("editLine", 85, false, lineParas);
@@ -1405,15 +1405,15 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
                 for (var i = 0; i < args.length; i += 3) { // starting with 1: 3 parameters per section
                     if (args[i] !== undefined) {
                         arg = {
-                            steps: this.vmInRangeRound(args[i], 0, 239, "ENT"),
-                            diff: this.vmInRangeRound(args[i + 1], -128, 127, "ENT"),
-                            time: this.vmInRangeRound(args[i + 2], 0, 255, "ENT"),
+                            steps: this.vmInRangeRound(args[i], 0, 239, "ENT"), // number of steps: 0..239
+                            diff: this.vmInRangeRound(args[i + 1], -128, 127, "ENT"), // size (period change) of steps: -128..+127
+                            time: this.vmInRangeRound(args[i + 2], 0, 255, "ENT"), // time per step: 0..255 (0=256)
                             repeat: repeat
                         }; // as ToneEnvData1
                     }
                     else { // special handling
                         arg = {
-                            period: this.vmInRangeRound(args[i + 1], 0, 4095, "ENT"),
+                            period: this.vmInRangeRound(args[i + 1], 0, 4095, "ENT"), // absolute period
                             time: this.vmInRangeRound(args[i + 2], 0, 255, "ENT") // time: 0..255 (0=256)
                         }; // as ToneEnvData2
                     }
@@ -1439,9 +1439,9 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
             for (var i = 0; i < args.length; i += 3) { // starting with 1: 3 parameters per section
                 if (args[i] !== undefined) {
                     arg = {
-                        steps: this.vmInRangeRound(args[i], 0, 127, "ENV"),
+                        steps: this.vmInRangeRound(args[i], 0, 127, "ENV"), // number of steps: 0..127
                         /* eslint-disable no-bitwise */
-                        diff: this.vmInRangeRound(args[i + 1], -128, 127, "ENV") & 0x0f,
+                        diff: this.vmInRangeRound(args[i + 1], -128, 127, "ENV") & 0x0f, // size (volume) of steps: moved to range 0..15
                         /* eslint-enable no-bitwise */
                         time: this.vmInRangeRound(args[i + 2], 0, 255, "ENV") // time per step: 0..255 (0=256)
                     }; // as VolEnvData1
@@ -1451,7 +1451,7 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
                 }
                 else { // special handling for register parameters
                     arg = {
-                        register: this.vmInRangeRound(args[i + 1], 0, 15, "ENV"),
+                        register: this.vmInRangeRound(args[i + 1], 0, 15, "ENV"), // register: 0..15
                         period: this.vmInRangeRound(args[i + 2], -32768, 65535, "ENV")
                     }; // as VolEnvData2
                 }
@@ -2133,9 +2133,9 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
             this.clear();
             var lineParas = {
                 command: "new",
-                stream: 0,
-                first: 0,
-                last: 0,
+                stream: 0, // unused
+                first: 0, // unused
+                last: 0, // unused
                 line: this.line // unused
             };
             this.vmStop("new", 90, false, lineParas);
@@ -2843,8 +2843,8 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
             keep = this.vmInRangeRound(keep, 1, 65535, "RENUM");
             var lineRenumParas = {
                 command: "renum",
-                stream: 0,
-                line: this.line,
+                stream: 0, // unused
+                line: this.line, // unused
                 newLine: newLine,
                 oldLine: oldLine,
                 step: step,
@@ -2960,9 +2960,9 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
             if (input !== null) {
                 var lineParas = {
                     command: "run",
-                    stream: 0,
+                    stream: 0, // unused
                     first: inFile.line,
-                    last: 0,
+                    last: 0, // unused
                     line: this.line
                 };
                 this.vmStop("run", 95, false, lineParas);
@@ -2988,9 +2988,9 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
                 }
                 var lineParas = {
                     command: "run",
-                    stream: 0,
+                    stream: 0, // unused
                     first: numOrString || 0,
-                    last: 0,
+                    last: 0, // unused
                     line: this.line
                 };
                 this.vmStop("run", 95, false, lineParas);
@@ -3517,7 +3517,7 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
                 bottom: 24
             },
             {
-                left: 0,
+                left: 0, // mode 3 not available on CPC
                 right: 79,
                 top: 0,
                 bottom: 49
@@ -3553,103 +3553,103 @@ define(["require", "exports", "./Utils", "./CpcVmRsx"], function (require, expor
             376: 159
         };
         CpcVm.controlCodeParameterCount = [
-            0,
-            1,
-            0,
-            0,
-            1,
-            1,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            1,
-            1,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            1,
-            1,
-            0,
-            9,
-            4,
-            0,
-            3,
-            2,
-            0,
+            0, // 0x00
+            1, // 0x01
+            0, // 0x02
+            0, // 0x03
+            1, // 0x04
+            1, // 0x05
+            0, // 0x06
+            0, // 0x07
+            0, // 0x08
+            0, // 0x09
+            0, // 0x0a
+            0, // 0x0b
+            0, // 0x0c
+            0, // 0x0d
+            1, // 0x0e
+            1, // 0x0f
+            0, // 0x10
+            0, // 0x11
+            0, // 0x12
+            0, // 0x13
+            0, // 0x14
+            0, // 0x15
+            1, // 0x16
+            1, // 0x17
+            0, // 0x18
+            9, // 0x19
+            4, // 0x1a
+            0, // 0x1b
+            3, // 0x1c
+            2, // 0x1d
+            0, // 0x1e
             2 //  0x1f
         ];
         CpcVm.errors = [
-            "Improper argument",
-            "Unexpected NEXT",
-            "Syntax Error",
-            "Unexpected RETURN",
-            "DATA exhausted",
-            "Improper argument",
-            "Overflow",
-            "Memory full",
-            "Line does not exist",
-            "Subscript out of range",
-            "Array already dimensioned",
-            "Division by zero",
-            "Invalid direct command",
-            "Type mismatch",
-            "String space full",
-            "String too long",
-            "String expression too complex",
-            "Cannot CONTinue",
-            "Unknown user function",
-            "RESUME missing",
-            "Unexpected RESUME",
-            "Direct command found",
-            "Operand missing",
-            "Line too long",
-            "EOF met",
-            "File type error",
-            "NEXT missing",
-            "File already open",
-            "Unknown command",
-            "WEND missing",
-            "Unexpected WEND",
-            "File not open",
-            "Broken",
+            "Improper argument", // 0
+            "Unexpected NEXT", // 1
+            "Syntax Error", // 2
+            "Unexpected RETURN", // 3
+            "DATA exhausted", // 4
+            "Improper argument", // 5
+            "Overflow", // 6
+            "Memory full", // 7
+            "Line does not exist", // 8
+            "Subscript out of range", // 9
+            "Array already dimensioned", // 10
+            "Division by zero", // 11
+            "Invalid direct command", // 12
+            "Type mismatch", // 13
+            "String space full", // 14
+            "String too long", // 15
+            "String expression too complex", // 16
+            "Cannot CONTinue", // 17
+            "Unknown user function", // 18
+            "RESUME missing", // 19
+            "Unexpected RESUME", // 20
+            "Direct command found", // 21
+            "Operand missing", // 22
+            "Line too long", // 23
+            "EOF met", // 24
+            "File type error", // 25
+            "NEXT missing", // 26
+            "File already open", // 27
+            "Unknown command", // 28
+            "WEND missing", // 29
+            "Unexpected WEND", // 30
+            "File not open", // 31,
+            "Broken", // 32 "Broken in" (derr=146: xxx not found)
             "Unknown error" // 33...
         ];
         CpcVm.stopPriority = {
-            "": 0,
-            direct: 0,
-            timer: 20,
-            waitFrame: 40,
-            waitKey: 41,
-            waitSound: 43,
-            waitInput: 45,
-            fileCat: 45,
-            fileDir: 45,
-            fileEra: 45,
-            fileRen: 45,
-            error: 50,
-            onError: 50,
-            stop: 60,
-            "break": 80,
-            escape: 85,
-            renumLines: 85,
-            deleteLines: 85,
-            editLine: 85,
-            end: 90,
-            list: 90,
-            fileLoad: 90,
-            fileSave: 90,
-            "new": 90,
+            "": 0, // nothing
+            direct: 0, // direct input mode
+            timer: 20, // timer expired
+            waitFrame: 40, // FRAME command: wait for frame fly
+            waitKey: 41, // wait for key (higher priority that waitFrame)
+            waitSound: 43, // wait for sound queue
+            waitInput: 45, // wait for input: INPUT, LINE INPUT, RANDOMIZE without parameter
+            fileCat: 45, // CAT
+            fileDir: 45, // |DIR
+            fileEra: 45, // |ERA
+            fileRen: 45, // |REN
+            error: 50, // BASIC error, ERROR command
+            onError: 50, // ON ERROR GOTO active, hide error
+            stop: 60, // STOP or END command
+            "break": 80, // break pressed
+            escape: 85, // escape key, set in controller
+            renumLines: 85, // RENUMber program
+            deleteLines: 85, // delete lines
+            editLine: 85, // edit line
+            end: 90, // end of program
+            list: 90, // LIST program
+            fileLoad: 90, // CHAIN, CHAIN MERGE, LOAD, MERGE, OPENIN, RUN
+            fileSave: 90, // OPENOUT, SAVE
+            "new": 90, // NEW, remove program, variables
             run: 95,
-            parse: 95,
-            parseRun: 95,
+            parse: 95, // set in controller
+            parseRun: 95, // parse and run, used in controller
             reset: 99 // reset system
         };
         return CpcVm;

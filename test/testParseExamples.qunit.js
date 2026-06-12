@@ -9,8 +9,9 @@
 define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "../BasicTokenizer", "../CodeGeneratorJs", "../CodeGeneratorToken", "../Model", "../Variables", "../DiskImage", "../cpcconfig", "./TestHelper"], function (require, exports, Utils_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, CodeGeneratorJs_1, CodeGeneratorToken_1, Model_1, Variables_1, DiskImage_1, cpcconfig_1, TestHelper_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    var https, // nodeJs
-    fs, path, __dirname; // eslint-disable-line no-underscore-dangle
+    /* eslint-disable prefer-const */
+    var https = undefined, // nodeJs - set via fnEval, invisible to TS
+    fs = undefined, path = undefined, __dirname = ""; // eslint-disable-line no-underscore-dangle
     // eslint-disable-next-line no-new-func
     var myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(), // for old IE
     nodeJsAvail = (function () {
@@ -22,7 +23,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 nodeJs = true;
             }
         }
-        catch (e) {
+        catch (_e) {
             // empty
         }
         return nodeJs;
@@ -221,7 +222,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             gosubStack: [],
             testVariables1: new Variables_1.Variables({}),
             testStepCounter1: 0,
-            maxSteps: 10,
+            maxSteps: 10, // number of steps to simulate
             initTest1: function () {
                 cpcBasic.vmMock.testStepCounter1 = cpcBasic.vmMock.maxSteps;
                 cpcBasic.vmMock.line = 0; // or "start";
@@ -387,7 +388,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
     }
     function testParseExample(example) {
         var codeGeneratorJs = cpcBasic.codeGeneratorJs, codeGeneratorToken = cpcBasic.codeGeneratorToken, basicTokenizer = cpcBasic.basicTokenizer, script = example.script || "", input = testCheckMeta(script);
-        var checks = "", output, fnScript; // eslint-disable-line @typescript-eslint/ban-types
+        var checks = "", output, fnScript; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
         if (example.meta !== "D" && hasLineNumbers(input)) { // skip data files  && example.meta !== "X" && example.meta !== "Z") { // skip data, dsk and zip files
             checks = "Js";
             var variables = cpcBasic.vmMock.testVariables1;

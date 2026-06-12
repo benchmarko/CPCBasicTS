@@ -72,12 +72,12 @@ export interface VmStopEntry {
     priority: number;
     paras: VmStopParas;
 }
-declare type PrintObjectType = {
+type PrintObjectType = {
     type: string;
     args: (string | number)[];
 };
-declare type DataEntryType = (string | undefined);
-declare type LoadHandlerType = (input: string, meta: FileMeta) => boolean;
+type DataEntryType = (string | undefined);
+type LoadHandlerType = (input: string, meta: FileMeta) => boolean;
 export declare class CpcVm implements ICpcVm {
     private readonly options;
     private quiet;

@@ -17,7 +17,7 @@ export interface ToneEnvData2 {
     period: number;
     time: number;
 }
-export declare type ToneEnvData = ToneEnvData1 | ToneEnvData2;
+export type ToneEnvData = ToneEnvData1 | ToneEnvData2;
 export interface VolEnvData1 {
     steps: number;
     diff: number;
@@ -27,8 +27,8 @@ export interface VolEnvData2 {
     register: number;
     period: number;
 }
-export declare type VolEnvData = VolEnvData1 | VolEnvData2;
-declare type AudioContextConstructorType = typeof window.AudioContext;
+export type VolEnvData = VolEnvData1 | VolEnvData2;
+type AudioContextConstructorType = typeof window.AudioContext;
 interface SoundOptions {
     AudioContextConstructor: AudioContextConstructorType;
 }

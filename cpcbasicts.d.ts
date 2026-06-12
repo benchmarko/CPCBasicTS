@@ -7,7 +7,7 @@ declare var Polyfills: {
     isNodeAvailable: boolean;
     isDefinePropertyOk: boolean;
 };
-declare type MyDefineFunctionType = (...args: any) => void;
+type MyDefineFunctionType = (...args: any) => void;
 declare function amd4Node(): void;
 declare function amd4browser(): void;
 declare module "Constants" {

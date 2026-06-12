@@ -1,14 +1,14 @@
-export declare type TestsType = Record<string, string>;
-export declare type AllTestsType = Record<string, TestsType>;
-export declare type ResultType = Record<string, string[]>;
-export declare type runTestsForType = (category: string, tests: TestsType, assert?: Assert, results?: ResultType) => void;
+export type TestsType = Record<string, string>;
+export type AllTestsType = Record<string, TestsType>;
+export type ResultType = Record<string, string[]>;
+export type runTestsForType = (category: string, tests: TestsType, assert?: Assert, results?: ResultType) => void;
 declare global {
     interface Window {
         QUnit: unknown;
     }
 }
-declare type ConfigEntryType = string | number | boolean;
-declare type ConfigType = Record<string, ConfigEntryType>;
+type ConfigEntryType = string | number | boolean;
+type ConfigType = Record<string, ConfigEntryType>;
 export declare class TestHelper {
     static config: ConfigType;
     static init(): void;

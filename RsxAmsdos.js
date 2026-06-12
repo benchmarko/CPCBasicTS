@@ -53,7 +53,7 @@ define(["require", "exports"], function (require, exports) {
             var fileParas = {
                 stream: stream,
                 command: "|ren",
-                fileMask: "",
+                fileMask: "", // unused
                 newName: newName2,
                 oldName: oldName2,
                 line: this.line

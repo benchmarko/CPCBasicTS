@@ -972,49 +972,49 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         // (green and gray palette will be computed if needed)
         Canvas.palettes = {
             color: [
-                "#000000",
-                "#000080",
-                "#0000FF",
-                "#800000",
-                "#800080",
-                "#8000FF",
-                "#FF0000",
-                "#FF0080",
-                "#FF00FF",
-                "#008000",
-                "#008080",
-                "#0080FF",
-                "#808000",
-                "#808080",
-                "#8080FF",
-                "#FF8000",
-                "#FF8080",
-                "#FF80FF",
-                "#00FF00",
-                "#00FF80",
-                "#00FFFF",
-                "#80FF00",
-                "#80FF80",
-                "#80FFFF",
-                "#FFFF00",
-                "#FFFF80",
-                "#FFFFFF",
-                "#808080",
-                "#FF00FF",
-                "#FFFF80",
-                "#000080",
+                "#000000", //  0 Black
+                "#000080", //  1 Blue
+                "#0000FF", //  2 Bright Blue
+                "#800000", //  3 Red
+                "#800080", //  4 Magenta
+                "#8000FF", //  5 Mauve
+                "#FF0000", //  6 Bright Red
+                "#FF0080", //  7 Purple
+                "#FF00FF", //  8 Bright Magenta
+                "#008000", //  9 Green
+                "#008080", // 10 Cyan
+                "#0080FF", // 11 Sky Blue
+                "#808000", // 12 Yellow
+                "#808080", // 13 White
+                "#8080FF", // 14 Pastel Blue
+                "#FF8000", // 15 Orange
+                "#FF8080", // 16 Pink
+                "#FF80FF", // 17 Pastel Magenta
+                "#00FF00", // 18 Bright Green
+                "#00FF80", // 19 Sea Green
+                "#00FFFF", // 20 Bright Cyan
+                "#80FF00", // 21 Lime
+                "#80FF80", // 22 Pastel Green
+                "#80FFFF", // 23 Pastel Cyan
+                "#FFFF00", // 24 Bright Yellow
+                "#FFFF80", // 25 Pastel Yellow
+                "#FFFFFF", // 26 Bright White
+                "#808080", // 27 White (same as 13)
+                "#FF00FF", // 28 Bright Magenta (same as 8)
+                "#FFFF80", // 29 Pastel Yellow (same as 25)
+                "#000080", // 30 Blue (same as 1)
                 "#00FF80" //  31 Sea Green (same as 19)
             ]
         };
         // mode 0: pen 0-15,16=border; inks for pen 14,15 are alternating: "1,24", "16,11"
         Canvas.defaultInks = [
-            [1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1],
+            [1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1], // eslint-disable-line array-element-newline
             [1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 24, 11, 1] // eslint-disable-line array-element-newline
         ];
         Canvas.modeData = [
             {
-                pens: 16,
-                pixelWidth: 4,
+                pens: 16, // number of pens
+                pixelWidth: 4, // pixel width
                 pixelHeight: 2 // pixel height
             },
             {
@@ -1028,7 +1028,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 pixelHeight: 2
             },
             {
-                pens: 16,
+                pens: 16, // mode 3 not available on a real CPC
                 pixelWidth: 1,
                 pixelHeight: 1
             }

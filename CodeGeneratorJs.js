@@ -59,8 +59,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             };
             /* eslint-disable no-invalid-this */
             this.parseFunctions = {
-                ";": CodeGeneratorJs.commaOrSemicolon,
-                ",": CodeGeneratorJs.commaOrSemicolon,
+                ";": CodeGeneratorJs.commaOrSemicolon, // ";" for input, line input
+                ",": CodeGeneratorJs.commaOrSemicolon, // "," for input, line input
                 "|": this.vertical,
                 number: CodeGeneratorJs.number,
                 expnumber: CodeGeneratorJs.expnumber,
@@ -68,11 +68,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 hexnumber: CodeGeneratorJs.hexnumber,
                 linenumber: CodeGeneratorJs.linenumber,
                 identifier: this.identifier,
-                letter: CodeGeneratorJs.letter,
+                letter: CodeGeneratorJs.letter, // for defint, defreal, defstr
                 range: this.range,
                 linerange: this.linerange,
                 string: CodeGeneratorJs.string,
-                ustring: CodeGeneratorJs.string,
+                ustring: CodeGeneratorJs.string, // unterminated string the same as string
                 unquoted: CodeGeneratorJs.unquoted,
                 "null": CodeGeneratorJs.fnNull,
                 assign: this.assign,
@@ -82,7 +82,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 call: this.fnCommandWithGoto,
                 chain: this.fnCommandWithGoto,
                 chainMerge: this.fnCommandWithGoto,
-                clear: this.fnCommandWithGoto,
+                clear: this.fnCommandWithGoto, // will also do e.g. closeout
                 closeout: this.fnCommandWithGoto,
                 cont: CodeGeneratorJs.cont,
                 data: this.data,
@@ -123,7 +123,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 randomize: this.randomize,
                 read: this.read,
                 rem: this.rem,
-                "'": this.apostrophe,
+                "'": this.apostrophe, // apostrophe comment
                 renum: this.fnCommandWithGoto,
                 restore: this.onBreakGosubOrRestore,
                 resume: this.gotoOrResume,
@@ -131,11 +131,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 "return": CodeGeneratorJs.fnReturn,
                 run: this.run,
                 save: this.save,
-                sound: this.fnCommandWithGoto,
+                sound: this.fnCommandWithGoto, // maybe queue is full, so insert break
                 spc: this.spc,
                 stop: this.stopOrEnd,
                 tab: this.tab,
-                tron: this.fnCommandWithGoto,
+                tron: this.fnCommandWithGoto, // not really needed with goto, but...
                 using: this.usingOrWrite,
                 wend: this.wend,
                 "while": this.fnWhile,

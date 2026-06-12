@@ -38,7 +38,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 lineInput: this.inputLineInput,
                 list: this.list,
                 mid$Assign: this.mid$Assign,
-                onBreakCont: this.onBreakOrError,
+                onBreakCont: this.onBreakOrError, // 3 parts
                 onBreakGosub: this.onBreakOrError,
                 onBreakStop: this.onBreakOrError,
                 onErrorGoto: this.onBreakOrError,
@@ -450,22 +450,22 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return out;
         };
         CodeGeneratorBasic.combinedKeywords = {
-            chainMerge: "CHAIN",
-            clearInput: "CLEAR",
-            graphicsPaper: "GRAPHICS",
-            graphicsPen: "GRAPHICS",
-            keyDef: "KEY",
-            lineInput: "LINE",
+            chainMerge: "CHAIN", // "CHAIN MERGE"
+            clearInput: "CLEAR", // "CLEAR INPUT"
+            graphicsPaper: "GRAPHICS", // "GRAPHICS PAPER"
+            graphicsPen: "GRAPHICS", // "GRAPHICS PEN"
+            keyDef: "KEY", // "KEY DEF"
+            lineInput: "LINE", // "LINE INPUT"
             mid$Assign: "MID$",
-            onBreakCont: "ON",
-            onBreakGosub: "ON",
-            onBreakStop: "ON",
-            onErrorGoto: "ON",
-            resumeNext: "RESUME",
-            speedInk: "SPEED",
-            speedKey: "SPEED",
-            speedWrite: "SPEED",
-            symbolAfter: "SYMBOL",
+            onBreakCont: "ON", // ""ON BREAK CONT"
+            onBreakGosub: "ON", // ""ON BREAK GOSUB"
+            onBreakStop: "ON", // ""ON BREAK STOP"
+            onErrorGoto: "ON", // "ON ERROR GOTO"
+            resumeNext: "RESUME", // "RESUME NEXT"
+            speedInk: "SPEED", // "SPEED INK"
+            speedKey: "SPEED", // "SPEED KEY"
+            speedWrite: "SPEED", // "SPEED WRITE"
+            symbolAfter: "SYMBOL", // "SYMBOL AFTER"
             windowSwap: "WINDOW" // "WINDOW SWAP"
         };
         CodeGeneratorBasic.operators = {
@@ -490,10 +490,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             "#": "#"
         };
         CodeGeneratorBasic.operatorPrecedence = {
-            "@": 95,
+            "@": 95, // prefix
             "^": 90,
-            "p-": 80,
-            "p+": 80,
+            "p-": 80, // prefix - (fast hack)
+            "p+": 80, // prefix + (fast hack)
             "*": 70,
             "/": 70,
             "\\": 60,
@@ -506,21 +506,21 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             "<=": 30,
             ">": 30,
             ">=": 30,
-            not: 23,
+            not: 23, // prefix
             and: 22,
             or: 21,
             xor: 20,
             "#": 10 // priority?
         };
         CodeGeneratorBasic.operatorAssociativity = {
-            "^": "right",
-            "*": "left",
-            "+": "left",
-            "/": "left",
-            "\\": "left",
-            mod: "left",
-            "-": "left",
-            "=": "none",
+            "^": "right", // right-associative
+            "*": "left", // left-associative (commutative, so parens not needed for equal precedence)
+            "+": "left", // left-associative (commutative, so parens not needed for equal precedence)
+            "/": "left", // left-associative (non-commutative, so parens ARE needed for equal precedence)
+            "\\": "left", // left-associative (non-commutative, so parens ARE needed)
+            mod: "left", // left-associative (non-commutative)
+            "-": "left", // left-associative (non-commutative, so parens ARE needed for equal precedence)
+            "=": "none", // comparison operators are non-associative
             "<>": "none",
             "<": "none",
             "<=": "none",

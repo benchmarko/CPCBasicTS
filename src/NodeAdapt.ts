@@ -18,10 +18,12 @@ interface NodeFs {
 
 export class NodeAdapt {
 	static doAdapt(): void {
-		let https: NodeHttps, // nodeJs
-			fs: NodeFs,
+		/* eslint-disable prefer-const */
+		let https = undefined as unknown as NodeHttps, // nodeJs - set via fnEval, invisible to TS
+			fs = undefined as unknown as NodeFs,
 			module: any,
 			audioContext: any;
+		/* eslint-enable prefer-const */
 
 		const domElements: Record<string, any> = {},
 			myCreateElement = function (id: string) {

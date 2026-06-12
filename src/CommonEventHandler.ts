@@ -21,8 +21,8 @@ export type EventDefType = {
 	property?: ModelPropID
 	display?: string
 	isPopover?: boolean
-	func?: Function // eslint-disable-line @typescript-eslint/ban-types
-	controllerFunc?: Function // eslint-disable-line @typescript-eslint/ban-types
+	func?: Function // eslint-disable-line @typescript-eslint/no-unsafe-function-type
+	controllerFunc?: Function // eslint-disable-line @typescript-eslint/no-unsafe-function-type
 }
 
 type EventDefMapType = Record<string, EventDefType[]>;

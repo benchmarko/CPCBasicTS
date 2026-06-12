@@ -11,7 +11,7 @@ export interface AreaInputElement {
     checked: boolean;
     imgUrl: string;
 }
-export declare type PointerEventNamesType = Record<"down" | "move" | "up" | "cancel" | "out" | "type", string>;
+export type PointerEventNamesType = Record<"down" | "move" | "up" | "cancel" | "out" | "type", string>;
 export declare class View {
     static getElementById1(id: ViewID): HTMLElement;
     static getElementByIdAs<T extends HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLElement>(id: ViewID): T;

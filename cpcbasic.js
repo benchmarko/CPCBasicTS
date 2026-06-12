@@ -188,28 +188,28 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
         cpcBasic.config = {
             arrayBounds: false,
             autorun: true,
-            basicVersion: "1.1",
-            bench: 0,
-            canvasType: "graphics",
-            databaseDirs: "examples",
-            database: "examples",
+            basicVersion: "1.1", // "1.1" or "1.0"
+            bench: 0, // debug: number of parse bench loops
+            canvasType: "graphics", // "graphics", "text", "none"
+            databaseDirs: "examples", // example base directories (comma separated)
+            database: "examples", // examples, apps, saved
             debug: 0,
             example: "cpcbasic",
-            exampleIndex: "0index.js",
-            implicitLines: false,
-            input: "",
-            integerOverflow: false,
-            kbdLayout: "alphanum",
-            linesOnLoad: true,
+            exampleIndex: "0index.js", // example index for every databaseDir
+            implicitLines: false, // allow implicit line numbers
+            input: "", // keyboard input when starting the app
+            integerOverflow: false, // check for integer overflow
+            kbdLayout: "alphanum", // alphanum, alpha, num
+            linesOnLoad: true, // add missing line numbers on load
             dragElements: false,
-            palette: "color",
-            prettyBrackets: true,
-            prettyColons: true,
-            prettyLowercaseVars: false,
-            prettySpace: false,
-            processFileImports: true,
-            random: "cpc",
-            selectDataFiles: false,
+            palette: "color", // "color", "green", "grey"
+            prettyBrackets: true, // pretty print: brackets
+            prettyColons: true, // pretty print: colons
+            prettyLowercaseVars: false, // pretty print: lowercase variables
+            prettySpace: false, // pretty print: spaces
+            processFileImports: true, // open ZIP, DSK files on import
+            random: "cpc", // cpc or minstd
+            selectDataFiles: false, // select data files in example selection
             showConsoleLog: false,
             showCpc: true,
             showDisass: false,

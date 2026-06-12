@@ -406,14 +406,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             move: "touchmove",
             up: "touchend",
             cancel: "touchcancel",
-            out: "",
+            out: "", // n.a.
             type: "touch"
         };
         View.mouseEventNames = {
             down: "mousedown",
             move: "mousemove",
             up: "mouseup",
-            cancel: "",
+            cancel: "", // n.a.
             out: "mouseout",
             type: "mouse"
         };

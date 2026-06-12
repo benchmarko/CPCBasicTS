@@ -463,7 +463,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         func: this.toggleAreaHidden
                     },
                     {
-                        id: "window" /* ViewID.window */,
+                        id: "window" /* ViewID.window */, //TTT do we need this?
                         controllerFunc: this.controller.onWindowClick
                     }
                 ],

@@ -4,9 +4,9 @@ export interface IOutput {
     text: string;
     error?: CustomError;
 }
-declare type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
-export declare type CanvasCharType = number[];
-export declare type CanvasCharsetType = CanvasCharType[];
+type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
+export type CanvasCharType = number[];
+export type CanvasCharsetType = CanvasCharType[];
 export interface CanvasOptions {
     canvasID: ViewID;
     charset: CanvasCharsetType;
@@ -92,8 +92,8 @@ export interface VmInputParas extends VmBaseParas {
     types?: string[];
     fnInputCallback: () => boolean;
 }
-export declare type VmStopParas = VmFileParas | VmInputParas | VmLineParas | VmLineRenumParas;
-export declare type VariableValue = string | number | Function | [] | VariableValue[];
+export type VmStopParas = VmFileParas | VmInputParas | VmLineParas | VmLineRenumParas;
+export type VariableValue = string | number | Function | [] | VariableValue[];
 export interface ICpcVm {
     line: string | number;
     vmComposeError(error: Error, err: number, errInfo: string): CustomError;
@@ -105,7 +105,7 @@ export interface ICpcVm {
     renum(newLine: number, oldLine: number, step: number, keep: number): void;
     vmNotImplemented(name: string): void;
 }
-export declare type RsxCommandType = (this: ICpcVm, ...args: (string | number)[]) => void;
+export type RsxCommandType = (this: ICpcVm, ...args: (string | number)[]) => void;
 export interface ICpcVmRsx {
     getRsxCommands: () => Record<string, RsxCommandType>;
 }

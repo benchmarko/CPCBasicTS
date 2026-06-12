@@ -119,7 +119,7 @@ define(["require", "exports"], function (require, exports) {
             try {
                 Function(testExpression); // eslint-disable-line no-new-func
             }
-            catch (e) {
+            catch (_e) {
                 return false;
             }
             return true;

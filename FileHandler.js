@@ -77,7 +77,7 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
             var zip;
             try {
                 zip = new ZipFile_1.ZipFile({
-                    data: uint8Array,
+                    data: uint8Array, // rather data
                     zipName: name
                 });
             }

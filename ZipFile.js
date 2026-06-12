@@ -56,8 +56,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         ZipFile.prototype.readEocd = function (eocdPos) {
             var eocd = {
                 signature: this.readUInt(eocdPos),
-                entries: this.readUShort(eocdPos + 10),
-                cdfhOffset: this.readUInt(eocdPos + 16),
+                entries: this.readUShort(eocdPos + 10), // total number of central directory records
+                cdfhOffset: this.readUInt(eocdPos + 16), // offset of start of central directory, relative to start of archive
                 cdSize: this.readUInt(eocdPos + 20) // size of central directory (just for information)
             };
             return eocd;
@@ -65,17 +65,17 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         ZipFile.prototype.readCdfh = function (pos) {
             var cdfh = {
                 signature: this.readUInt(pos),
-                version: this.readUShort(pos + 6),
-                flag: this.readUShort(pos + 8),
-                compressionMethod: this.readUShort(pos + 10),
-                modificationTime: this.readUShort(pos + 12),
-                crc: this.readUInt(pos + 16),
-                compressedSize: this.readUInt(pos + 20),
-                size: this.readUInt(pos + 24),
-                fileNameLength: this.readUShort(pos + 28),
-                extraFieldLength: this.readUShort(pos + 30),
-                fileCommentLength: this.readUShort(pos + 32),
-                localOffset: this.readUInt(pos + 42),
+                version: this.readUShort(pos + 6), // version needed to extract (minimum)
+                flag: this.readUShort(pos + 8), // General purpose bit flag
+                compressionMethod: this.readUShort(pos + 10), // compression method
+                modificationTime: this.readUShort(pos + 12), // File last modification time (DOS time)
+                crc: this.readUInt(pos + 16), // CRC-32 of uncompressed data
+                compressedSize: this.readUInt(pos + 20), // compressed size
+                size: this.readUInt(pos + 24), // Uncompressed size
+                fileNameLength: this.readUShort(pos + 28), // file name length
+                extraFieldLength: this.readUShort(pos + 30), // extra field length
+                fileCommentLength: this.readUShort(pos + 32), // file comment length
+                localOffset: this.readUInt(pos + 42), // relative offset of local file header
                 // set later...
                 name: "",
                 isDirectory: false,

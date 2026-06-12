@@ -7,7 +7,7 @@ interface CommonEventHandlerOptions {
     view: View;
     controller: IController;
 }
-export declare type EventDefType = {
+export type EventDefType = {
     id: ViewID;
     viewType?: string;
     toggleId?: ViewID;

@@ -526,13 +526,13 @@ define(["require", "exports"], function (require, exports) {
         /* eslint-disable array-element-newline */
         Z80Disass.bregtab = [
             ["B", "C", "D", "E", "H", "L", "(HL)", "A"],
-            ["B", "C", "D", "E", "HX", "LX", "(IX+", "A"],
+            ["B", "C", "D", "E", "HX", "LX", "(IX+", "A"], // DD-Prefix
             ["B", "C", "D", "E", "HY", "LY", "(IY+", "A"] // FD-Prefix
         ];
         /* eslint-disable array-element-newline */
         Z80Disass.wregtab = [
             ["BC", "DE", "HL", "SP"],
-            ["BC", "DE", "IX", "SP"],
+            ["BC", "DE", "IX", "SP"], // DD-Prefix
             ["BC", "DE", "IY", "SP"] // FD-Prefix
         ];
         Z80Disass.unknownOp = "unknown";

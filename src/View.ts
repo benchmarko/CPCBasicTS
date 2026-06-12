@@ -490,7 +490,7 @@ export class View {
 
 		const data8 = Utils.string2Uint8Array(data),
 			type = "octet/stream",
-			blob = new Blob([data8.buffer], {
+			blob = new Blob([data8.buffer as ArrayBuffer], {
 				type: type
 			});
 

@@ -34,7 +34,7 @@ var Polyfills = {
                 nodeJs = true;
             }
         }
-        catch (e) {
+        catch (_e) {
             // empty
         }
         return nodeJs;
@@ -48,7 +48,7 @@ var Polyfills = {
                 value: "1"
             });
         }
-        catch (e) { // on IE8 we get "TypeError: Object does not support this action"
+        catch (_e) { // on IE8 we get "TypeError: Object does not support this action"
             return false;
         }
         return true;

@@ -22,7 +22,7 @@ interface CentralDirFileHeader {
     timestamp: number;
     dataStart: number;
 }
-declare type ZipDirectoryType = {
+type ZipDirectoryType = {
     [k in string]: CentralDirFileHeader;
 };
 export declare class ZipFile {

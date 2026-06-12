@@ -52,7 +52,7 @@ define(["require", "exports"], function (require, exports) {
         ModelPropID["sound"] = "sound";
         ModelPropID["speed"] = "speed";
         ModelPropID["trace"] = "trace";
-    })(ModelPropID = exports.ModelPropID || (exports.ModelPropID = {}));
+    })(ModelPropID || (exports.ModelPropID = ModelPropID = {}));
     var ViewID;
     (function (ViewID) {
         ViewID["arrayBoundsInput"] = "arrayBoundsInput";
@@ -166,6 +166,6 @@ define(["require", "exports"], function (require, exports) {
         ViewID["viewArea"] = "viewArea";
         ViewID["viewButton"] = "viewButton";
         ViewID["window"] = "window"; // for window.document
-    })(ViewID = exports.ViewID || (exports.ViewID = {}));
+    })(ViewID || (exports.ViewID = ViewID = {}));
 });
 //# sourceMappingURL=Constants.js.map

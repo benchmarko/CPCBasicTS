@@ -26,42 +26,42 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             // on sq?
             /* eslint-disable no-invalid-this */
             this.tokens = {
-                0x00: "",
-                0x01: ":",
-                0x02: this.fnIntVar,
-                0x03: this.fnStringVar,
-                0x04: this.fnFpVar,
+                0x00: "", // marker for "end of tokenised line"
+                0x01: ":", // ":" statement seperator
+                0x02: this.fnIntVar, // integer variable definition (defined with "%" suffix)
+                0x03: this.fnStringVar, // string variable definition (defined with "$" suffix)
+                0x04: this.fnFpVar, // floating point variable definition (defined with "!" suffix)
                 0x05: "var?",
                 0x06: "var?",
-                0x07: "var?",
-                0x08: "var?",
-                0x09: "var?",
-                0x0a: "var?",
-                0x0b: this.fnVar,
-                0x0c: this.fnVar,
-                0x0d: this.fnVar,
-                0x0e: "0",
-                0x0f: "1",
-                0x10: "2",
-                0x11: "3",
-                0x12: "4",
-                0x13: "5",
-                0x14: "6",
-                0x15: "7",
-                0x16: "8",
-                0x17: "9",
-                0x18: "10",
-                0x19: this.fnNum8DecAsStr,
-                0x1a: this.fnNum16DecAsStr,
-                0x1b: this.fnNum16Bin,
-                0x1c: this.fnNum16Hex,
-                0x1d: this.fnNum16LineAddrAsStr,
-                0x1e: this.fnNum16DecAsStr,
-                0x1f: this.fnNumFp,
+                0x07: "var?", // ??
+                0x08: "var?", // ??
+                0x09: "var?", // ??
+                0x0a: "var?", // ??
+                0x0b: this.fnVar, // integer variable definition (no suffix)
+                0x0c: this.fnVar, // string variable definition (no suffix)
+                0x0d: this.fnVar, // floating point or no type (no suffix)
+                0x0e: "0", // number constant "0"
+                0x0f: "1", // number constant "1"
+                0x10: "2", // number constant "2"
+                0x11: "3", // number constant "3"
+                0x12: "4", // number constant "4"
+                0x13: "5", // number constant "5"
+                0x14: "6", // number constant "6"
+                0x15: "7", // number constant "7"
+                0x16: "8", // number constant "8"
+                0x17: "9", // number constant "9"
+                0x18: "10", // number constant "10"
+                0x19: this.fnNum8DecAsStr, // 8-bit integer decimal value
+                0x1a: this.fnNum16DecAsStr, // 16-bit integer decimal value
+                0x1b: this.fnNum16Bin, // 16-bit integer binary value (with "&X" prefix)
+                0x1c: this.fnNum16Hex, // num16Hex: 16-bit integer hexadecimal value (with "&H" or "&" prefix)
+                0x1d: this.fnNum16LineAddrAsStr, // 16-bit BASIC program line memory address pointer
+                0x1e: this.fnNum16DecAsStr, // 16-bit integer BASIC line number
+                0x1f: this.fnNumFp, // floating point value
                 // 0x20-0x21 ASCII printable symbols
-                0x22: this.fnQuotedString,
+                0x22: this.fnQuotedString, // '"' quoted string value
                 // 0x23-0x7b ASCII printable symbols
-                0x7c: this.fnRsx,
+                0x7c: this.fnRsx, // "|" symbol; prefix for RSX commands
                 0x80: "AFTER",
                 0x81: "AUTO",
                 0x82: "BORDER",
@@ -85,7 +85,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 0x94: "DRAW",
                 0x95: "DRAWR",
                 0x96: "EDIT",
-                0x97: "ELSE",
+                0x97: "ELSE", // always with 0x01 0x97
                 0x98: "END",
                 0x99: "ENT",
                 0x9a: "ENV",
@@ -114,7 +114,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 0xb1: "NEW",
                 0xb2: "ON",
                 0xb3: "ON BREAK",
-                0xb4: "ON ERROR GOTO 0",
+                0xb4: "ON ERROR GOTO 0", // (on error goto n > 0 is decoded with separate tokens)
                 0xb5: "ON SQ",
                 0xb6: "OPENIN",
                 0xb7: "OPENOUT",
@@ -126,12 +126,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 0xbd: "PLOTR",
                 0xbe: "POKE",
                 0xbf: "PRINT",
-                0xc0: this.fnApostrophe,
+                0xc0: this.fnApostrophe, // "'" symbol (same function as REM keyword); always with 0x01 0xC0
                 0xc1: "RAD",
                 0xc2: "RANDOMIZE",
                 0xc3: "READ",
                 0xc4: "RELEASE",
-                0xc5: this.fnRem,
+                0xc5: this.fnRem, // REM
                 0xc6: "RENUM",
                 0xc7: "RESTORE",
                 0xc8: "RESUME",
@@ -155,11 +155,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 0xda: "ZONE",
                 0xdb: "DI",
                 0xdc: "EI",
-                0xdd: "FILL",
-                0xde: "GRAPHICS",
-                0xdf: "MASK",
-                0xe0: "FRAME",
-                0xe1: "CURSOR",
+                0xdd: "FILL", // (v1.1)
+                0xde: "GRAPHICS", // (v1.1)
+                0xdf: "MASK", // (v1.1)
+                0xe0: "FRAME", // (v1.1)
+                0xe1: "CURSOR", // (v1.1)
                 0xe2: "<unused>",
                 0xe3: "ERL",
                 0xe4: "FN",
@@ -172,18 +172,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 0xeb: "THEN",
                 0xec: "TO",
                 0xed: "USING",
-                0xee: ">",
-                0xef: "=",
-                0xf0: ">=",
-                0xf1: "<",
-                0xf2: "<>",
-                0xf3: "<=",
-                0xf4: "+",
-                0xf5: "-",
-                0xf6: "*",
-                0xf7: "/",
-                0xf8: "^",
-                0xf9: "\\",
+                0xee: ">", // (greater than)
+                0xef: "=", // (equal)
+                0xf0: ">=", // (greater or equal)
+                0xf1: "<", // (less than)
+                0xf2: "<>", // (not equal)
+                0xf3: "<=", // =<, <=, < = (less than or equal)
+                0xf4: "+", // (addition)
+                0xf5: "-", // (subtraction or unary minus)
+                0xf6: "*", // (multiplication)
+                0xf7: "/", // (division)
+                0xf8: "^", // (x to the power of y)
+                0xf9: "\\", // (integer division)
                 0xfa: "AND",
                 0xfb: "MOD",
                 0xfc: "OR",
@@ -234,10 +234,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 0x46: "TIME",
                 0x47: "XPOS",
                 0x48: "YPOS",
-                0x49: "DERR",
+                0x49: "DERR", // (v1.1)
                 // Functions with more arguments
                 0x71: "BIN$",
-                0x72: "DEC$",
+                0x72: "DEC$", // (v1.1)
                 0x73: "HEX$",
                 0x74: "INSTR",
                 0x75: "LEFT$",
@@ -249,7 +249,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 0x7b: "STRING$",
                 0x7c: "TEST",
                 0x7d: "TESTR",
-                0x7e: "COPYCHR$",
+                0x7e: "COPYCHR$", // (v1.1)
                 0x7f: "VPOS"
             };
         }

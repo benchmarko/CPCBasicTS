@@ -2,9 +2,9 @@ import { VariableValue } from "./Interfaces";
 interface VariablesOptions {
     arrayBounds?: boolean;
 }
-export declare type VariableMap = Record<string, VariableValue>;
-export declare type VarTypes = "I" | "R" | "$";
-export declare type VariableTypeMap = Record<string, VarTypes>;
+export type VariableMap = Record<string, VariableValue>;
+export type VarTypes = "I" | "R" | "$";
+export type VariableTypeMap = Record<string, VarTypes>;
 export declare class Variables {
     private readonly options;
     private variables;

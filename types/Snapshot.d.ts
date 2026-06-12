@@ -1,4 +1,4 @@
-declare type SnapshotInfo = {
+type SnapshotInfo = {
     ident: string;
     unused1: string;
     version: number;

@@ -8,7 +8,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
     exports.Controller = void 0;
     var Controller = /** @class */ (function () {
         function Controller(model, view) {
-            this.fnScript = undefined; // eslint-disable-line @typescript-eslint/ban-types
+            this.fnScript = undefined; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
             this.timeoutHandlerActive = false;
             this.nextLoopTimeOut = 0; // next timeout for the main loop
             this.initialLoopTimeout = 0;
@@ -165,7 +165,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     command: "",
                     stream: 0,
                     line: 0,
-                    first: 0,
+                    first: 0, // unused
                     last: 0 // unused
                 }
             }; // backup of stop object
@@ -439,7 +439,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                         var dataString = storage.getItem(key) || "", data = Controller.splitMeta(dataString);
                         example = {
                             key: key,
-                            title: "",
+                            title: "", // or set key?
                             meta: data.meta.typeString // currently we take only the type
                         };
                         this.model.setExample(example);
@@ -507,8 +507,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.vm.vmStop("escape", 85, false, {
                     command: "escape",
                     stream: stream,
-                    first: 0,
-                    last: 0,
+                    first: 0, // unused
+                    last: 0, // unused
                     line: this.vm.line
                 });
             }
@@ -1270,7 +1270,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                         first: inFile.first,
                         last: inFile.last,
                         command: "CHAIN MERGE",
-                        stream: 0,
+                        stream: 0, // unused
                         line: this.vm.line
                     });
                     this.vm.vmStop("fileLoad", 90); // restore
@@ -1613,7 +1613,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         // eslint-disable-next-line complexity
         Controller.prototype.fnDownload = function () {
             var options = this.view.getSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), format = this.view.getSelectValue("exportDSKFormatSelect" /* ViewID.exportDSKFormatSelect */), stripEmpty = this.view.getInputChecked("exportDSKStripEmptyInput" /* ViewID.exportDSKStripEmptyInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), editorText = Controller.exportEditorText, meta = {
-                typeString: "A",
+                typeString: "A", // ASCII
                 start: 0x170,
                 length: 0,
                 entry: 0
@@ -1988,11 +1988,11 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             var stream = 0;
             this.vm.vmStop("renumLines", 85, false, {
                 command: "renum",
-                stream: 0,
-                newLine: Number(this.view.getInputValue("renumNewInput" /* ViewID.renumNewInput */)),
-                oldLine: Number(this.view.getInputValue("renumStartInput" /* ViewID.renumStartInput */)),
-                step: Number(this.view.getInputValue("renumStepInput" /* ViewID.renumStepInput */)),
-                keep: Number(this.view.getInputValue("renumKeepInput" /* ViewID.renumKeepInput */)),
+                stream: 0, // unused
+                newLine: Number(this.view.getInputValue("renumNewInput" /* ViewID.renumNewInput */)), // 10
+                oldLine: Number(this.view.getInputValue("renumStartInput" /* ViewID.renumStartInput */)), // 1
+                step: Number(this.view.getInputValue("renumStepInput" /* ViewID.renumStepInput */)), // 10
+                keep: Number(this.view.getInputValue("renumKeepInput" /* ViewID.renumKeepInput */)), // 65535, keep lines
                 line: this.vm.line
             });
             if (this.vm.pos(stream) > 1) {

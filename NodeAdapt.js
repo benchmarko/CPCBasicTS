@@ -8,8 +8,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         function NodeAdapt() {
         }
         NodeAdapt.doAdapt = function () {
-            var https, // nodeJs
-            fs, module, audioContext;
+            /* eslint-disable prefer-const */
+            var https = undefined, // nodeJs - set via fnEval, invisible to TS
+            fs = undefined, module, audioContext;
+            /* eslint-enable prefer-const */
             var domElements = {}, myCreateElement = function (id) {
                 domElements[id] = {
                     className: "",

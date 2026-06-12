@@ -17,9 +17,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 linerange: this.linerange,
                 string: CodeGeneratorToken.string,
                 ustring: CodeGeneratorToken.ustring,
-                "(eol)": CodeGeneratorToken.fnEol,
+                "(eol)": CodeGeneratorToken.fnEol, // ignore newline "\n"
                 number: CodeGeneratorToken.number,
-                expnumber: CodeGeneratorToken.number,
+                expnumber: CodeGeneratorToken.number, // same handling as for number
                 binnumber: CodeGeneratorToken.binnumber,
                 hexnumber: CodeGeneratorToken.hexnumber,
                 identifier: this.identifier,
@@ -36,7 +36,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 "'": this.fnElseOrApostrophe
             };
             this.options = {
-                allowLineFragments: false,
+                allowLineFragments: false, // only for testing
                 implicitLines: false,
                 quiet: false
             };
@@ -319,11 +319,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return out;
         };
         CodeGeneratorToken.tokens = {
-            _eol: 0x00,
-            ":": 0x01,
-            _intVar: 0x02,
-            _stringVar: 0x03,
-            _floatVar: 0x04,
+            _eol: 0x00, // marker for "end of tokenised line"
+            ":": 0x01, // ":" statement seperator
+            _intVar: 0x02, // integer variable definition (defined with "%" suffix)  "(A-Z)+%"
+            _stringVar: 0x03, // string variable definition (defined with "$" suffix)  "(A-Z)+\$"
+            _floatVar: 0x04, // floating point variable definition (defined with "!" suffix) "(A-Z)+!"
             // "": 0x05, // "var?"
             // "": 0x06, // "var?"
             // "": 0x07, // "var?"
@@ -332,37 +332,37 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             // "": 0x0a, // "var?"
             // "": 0x0b, // integer variable definition (no suffix)
             // "": 0x0c, // string variable definition (no suffix)
-            _anyVar: 0x0d,
-            0: 0x0e,
-            1: 0x0f,
-            2: 0x10,
-            3: 0x11,
-            4: 0x12,
-            5: 0x13,
-            6: 0x14,
-            7: 0x15,
-            8: 0x16,
-            9: 0x17,
-            10: 0x18,
-            _dec8: 0x19,
-            _dec16: 0x1a,
-            _bin16: 0x1b,
-            _hex16: 0x1c,
+            _anyVar: 0x0d, // floating point or no type (no suffix)
+            0: 0x0e, // number constant "0"
+            1: 0x0f, // number constant "1"
+            2: 0x10, // number constant "2"
+            3: 0x11, // number constant "3"
+            4: 0x12, // number constant "4"
+            5: 0x13, // number constant "5"
+            6: 0x14, // number constant "6"
+            7: 0x15, // number constant "7"
+            8: 0x16, // number constant "8"
+            9: 0x17, // number constant "9"
+            10: 0x18, // number constant "10" (not sure when this is used)
+            _dec8: 0x19, // 8-bit integer decimal value
+            _dec16: 0x1a, // 16-bit integer decimal value
+            _bin16: 0x1b, // 16-bit integer binary value (with "&X" prefix)
+            _hex16: 0x1c, // num16Hex: 16-bit integer hexadecimal value (with "&H" or "&" prefix)
             // "": 0x1d, // 16-bit BASIC program line memory address pointer (should not occur)
-            _line16: 0x1e,
-            _float: 0x1f,
+            _line16: 0x1e, // 16-bit integer BASIC line number
+            _float: 0x1f, // floating point value
             // 0x20-0x21 ASCII printable symbols (space, "!")
             // "": 0x22, // '"' quoted string value
             // 0x23-0x7b ASCII printable symbols
-            "#": 0x23,
-            "(": 0x28,
-            ")": 0x29,
-            ",": 0x2c,
-            "?": 0x3f,
-            "@": 0x40,
-            "[": 0x5b,
-            "]": 0x5d,
-            "|": 0x7c,
+            "#": 0x23, // "#" character (stream)
+            "(": 0x28, // "(" character
+            ")": 0x29, // ")" character
+            ",": 0x2c, // "," character
+            "?": 0x3f, // "?" character (print)
+            "@": 0x40, // "@" character (address of)
+            "[": 0x5b, // "[" character
+            "]": 0x5d, // "]" character
+            "|": 0x7c, // "|" symbol; prefix for RSX commands
             after: 0x80,
             afterGosub: 0x80,
             auto: 0x81,
@@ -370,9 +370,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             call: 0x83,
             cat: 0x84,
             chain: 0x85,
-            chainMerge: 0x85,
+            chainMerge: 0x85, // 0xab85
             clear: 0x86,
-            clearInput: 0x86,
+            clearInput: 0x86, // 0xa386
             clg: 0x87,
             closein: 0x88,
             closeout: 0x89,
@@ -404,10 +404,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             ink: 0xa2,
             input: 0xa3,
             key: 0xa4,
-            keyDef: 0xa4,
+            keyDef: 0xa4, // 0x8da4
             let: 0xa5,
             line: 0xa6,
-            lineInput: 0xa6,
+            lineInput: 0xa6, // 0xa3a6
             list: 0xa7,
             load: 0xa8,
             locate: 0xa9,
@@ -421,11 +421,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             next: 0xb0,
             "new": 0xb1,
             on: 0xb2,
-            _onBreak: 0xb3,
-            _onErrorGoto0: 0xb4,
+            _onBreak: 0xb3, // onBreakCont, onBreakGosub, onBreakStop
+            _onErrorGoto0: 0xb4, // "on error goto 0" (on error goto n > 0 is decoded with separate tokens)
             onGosub: 0xb2,
             onGoto: 0xb2,
-            _onSq: 0xb5,
+            _onSq: 0xb5, // "on sq" (onSqGosub)
             openin: 0xb6,
             openout: 0xb7,
             origin: 0xb8,
@@ -436,27 +436,27 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             plotr: 0xbd,
             poke: 0xbe,
             print: 0xbf,
-            "'": 0xc0,
+            "'": 0xc0, // apostrophe "'" symbol (same function as REM keyword)
             rad: 0xc1,
             randomize: 0xc2,
             read: 0xc3,
             release: 0xc4,
-            rem: 0xc5,
+            rem: 0xc5, // rem
             renum: 0xc6,
             restore: 0xc7,
             resume: 0xc8,
-            resumeNext: 0xc8,
+            resumeNext: 0xc8, // 0xb0c8
             "return": 0xc9,
             run: 0xca,
             save: 0xcb,
             sound: 0xcc,
-            speedInk: 0xcd,
-            speedKey: 0xcd,
-            speedWrite: 0xcd,
+            speedInk: 0xcd, // 0xa2cd
+            speedKey: 0xcd, // 0xa4cd,
+            speedWrite: 0xcd, // 0xd9cd
             stop: 0xce,
             swap: 0xe7,
             symbol: 0xcf,
-            symbolAfter: 0xcf,
+            symbolAfter: 0xcf, // 0x80cf
             tag: 0xd0,
             tagoff: 0xd1,
             troff: 0xd2,
@@ -466,18 +466,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             "while": 0xd6,
             width: 0xd7,
             window: 0xd8,
-            windowSwap: 0xd8,
+            windowSwap: 0xd8, // 0xe7d8
             write: 0xd9,
             zone: 0xda,
             di: 0xdb,
             ei: 0xdc,
-            fill: 0xdd,
-            graphics: 0xde,
-            graphicsPaper: 0xde,
-            graphicsPen: 0xde,
-            mask: 0xdf,
-            frame: 0xe0,
-            cursor: 0xe1,
+            fill: 0xdd, // (v1.1)
+            graphics: 0xde, // (v1.1)
+            graphicsPaper: 0xde, // 0xbade
+            graphicsPen: 0xde, // 0xbbde
+            mask: 0xdf, // (v1.1)
+            frame: 0xe0, // (v1.1)
+            cursor: 0xe1, // (v1.1)
             // "<unused>":         0xe2,
             erl: 0xe3,
             fn: 0xe4,
@@ -490,19 +490,19 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             then: 0xeb,
             to: 0xec,
             using: 0xed,
-            ">": 0xee,
-            "=": 0xef,
-            assign: 0xef,
-            ">=": 0xf0,
-            "<": 0xf1,
-            "<>": 0xf2,
-            "<=": 0xf3,
-            "+": 0xf4,
-            "-": 0xf5,
-            "*": 0xf6,
-            "/": 0xf7,
-            "^": 0xf8,
-            "\\": 0xf9,
+            ">": 0xee, // (greater than)
+            "=": 0xef, // (equal)
+            assign: 0xef, // equal as assign
+            ">=": 0xf0, // (greater or equal)
+            "<": 0xf1, // (less than)
+            "<>": 0xf2, // (not equal)
+            "<=": 0xf3, // =<, <=, < = (less than or equal)
+            "+": 0xf4, // (addition)
+            "-": 0xf5, // (subtraction or unary minus)
+            "*": 0xf6, // (multiplication)
+            "/": 0xf7, // (division)
+            "^": 0xf8, // (x to the power of y)
+            "\\": 0xf9, // (integer division)
             and: 0xfa,
             mod: 0xfb,
             or: 0xfc,
@@ -552,10 +552,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             time: 0x46,
             xpos: 0x47,
             ypos: 0x48,
-            derr: 0x49,
+            derr: 0x49, // (v1.1)
             // Functions with more arguments
             bin$: 0x71,
-            dec$: 0x72,
+            dec$: 0x72, // (v1.1)
             hex$: 0x73,
             instr: 0x74,
             left$: 0x75,
@@ -567,7 +567,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             string$: 0x7b,
             test: 0x7c,
             testr: 0x7d,
-            copychr$: 0x7e,
+            copychr$: 0x7e, // (v1.1)
             vpos: 0x7f
         };
         CodeGeneratorToken.varTypeMap = {

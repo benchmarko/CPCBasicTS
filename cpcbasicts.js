@@ -54,7 +54,7 @@ var Polyfills = {
                 nodeJs = true;
             }
         }
-        catch (e) {
+        catch (_e) {
             // empty
         }
         return nodeJs;
@@ -68,7 +68,7 @@ var Polyfills = {
                 value: "1"
             });
         }
-        catch (e) { // on IE8 we get "TypeError: Object does not support this action"
+        catch (_e) { // on IE8 we get "TypeError: Object does not support this action"
             return false;
         }
         return true;
@@ -810,7 +810,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ModelPropID["sound"] = "sound";
         ModelPropID["speed"] = "speed";
         ModelPropID["trace"] = "trace";
-    })(ModelPropID = exports.ModelPropID || (exports.ModelPropID = {}));
+    })(ModelPropID || (exports.ModelPropID = ModelPropID = {}));
     var ViewID;
     (function (ViewID) {
         ViewID["arrayBoundsInput"] = "arrayBoundsInput";
@@ -924,7 +924,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["viewArea"] = "viewArea";
         ViewID["viewButton"] = "viewButton";
         ViewID["window"] = "window"; // for window.document
-    })(ViewID = exports.ViewID || (exports.ViewID = {}));
+    })(ViewID || (exports.ViewID = ViewID = {}));
 });
 // Utils.ts - Utililities for CPCBasic
 // (c) Marco Vieth, 2019
@@ -1047,7 +1047,7 @@ define("Utils", ["require", "exports"], function (require, exports) {
             try {
                 Function(testExpression); // eslint-disable-line no-new-func
             }
-            catch (e) {
+            catch (_e) {
                 return false;
             }
             return true;
@@ -1145,261 +1145,261 @@ define("cpcCharset", ["require", "exports"], function (require, exports) {
     exports.cpcCharset = void 0;
     /* eslint-disable array-element-newline */
     exports.cpcCharset = [
-        [0xff, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xff],
-        [0xff, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0],
-        [0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0xff],
-        [0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0xff],
-        [0x0c, 0x18, 0x30, 0x7e, 0x0c, 0x18, 0x30, 0x00],
-        [0xff, 0xc3, 0xe7, 0xdb, 0xdb, 0xe7, 0xc3, 0xff],
-        [0x00, 0x01, 0x03, 0x06, 0xcc, 0x78, 0x30, 0x00],
-        [0x3c, 0x66, 0xc3, 0xc3, 0xff, 0x24, 0xe7, 0x00],
-        [0x00, 0x00, 0x30, 0x60, 0xff, 0x60, 0x30, 0x00],
-        [0x00, 0x00, 0x0c, 0x06, 0xff, 0x06, 0x0c, 0x00],
-        [0x18, 0x18, 0x18, 0x18, 0xdb, 0x7e, 0x3c, 0x18],
-        [0x18, 0x3c, 0x7e, 0xdb, 0x18, 0x18, 0x18, 0x18],
-        [0x18, 0x5a, 0x3c, 0x99, 0xdb, 0x7e, 0x3c, 0x18],
-        [0x00, 0x03, 0x33, 0x63, 0xfe, 0x60, 0x30, 0x00],
-        [0x3c, 0x66, 0xff, 0xdb, 0xdb, 0xff, 0x66, 0x3c],
-        [0x3c, 0x66, 0xc3, 0xdb, 0xdb, 0xc3, 0x66, 0x3c],
-        [0xff, 0xc3, 0xc3, 0xff, 0xc3, 0xc3, 0xc3, 0xff],
-        [0x3c, 0x7e, 0xdb, 0xdb, 0xdf, 0xc3, 0x66, 0x3c],
-        [0x3c, 0x66, 0xc3, 0xdf, 0xdb, 0xdb, 0x7e, 0x3c],
-        [0x3c, 0x66, 0xc3, 0xfb, 0xdb, 0xdb, 0x7e, 0x3c],
-        [0x3c, 0x7e, 0xdb, 0xdb, 0xfb, 0xc3, 0x66, 0x3c],
-        [0x00, 0x01, 0x33, 0x1e, 0xce, 0x7b, 0x31, 0x00],
-        [0x7e, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0xe7],
-        [0x03, 0x03, 0x03, 0xff, 0x03, 0x03, 0x03, 0x00],
-        [0xff, 0x66, 0x3c, 0x18, 0x18, 0x3c, 0x66, 0xff],
-        [0x18, 0x18, 0x3c, 0x3c, 0x3c, 0x3c, 0x18, 0x18],
-        [0x3c, 0x66, 0x66, 0x30, 0x18, 0x00, 0x18, 0x00],
-        [0x3c, 0x66, 0xc3, 0xff, 0xc3, 0xc3, 0x66, 0x3c],
-        [0xff, 0xdb, 0xdb, 0xdb, 0xfb, 0xc3, 0xc3, 0xff],
-        [0xff, 0xc3, 0xc3, 0xfb, 0xdb, 0xdb, 0xdb, 0xff],
-        [0xff, 0xc3, 0xc3, 0xdf, 0xdb, 0xdb, 0xdb, 0xff],
-        [0xff, 0xdb, 0xdb, 0xdb, 0xdf, 0xc3, 0xc3, 0xff],
-        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-        [0x18, 0x18, 0x18, 0x18, 0x18, 0x00, 0x18, 0x00],
-        [0x6c, 0x6c, 0x6c, 0x00, 0x00, 0x00, 0x00, 0x00],
-        [0x6c, 0x6c, 0xfe, 0x6c, 0xfe, 0x6c, 0x6c, 0x00],
-        [0x18, 0x3e, 0x58, 0x3c, 0x1a, 0x7c, 0x18, 0x00],
-        [0x00, 0xc6, 0xcc, 0x18, 0x30, 0x66, 0xc6, 0x00],
-        [0x38, 0x6c, 0x38, 0x76, 0xdc, 0xcc, 0x76, 0x00],
-        [0x18, 0x18, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00],
-        [0x0c, 0x18, 0x30, 0x30, 0x30, 0x18, 0x0c, 0x00],
-        [0x30, 0x18, 0x0c, 0x0c, 0x0c, 0x18, 0x30, 0x00],
-        [0x00, 0x66, 0x3c, 0xff, 0x3c, 0x66, 0x00, 0x00],
-        [0x00, 0x18, 0x18, 0x7e, 0x18, 0x18, 0x00, 0x00],
-        [0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18, 0x30],
-        [0x00, 0x00, 0x00, 0x7e, 0x00, 0x00, 0x00, 0x00],
-        [0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18, 0x00],
-        [0x06, 0x0c, 0x18, 0x30, 0x60, 0xc0, 0x80, 0x00],
-        [0x7c, 0xc6, 0xce, 0xd6, 0xe6, 0xc6, 0x7c, 0x00],
-        [0x18, 0x38, 0x18, 0x18, 0x18, 0x18, 0x7e, 0x00],
-        [0x3c, 0x66, 0x06, 0x3c, 0x60, 0x66, 0x7e, 0x00],
-        [0x3c, 0x66, 0x06, 0x1c, 0x06, 0x66, 0x3c, 0x00],
-        [0x1c, 0x3c, 0x6c, 0xcc, 0xfe, 0x0c, 0x1e, 0x00],
-        [0x7e, 0x62, 0x60, 0x7c, 0x06, 0x66, 0x3c, 0x00],
-        [0x3c, 0x66, 0x60, 0x7c, 0x66, 0x66, 0x3c, 0x00],
-        [0x7e, 0x66, 0x06, 0x0c, 0x18, 0x18, 0x18, 0x00],
-        [0x3c, 0x66, 0x66, 0x3c, 0x66, 0x66, 0x3c, 0x00],
-        [0x3c, 0x66, 0x66, 0x3e, 0x06, 0x66, 0x3c, 0x00],
-        [0x00, 0x00, 0x18, 0x18, 0x00, 0x18, 0x18, 0x00],
-        [0x00, 0x00, 0x18, 0x18, 0x00, 0x18, 0x18, 0x30],
-        [0x0c, 0x18, 0x30, 0x60, 0x30, 0x18, 0x0c, 0x00],
-        [0x00, 0x00, 0x7e, 0x00, 0x00, 0x7e, 0x00, 0x00],
-        [0x60, 0x30, 0x18, 0x0c, 0x18, 0x30, 0x60, 0x00],
-        [0x3c, 0x66, 0x66, 0x0c, 0x18, 0x00, 0x18, 0x00],
-        [0x7c, 0xc6, 0xde, 0xde, 0xde, 0xc0, 0x7c, 0x00],
-        [0x18, 0x3c, 0x66, 0x66, 0x7e, 0x66, 0x66, 0x00],
-        [0xfc, 0x66, 0x66, 0x7c, 0x66, 0x66, 0xfc, 0x00],
-        [0x3c, 0x66, 0xc0, 0xc0, 0xc0, 0x66, 0x3c, 0x00],
-        [0xf8, 0x6c, 0x66, 0x66, 0x66, 0x6c, 0xf8, 0x00],
-        [0xfe, 0x62, 0x68, 0x78, 0x68, 0x62, 0xfe, 0x00],
-        [0xfe, 0x62, 0x68, 0x78, 0x68, 0x60, 0xf0, 0x00],
-        [0x3c, 0x66, 0xc0, 0xc0, 0xce, 0x66, 0x3e, 0x00],
-        [0x66, 0x66, 0x66, 0x7e, 0x66, 0x66, 0x66, 0x00],
-        [0x7e, 0x18, 0x18, 0x18, 0x18, 0x18, 0x7e, 0x00],
-        [0x1e, 0x0c, 0x0c, 0x0c, 0xcc, 0xcc, 0x78, 0x00],
-        [0xe6, 0x66, 0x6c, 0x78, 0x6c, 0x66, 0xe6, 0x00],
-        [0xf0, 0x60, 0x60, 0x60, 0x62, 0x66, 0xfe, 0x00],
-        [0xc6, 0xee, 0xfe, 0xfe, 0xd6, 0xc6, 0xc6, 0x00],
-        [0xc6, 0xe6, 0xf6, 0xde, 0xce, 0xc6, 0xc6, 0x00],
-        [0x38, 0x6c, 0xc6, 0xc6, 0xc6, 0x6c, 0x38, 0x00],
-        [0xfc, 0x66, 0x66, 0x7c, 0x60, 0x60, 0xf0, 0x00],
-        [0x38, 0x6c, 0xc6, 0xc6, 0xda, 0xcc, 0x76, 0x00],
-        [0xfc, 0x66, 0x66, 0x7c, 0x6c, 0x66, 0xe6, 0x00],
-        [0x3c, 0x66, 0x60, 0x3c, 0x06, 0x66, 0x3c, 0x00],
-        [0x7e, 0x5a, 0x18, 0x18, 0x18, 0x18, 0x3c, 0x00],
-        [0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x3c, 0x00],
-        [0x66, 0x66, 0x66, 0x66, 0x66, 0x3c, 0x18, 0x00],
-        [0xc6, 0xc6, 0xc6, 0xd6, 0xfe, 0xee, 0xc6, 0x00],
-        [0xc6, 0x6c, 0x38, 0x38, 0x6c, 0xc6, 0xc6, 0x00],
-        [0x66, 0x66, 0x66, 0x3c, 0x18, 0x18, 0x3c, 0x00],
-        [0xfe, 0xc6, 0x8c, 0x18, 0x32, 0x66, 0xfe, 0x00],
-        [0x3c, 0x30, 0x30, 0x30, 0x30, 0x30, 0x3c, 0x00],
-        [0xc0, 0x60, 0x30, 0x18, 0x0c, 0x06, 0x02, 0x00],
-        [0x3c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x3c, 0x00],
-        [0x18, 0x3c, 0x7e, 0x18, 0x18, 0x18, 0x18, 0x00],
-        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff],
-        [0x30, 0x18, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00],
-        [0x00, 0x00, 0x78, 0x0c, 0x7c, 0xcc, 0x76, 0x00],
-        [0xe0, 0x60, 0x7c, 0x66, 0x66, 0x66, 0xdc, 0x00],
-        [0x00, 0x00, 0x3c, 0x66, 0x60, 0x66, 0x3c, 0x00],
-        [0x1c, 0x0c, 0x7c, 0xcc, 0xcc, 0xcc, 0x76, 0x00],
-        [0x00, 0x00, 0x3c, 0x66, 0x7e, 0x60, 0x3c, 0x00],
-        [0x1c, 0x36, 0x30, 0x78, 0x30, 0x30, 0x78, 0x00],
-        [0x00, 0x00, 0x3e, 0x66, 0x66, 0x3e, 0x06, 0x7c],
-        [0xe0, 0x60, 0x6c, 0x76, 0x66, 0x66, 0xe6, 0x00],
-        [0x18, 0x00, 0x38, 0x18, 0x18, 0x18, 0x3c, 0x00],
-        [0x06, 0x00, 0x0e, 0x06, 0x06, 0x66, 0x66, 0x3c],
-        [0xe0, 0x60, 0x66, 0x6c, 0x78, 0x6c, 0xe6, 0x00],
-        [0x38, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3c, 0x00],
-        [0x00, 0x00, 0x6c, 0xfe, 0xd6, 0xd6, 0xc6, 0x00],
-        [0x00, 0x00, 0xdc, 0x66, 0x66, 0x66, 0x66, 0x00],
-        [0x00, 0x00, 0x3c, 0x66, 0x66, 0x66, 0x3c, 0x00],
-        [0x00, 0x00, 0xdc, 0x66, 0x66, 0x7c, 0x60, 0xf0],
-        [0x00, 0x00, 0x76, 0xcc, 0xcc, 0x7c, 0x0c, 0x1e],
-        [0x00, 0x00, 0xdc, 0x76, 0x60, 0x60, 0xf0, 0x00],
-        [0x00, 0x00, 0x3c, 0x60, 0x3c, 0x06, 0x7c, 0x00],
-        [0x30, 0x30, 0x7c, 0x30, 0x30, 0x36, 0x1c, 0x00],
-        [0x00, 0x00, 0x66, 0x66, 0x66, 0x66, 0x3e, 0x00],
-        [0x00, 0x00, 0x66, 0x66, 0x66, 0x3c, 0x18, 0x00],
-        [0x00, 0x00, 0xc6, 0xd6, 0xd6, 0xfe, 0x6c, 0x00],
-        [0x00, 0x00, 0xc6, 0x6c, 0x38, 0x6c, 0xc6, 0x00],
-        [0x00, 0x00, 0x66, 0x66, 0x66, 0x3e, 0x06, 0x7c],
-        [0x00, 0x00, 0x7e, 0x4c, 0x18, 0x32, 0x7e, 0x00],
-        [0x0e, 0x18, 0x18, 0x70, 0x18, 0x18, 0x0e, 0x00],
-        [0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x00],
-        [0x70, 0x18, 0x18, 0x0e, 0x18, 0x18, 0x70, 0x00],
-        [0x76, 0xdc, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-        [0xcc, 0x33, 0xcc, 0x33, 0xcc, 0x33, 0xcc, 0x33],
-        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-        [0xf0, 0xf0, 0xf0, 0xf0, 0x00, 0x00, 0x00, 0x00],
-        [0x0f, 0x0f, 0x0f, 0x0f, 0x00, 0x00, 0x00, 0x00],
-        [0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00],
-        [0x00, 0x00, 0x00, 0x00, 0xf0, 0xf0, 0xf0, 0xf0],
-        [0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0],
-        [0x0f, 0x0f, 0x0f, 0x0f, 0xf0, 0xf0, 0xf0, 0xf0],
-        [0xff, 0xff, 0xff, 0xff, 0xf0, 0xf0, 0xf0, 0xf0],
-        [0x00, 0x00, 0x00, 0x00, 0x0f, 0x0f, 0x0f, 0x0f],
-        [0xf0, 0xf0, 0xf0, 0xf0, 0x0f, 0x0f, 0x0f, 0x0f],
-        [0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f],
-        [0xff, 0xff, 0xff, 0xff, 0x0f, 0x0f, 0x0f, 0x0f],
-        [0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff],
-        [0xf0, 0xf0, 0xf0, 0xf0, 0xff, 0xff, 0xff, 0xff],
-        [0x0f, 0x0f, 0x0f, 0x0f, 0xff, 0xff, 0xff, 0xff],
-        [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff],
-        [0x00, 0x00, 0x00, 0x18, 0x18, 0x00, 0x00, 0x00],
-        [0x18, 0x18, 0x18, 0x18, 0x18, 0x00, 0x00, 0x00],
-        [0x00, 0x00, 0x00, 0x1f, 0x1f, 0x00, 0x00, 0x00],
-        [0x18, 0x18, 0x18, 0x1f, 0x0f, 0x00, 0x00, 0x00],
-        [0x00, 0x00, 0x00, 0x18, 0x18, 0x18, 0x18, 0x18],
-        [0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18],
-        [0x00, 0x00, 0x00, 0x0f, 0x1f, 0x18, 0x18, 0x18],
-        [0x18, 0x18, 0x18, 0x1f, 0x1f, 0x18, 0x18, 0x18],
-        [0x00, 0x00, 0x00, 0xf8, 0xf8, 0x00, 0x00, 0x00],
-        [0x18, 0x18, 0x18, 0xf8, 0xf0, 0x00, 0x00, 0x00],
-        [0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00],
-        [0x18, 0x18, 0x18, 0xff, 0xff, 0x00, 0x00, 0x00],
-        [0x00, 0x00, 0x00, 0xf0, 0xf8, 0x18, 0x18, 0x18],
-        [0x18, 0x18, 0x18, 0xf8, 0xf8, 0x18, 0x18, 0x18],
-        [0x00, 0x00, 0x00, 0xff, 0xff, 0x18, 0x18, 0x18],
-        [0x18, 0x18, 0x18, 0xff, 0xff, 0x18, 0x18, 0x18],
-        [0x10, 0x38, 0x6c, 0xc6, 0x00, 0x00, 0x00, 0x00],
-        [0x0c, 0x18, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00],
-        [0x66, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-        [0x3c, 0x66, 0x60, 0xf8, 0x60, 0x66, 0xfe, 0x00],
-        [0x38, 0x44, 0xba, 0xa2, 0xba, 0x44, 0x38, 0x00],
-        [0x7e, 0xf4, 0xf4, 0x74, 0x34, 0x34, 0x34, 0x00],
-        [0x1e, 0x30, 0x38, 0x6c, 0x38, 0x18, 0xf0, 0x00],
-        [0x18, 0x18, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00],
-        [0x40, 0xc0, 0x44, 0x4c, 0x54, 0x1e, 0x04, 0x00],
-        [0x40, 0xc0, 0x4c, 0x52, 0x44, 0x08, 0x1e, 0x00],
-        [0xe0, 0x10, 0x62, 0x16, 0xea, 0x0f, 0x02, 0x00],
-        [0x00, 0x18, 0x18, 0x7e, 0x18, 0x18, 0x7e, 0x00],
-        [0x18, 0x18, 0x00, 0x7e, 0x00, 0x18, 0x18, 0x00],
-        [0x00, 0x00, 0x00, 0x7e, 0x06, 0x06, 0x00, 0x00],
-        [0x18, 0x00, 0x18, 0x30, 0x66, 0x66, 0x3c, 0x00],
-        [0x18, 0x00, 0x18, 0x18, 0x18, 0x18, 0x18, 0x00],
-        [0x00, 0x00, 0x73, 0xde, 0xcc, 0xde, 0x73, 0x00],
-        [0x7c, 0xc6, 0xc6, 0xfc, 0xc6, 0xc6, 0xf8, 0xc0],
-        [0x00, 0x66, 0x66, 0x3c, 0x66, 0x66, 0x3c, 0x00],
-        [0x3c, 0x60, 0x60, 0x3c, 0x66, 0x66, 0x3c, 0x00],
-        [0x00, 0x00, 0x1e, 0x30, 0x7c, 0x30, 0x1e, 0x00],
-        [0x38, 0x6c, 0xc6, 0xfe, 0xc6, 0x6c, 0x38, 0x00],
-        [0x00, 0xc0, 0x60, 0x30, 0x38, 0x6c, 0xc6, 0x00],
-        [0x00, 0x00, 0x66, 0x66, 0x66, 0x7c, 0x60, 0x60],
-        [0x00, 0x00, 0x00, 0xfe, 0x6c, 0x6c, 0x6c, 0x00],
-        [0x00, 0x00, 0x00, 0x7e, 0xd8, 0xd8, 0x70, 0x00],
-        [0x03, 0x06, 0x0c, 0x3c, 0x66, 0x3c, 0x60, 0xc0],
-        [0x03, 0x06, 0x0c, 0x66, 0x66, 0x3c, 0x60, 0xc0],
-        [0x00, 0xe6, 0x3c, 0x18, 0x38, 0x6c, 0xc7, 0x00],
-        [0x00, 0x00, 0x66, 0xc3, 0xdb, 0xdb, 0x7e, 0x00],
-        [0xfe, 0xc6, 0x60, 0x30, 0x60, 0xc6, 0xfe, 0x00],
-        [0x00, 0x7c, 0xc6, 0xc6, 0xc6, 0x6c, 0xee, 0x00],
-        [0x18, 0x30, 0x60, 0xc0, 0x80, 0x00, 0x00, 0x00],
-        [0x18, 0x0c, 0x06, 0x03, 0x01, 0x00, 0x00, 0x00],
-        [0x00, 0x00, 0x00, 0x01, 0x03, 0x06, 0x0c, 0x18],
-        [0x00, 0x00, 0x00, 0x80, 0xc0, 0x60, 0x30, 0x18],
-        [0x18, 0x3c, 0x66, 0xc3, 0x81, 0x00, 0x00, 0x00],
-        [0x18, 0x0c, 0x06, 0x03, 0x03, 0x06, 0x0c, 0x18],
-        [0x00, 0x00, 0x00, 0x81, 0xc3, 0x66, 0x3c, 0x18],
-        [0x18, 0x30, 0x60, 0xc0, 0xc0, 0x60, 0x30, 0x18],
-        [0x18, 0x30, 0x60, 0xc1, 0x83, 0x06, 0x0c, 0x18],
-        [0x18, 0x0c, 0x06, 0x83, 0xc1, 0x60, 0x30, 0x18],
-        [0x18, 0x3c, 0x66, 0xc3, 0xc3, 0x66, 0x3c, 0x18],
-        [0xc3, 0xe7, 0x7e, 0x3c, 0x3c, 0x7e, 0xe7, 0xc3],
-        [0x03, 0x07, 0x0e, 0x1c, 0x38, 0x70, 0xe0, 0xc0],
-        [0xc0, 0xe0, 0x70, 0x38, 0x1c, 0x0e, 0x07, 0x03],
-        [0xcc, 0xcc, 0x33, 0x33, 0xcc, 0xcc, 0x33, 0x33],
-        [0xaa, 0x55, 0xaa, 0x55, 0xaa, 0x55, 0xaa, 0x55],
-        [0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-        [0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03],
-        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff],
-        [0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0],
-        [0xff, 0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x80],
-        [0xff, 0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01],
-        [0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff],
-        [0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff],
-        [0xaa, 0x55, 0xaa, 0x55, 0x00, 0x00, 0x00, 0x00],
-        [0x0a, 0x05, 0x0a, 0x05, 0x0a, 0x05, 0x0a, 0x05],
-        [0x00, 0x00, 0x00, 0x00, 0xaa, 0x55, 0xaa, 0x55],
-        [0xa0, 0x50, 0xa0, 0x50, 0xa0, 0x50, 0xa0, 0x50],
-        [0xaa, 0x54, 0xa8, 0x50, 0xa0, 0x40, 0x80, 0x00],
-        [0xaa, 0x55, 0x2a, 0x15, 0x0a, 0x05, 0x02, 0x01],
-        [0x01, 0x02, 0x05, 0x0a, 0x15, 0x2a, 0x55, 0xaa],
-        [0x00, 0x80, 0x40, 0xa0, 0x50, 0xa8, 0x54, 0xaa],
-        [0x7e, 0xff, 0x99, 0xff, 0xbd, 0xc3, 0xff, 0x7e],
-        [0x7e, 0xff, 0x99, 0xff, 0xc3, 0xbd, 0xff, 0x7e],
-        [0x38, 0x38, 0xfe, 0xfe, 0xfe, 0x10, 0x38, 0x00],
-        [0x10, 0x38, 0x7c, 0xfe, 0x7c, 0x38, 0x10, 0x00],
-        [0x6c, 0xfe, 0xfe, 0xfe, 0x7c, 0x38, 0x10, 0x00],
-        [0x10, 0x38, 0x7c, 0xfe, 0xfe, 0x10, 0x38, 0x00],
-        [0x00, 0x3c, 0x66, 0xc3, 0xc3, 0x66, 0x3c, 0x00],
-        [0x00, 0x3c, 0x7e, 0xff, 0xff, 0x7e, 0x3c, 0x00],
-        [0x00, 0x7e, 0x66, 0x66, 0x66, 0x66, 0x7e, 0x00],
-        [0x00, 0x7e, 0x7e, 0x7e, 0x7e, 0x7e, 0x7e, 0x00],
-        [0x0f, 0x07, 0x0d, 0x78, 0xcc, 0xcc, 0xcc, 0x78],
-        [0x3c, 0x66, 0x66, 0x66, 0x3c, 0x18, 0x7e, 0x18],
-        [0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x3c, 0x7c, 0x38],
-        [0x18, 0x1c, 0x1e, 0x1b, 0x18, 0x78, 0xf8, 0x70],
-        [0x99, 0x5a, 0x24, 0xc3, 0xc3, 0x24, 0x5a, 0x99],
-        [0x10, 0x38, 0x38, 0x38, 0x38, 0x38, 0x7c, 0xd6],
-        [0x18, 0x3c, 0x7e, 0xff, 0x18, 0x18, 0x18, 0x18],
-        [0x18, 0x18, 0x18, 0x18, 0xff, 0x7e, 0x3c, 0x18],
-        [0x10, 0x30, 0x70, 0xff, 0xff, 0x70, 0x30, 0x10],
-        [0x08, 0x0c, 0x0e, 0xff, 0xff, 0x0e, 0x0c, 0x08],
-        [0x00, 0x00, 0x18, 0x3c, 0x7e, 0xff, 0xff, 0x00],
-        [0x00, 0x00, 0xff, 0xff, 0x7e, 0x3c, 0x18, 0x00],
-        [0x80, 0xe0, 0xf8, 0xfe, 0xf8, 0xe0, 0x80, 0x00],
-        [0x02, 0x0e, 0x3e, 0xfe, 0x3e, 0x0e, 0x02, 0x00],
-        [0x38, 0x38, 0x92, 0x7c, 0x10, 0x28, 0x28, 0x28],
-        [0x38, 0x38, 0x10, 0xfe, 0x10, 0x28, 0x44, 0x82],
-        [0x38, 0x38, 0x12, 0x7c, 0x90, 0x28, 0x24, 0x22],
-        [0x38, 0x38, 0x90, 0x7c, 0x12, 0x28, 0x48, 0x88],
-        [0x00, 0x3c, 0x18, 0x3c, 0x3c, 0x3c, 0x18, 0x00],
-        [0x3c, 0xff, 0xff, 0x18, 0x0c, 0x18, 0x30, 0x18],
-        [0x18, 0x3c, 0x7e, 0x18, 0x18, 0x7e, 0x3c, 0x18],
+        [0xff, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xff], // 0x00
+        [0xff, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0], // 0x01
+        [0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0xff], // 0x02
+        [0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0xff], // 0x03
+        [0x0c, 0x18, 0x30, 0x7e, 0x0c, 0x18, 0x30, 0x00], // 0x04
+        [0xff, 0xc3, 0xe7, 0xdb, 0xdb, 0xe7, 0xc3, 0xff], // 0x05
+        [0x00, 0x01, 0x03, 0x06, 0xcc, 0x78, 0x30, 0x00], // 0x06
+        [0x3c, 0x66, 0xc3, 0xc3, 0xff, 0x24, 0xe7, 0x00], // 0x07
+        [0x00, 0x00, 0x30, 0x60, 0xff, 0x60, 0x30, 0x00], // 0x08
+        [0x00, 0x00, 0x0c, 0x06, 0xff, 0x06, 0x0c, 0x00], // 0x09
+        [0x18, 0x18, 0x18, 0x18, 0xdb, 0x7e, 0x3c, 0x18], // 0x0a
+        [0x18, 0x3c, 0x7e, 0xdb, 0x18, 0x18, 0x18, 0x18], // 0x0b
+        [0x18, 0x5a, 0x3c, 0x99, 0xdb, 0x7e, 0x3c, 0x18], // 0x0c
+        [0x00, 0x03, 0x33, 0x63, 0xfe, 0x60, 0x30, 0x00], // 0x0d
+        [0x3c, 0x66, 0xff, 0xdb, 0xdb, 0xff, 0x66, 0x3c], // 0x0e
+        [0x3c, 0x66, 0xc3, 0xdb, 0xdb, 0xc3, 0x66, 0x3c], // 0x0f
+        [0xff, 0xc3, 0xc3, 0xff, 0xc3, 0xc3, 0xc3, 0xff], // 0x10
+        [0x3c, 0x7e, 0xdb, 0xdb, 0xdf, 0xc3, 0x66, 0x3c], // 0x11
+        [0x3c, 0x66, 0xc3, 0xdf, 0xdb, 0xdb, 0x7e, 0x3c], // 0x12
+        [0x3c, 0x66, 0xc3, 0xfb, 0xdb, 0xdb, 0x7e, 0x3c], // 0x13
+        [0x3c, 0x7e, 0xdb, 0xdb, 0xfb, 0xc3, 0x66, 0x3c], // 0x14
+        [0x00, 0x01, 0x33, 0x1e, 0xce, 0x7b, 0x31, 0x00], // 0x15
+        [0x7e, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0xe7], // 0x16
+        [0x03, 0x03, 0x03, 0xff, 0x03, 0x03, 0x03, 0x00], // 0x17
+        [0xff, 0x66, 0x3c, 0x18, 0x18, 0x3c, 0x66, 0xff], // 0x18
+        [0x18, 0x18, 0x3c, 0x3c, 0x3c, 0x3c, 0x18, 0x18], // 0x19
+        [0x3c, 0x66, 0x66, 0x30, 0x18, 0x00, 0x18, 0x00], // 0x1a
+        [0x3c, 0x66, 0xc3, 0xff, 0xc3, 0xc3, 0x66, 0x3c], // 0x1b
+        [0xff, 0xdb, 0xdb, 0xdb, 0xfb, 0xc3, 0xc3, 0xff], // 0x1c
+        [0xff, 0xc3, 0xc3, 0xfb, 0xdb, 0xdb, 0xdb, 0xff], // 0x1d
+        [0xff, 0xc3, 0xc3, 0xdf, 0xdb, 0xdb, 0xdb, 0xff], // 0x1e
+        [0xff, 0xdb, 0xdb, 0xdb, 0xdf, 0xc3, 0xc3, 0xff], // 0x1f
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x20
+        [0x18, 0x18, 0x18, 0x18, 0x18, 0x00, 0x18, 0x00], // 0x21
+        [0x6c, 0x6c, 0x6c, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x22
+        [0x6c, 0x6c, 0xfe, 0x6c, 0xfe, 0x6c, 0x6c, 0x00], // 0x23
+        [0x18, 0x3e, 0x58, 0x3c, 0x1a, 0x7c, 0x18, 0x00], // 0x24
+        [0x00, 0xc6, 0xcc, 0x18, 0x30, 0x66, 0xc6, 0x00], // 0x25
+        [0x38, 0x6c, 0x38, 0x76, 0xdc, 0xcc, 0x76, 0x00], // 0x26
+        [0x18, 0x18, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x27
+        [0x0c, 0x18, 0x30, 0x30, 0x30, 0x18, 0x0c, 0x00], // 0x28
+        [0x30, 0x18, 0x0c, 0x0c, 0x0c, 0x18, 0x30, 0x00], // 0x29
+        [0x00, 0x66, 0x3c, 0xff, 0x3c, 0x66, 0x00, 0x00], // 0x2a
+        [0x00, 0x18, 0x18, 0x7e, 0x18, 0x18, 0x00, 0x00], // 0x2b
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18, 0x30], // 0x2c
+        [0x00, 0x00, 0x00, 0x7e, 0x00, 0x00, 0x00, 0x00], // 0x2d
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18, 0x00], // 0x2e
+        [0x06, 0x0c, 0x18, 0x30, 0x60, 0xc0, 0x80, 0x00], // 0x2f
+        [0x7c, 0xc6, 0xce, 0xd6, 0xe6, 0xc6, 0x7c, 0x00], // 0x30
+        [0x18, 0x38, 0x18, 0x18, 0x18, 0x18, 0x7e, 0x00], // 0x31
+        [0x3c, 0x66, 0x06, 0x3c, 0x60, 0x66, 0x7e, 0x00], // 0x32
+        [0x3c, 0x66, 0x06, 0x1c, 0x06, 0x66, 0x3c, 0x00], // 0x33
+        [0x1c, 0x3c, 0x6c, 0xcc, 0xfe, 0x0c, 0x1e, 0x00], // 0x34
+        [0x7e, 0x62, 0x60, 0x7c, 0x06, 0x66, 0x3c, 0x00], // 0x35
+        [0x3c, 0x66, 0x60, 0x7c, 0x66, 0x66, 0x3c, 0x00], // 0x36
+        [0x7e, 0x66, 0x06, 0x0c, 0x18, 0x18, 0x18, 0x00], // 0x37
+        [0x3c, 0x66, 0x66, 0x3c, 0x66, 0x66, 0x3c, 0x00], // 0x38
+        [0x3c, 0x66, 0x66, 0x3e, 0x06, 0x66, 0x3c, 0x00], // 0x39
+        [0x00, 0x00, 0x18, 0x18, 0x00, 0x18, 0x18, 0x00], // 0x3a
+        [0x00, 0x00, 0x18, 0x18, 0x00, 0x18, 0x18, 0x30], // 0x3b
+        [0x0c, 0x18, 0x30, 0x60, 0x30, 0x18, 0x0c, 0x00], // 0x3c
+        [0x00, 0x00, 0x7e, 0x00, 0x00, 0x7e, 0x00, 0x00], // 0x3d
+        [0x60, 0x30, 0x18, 0x0c, 0x18, 0x30, 0x60, 0x00], // 0x3e
+        [0x3c, 0x66, 0x66, 0x0c, 0x18, 0x00, 0x18, 0x00], // 0x3f
+        [0x7c, 0xc6, 0xde, 0xde, 0xde, 0xc0, 0x7c, 0x00], // 0x40
+        [0x18, 0x3c, 0x66, 0x66, 0x7e, 0x66, 0x66, 0x00], // 0x41
+        [0xfc, 0x66, 0x66, 0x7c, 0x66, 0x66, 0xfc, 0x00], // 0x42
+        [0x3c, 0x66, 0xc0, 0xc0, 0xc0, 0x66, 0x3c, 0x00], // 0x43
+        [0xf8, 0x6c, 0x66, 0x66, 0x66, 0x6c, 0xf8, 0x00], // 0x44
+        [0xfe, 0x62, 0x68, 0x78, 0x68, 0x62, 0xfe, 0x00], // 0x45
+        [0xfe, 0x62, 0x68, 0x78, 0x68, 0x60, 0xf0, 0x00], // 0x46
+        [0x3c, 0x66, 0xc0, 0xc0, 0xce, 0x66, 0x3e, 0x00], // 0x47
+        [0x66, 0x66, 0x66, 0x7e, 0x66, 0x66, 0x66, 0x00], // 0x48
+        [0x7e, 0x18, 0x18, 0x18, 0x18, 0x18, 0x7e, 0x00], // 0x49
+        [0x1e, 0x0c, 0x0c, 0x0c, 0xcc, 0xcc, 0x78, 0x00], // 0x4a
+        [0xe6, 0x66, 0x6c, 0x78, 0x6c, 0x66, 0xe6, 0x00], // 0x4b
+        [0xf0, 0x60, 0x60, 0x60, 0x62, 0x66, 0xfe, 0x00], // 0x4c
+        [0xc6, 0xee, 0xfe, 0xfe, 0xd6, 0xc6, 0xc6, 0x00], // 0x4d
+        [0xc6, 0xe6, 0xf6, 0xde, 0xce, 0xc6, 0xc6, 0x00], // 0x4e
+        [0x38, 0x6c, 0xc6, 0xc6, 0xc6, 0x6c, 0x38, 0x00], // 0x4f
+        [0xfc, 0x66, 0x66, 0x7c, 0x60, 0x60, 0xf0, 0x00], // 0x50
+        [0x38, 0x6c, 0xc6, 0xc6, 0xda, 0xcc, 0x76, 0x00], // 0x51
+        [0xfc, 0x66, 0x66, 0x7c, 0x6c, 0x66, 0xe6, 0x00], // 0x52
+        [0x3c, 0x66, 0x60, 0x3c, 0x06, 0x66, 0x3c, 0x00], // 0x53
+        [0x7e, 0x5a, 0x18, 0x18, 0x18, 0x18, 0x3c, 0x00], // 0x54
+        [0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x3c, 0x00], // 0x55
+        [0x66, 0x66, 0x66, 0x66, 0x66, 0x3c, 0x18, 0x00], // 0x56
+        [0xc6, 0xc6, 0xc6, 0xd6, 0xfe, 0xee, 0xc6, 0x00], // 0x57
+        [0xc6, 0x6c, 0x38, 0x38, 0x6c, 0xc6, 0xc6, 0x00], // 0x58
+        [0x66, 0x66, 0x66, 0x3c, 0x18, 0x18, 0x3c, 0x00], // 0x59
+        [0xfe, 0xc6, 0x8c, 0x18, 0x32, 0x66, 0xfe, 0x00], // 0x5a
+        [0x3c, 0x30, 0x30, 0x30, 0x30, 0x30, 0x3c, 0x00], // 0x5b
+        [0xc0, 0x60, 0x30, 0x18, 0x0c, 0x06, 0x02, 0x00], // 0x5c
+        [0x3c, 0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x3c, 0x00], // 0x5d
+        [0x18, 0x3c, 0x7e, 0x18, 0x18, 0x18, 0x18, 0x00], // 0x5e
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff], // 0x5f
+        [0x30, 0x18, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x60
+        [0x00, 0x00, 0x78, 0x0c, 0x7c, 0xcc, 0x76, 0x00], // 0x61
+        [0xe0, 0x60, 0x7c, 0x66, 0x66, 0x66, 0xdc, 0x00], // 0x62
+        [0x00, 0x00, 0x3c, 0x66, 0x60, 0x66, 0x3c, 0x00], // 0x63
+        [0x1c, 0x0c, 0x7c, 0xcc, 0xcc, 0xcc, 0x76, 0x00], // 0x64
+        [0x00, 0x00, 0x3c, 0x66, 0x7e, 0x60, 0x3c, 0x00], // 0x65
+        [0x1c, 0x36, 0x30, 0x78, 0x30, 0x30, 0x78, 0x00], // 0x66
+        [0x00, 0x00, 0x3e, 0x66, 0x66, 0x3e, 0x06, 0x7c], // 0x67
+        [0xe0, 0x60, 0x6c, 0x76, 0x66, 0x66, 0xe6, 0x00], // 0x68
+        [0x18, 0x00, 0x38, 0x18, 0x18, 0x18, 0x3c, 0x00], // 0x69
+        [0x06, 0x00, 0x0e, 0x06, 0x06, 0x66, 0x66, 0x3c], // 0x6a
+        [0xe0, 0x60, 0x66, 0x6c, 0x78, 0x6c, 0xe6, 0x00], // 0x6b
+        [0x38, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3c, 0x00], // 0x6c
+        [0x00, 0x00, 0x6c, 0xfe, 0xd6, 0xd6, 0xc6, 0x00], // 0x6d
+        [0x00, 0x00, 0xdc, 0x66, 0x66, 0x66, 0x66, 0x00], // 0x6e
+        [0x00, 0x00, 0x3c, 0x66, 0x66, 0x66, 0x3c, 0x00], // 0x6f
+        [0x00, 0x00, 0xdc, 0x66, 0x66, 0x7c, 0x60, 0xf0], // 0x70
+        [0x00, 0x00, 0x76, 0xcc, 0xcc, 0x7c, 0x0c, 0x1e], // 0x71
+        [0x00, 0x00, 0xdc, 0x76, 0x60, 0x60, 0xf0, 0x00], // 0x72
+        [0x00, 0x00, 0x3c, 0x60, 0x3c, 0x06, 0x7c, 0x00], // 0x73
+        [0x30, 0x30, 0x7c, 0x30, 0x30, 0x36, 0x1c, 0x00], // 0x74
+        [0x00, 0x00, 0x66, 0x66, 0x66, 0x66, 0x3e, 0x00], // 0x75
+        [0x00, 0x00, 0x66, 0x66, 0x66, 0x3c, 0x18, 0x00], // 0x76
+        [0x00, 0x00, 0xc6, 0xd6, 0xd6, 0xfe, 0x6c, 0x00], // 0x77
+        [0x00, 0x00, 0xc6, 0x6c, 0x38, 0x6c, 0xc6, 0x00], // 0x78
+        [0x00, 0x00, 0x66, 0x66, 0x66, 0x3e, 0x06, 0x7c], // 0x79
+        [0x00, 0x00, 0x7e, 0x4c, 0x18, 0x32, 0x7e, 0x00], // 0x7a
+        [0x0e, 0x18, 0x18, 0x70, 0x18, 0x18, 0x0e, 0x00], // 0x7b
+        [0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x00], // 0x7c
+        [0x70, 0x18, 0x18, 0x0e, 0x18, 0x18, 0x70, 0x00], // 0x7d
+        [0x76, 0xdc, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x7e
+        [0xcc, 0x33, 0xcc, 0x33, 0xcc, 0x33, 0xcc, 0x33], // 0x7f
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0x80
+        [0xf0, 0xf0, 0xf0, 0xf0, 0x00, 0x00, 0x00, 0x00], // 0x81
+        [0x0f, 0x0f, 0x0f, 0x0f, 0x00, 0x00, 0x00, 0x00], // 0x82
+        [0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00], // 0x83
+        [0x00, 0x00, 0x00, 0x00, 0xf0, 0xf0, 0xf0, 0xf0], // 0x84
+        [0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0], // 0x85
+        [0x0f, 0x0f, 0x0f, 0x0f, 0xf0, 0xf0, 0xf0, 0xf0], // 0x86
+        [0xff, 0xff, 0xff, 0xff, 0xf0, 0xf0, 0xf0, 0xf0], // 0x87
+        [0x00, 0x00, 0x00, 0x00, 0x0f, 0x0f, 0x0f, 0x0f], // 0x88
+        [0xf0, 0xf0, 0xf0, 0xf0, 0x0f, 0x0f, 0x0f, 0x0f], // 0x89
+        [0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f], // 0x8a
+        [0xff, 0xff, 0xff, 0xff, 0x0f, 0x0f, 0x0f, 0x0f], // 0x8b
+        [0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff], // 0x8c
+        [0xf0, 0xf0, 0xf0, 0xf0, 0xff, 0xff, 0xff, 0xff], // 0x8d
+        [0x0f, 0x0f, 0x0f, 0x0f, 0xff, 0xff, 0xff, 0xff], // 0x8e
+        [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff], // 0x8f
+        [0x00, 0x00, 0x00, 0x18, 0x18, 0x00, 0x00, 0x00], // 0x90
+        [0x18, 0x18, 0x18, 0x18, 0x18, 0x00, 0x00, 0x00], // 0x91
+        [0x00, 0x00, 0x00, 0x1f, 0x1f, 0x00, 0x00, 0x00], // 0x92
+        [0x18, 0x18, 0x18, 0x1f, 0x0f, 0x00, 0x00, 0x00], // 0x93
+        [0x00, 0x00, 0x00, 0x18, 0x18, 0x18, 0x18, 0x18], // 0x94
+        [0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18], // 0x95
+        [0x00, 0x00, 0x00, 0x0f, 0x1f, 0x18, 0x18, 0x18], // 0x96
+        [0x18, 0x18, 0x18, 0x1f, 0x1f, 0x18, 0x18, 0x18], // 0x97
+        [0x00, 0x00, 0x00, 0xf8, 0xf8, 0x00, 0x00, 0x00], // 0x98
+        [0x18, 0x18, 0x18, 0xf8, 0xf0, 0x00, 0x00, 0x00], // 0x99
+        [0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00], // 0x9a
+        [0x18, 0x18, 0x18, 0xff, 0xff, 0x00, 0x00, 0x00], // 0x9b
+        [0x00, 0x00, 0x00, 0xf0, 0xf8, 0x18, 0x18, 0x18], // 0x9c
+        [0x18, 0x18, 0x18, 0xf8, 0xf8, 0x18, 0x18, 0x18], // 0x9d
+        [0x00, 0x00, 0x00, 0xff, 0xff, 0x18, 0x18, 0x18], // 0x9e
+        [0x18, 0x18, 0x18, 0xff, 0xff, 0x18, 0x18, 0x18], // 0x9f
+        [0x10, 0x38, 0x6c, 0xc6, 0x00, 0x00, 0x00, 0x00], // 0xa0
+        [0x0c, 0x18, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00], // 0xa1
+        [0x66, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0xa2
+        [0x3c, 0x66, 0x60, 0xf8, 0x60, 0x66, 0xfe, 0x00], // 0xa3
+        [0x38, 0x44, 0xba, 0xa2, 0xba, 0x44, 0x38, 0x00], // 0xa4
+        [0x7e, 0xf4, 0xf4, 0x74, 0x34, 0x34, 0x34, 0x00], // 0xa5
+        [0x1e, 0x30, 0x38, 0x6c, 0x38, 0x18, 0xf0, 0x00], // 0xa6
+        [0x18, 0x18, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00], // 0xa7
+        [0x40, 0xc0, 0x44, 0x4c, 0x54, 0x1e, 0x04, 0x00], // 0xa8
+        [0x40, 0xc0, 0x4c, 0x52, 0x44, 0x08, 0x1e, 0x00], // 0xa9
+        [0xe0, 0x10, 0x62, 0x16, 0xea, 0x0f, 0x02, 0x00], // 0xaa
+        [0x00, 0x18, 0x18, 0x7e, 0x18, 0x18, 0x7e, 0x00], // 0xab
+        [0x18, 0x18, 0x00, 0x7e, 0x00, 0x18, 0x18, 0x00], // 0xac
+        [0x00, 0x00, 0x00, 0x7e, 0x06, 0x06, 0x00, 0x00], // 0xad
+        [0x18, 0x00, 0x18, 0x30, 0x66, 0x66, 0x3c, 0x00], // 0xae
+        [0x18, 0x00, 0x18, 0x18, 0x18, 0x18, 0x18, 0x00], // 0xaf
+        [0x00, 0x00, 0x73, 0xde, 0xcc, 0xde, 0x73, 0x00], // 0xb0
+        [0x7c, 0xc6, 0xc6, 0xfc, 0xc6, 0xc6, 0xf8, 0xc0], // 0xb1
+        [0x00, 0x66, 0x66, 0x3c, 0x66, 0x66, 0x3c, 0x00], // 0xb2
+        [0x3c, 0x60, 0x60, 0x3c, 0x66, 0x66, 0x3c, 0x00], // 0xb3
+        [0x00, 0x00, 0x1e, 0x30, 0x7c, 0x30, 0x1e, 0x00], // 0xb4
+        [0x38, 0x6c, 0xc6, 0xfe, 0xc6, 0x6c, 0x38, 0x00], // 0xb5
+        [0x00, 0xc0, 0x60, 0x30, 0x38, 0x6c, 0xc6, 0x00], // 0xb6
+        [0x00, 0x00, 0x66, 0x66, 0x66, 0x7c, 0x60, 0x60], // 0xb7
+        [0x00, 0x00, 0x00, 0xfe, 0x6c, 0x6c, 0x6c, 0x00], // 0xb8
+        [0x00, 0x00, 0x00, 0x7e, 0xd8, 0xd8, 0x70, 0x00], // 0xb9
+        [0x03, 0x06, 0x0c, 0x3c, 0x66, 0x3c, 0x60, 0xc0], // 0xba
+        [0x03, 0x06, 0x0c, 0x66, 0x66, 0x3c, 0x60, 0xc0], // 0xbb
+        [0x00, 0xe6, 0x3c, 0x18, 0x38, 0x6c, 0xc7, 0x00], // 0xbc
+        [0x00, 0x00, 0x66, 0xc3, 0xdb, 0xdb, 0x7e, 0x00], // 0xbd
+        [0xfe, 0xc6, 0x60, 0x30, 0x60, 0xc6, 0xfe, 0x00], // 0xbe
+        [0x00, 0x7c, 0xc6, 0xc6, 0xc6, 0x6c, 0xee, 0x00], // 0xbf
+        [0x18, 0x30, 0x60, 0xc0, 0x80, 0x00, 0x00, 0x00], // 0xc0
+        [0x18, 0x0c, 0x06, 0x03, 0x01, 0x00, 0x00, 0x00], // 0xc1
+        [0x00, 0x00, 0x00, 0x01, 0x03, 0x06, 0x0c, 0x18], // 0xc2
+        [0x00, 0x00, 0x00, 0x80, 0xc0, 0x60, 0x30, 0x18], // 0xc3
+        [0x18, 0x3c, 0x66, 0xc3, 0x81, 0x00, 0x00, 0x00], // 0xc4
+        [0x18, 0x0c, 0x06, 0x03, 0x03, 0x06, 0x0c, 0x18], // 0xc5
+        [0x00, 0x00, 0x00, 0x81, 0xc3, 0x66, 0x3c, 0x18], // 0xc6
+        [0x18, 0x30, 0x60, 0xc0, 0xc0, 0x60, 0x30, 0x18], // 0xc7
+        [0x18, 0x30, 0x60, 0xc1, 0x83, 0x06, 0x0c, 0x18], // 0xc8
+        [0x18, 0x0c, 0x06, 0x83, 0xc1, 0x60, 0x30, 0x18], // 0xc9
+        [0x18, 0x3c, 0x66, 0xc3, 0xc3, 0x66, 0x3c, 0x18], // 0xca
+        [0xc3, 0xe7, 0x7e, 0x3c, 0x3c, 0x7e, 0xe7, 0xc3], // 0xcb
+        [0x03, 0x07, 0x0e, 0x1c, 0x38, 0x70, 0xe0, 0xc0], // 0xcc
+        [0xc0, 0xe0, 0x70, 0x38, 0x1c, 0x0e, 0x07, 0x03], // 0xcd
+        [0xcc, 0xcc, 0x33, 0x33, 0xcc, 0xcc, 0x33, 0x33], // 0xce
+        [0xaa, 0x55, 0xaa, 0x55, 0xaa, 0x55, 0xaa, 0x55], // 0xcf
+        [0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], // 0xd0
+        [0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03], // 0xd1
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff], // 0xd2
+        [0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0], // 0xd3
+        [0xff, 0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x80], // 0xd4
+        [0xff, 0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01], // 0xd5
+        [0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff], // 0xd6
+        [0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff], // 0xd7
+        [0xaa, 0x55, 0xaa, 0x55, 0x00, 0x00, 0x00, 0x00], // 0xd8
+        [0x0a, 0x05, 0x0a, 0x05, 0x0a, 0x05, 0x0a, 0x05], // 0xd9
+        [0x00, 0x00, 0x00, 0x00, 0xaa, 0x55, 0xaa, 0x55], // 0xda
+        [0xa0, 0x50, 0xa0, 0x50, 0xa0, 0x50, 0xa0, 0x50], // 0xdb
+        [0xaa, 0x54, 0xa8, 0x50, 0xa0, 0x40, 0x80, 0x00], // 0xdc
+        [0xaa, 0x55, 0x2a, 0x15, 0x0a, 0x05, 0x02, 0x01], // 0xdd
+        [0x01, 0x02, 0x05, 0x0a, 0x15, 0x2a, 0x55, 0xaa], // 0xde
+        [0x00, 0x80, 0x40, 0xa0, 0x50, 0xa8, 0x54, 0xaa], // 0xdf
+        [0x7e, 0xff, 0x99, 0xff, 0xbd, 0xc3, 0xff, 0x7e], // 0xe0
+        [0x7e, 0xff, 0x99, 0xff, 0xc3, 0xbd, 0xff, 0x7e], // 0xe1
+        [0x38, 0x38, 0xfe, 0xfe, 0xfe, 0x10, 0x38, 0x00], // 0xe2
+        [0x10, 0x38, 0x7c, 0xfe, 0x7c, 0x38, 0x10, 0x00], // 0xe3
+        [0x6c, 0xfe, 0xfe, 0xfe, 0x7c, 0x38, 0x10, 0x00], // 0xe4
+        [0x10, 0x38, 0x7c, 0xfe, 0xfe, 0x10, 0x38, 0x00], // 0xe5
+        [0x00, 0x3c, 0x66, 0xc3, 0xc3, 0x66, 0x3c, 0x00], // 0xe6
+        [0x00, 0x3c, 0x7e, 0xff, 0xff, 0x7e, 0x3c, 0x00], // 0xe7
+        [0x00, 0x7e, 0x66, 0x66, 0x66, 0x66, 0x7e, 0x00], // 0xe8
+        [0x00, 0x7e, 0x7e, 0x7e, 0x7e, 0x7e, 0x7e, 0x00], // 0xe9
+        [0x0f, 0x07, 0x0d, 0x78, 0xcc, 0xcc, 0xcc, 0x78], // 0xea
+        [0x3c, 0x66, 0x66, 0x66, 0x3c, 0x18, 0x7e, 0x18], // 0xeb
+        [0x0c, 0x0c, 0x0c, 0x0c, 0x0c, 0x3c, 0x7c, 0x38], // 0xec
+        [0x18, 0x1c, 0x1e, 0x1b, 0x18, 0x78, 0xf8, 0x70], // 0xed
+        [0x99, 0x5a, 0x24, 0xc3, 0xc3, 0x24, 0x5a, 0x99], // 0xee
+        [0x10, 0x38, 0x38, 0x38, 0x38, 0x38, 0x7c, 0xd6], // 0xef
+        [0x18, 0x3c, 0x7e, 0xff, 0x18, 0x18, 0x18, 0x18], // 0xf0
+        [0x18, 0x18, 0x18, 0x18, 0xff, 0x7e, 0x3c, 0x18], // 0xf1
+        [0x10, 0x30, 0x70, 0xff, 0xff, 0x70, 0x30, 0x10], // 0xf2
+        [0x08, 0x0c, 0x0e, 0xff, 0xff, 0x0e, 0x0c, 0x08], // 0xf3
+        [0x00, 0x00, 0x18, 0x3c, 0x7e, 0xff, 0xff, 0x00], // 0xf4
+        [0x00, 0x00, 0xff, 0xff, 0x7e, 0x3c, 0x18, 0x00], // 0xf5
+        [0x80, 0xe0, 0xf8, 0xfe, 0xf8, 0xe0, 0x80, 0x00], // 0xf6
+        [0x02, 0x0e, 0x3e, 0xfe, 0x3e, 0x0e, 0x02, 0x00], // 0xf7
+        [0x38, 0x38, 0x92, 0x7c, 0x10, 0x28, 0x28, 0x28], // 0xf8
+        [0x38, 0x38, 0x10, 0xfe, 0x10, 0x28, 0x44, 0x82], // 0xf9
+        [0x38, 0x38, 0x12, 0x7c, 0x90, 0x28, 0x24, 0x22], // 0xfa
+        [0x38, 0x38, 0x90, 0x7c, 0x12, 0x28, 0x48, 0x88], // 0xfb
+        [0x00, 0x3c, 0x18, 0x3c, 0x3c, 0x3c, 0x18, 0x00], // 0xfc
+        [0x3c, 0xff, 0xff, 0x18, 0x0c, 0x18, 0x30, 0x18], // 0xfd
+        [0x18, 0x3c, 0x7e, 0x18, 0x18, 0x7e, 0x3c, 0x18], // 0xfe
         [0x00, 0x24, 0x66, 0xff, 0x66, 0x24, 0x00, 0x00] //  0xff
     ];
 });
@@ -1939,13 +1939,13 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             this.statementList = []; // just to check last statement when generating error message
             /* eslint-disable no-invalid-this */
             this.specialStatements = {
-                "|": this.rsx,
+                "|": this.rsx, // rsx
                 after: this.afterEveryGosub,
                 chain: this.chain,
                 clear: this.clear,
                 data: this.data,
                 def: this.def,
-                "else": this.fnElse,
+                "else": this.fnElse, // simular to a comment, normally not used
                 ent: this.entOrEnv,
                 env: this.entOrEnv,
                 every: this.afterEveryGosub,
@@ -1956,10 +1956,10 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 key: this.key,
                 let: this.let,
                 line: this.line,
-                mid$: this.mid$Assign,
+                mid$: this.mid$Assign, // mid$Assign
                 on: this.on,
                 print: this.print,
-                "?": this.question,
+                "?": this.question, // ? is same as print
                 resume: this.resume,
                 run: this.run,
                 speed: this.speed,
@@ -1968,7 +1968,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 write: this.write
             };
             this.options = {
-                basicVersion: "1.1",
+                basicVersion: "1.1", // default
                 quiet: false,
                 keepBrackets: false,
                 keepColons: false,
@@ -2167,7 +2167,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.fnCreateDummyArg = function (type, value) {
             return {
-                type: type,
+                type: type, // e.g. "null"
                 value: value || "",
                 pos: 0,
                 len: 0
@@ -3128,9 +3128,9 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             o: "operator",
             n: "number",
             s: "string",
-            l: "line number",
+            l: "line number", // checked
             q: "line number range",
-            v: "variable",
+            v: "variable", // checked,
             r: "letter or range",
             a: "any parameter",
             "n0?": "optional parameter with default null",
@@ -3140,195 +3140,195 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         // first letter: c=command, f=function, p=part of command, o=operator, x=misc
         // following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), q=line number range, r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
         BasicParser.keywordsBasic11 = {
-            abs: "f n",
-            after: "c",
-            afterGosub: "c n n?",
-            and: "o",
-            asc: "f s",
-            atn: "f n",
-            auto: "c n0? n0?",
-            bin$: "f n n?",
-            border: "c n n?",
-            "break": "p",
-            call: "c n *",
-            cat: "c",
-            chain: "c s n? *",
-            chainMerge: "c s n? *",
-            chr$: "f n",
-            cint: "f n",
-            clear: "c",
-            clearInput: "c",
-            clg: "c n?",
-            closein: "c",
-            closeout: "c",
-            cls: "c #0?",
-            cont: "c",
-            copychr$: "f #",
-            cos: "f n",
-            creal: "f n",
-            cursor: "c #0? n0? n?",
-            data: "c n0*",
-            dec$: "f n s",
-            def: "c s *",
-            defint: "c r r*",
-            defreal: "c r r*",
-            defstr: "c r r*",
-            deg: "c",
-            "delete": "c q0?",
-            derr: "f",
-            di: "c",
-            dim: "c v *",
-            draw: "c n n n0? n?",
-            drawr: "c n n n0? n?",
-            edit: "c l",
-            ei: "c",
-            "else": "c",
-            end: "c",
-            ent: "c n *",
-            env: "c n *",
-            eof: "f",
-            erase: "c v *",
-            erl: "f",
-            err: "f",
-            error: "c n",
-            every: "c",
-            everyGosub: "c n n?",
-            exp: "f n",
-            fill: "c n",
-            fix: "f n",
-            fn: "x",
-            "for": "c",
-            frame: "c",
-            fre: "f a",
-            gosub: "c l",
-            "goto": "c l",
-            graphics: "c",
-            graphicsPaper: "x n",
-            graphicsPen: "x n0? n?",
-            hex$: "f n n?",
-            himem: "f",
-            "if": "c",
-            ink: "c n n n?",
-            inkey: "f n",
-            inkey$: "f",
-            inp: "f n",
-            input: "c #0? *",
-            instr: "f a a a?",
-            "int": "f n",
-            joy: "f n",
-            key: "c n s",
-            keyDef: "c n n n? n? n?",
-            left$: "f s n",
-            len: "f s",
-            let: "c",
-            line: "c",
-            lineInput: "c #0? *",
-            list: "c q0? #0?",
-            load: "c s n?",
-            locate: "c #0? n n",
-            log: "f n",
-            log10: "f n",
-            lower$: "f s",
-            mask: "c n0? n?",
-            max: "f a *",
-            memory: "c n",
-            merge: "c s",
-            mid$: "f s n n?",
-            mid$Assign: "f s n n?",
-            min: "f a *",
-            mod: "o",
-            mode: "c n",
-            move: "c n n n0? n?",
-            mover: "c n n n0? n?",
-            "new": "c",
-            next: "c v*",
-            not: "o",
-            on: "c",
-            onBreakCont: "c",
-            onBreakGosub: "c l",
-            onBreakStop: "c",
-            onErrorGoto: "c l",
-            onGosub: "c l l*",
-            onGoto: "c l l*",
-            onSqGosub: "c l",
-            openin: "c s",
-            openout: "c s",
-            or: "o",
-            origin: "c n n n? n? n? n?",
-            out: "c n n",
-            paper: "c #0? n",
-            peek: "f n",
-            pen: "c #0? n0 n?",
-            pi: "f",
-            plot: "c n n n0? n?",
-            plotr: "c n n n0? n?",
-            poke: "c n n",
-            pos: "f #",
-            print: "c #0? *",
-            rad: "c",
-            randomize: "c n?",
-            read: "c v v*",
-            release: "c n",
-            rem: "c s?",
-            "'": "c s?",
-            remain: "f n",
-            renum: "c n0? n0? n?",
-            restore: "c l?",
-            resume: "c l?",
-            resumeNext: "c",
-            "return": "c",
-            right$: "f s n",
-            rnd: "f n?",
-            round: "f n n?",
-            run: "c a?",
-            save: "c s a? n? n? n?",
-            sgn: "f n",
-            sin: "f n",
-            sound: "c n n n? n0? n0? n0? n?",
-            space$: "f n",
-            spc: "f n",
-            speed: "c",
-            speedInk: "c n n",
-            speedKey: "c n n",
-            speedWrite: "c n",
-            sq: "f n",
-            sqr: "f n",
-            step: "p",
-            stop: "c",
-            str$: "f n",
-            string$: "f n a",
-            swap: "p n n?",
-            symbol: "c n n *",
-            symbolAfter: "c n",
-            tab: "f n",
-            tag: "c #0?",
-            tagoff: "c #0?",
-            tan: "f n",
-            test: "f n n",
-            testr: "f n n",
-            then: "p",
-            time: "f",
-            to: "p",
-            troff: "c",
-            tron: "c",
-            unt: "f n",
-            upper$: "f s",
-            using: "p",
-            val: "f s",
-            vpos: "f #",
-            wait: "c n n n?",
-            wend: "c",
-            "while": "c n",
-            width: "c n",
-            window: "c #0? n n n n",
-            windowSwap: "c n n?",
-            write: "c #0? *",
-            xor: "o",
-            xpos: "f",
-            ypos: "f",
-            zone: "c n",
-            _rsx1: "c a a*",
-            _any1: "x *",
+            abs: "f n", // ABS(<numeric expression>)
+            after: "c", // => afterGosub
+            afterGosub: "c n n?", // AFTER <timer delay>[,<timer number>] GOSUB <line number> / (special, cannot check optional first n, and line number)
+            and: "o", // <argument> AND <argument>
+            asc: "f s", // ASC(<string expression>)
+            atn: "f n", // ATN(<numeric expression>)
+            auto: "c n0? n0?", // AUTO [<line number>][,<increment>]
+            bin$: "f n n?", // BIN$(<unsigned integer expression>[,<integer expression>])
+            border: "c n n?", // BORDER <color>[,<color>]
+            "break": "p", // see: ON BREAK...
+            call: "c n *", // CALL <address expression>[,<list of: parameter>]
+            cat: "c", // CAT
+            chain: "c s n? *", // CHAIN <filename>[,<line number expression>][,DELETE <line number range>]  (accepts also delete syntax) or: => chainMerge
+            chainMerge: "c s n? *", // CHAIN MERGE <filename>[,<line number expression>][,DELETE <line number range>] / (special)
+            chr$: "f n", // CHR$(<integer expression>)
+            cint: "f n", // CINT(<numeric expression>)
+            clear: "c", // CLEAR  or: => clearInput
+            clearInput: "c", // CLEAR INPUT  (BASIC 1.1)
+            clg: "c n?", // CLG [<ink>]
+            closein: "c", // CLOSEIN
+            closeout: "c", // CLOSEOUT
+            cls: "c #0?", // CLS[#<stream expression>]
+            cont: "c", // CONT
+            copychr$: "f #", // COPYCHR$(#<stream expression>)  (BASIC 1.1)
+            cos: "f n", // COS(<numeric expression>)
+            creal: "f n", // CREAL(<numeric expression>)
+            cursor: "c #0? n0? n?", // CURSOR [<system switch>][,<user switch>] (either parameter can be omitted but not both)  (BASIC 1.1)
+            data: "c n0*", // DATA <list of: constant> (rather 0*, insert dummy null, if necessary)
+            dec$: "f n s", // DEC$(<numeric expression>,<format template>)  (corrected with BASIC 1.1)
+            def: "c s *", // DEF FN[<space>]<function name>[(<formal parameters>)]=<expression> / (not checked from this)
+            defint: "c r r*", // DEFINT <list of: letter range>
+            defreal: "c r r*", // DEFREAL <list of: letter range>
+            defstr: "c r r*", // DEFSTR <list of: letter range>
+            deg: "c", // DEG
+            "delete": "c q0?", // DELETE [<line number range>]
+            derr: "f", // DERR [BASIC 1.1]
+            di: "c", // DI
+            dim: "c v *", // DIM <list of: subscripted variable>
+            draw: "c n n n0? n?", // DRAW <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
+            drawr: "c n n n0? n?", // DRAWR <x offset>,<y offset>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
+            edit: "c l", // EDIT <line number>
+            ei: "c", // EI
+            "else": "c", // see: IF (else belongs to "if", but can also be used as command)
+            end: "c", // END
+            ent: "c n *", // ENT <envelope number>[,<envelope section][,<envelope section>]... (up to 5) / section: <number of steps>,<step size>,<pause time>  or: =<tone period>,<pause time>
+            env: "c n *", // ENV <envelope number>[,<envelope section][,<envelope section>]... (up to 5) / section: <number of steps>,<step size>,<pause time>  or: =<hardware envelope>,<envelope period>
+            eof: "f", // EOF
+            erase: "c v *", // ERASE <list of: variable name>  (array names without indices or dimensions)
+            erl: "f", // ERL
+            err: "f", // ERR
+            error: "c n", // ERROR <integer expression>
+            every: "c", // => everyGosub
+            everyGosub: "c n n?", // EVERY <timer delay>[,<timer number>] GOSUB <line number>  / (special, cannot check optional first n, and line number)
+            exp: "f n", // EXP(<numeric expression>)
+            fill: "c n", // FILL <ink>  (BASIC 1.1)
+            fix: "f n", // FIX(<numeric expression>)
+            fn: "x", // see DEF FN / (FN can also be separate from <function name>)
+            "for": "c", // FOR <simple variable>=<start> TO <end> [STEP <size>]
+            frame: "c", // FRAME
+            fre: "f a", // FRE(<numeric expression>)  or: FRE(<string expression>)
+            gosub: "c l", // GOSUB <line number>
+            "goto": "c l", // GOTO <line number>
+            graphics: "c", // => graphicsPaper or graphicsPen  (BASIC 1.1)
+            graphicsPaper: "x n", // GRAPHICS PAPER <ink>  / (special)  (BASIC 1.1)
+            graphicsPen: "x n0? n?", // GRAPHICS PEN [<ink>][,<background mode>]  / (either of the parameters may be omitted, but not both)  (BASIC 1.1)
+            hex$: "f n n?", // HEX$(<unsigned integer expression>[,<field width>])
+            himem: "f", // HIMEM
+            "if": "c", // IF <logical expression> THEN <option part> [ELSE <option part>]
+            ink: "c n n n?", // INK <ink>,<color>[,<color>]
+            inkey: "f n", // INKEY(<integer expression>)
+            inkey$: "f", // INKEY$
+            inp: "f n", // INP(<port number>)
+            input: "c #0? *", // INPUT[#<stream expression>,][;][<quoted string><separator>]<list of: variable>  / (special: not checked from this)
+            instr: "f a a a?", // INSTR([<start position>,]<searched string>,<searched for string>)  / (cannot check "f n? s s")
+            "int": "f n", // INT(<numeric expression>)
+            joy: "f n", // JOY(<integer expression>)
+            key: "c n s", // KEY <expansion token number>,<string expression>  / or: => keyDef
+            keyDef: "c n n n? n? n?", // KEY DEF <key number>,<repeat>[,<normal>[,<shifted>[,<control>]]]
+            left$: "f s n", // LEFT$(<string expression>,<required length>)
+            len: "f s", // LEN(<string expression>)
+            let: "c", // LET <variable>=<expression>
+            line: "c", // => lineInput / (not checked from this)
+            lineInput: "c #0? *", // INPUT INPUT[#<stream expression>,][;][<quoted string><separator>]<string variable> (not checked from this)
+            list: "c q0? #0?", // LIST [<line number range>][,#<stream expression>] (not checked from this, we cannot check multiple optional args; here we have stream as last parameter)
+            load: "c s n?", // LOAD <filename>[,<address expression>]
+            locate: "c #0? n n", // LOCATE [#<stream expression>,]<x coordinate>,<y coordinate>
+            log: "f n", // LOG(<numeric expression>)
+            log10: "f n", // LOG10(<numeric expression>)
+            lower$: "f s", // LOWER$(<string expression>)
+            mask: "c n0? n?", // MASK [<integer expression>][,<first point setting>]  / (either of the parameters may be omitted, but not both)  (BASIC 1.1)
+            max: "f a *", // MAX(<list of: numeric expression> | <one number of string>)
+            memory: "c n", // MEMORY <address expression>
+            merge: "c s", // MERGE <filename>
+            mid$: "f s n n?", // MID$(<string expression>,<start position>[,<sub-string length>])  / (start position=1..255, sub-string length=0..255)
+            mid$Assign: "f s n n?", // MID$(<string variable>,<insertion point>[,<new string length>])=<new string expression>  / (mid$ as assign)
+            min: "f a *", // MIN(<list of: numeric expression> | <one number of string>)
+            mod: "o", // <argument> MOD <argument>
+            mode: "c n", // MODE <integer expression>
+            move: "c n n n0? n?", // MOVE <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink>,<ink mode>)
+            mover: "c n n n0? n?", // MOVER <x offset>,<y offset>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink>,<ink mode>)
+            "new": "c", // NEW
+            next: "c v*", // NEXT [<list of: variable>]
+            not: "o", // NOT <argument>
+            on: "c", // => onBreakCont, on break gosub, on break stop, on error goto, on <ex> gosub, on <ex> goto, on sq(n) gosub
+            onBreakCont: "c", // ON BREAK CONT  / (special)
+            onBreakGosub: "c l", // ON BREAK GOSUB <line number>  / (special)
+            onBreakStop: "c", // ON BREAK STOP  / (special)
+            onErrorGoto: "c l", // ON ERROR GOTO <line number>  / (special)
+            onGosub: "c l l*", // ON <selector> GOSUB <list of: line number>  / (special; n not checked from this)
+            onGoto: "c l l*", // ON <selector> GOTO <list of: line number>  / (special; n not checked from this)
+            onSqGosub: "c l", // ON SQ(<channel>) GOSUB <line number>  / (special)
+            openin: "c s", // OPENIN <filename>
+            openout: "c s", // OPENOUT <filename>
+            or: "o", // <argument> OR <argument>
+            origin: "c n n n? n? n? n?", // ORIGIN <x>,<y>[,<left>,<right>,<top>,<bottom>]
+            out: "c n n", // OUT <port number>,<integer expression>
+            paper: "c #0? n", // PAPER[#<stream expression>,]<ink>
+            peek: "f n", // PEEK(<address expression>)
+            pen: "c #0? n0 n?", // PEN[#<stream expression>,][<ink>][,<background mode>]  / ink=0..15; background mode=0..1 (BASIC 1.1 with <background mode)
+            pi: "f", // PI
+            plot: "c n n n0? n?", // PLOT <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
+            plotr: "c n n n0? n?", // PLOTR <x offset>,<y offset>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
+            poke: "c n n", // POKE <address expression>,<integer expression>
+            pos: "f #", // POS(#<stream expression>)
+            print: "c #0? *", // PRINT[#<stream expression>,][<list of: print items>] ... [;][SPC(<integer expression>)] ... [;][TAB(<integer expression>)] ... [;][USING <format template>][<separator expression>]
+            rad: "c", // RAD
+            randomize: "c n?", // RANDOMIZE [<numeric expression>]
+            read: "c v v*", // READ <list of: variable>
+            release: "c n", // RELEASE <sound channels>  / (sound channels=1..7)
+            rem: "c s?", // REM <rest of line>
+            "'": "c s?", // '<rest of line> (apostrophe comment)
+            remain: "f n", // REMAIN(<timer number>)  / (timer number=0..3)
+            renum: "c n0? n0? n?", // RENUM [<new line number>][,<old line number>][,<increment>]
+            restore: "c l?", // RESTORE [<line number>]
+            resume: "c l?", // RESUME [<line number>]  or: => resumeNext
+            resumeNext: "c", // RESUME NEXT
+            "return": "c", // RETURN
+            right$: "f s n", // RIGHT$(<string expression>,<required length>)
+            rnd: "f n?", // RND[(<numeric expression>)]
+            round: "f n n?", // ROUND(<numeric expression>[,<decimals>])
+            run: "c a?", // RUN <string expression>  or: RUN [<line number>]  / (cannot check "c s | l?")
+            save: "c s a? n? n? n?", // SAVE <filename>[,<file type>][,<binary parameters>]  // <binary parameters>=<start address>,<file tength>[,<entry point>]
+            sgn: "f n", // SGN(<numeric expression>)
+            sin: "f n", // SIN(<numeric expression>)
+            sound: "c n n n? n0? n0? n0? n?", // SOUND <channel status>,<tone period>[,<duration>[,<volume>[,<valume envelope>[,<tone envelope>[,<noise period>]]]]]
+            space$: "f n", // SPACE$(<integer expression>)
+            spc: "f n", // SPC(<integer expression)  / see: PRINT SPC
+            speed: "c", // => speedInk, speedKey, speedWrite
+            speedInk: "c n n", // SPEED INK <period1>,<period2>  / (special)
+            speedKey: "c n n", // SPEED KEY <start delay>,<repeat period>  / (special)
+            speedWrite: "c n", // SPEED WRITE <integer expression>  / (integer expression=0..1)
+            sq: "f n", // SQ(<channel>)  / (channel=1,2 or 4)
+            sqr: "f n", // SQR(<numeric expression>)
+            step: "p", // STEP <size> / see: FOR
+            stop: "c", // STOP
+            str$: "f n", // STR$(<numeric expression>)
+            string$: "f n a", // STRING$(<length>,<character specificier>) / character specificier=string character or number 0..255
+            swap: "p n n?", // => windowSwap
+            symbol: "c n n *", // SYMBOL <character number>,<list of: rows>   or => symbolAfter  / character number=0..255, list of 1..8 rows=0..255
+            symbolAfter: "c n", // SYMBOL AFTER <integer expression>  / integer expression=0..256 (special)
+            tab: "f n", // TAB(<integer expression)  / see: PRINT TAB
+            tag: "c #0?", // TAG[#<stream expression>]
+            tagoff: "c #0?", // TAGOFF[#<stream expression>]
+            tan: "f n", // TAN(<numeric expression>)
+            test: "f n n", // TEST(<x coordinate>,<y coordinate>)
+            testr: "f n n", // TESTR(<x offset>,<y offset>)
+            then: "p", // THEN <option part>  / see: IF
+            time: "f", // TIME
+            to: "p", // TO <end>  / see: FOR
+            troff: "c", // TROFF
+            tron: "c", // TRON
+            unt: "f n", // UNT(<address expression>)
+            upper$: "f s", // UPPER$(<string expression>)
+            using: "p", // USING <format template>[<separator expression>]  / see: PRINT
+            val: "f s", // VAL (<string expression>)
+            vpos: "f #", // VPOS(#<stream expression>)
+            wait: "c n n n?", // WAIT <port number>,<mask>[,<inversion>]
+            wend: "c", // WEND
+            "while": "c n", // WHILE <logical expression>
+            width: "c n", // WIDTH <integer expression>
+            window: "c #0? n n n n", // WINDOW[#<stream expression>,]<left>,<right>,<top>,<bottom>  / or: => windowSwap
+            windowSwap: "c n n?", // WINDOW SWAP <stream expression>[,<stream expression>]  / (special: with numbers, not streams)
+            write: "c #0? *", // WRITE [#<stream expression>,][<write list>]
+            xor: "o", // <argument> XOR <argument>
+            xpos: "f", // XPOS
+            ypos: "f", // YPOS
+            zone: "c n", // ZONE <integer expression>  / integer expression=1..255
+            _rsx1: "c a a*", // |<rsxName>[, <argument list>] dummy with at least one parameter
+            _any1: "x *", // dummy: any number of args
             _vars1: "x v*" // dummy: any number of variables
         };
         /* eslint-enable no-invalid-this */
@@ -3406,7 +3406,7 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
             var labelEntry = {
                 value: label,
                 pos: node.pos,
-                len: origLen,
+                len: origLen, // original length
                 refCount: 0
             };
             return labelEntry;
@@ -3612,42 +3612,42 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
             // on sq?
             /* eslint-disable no-invalid-this */
             this.tokens = {
-                0x00: "",
-                0x01: ":",
-                0x02: this.fnIntVar,
-                0x03: this.fnStringVar,
-                0x04: this.fnFpVar,
+                0x00: "", // marker for "end of tokenised line"
+                0x01: ":", // ":" statement seperator
+                0x02: this.fnIntVar, // integer variable definition (defined with "%" suffix)
+                0x03: this.fnStringVar, // string variable definition (defined with "$" suffix)
+                0x04: this.fnFpVar, // floating point variable definition (defined with "!" suffix)
                 0x05: "var?",
                 0x06: "var?",
-                0x07: "var?",
-                0x08: "var?",
-                0x09: "var?",
-                0x0a: "var?",
-                0x0b: this.fnVar,
-                0x0c: this.fnVar,
-                0x0d: this.fnVar,
-                0x0e: "0",
-                0x0f: "1",
-                0x10: "2",
-                0x11: "3",
-                0x12: "4",
-                0x13: "5",
-                0x14: "6",
-                0x15: "7",
-                0x16: "8",
-                0x17: "9",
-                0x18: "10",
-                0x19: this.fnNum8DecAsStr,
-                0x1a: this.fnNum16DecAsStr,
-                0x1b: this.fnNum16Bin,
-                0x1c: this.fnNum16Hex,
-                0x1d: this.fnNum16LineAddrAsStr,
-                0x1e: this.fnNum16DecAsStr,
-                0x1f: this.fnNumFp,
+                0x07: "var?", // ??
+                0x08: "var?", // ??
+                0x09: "var?", // ??
+                0x0a: "var?", // ??
+                0x0b: this.fnVar, // integer variable definition (no suffix)
+                0x0c: this.fnVar, // string variable definition (no suffix)
+                0x0d: this.fnVar, // floating point or no type (no suffix)
+                0x0e: "0", // number constant "0"
+                0x0f: "1", // number constant "1"
+                0x10: "2", // number constant "2"
+                0x11: "3", // number constant "3"
+                0x12: "4", // number constant "4"
+                0x13: "5", // number constant "5"
+                0x14: "6", // number constant "6"
+                0x15: "7", // number constant "7"
+                0x16: "8", // number constant "8"
+                0x17: "9", // number constant "9"
+                0x18: "10", // number constant "10"
+                0x19: this.fnNum8DecAsStr, // 8-bit integer decimal value
+                0x1a: this.fnNum16DecAsStr, // 16-bit integer decimal value
+                0x1b: this.fnNum16Bin, // 16-bit integer binary value (with "&X" prefix)
+                0x1c: this.fnNum16Hex, // num16Hex: 16-bit integer hexadecimal value (with "&H" or "&" prefix)
+                0x1d: this.fnNum16LineAddrAsStr, // 16-bit BASIC program line memory address pointer
+                0x1e: this.fnNum16DecAsStr, // 16-bit integer BASIC line number
+                0x1f: this.fnNumFp, // floating point value
                 // 0x20-0x21 ASCII printable symbols
-                0x22: this.fnQuotedString,
+                0x22: this.fnQuotedString, // '"' quoted string value
                 // 0x23-0x7b ASCII printable symbols
-                0x7c: this.fnRsx,
+                0x7c: this.fnRsx, // "|" symbol; prefix for RSX commands
                 0x80: "AFTER",
                 0x81: "AUTO",
                 0x82: "BORDER",
@@ -3671,7 +3671,7 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
                 0x94: "DRAW",
                 0x95: "DRAWR",
                 0x96: "EDIT",
-                0x97: "ELSE",
+                0x97: "ELSE", // always with 0x01 0x97
                 0x98: "END",
                 0x99: "ENT",
                 0x9a: "ENV",
@@ -3700,7 +3700,7 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
                 0xb1: "NEW",
                 0xb2: "ON",
                 0xb3: "ON BREAK",
-                0xb4: "ON ERROR GOTO 0",
+                0xb4: "ON ERROR GOTO 0", // (on error goto n > 0 is decoded with separate tokens)
                 0xb5: "ON SQ",
                 0xb6: "OPENIN",
                 0xb7: "OPENOUT",
@@ -3712,12 +3712,12 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
                 0xbd: "PLOTR",
                 0xbe: "POKE",
                 0xbf: "PRINT",
-                0xc0: this.fnApostrophe,
+                0xc0: this.fnApostrophe, // "'" symbol (same function as REM keyword); always with 0x01 0xC0
                 0xc1: "RAD",
                 0xc2: "RANDOMIZE",
                 0xc3: "READ",
                 0xc4: "RELEASE",
-                0xc5: this.fnRem,
+                0xc5: this.fnRem, // REM
                 0xc6: "RENUM",
                 0xc7: "RESTORE",
                 0xc8: "RESUME",
@@ -3741,11 +3741,11 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
                 0xda: "ZONE",
                 0xdb: "DI",
                 0xdc: "EI",
-                0xdd: "FILL",
-                0xde: "GRAPHICS",
-                0xdf: "MASK",
-                0xe0: "FRAME",
-                0xe1: "CURSOR",
+                0xdd: "FILL", // (v1.1)
+                0xde: "GRAPHICS", // (v1.1)
+                0xdf: "MASK", // (v1.1)
+                0xe0: "FRAME", // (v1.1)
+                0xe1: "CURSOR", // (v1.1)
                 0xe2: "<unused>",
                 0xe3: "ERL",
                 0xe4: "FN",
@@ -3758,18 +3758,18 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
                 0xeb: "THEN",
                 0xec: "TO",
                 0xed: "USING",
-                0xee: ">",
-                0xef: "=",
-                0xf0: ">=",
-                0xf1: "<",
-                0xf2: "<>",
-                0xf3: "<=",
-                0xf4: "+",
-                0xf5: "-",
-                0xf6: "*",
-                0xf7: "/",
-                0xf8: "^",
-                0xf9: "\\",
+                0xee: ">", // (greater than)
+                0xef: "=", // (equal)
+                0xf0: ">=", // (greater or equal)
+                0xf1: "<", // (less than)
+                0xf2: "<>", // (not equal)
+                0xf3: "<=", // =<, <=, < = (less than or equal)
+                0xf4: "+", // (addition)
+                0xf5: "-", // (subtraction or unary minus)
+                0xf6: "*", // (multiplication)
+                0xf7: "/", // (division)
+                0xf8: "^", // (x to the power of y)
+                0xf9: "\\", // (integer division)
                 0xfa: "AND",
                 0xfb: "MOD",
                 0xfc: "OR",
@@ -3820,10 +3820,10 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
                 0x46: "TIME",
                 0x47: "XPOS",
                 0x48: "YPOS",
-                0x49: "DERR",
+                0x49: "DERR", // (v1.1)
                 // Functions with more arguments
                 0x71: "BIN$",
-                0x72: "DEC$",
+                0x72: "DEC$", // (v1.1)
                 0x73: "HEX$",
                 0x74: "INSTR",
                 0x75: "LEFT$",
@@ -3835,7 +3835,7 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
                 0x7b: "STRING$",
                 0x7c: "TEST",
                 0x7d: "TESTR",
-                0x7e: "COPYCHR$",
+                0x7e: "COPYCHR$", // (v1.1)
                 0x7f: "VPOS"
             };
         }
@@ -4138,7 +4138,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils"], function (require,
                 lineInput: this.inputLineInput,
                 list: this.list,
                 mid$Assign: this.mid$Assign,
-                onBreakCont: this.onBreakOrError,
+                onBreakCont: this.onBreakOrError, // 3 parts
                 onBreakGosub: this.onBreakOrError,
                 onBreakStop: this.onBreakOrError,
                 onErrorGoto: this.onBreakOrError,
@@ -4550,22 +4550,22 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils"], function (require,
             return out;
         };
         CodeGeneratorBasic.combinedKeywords = {
-            chainMerge: "CHAIN",
-            clearInput: "CLEAR",
-            graphicsPaper: "GRAPHICS",
-            graphicsPen: "GRAPHICS",
-            keyDef: "KEY",
-            lineInput: "LINE",
+            chainMerge: "CHAIN", // "CHAIN MERGE"
+            clearInput: "CLEAR", // "CLEAR INPUT"
+            graphicsPaper: "GRAPHICS", // "GRAPHICS PAPER"
+            graphicsPen: "GRAPHICS", // "GRAPHICS PEN"
+            keyDef: "KEY", // "KEY DEF"
+            lineInput: "LINE", // "LINE INPUT"
             mid$Assign: "MID$",
-            onBreakCont: "ON",
-            onBreakGosub: "ON",
-            onBreakStop: "ON",
-            onErrorGoto: "ON",
-            resumeNext: "RESUME",
-            speedInk: "SPEED",
-            speedKey: "SPEED",
-            speedWrite: "SPEED",
-            symbolAfter: "SYMBOL",
+            onBreakCont: "ON", // ""ON BREAK CONT"
+            onBreakGosub: "ON", // ""ON BREAK GOSUB"
+            onBreakStop: "ON", // ""ON BREAK STOP"
+            onErrorGoto: "ON", // "ON ERROR GOTO"
+            resumeNext: "RESUME", // "RESUME NEXT"
+            speedInk: "SPEED", // "SPEED INK"
+            speedKey: "SPEED", // "SPEED KEY"
+            speedWrite: "SPEED", // "SPEED WRITE"
+            symbolAfter: "SYMBOL", // "SYMBOL AFTER"
             windowSwap: "WINDOW" // "WINDOW SWAP"
         };
         CodeGeneratorBasic.operators = {
@@ -4590,10 +4590,10 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils"], function (require,
             "#": "#"
         };
         CodeGeneratorBasic.operatorPrecedence = {
-            "@": 95,
+            "@": 95, // prefix
             "^": 90,
-            "p-": 80,
-            "p+": 80,
+            "p-": 80, // prefix - (fast hack)
+            "p+": 80, // prefix + (fast hack)
             "*": 70,
             "/": 70,
             "\\": 60,
@@ -4606,21 +4606,21 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils"], function (require,
             "<=": 30,
             ">": 30,
             ">=": 30,
-            not: 23,
+            not: 23, // prefix
             and: 22,
             or: 21,
             xor: 20,
             "#": 10 // priority?
         };
         CodeGeneratorBasic.operatorAssociativity = {
-            "^": "right",
-            "*": "left",
-            "+": "left",
-            "/": "left",
-            "\\": "left",
-            mod: "left",
-            "-": "left",
-            "=": "none",
+            "^": "right", // right-associative
+            "*": "left", // left-associative (commutative, so parens not needed for equal precedence)
+            "+": "left", // left-associative (commutative, so parens not needed for equal precedence)
+            "/": "left", // left-associative (non-commutative, so parens ARE needed for equal precedence)
+            "\\": "left", // left-associative (non-commutative, so parens ARE needed)
+            mod: "left", // left-associative (non-commutative)
+            "-": "left", // left-associative (non-commutative, so parens ARE needed for equal precedence)
+            "=": "none", // comparison operators are non-associative
             "<>": "none",
             "<": "none",
             "<=": "none",
@@ -4860,8 +4860,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             };
             /* eslint-disable no-invalid-this */
             this.parseFunctions = {
-                ";": CodeGeneratorJs.commaOrSemicolon,
-                ",": CodeGeneratorJs.commaOrSemicolon,
+                ";": CodeGeneratorJs.commaOrSemicolon, // ";" for input, line input
+                ",": CodeGeneratorJs.commaOrSemicolon, // "," for input, line input
                 "|": this.vertical,
                 number: CodeGeneratorJs.number,
                 expnumber: CodeGeneratorJs.expnumber,
@@ -4869,11 +4869,11 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 hexnumber: CodeGeneratorJs.hexnumber,
                 linenumber: CodeGeneratorJs.linenumber,
                 identifier: this.identifier,
-                letter: CodeGeneratorJs.letter,
+                letter: CodeGeneratorJs.letter, // for defint, defreal, defstr
                 range: this.range,
                 linerange: this.linerange,
                 string: CodeGeneratorJs.string,
-                ustring: CodeGeneratorJs.string,
+                ustring: CodeGeneratorJs.string, // unterminated string the same as string
                 unquoted: CodeGeneratorJs.unquoted,
                 "null": CodeGeneratorJs.fnNull,
                 assign: this.assign,
@@ -4883,7 +4883,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 call: this.fnCommandWithGoto,
                 chain: this.fnCommandWithGoto,
                 chainMerge: this.fnCommandWithGoto,
-                clear: this.fnCommandWithGoto,
+                clear: this.fnCommandWithGoto, // will also do e.g. closeout
                 closeout: this.fnCommandWithGoto,
                 cont: CodeGeneratorJs.cont,
                 data: this.data,
@@ -4924,7 +4924,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 randomize: this.randomize,
                 read: this.read,
                 rem: this.rem,
-                "'": this.apostrophe,
+                "'": this.apostrophe, // apostrophe comment
                 renum: this.fnCommandWithGoto,
                 restore: this.onBreakGosubOrRestore,
                 resume: this.gotoOrResume,
@@ -4932,11 +4932,11 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 "return": CodeGeneratorJs.fnReturn,
                 run: this.run,
                 save: this.save,
-                sound: this.fnCommandWithGoto,
+                sound: this.fnCommandWithGoto, // maybe queue is full, so insert break
                 spc: this.spc,
                 stop: this.stopOrEnd,
                 tab: this.tab,
-                tron: this.fnCommandWithGoto,
+                tron: this.fnCommandWithGoto, // not really needed with goto, but...
                 using: this.usingOrWrite,
                 wend: this.wend,
                 "while": this.fnWhile,
@@ -6351,9 +6351,9 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
                 linerange: this.linerange,
                 string: CodeGeneratorToken.string,
                 ustring: CodeGeneratorToken.ustring,
-                "(eol)": CodeGeneratorToken.fnEol,
+                "(eol)": CodeGeneratorToken.fnEol, // ignore newline "\n"
                 number: CodeGeneratorToken.number,
-                expnumber: CodeGeneratorToken.number,
+                expnumber: CodeGeneratorToken.number, // same handling as for number
                 binnumber: CodeGeneratorToken.binnumber,
                 hexnumber: CodeGeneratorToken.hexnumber,
                 identifier: this.identifier,
@@ -6370,7 +6370,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
                 "'": this.fnElseOrApostrophe
             };
             this.options = {
-                allowLineFragments: false,
+                allowLineFragments: false, // only for testing
                 implicitLines: false,
                 quiet: false
             };
@@ -6653,11 +6653,11 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
             return out;
         };
         CodeGeneratorToken.tokens = {
-            _eol: 0x00,
-            ":": 0x01,
-            _intVar: 0x02,
-            _stringVar: 0x03,
-            _floatVar: 0x04,
+            _eol: 0x00, // marker for "end of tokenised line"
+            ":": 0x01, // ":" statement seperator
+            _intVar: 0x02, // integer variable definition (defined with "%" suffix)  "(A-Z)+%"
+            _stringVar: 0x03, // string variable definition (defined with "$" suffix)  "(A-Z)+\$"
+            _floatVar: 0x04, // floating point variable definition (defined with "!" suffix) "(A-Z)+!"
             // "": 0x05, // "var?"
             // "": 0x06, // "var?"
             // "": 0x07, // "var?"
@@ -6666,37 +6666,37 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
             // "": 0x0a, // "var?"
             // "": 0x0b, // integer variable definition (no suffix)
             // "": 0x0c, // string variable definition (no suffix)
-            _anyVar: 0x0d,
-            0: 0x0e,
-            1: 0x0f,
-            2: 0x10,
-            3: 0x11,
-            4: 0x12,
-            5: 0x13,
-            6: 0x14,
-            7: 0x15,
-            8: 0x16,
-            9: 0x17,
-            10: 0x18,
-            _dec8: 0x19,
-            _dec16: 0x1a,
-            _bin16: 0x1b,
-            _hex16: 0x1c,
+            _anyVar: 0x0d, // floating point or no type (no suffix)
+            0: 0x0e, // number constant "0"
+            1: 0x0f, // number constant "1"
+            2: 0x10, // number constant "2"
+            3: 0x11, // number constant "3"
+            4: 0x12, // number constant "4"
+            5: 0x13, // number constant "5"
+            6: 0x14, // number constant "6"
+            7: 0x15, // number constant "7"
+            8: 0x16, // number constant "8"
+            9: 0x17, // number constant "9"
+            10: 0x18, // number constant "10" (not sure when this is used)
+            _dec8: 0x19, // 8-bit integer decimal value
+            _dec16: 0x1a, // 16-bit integer decimal value
+            _bin16: 0x1b, // 16-bit integer binary value (with "&X" prefix)
+            _hex16: 0x1c, // num16Hex: 16-bit integer hexadecimal value (with "&H" or "&" prefix)
             // "": 0x1d, // 16-bit BASIC program line memory address pointer (should not occur)
-            _line16: 0x1e,
-            _float: 0x1f,
+            _line16: 0x1e, // 16-bit integer BASIC line number
+            _float: 0x1f, // floating point value
             // 0x20-0x21 ASCII printable symbols (space, "!")
             // "": 0x22, // '"' quoted string value
             // 0x23-0x7b ASCII printable symbols
-            "#": 0x23,
-            "(": 0x28,
-            ")": 0x29,
-            ",": 0x2c,
-            "?": 0x3f,
-            "@": 0x40,
-            "[": 0x5b,
-            "]": 0x5d,
-            "|": 0x7c,
+            "#": 0x23, // "#" character (stream)
+            "(": 0x28, // "(" character
+            ")": 0x29, // ")" character
+            ",": 0x2c, // "," character
+            "?": 0x3f, // "?" character (print)
+            "@": 0x40, // "@" character (address of)
+            "[": 0x5b, // "[" character
+            "]": 0x5d, // "]" character
+            "|": 0x7c, // "|" symbol; prefix for RSX commands
             after: 0x80,
             afterGosub: 0x80,
             auto: 0x81,
@@ -6704,9 +6704,9 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
             call: 0x83,
             cat: 0x84,
             chain: 0x85,
-            chainMerge: 0x85,
+            chainMerge: 0x85, // 0xab85
             clear: 0x86,
-            clearInput: 0x86,
+            clearInput: 0x86, // 0xa386
             clg: 0x87,
             closein: 0x88,
             closeout: 0x89,
@@ -6738,10 +6738,10 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
             ink: 0xa2,
             input: 0xa3,
             key: 0xa4,
-            keyDef: 0xa4,
+            keyDef: 0xa4, // 0x8da4
             let: 0xa5,
             line: 0xa6,
-            lineInput: 0xa6,
+            lineInput: 0xa6, // 0xa3a6
             list: 0xa7,
             load: 0xa8,
             locate: 0xa9,
@@ -6755,11 +6755,11 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
             next: 0xb0,
             "new": 0xb1,
             on: 0xb2,
-            _onBreak: 0xb3,
-            _onErrorGoto0: 0xb4,
+            _onBreak: 0xb3, // onBreakCont, onBreakGosub, onBreakStop
+            _onErrorGoto0: 0xb4, // "on error goto 0" (on error goto n > 0 is decoded with separate tokens)
             onGosub: 0xb2,
             onGoto: 0xb2,
-            _onSq: 0xb5,
+            _onSq: 0xb5, // "on sq" (onSqGosub)
             openin: 0xb6,
             openout: 0xb7,
             origin: 0xb8,
@@ -6770,27 +6770,27 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
             plotr: 0xbd,
             poke: 0xbe,
             print: 0xbf,
-            "'": 0xc0,
+            "'": 0xc0, // apostrophe "'" symbol (same function as REM keyword)
             rad: 0xc1,
             randomize: 0xc2,
             read: 0xc3,
             release: 0xc4,
-            rem: 0xc5,
+            rem: 0xc5, // rem
             renum: 0xc6,
             restore: 0xc7,
             resume: 0xc8,
-            resumeNext: 0xc8,
+            resumeNext: 0xc8, // 0xb0c8
             "return": 0xc9,
             run: 0xca,
             save: 0xcb,
             sound: 0xcc,
-            speedInk: 0xcd,
-            speedKey: 0xcd,
-            speedWrite: 0xcd,
+            speedInk: 0xcd, // 0xa2cd
+            speedKey: 0xcd, // 0xa4cd,
+            speedWrite: 0xcd, // 0xd9cd
             stop: 0xce,
             swap: 0xe7,
             symbol: 0xcf,
-            symbolAfter: 0xcf,
+            symbolAfter: 0xcf, // 0x80cf
             tag: 0xd0,
             tagoff: 0xd1,
             troff: 0xd2,
@@ -6800,18 +6800,18 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
             "while": 0xd6,
             width: 0xd7,
             window: 0xd8,
-            windowSwap: 0xd8,
+            windowSwap: 0xd8, // 0xe7d8
             write: 0xd9,
             zone: 0xda,
             di: 0xdb,
             ei: 0xdc,
-            fill: 0xdd,
-            graphics: 0xde,
-            graphicsPaper: 0xde,
-            graphicsPen: 0xde,
-            mask: 0xdf,
-            frame: 0xe0,
-            cursor: 0xe1,
+            fill: 0xdd, // (v1.1)
+            graphics: 0xde, // (v1.1)
+            graphicsPaper: 0xde, // 0xbade
+            graphicsPen: 0xde, // 0xbbde
+            mask: 0xdf, // (v1.1)
+            frame: 0xe0, // (v1.1)
+            cursor: 0xe1, // (v1.1)
             // "<unused>":         0xe2,
             erl: 0xe3,
             fn: 0xe4,
@@ -6824,19 +6824,19 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
             then: 0xeb,
             to: 0xec,
             using: 0xed,
-            ">": 0xee,
-            "=": 0xef,
-            assign: 0xef,
-            ">=": 0xf0,
-            "<": 0xf1,
-            "<>": 0xf2,
-            "<=": 0xf3,
-            "+": 0xf4,
-            "-": 0xf5,
-            "*": 0xf6,
-            "/": 0xf7,
-            "^": 0xf8,
-            "\\": 0xf9,
+            ">": 0xee, // (greater than)
+            "=": 0xef, // (equal)
+            assign: 0xef, // equal as assign
+            ">=": 0xf0, // (greater or equal)
+            "<": 0xf1, // (less than)
+            "<>": 0xf2, // (not equal)
+            "<=": 0xf3, // =<, <=, < = (less than or equal)
+            "+": 0xf4, // (addition)
+            "-": 0xf5, // (subtraction or unary minus)
+            "*": 0xf6, // (multiplication)
+            "/": 0xf7, // (division)
+            "^": 0xf8, // (x to the power of y)
+            "\\": 0xf9, // (integer division)
             and: 0xfa,
             mod: 0xfb,
             or: 0xfc,
@@ -6886,10 +6886,10 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
             time: 0x46,
             xpos: 0x47,
             ypos: 0x48,
-            derr: 0x49,
+            derr: 0x49, // (v1.1)
             // Functions with more arguments
             bin$: 0x71,
-            dec$: 0x72,
+            dec$: 0x72, // (v1.1)
             hex$: 0x73,
             instr: 0x74,
             left$: 0x75,
@@ -6901,7 +6901,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
             string$: 0x7b,
             test: 0x7c,
             testr: 0x7d,
-            copychr$: 0x7e,
+            copychr$: 0x7e, // (v1.1)
             vpos: 0x7f
         };
         CodeGeneratorToken.varTypeMap = {
@@ -7531,13 +7531,13 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 sectorInfoList: sectorInfoList,
                 sectorNum2Index: {}
             }, diskInfo = {
-                ident: "MV - CPCEMU Disk-File\r\nDisk-Info\r\n",
-                creator: (this.options.creator || "CpcBasicTS").padEnd(14, " "),
+                ident: "MV - CPCEMU Disk-File\r\nDisk-Info\r\n", // 34
+                creator: (this.options.creator || "CpcBasicTS").padEnd(14, " "), // 14
                 tracks: formatDescriptor.tracks,
                 heads: formatDescriptor.heads,
-                trackSize: DiskImage.trackInfoSize + formatDescriptor.spt * sectorSize,
+                trackSize: DiskImage.trackInfoSize + formatDescriptor.spt * sectorSize, // eslint-disable-line no-bitwise
                 trackInfo: trackInfo,
-                trackSizes: [],
+                trackSizes: [], // only for extended DSK format
                 trackInfoPosList: [],
                 extended: false
             }, emptySectorData = DiskImage.uInt8ToString(formatDescriptor.fill).repeat(sectorSize);
@@ -7590,10 +7590,10 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 var extent = {
                     user: this.readUInt8(pos),
                     name: this.readUtf(pos + 1, 8),
-                    ext: this.readUtf(pos + 9, 3),
+                    ext: this.readUtf(pos + 9, 3), // extension with flags
                     extent: this.readUInt8(pos + 12),
                     lastRecBytes: this.readUInt8(pos + 13),
-                    extentHi: this.readUInt8(pos + 14),
+                    extentHi: this.readUInt8(pos + 14), // used for what?
                     records: this.readUInt8(pos + 15),
                     blocks: []
                 };
@@ -7664,7 +7664,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             logSec = block * blockSectors, // directory is in block 0-1
             pos = {
                 track: Math.floor(logSec / spt) + formatDescriptor.off,
-                head: 0,
+                head: 0, // currently always 0
                 sector: (logSec % spt) + formatDescriptor.firstSector
             };
             return pos;
@@ -7983,10 +7983,10 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
         };
         DiskImage.parseAmsdosHeader = function (data) {
             var typeMap = {
-                0: "T",
-                1: "P",
-                2: "B",
-                8: "G",
+                0: "T", // tokenized BASIC (T=not official)
+                1: "P", // protected BASIC (also tokenized)
+                2: "B", // Binary
+                8: "G", // GENA3 Assember (G=not official)
                 0x16: "A" // ASCII
             };
             var header;
@@ -8011,10 +8011,10 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
         };
         DiskImage.combineAmsdosHeader = function (header) {
             var typeMap = {
-                T: 0,
-                P: 1,
-                B: 2,
-                G: 8,
+                T: 0, // tokenized BASIC (T=not official)
+                P: 1, // protected BASIC
+                B: 2, // Binary
+                G: 8, // GENA3 Assember (G=not official)
                 A: 0x16 // ASCII
             };
             var type = header.typeNumber;
@@ -8054,19 +8054,19 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
         DiskImage.twoHeads = "2h";
         DiskImage.formatDescriptors = {
             data: {
-                tracks: 40,
-                heads: 1,
+                tracks: 40, // number of tracks (1-85)
+                heads: 1, // number of heads/sides (1-2)
                 // head: 0, // head number?
-                bps: 2,
-                spt: 9,
-                gap3: 0x4e,
-                fill: 0xe5,
-                firstSector: 0xc1,
-                bls: 1024,
+                bps: 2, // Bytes per Sector (1-5)
+                spt: 9, // Sectors per Track (1-18)
+                gap3: 0x4e, // gap between ID and data
+                fill: 0xe5, // filler byte
+                firstSector: 0xc1, // first sector number
+                bls: 1024, // BLS: data block allocaton size (1024, 2048, 4096, 8192, 16384)
                 // bsh: 3, // log2 BLS - 7
                 // blm: 7, // BLS / 128 - 1
-                al0: 0xc0,
-                al1: 0x00,
+                al0: 0xc0, // bit significant representation of reserved directory blocks 0..7 (0x80=0, 0xc00=0 and 1,,...)
+                al1: 0x00, // bit significant representation of reserved directory blocks 8..15 (0x80=8,...)
                 off: 0 // number of reserved tracks (also the track where the directory starts)
             },
             data42t: {
@@ -8107,7 +8107,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             },
             big780k: {
                 parentRef: "data",
-                al0: 0x80,
+                al0: 0x80, // block 0 reserved
                 tracks: 80,
                 off: 1,
                 firstSector: 0x01
@@ -8127,7 +8127,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
         // see AMSDOS ROM, &D252
         /* eslint-disable array-element-newline */
         DiskImage.protectTable = [
-            [0xe2, 0x9d, 0xdb, 0x1a, 0x42, 0x29, 0x39, 0xc6, 0xb3, 0xc6, 0x90, 0x45, 0x8a],
+            [0xe2, 0x9d, 0xdb, 0x1a, 0x42, 0x29, 0x39, 0xc6, 0xb3, 0xc6, 0x90, 0x45, 0x8a], // 13 bytes
             [0x49, 0xb1, 0x36, 0xf0, 0x2e, 0x1e, 0x06, 0x2a, 0x28, 0x19, 0xea] // 11 bytes
         ];
         return DiskImage;
@@ -8587,14 +8587,14 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
             move: "touchmove",
             up: "touchend",
             cancel: "touchcancel",
-            out: "",
+            out: "", // n.a.
             type: "touch"
         };
         View.mouseEventNames = {
             down: "mousedown",
             move: "mousemove",
             up: "mouseup",
-            cancel: "",
+            cancel: "", // n.a.
             out: "mouseout",
             type: "mouse"
         };
@@ -8755,17 +8755,17 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
         Keyboard.prototype.resetCpcKeysExpansions = function () {
             var cpcKeyExpansions = this.cpcKeyExpansions;
             cpcKeyExpansions.normal = {
-                15: 0 + 128,
-                13: 1 + 128,
-                14: 2 + 128,
-                5: 3 + 128,
-                20: 4 + 128,
-                12: 5 + 128,
-                4: 6 + 128,
-                10: 7 + 128,
-                11: 8 + 128,
-                3: 9 + 128,
-                7: 10 + 128,
+                15: 0 + 128, // F0
+                13: 1 + 128, // F1
+                14: 2 + 128, // F2
+                5: 3 + 128, // F3
+                20: 4 + 128, // F4
+                12: 5 + 128, // F5
+                4: 6 + 128, // F6
+                10: 7 + 128, // F7
+                11: 8 + 128, // F8
+                3: 9 + 128, // F9
+                7: 10 + 128, // F.
                 6: 11 + 128 // Enter
             };
             cpcKeyExpansions.shift = {};
@@ -9202,7 +9202,7 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
             "107NumpadAdd": 89
         };
         Keyboard.specialKeys = {
-            Alt: String.fromCharCode(224),
+            Alt: String.fromCharCode(224), // Copy
             ArrowUp: String.fromCharCode(240),
             ArrowDown: String.fromCharCode(241),
             ArrowLeft: String.fromCharCode(242),
@@ -9222,8 +9222,8 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
             JoyDown: String.fromCharCode(10),
             JoyLeft: String.fromCharCode(8),
             JoyRight: String.fromCharCode(9),
-            Clear: "X",
-            Spacebar: " ",
+            Clear: "X", // joy fire 2
+            Spacebar: " ", // for IE
             Tab: String.fromCharCode(9),
             ä: ";",
             Ä: "+",
@@ -9234,8 +9234,8 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
             ß: "-",
             DeadBackquote: "^",
             "°": "£",
-            DeadEqual: String.fromCharCode(161),
-            "´": String.fromCharCode(161),
+            DeadEqual: String.fromCharCode(161), // tick
+            "´": String.fromCharCode(161), // IE: tick
             DeadEqualShift: "`" // backtick
         };
         /* eslint-disable array-element-newline */
@@ -9481,7 +9481,7 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             if (key === "Enter" || key === " ") { // enter or space
                 var simPointerEvent = {
                     type: event.type,
-                    target: activeElement,
+                    target: activeElement, // active selected element
                     preventDefault: function () {
                         // empty
                     }
@@ -9502,447 +9502,447 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
         };
         VirtualKeyboard.cpcKey2Key = [
             {
-                keys: "38ArrowUp",
+                keys: "38ArrowUp", // 0: cursor up
                 key: "ArrowUp",
                 text: "\u2191",
                 title: "Cursor up"
             },
             {
-                keys: "39ArrowRight",
+                keys: "39ArrowRight", // 1: cursor right
                 key: "ArrowRight",
                 text: "\u2192",
                 title: "Cursor right",
                 style: 1
             },
             {
-                keys: "40ArrowDown",
+                keys: "40ArrowDown", // 2: cursor down
                 key: "ArrowDown",
                 text: "\u2193",
                 title: "Cursor down"
             },
             {
-                keys: "105Numpad9,120F9",
+                keys: "105Numpad9,120F9", // 3: numpad f9
                 key: "9",
                 text: "f9",
                 style: 1,
                 numLockCpcKey: 81 // joy 0 up+right
             },
             {
-                keys: "102Numpad6,117F6",
+                keys: "102Numpad6,117F6", // 4: numpad f6
                 key: "6",
                 text: "f6",
                 style: 1,
                 numLockCpcKey: 75 // joy 0 right
             },
             {
-                keys: "99Numpad3,114F3",
+                keys: "99Numpad3,114F3", // 5: numpad f3
                 key: "3",
                 text: "f3",
                 style: 1,
                 numLockCpcKey: 83 // joy 0 down+right
             },
             {
-                keys: "13NumpadEnter",
+                keys: "13NumpadEnter", // 6: numpad enter
                 key: "Enter",
                 style: 4
             },
             {
-                keys: "110NumpadDecimal",
+                keys: "110NumpadDecimal", // 7: numpad .
                 key: ".",
                 numLockCpcKey: 77 // joy 0 fire 1
             },
             {
-                keys: "37ArrowLeft",
+                keys: "37ArrowLeft", // 8: cursor left
                 key: "ArrowLeft",
                 text: "\u2190",
                 title: "Cursor left",
                 style: 1
             },
             {
-                keys: "18AltLeft",
+                keys: "18AltLeft", // 9: copy
                 key: "Alt",
                 text: "Copy",
                 style: 2
             },
             {
-                keys: "103Numpad7,118F7",
+                keys: "103Numpad7,118F7", // 10: numpad f7
                 key: "7",
                 text: "f7",
                 style: 1,
                 numLockCpcKey: 80 // joy 0 up+left
             },
             {
-                keys: "104Numpad8,119F8",
+                keys: "104Numpad8,119F8", // 11: numpad f8
                 key: "8",
                 text: "f8",
                 style: 1,
                 numLockCpcKey: 72 // joy 0 up
             },
             {
-                keys: "101Numpad5,116F5",
+                keys: "101Numpad5,116F5", // 12: numpad f5
                 key: "5",
                 text: "f5",
                 style: 1,
                 numLockCpcKey: 76 // joy 0 fire 2
             },
             {
-                keys: "97Numpad1,112F1",
+                keys: "97Numpad1,112F1", // 13: numpad f1
                 key: "1",
                 text: "f1",
                 style: 1,
                 numLockCpcKey: 82 // joy 0 down+left
             },
             {
-                keys: "98Numpad2,113F2",
+                keys: "98Numpad2,113F2", // 14: numpad f2
                 key: "2",
                 text: "f2",
                 style: 1,
                 numLockCpcKey: 73 // joy 0 down
             },
             {
-                keys: "96Numpad0,121F10",
+                keys: "96Numpad0,121F10", // 15: numpad f0
                 key: "0",
                 text: "f0",
                 style: 1
                 // numLockCpcKey: 90 // Num lock
             },
             {
-                keys: "46Delete",
+                keys: "46Delete", // 16: clr
                 key: "Delete",
                 text: "Clr",
                 title: "Clear",
                 style: 1
             },
             {
-                keys: "187BracketRight,171BracketRight,221BracketRight",
+                keys: "187BracketRight,171BracketRight,221BracketRight", // 17: [ { (Chrome: 187; FF: 171); EN: 221BracketRight
                 key: "[",
                 keyShift: "{"
             },
             {
-                keys: "13Enter",
+                keys: "13Enter", // 18: return
                 key: "Enter",
                 text: "Ret",
                 title: "Return",
                 style: 2
             },
             {
-                keys: "191Backslash,163Backslash,220Backslash",
+                keys: "191Backslash,163Backslash,220Backslash", // 19: ] } => # ' (Chrome: 191; FF: 163); EN: 220Backslash
                 key: "]",
                 keyShift: "}"
             },
             {
-                keys: "100Numpad4,115F4",
+                keys: "100Numpad4,115F4", // 20: numpad f4
                 key: "4",
                 text: "f4",
                 style: 1,
                 numLockCpcKey: 74 // joy 0 left
             },
             {
-                keys: "16ShiftLeft,16ShiftRight",
+                keys: "16ShiftLeft,16ShiftRight", // 21: shift left, shift right (2 keys!)
                 key: "Shift",
                 style: 4
             },
             {
-                keys: "220Backquote,160Backquote,192Backquote",
+                keys: "220Backquote,160Backquote,192Backquote", // 22: \ ` (different location, key!; Chrome: 220; FF: 160); EN: 192Backquote, 226IntlBackslash?
                 key: "\\",
                 keyShift: "`"
             },
             {
-                keys: "17ControlLeft,17ControlRight",
+                keys: "17ControlLeft,17ControlRight", // 23: Note: alt-gr also triggers ctrl-left and alt-gr!
                 key: "Control",
                 text: "Ctrl",
                 title: "Control",
                 style: 4
             },
             {
-                keys: "221Equal,192Equal,187Equal",
+                keys: "221Equal,192Equal,187Equal", // 24: ^ £ (pound: \u00A3) (Chrome: 221; FF: 192); EN: 187Equal
                 key: "^",
                 keyShift: "£"
             },
             {
-                keys: "219Minus,63Minus,189Minus",
+                keys: "219Minus,63Minus,189Minus", // 25: - = (Chrome: 219; FF: 63); EN: 189Minus
                 key: "-",
                 keyShift: "="
             },
             {
-                keys: "186BracketLeft,59BracketLeft,219BracketLeft",
+                keys: "186BracketLeft,59BracketLeft,219BracketLeft", // 26: @ | (Chrome: 168; FF: 59); EN: 219BracketLeft
                 key: "@",
                 keyShift: "|",
                 style: 1
             },
             {
-                keys: "80KeyP",
+                keys: "80KeyP", // 27: P
                 key: "p",
                 keyShift: "P"
             },
             {
-                keys: "222Quote,192Quote",
+                keys: "222Quote,192Quote", // 28: ; + (same on Chrome, FF); Android Bluetooth EN: 192Quote
                 key: ";",
                 keyShift: "+"
             },
             {
-                keys: "192Semicolon,186Semicolon",
+                keys: "192Semicolon,186Semicolon", // 29: : * (same on Chrome, FF); EN: 186Semicolon
                 key: ":",
                 keyShift: "*"
             },
             {
-                keys: "189Slash,173Slash,191Slash",
+                keys: "189Slash,173Slash,191Slash", // 30: / ? (Chrome: 189; FF: 173); EN: 191Slash
                 key: "/",
                 keyShift: "?"
             },
             {
-                keys: "190Period",
+                keys: "190Period", // 31: . <
                 key: ".",
                 keyShift: "<"
             },
             {
-                keys: "48Digit0",
+                keys: "48Digit0", // 32: 0 _
                 key: "0",
                 keyShift: "_"
             },
             {
-                keys: "57Digit9",
+                keys: "57Digit9", // 33: 9 )
                 key: "9",
                 keyShift: ")"
             },
             {
-                keys: "79KeyO",
+                keys: "79KeyO", // 34:
                 key: "o",
                 keyShift: "O"
             },
             {
-                keys: "73KeyI",
+                keys: "73KeyI", // 35:
                 key: "i",
                 keyShift: "I"
             },
             {
-                keys: "76KeyL",
+                keys: "76KeyL", // 36:
                 key: "l",
                 keyShift: "L"
             },
             {
-                keys: "75KeyK",
+                keys: "75KeyK", // 37:
                 key: "k",
                 keyShift: "K"
             },
             {
-                keys: "77KeyM",
+                keys: "77KeyM", // 38:
                 key: "m",
                 keyShift: "M"
             },
             {
-                keys: "188Comma",
+                keys: "188Comma", // 39: , >
                 key: ",",
                 keyShift: ">"
             },
             {
-                keys: "56Digit8",
+                keys: "56Digit8", // 40: 8 (
                 key: "8",
                 keyShift: "("
             },
             {
-                keys: "55Digit7",
+                keys: "55Digit7", // 41: 7 '
                 key: "7",
                 keyShift: "'"
             },
             {
-                keys: "85KeyU",
+                keys: "85KeyU", // 42:
                 key: "u",
                 keyShift: "U"
             },
             {
-                keys: "90KeyY,89KeyY",
+                keys: "90KeyY,89KeyY", // 43:
                 key: "y",
                 keyShift: "Y"
             },
             {
-                keys: "72KeyH",
+                keys: "72KeyH", // 44:
                 key: "h",
                 keyShift: "H"
             },
             {
-                keys: "74KeyJ",
+                keys: "74KeyJ", // 45:
                 key: "j",
                 keyShift: "J"
             },
             {
-                keys: "78KeyN",
+                keys: "78KeyN", // 46:
                 key: "n",
                 keyShift: "N"
             },
             {
-                keys: "32Space",
+                keys: "32Space", // 47: space
                 key: " ",
                 text: "Space",
                 style: 5
             },
             {
-                keys: "54Digit6",
+                keys: "54Digit6", // 48: 6 &
                 key: "6",
                 keyShift: "("
             },
             {
-                keys: "53Digit5",
+                keys: "53Digit5", // 49: 5 %
                 key: "5",
                 keyShift: "%"
             },
             {
-                keys: "82KeyR",
+                keys: "82KeyR", // 50:
                 key: "r",
                 keyShift: "R"
             },
             {
-                keys: "84KeyT",
+                keys: "84KeyT", // 51:
                 key: "t",
                 keyShift: "T"
             },
             {
-                keys: "71KeyG",
+                keys: "71KeyG", // 52:
                 key: "g",
                 keyShift: "G"
             },
             {
-                keys: "70KeyF",
+                keys: "70KeyF", // 53:
                 key: "f",
                 keyShift: "F"
             },
             {
-                keys: "66KeyB",
+                keys: "66KeyB", // 54:
                 key: "b",
                 keyShift: "B"
             },
             {
-                keys: "86KeyV",
+                keys: "86KeyV", // 55:
                 key: "v",
                 keyShift: "V"
             },
             {
-                keys: "52Digit4",
+                keys: "52Digit4", // 56: 4 $
                 key: "4",
                 keyShift: "$"
             },
             {
-                keys: "51Digit3",
+                keys: "51Digit3", // 57: 3 #
                 key: "3",
                 keyShift: "#"
             },
             {
-                keys: "69KeyE",
+                keys: "69KeyE", // 58:
                 key: "e",
                 keyShift: "E"
             },
             {
-                keys: "87KeyW",
+                keys: "87KeyW", // 59:
                 key: "w",
                 keyShift: "W"
             },
             {
-                keys: "83KeyS",
+                keys: "83KeyS", // 60:
                 key: "s",
                 keyShift: "S"
             },
             {
-                keys: "68KeyD",
+                keys: "68KeyD", // 61:
                 key: "d",
                 keyShift: "D"
             },
             {
-                keys: "67KeyC",
+                keys: "67KeyC", // 62:
                 key: "c",
                 keyShift: "C"
             },
             {
-                keys: "88KeyX",
+                keys: "88KeyX", // 63:
                 key: "x",
                 keyShift: "X"
             },
             {
-                keys: "49Digit1",
+                keys: "49Digit1", // 64: 1 !
                 key: "1",
                 keyShift: "!"
             },
             {
-                keys: "50Digit2",
+                keys: "50Digit2", // 65: 2 "
                 key: "2",
                 keyShift: "\""
             },
             {
-                keys: "27Escape",
+                keys: "27Escape", // 66: esc
                 key: "Escape",
                 text: "Esc",
                 title: "Escape",
                 style: 1
             },
             {
-                keys: "81KeyQ",
+                keys: "81KeyQ", // 67:
                 key: "q",
                 keyShift: "Q"
             },
             {
-                keys: "9Tab",
+                keys: "9Tab", // 68:
                 key: "Tab",
                 style: 2
             },
             {
-                keys: "65KeyA",
+                keys: "65KeyA", // 69:
                 key: "a",
                 keyShift: "A"
             },
             {
-                keys: "20CapsLock",
+                keys: "20CapsLock", // 70: caps lock
                 key: "CapsLock",
                 text: "Caps",
                 title: "Caps Lock",
                 style: 3
             },
             {
-                keys: "89KeyZ,90KeyZ",
+                keys: "89KeyZ,90KeyZ", // 71: DE,EN
                 key: "z",
                 keyShift: "Z"
             },
             {
-                keys: "38Numpad8",
+                keys: "38Numpad8", // 72: joy 0 up (arrow up)
                 key: "JoyUp",
                 text: "\u21D1",
                 title: "Joy up"
             },
             {
-                keys: "40Numpad2",
+                keys: "40Numpad2", // 73: joy 0 down
                 key: "JoyDown",
                 text: "\u21D3",
                 title: "Joy down"
             },
             {
-                keys: "37Numpad4",
+                keys: "37Numpad4", // 74: joy 0 left
                 key: "JoyLeft",
                 text: "\u21D0",
                 title: "Joy left"
             },
             {
-                keys: "39Numpad6",
+                keys: "39Numpad6", // 75: joy 0 right
                 key: "JoyRight",
                 text: "\u21D2",
                 title: "Joy right"
             },
             {
-                keys: "12Numpad5,45Numpad0",
+                keys: "12Numpad5,45Numpad0", // 76: joy 0 fire 2 (clear,...)
                 key: "X",
                 text: "\u29BF",
                 title: "Joy fire"
             },
             {
-                keys: "46NumpadDecimal",
+                keys: "46NumpadDecimal", // 77: joy 0 fire 1
                 key: "Z",
                 text: "\u25E6",
                 title: "Joy fire 1"
             },
             {
-                keys: "",
+                keys: "", // 78: ""? not null? (joy 0 fire 3?)
                 key: ""
             },
             {
-                keys: "8Backspace",
-                key: "Backspace",
+                keys: "8Backspace", // 79: del
+                key: "Backspace", // 79: del
                 text: "Del",
                 title: "Delete",
                 style: 1
@@ -9950,56 +9950,56 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             // starting with 80, not on CPC
             // not on CPC:
             {
-                keys: "36Numpad7",
+                keys: "36Numpad7", // 80: joy 0 up+left
                 key: "",
                 text: "\u21D6",
                 title: "Joy up+left"
             },
             {
-                keys: "33Numpad9",
+                keys: "33Numpad9", // 81: joy 0 up+right
                 key: "",
                 text: "\u21D7",
                 title: "Joy up+right"
             },
             {
-                keys: "35Numpad1",
+                keys: "35Numpad1", // 82: joy 0 down+left
                 key: "",
                 text: "\u21D9",
                 title: "Joy down+leftt"
             },
             {
-                keys: "34Numpad3",
+                keys: "34Numpad3", // 83: joy 0 down+right
                 key: "",
                 text: "\u21D8",
                 title: "Joy down+right"
             },
             {
+                keys: "", // 84: (not null?)
+                key: ""
+            },
+            {
+                keys: "226IntlBackslash,60IntlBackslash,220IntlBackslash", // 85: < > | // key not on CPC! (Chrome: 226, FF: 60);  Android Bluetooth EN: 220IntlBackslash
+                key: ""
+            },
+            {
+                keys: "111NumpadDivide", // 86:
+                key: ""
+            },
+            {
+                keys: "106NumpadMultiply", // 87:
+                key: ""
+            },
+            {
+                keys: "109NumpadSubtract", // 88:
+                key: ""
+            },
+            {
+                keys: "107NumpadAdd", // 89:
+                key: ""
+            },
+            {
                 keys: "",
-                key: ""
-            },
-            {
-                keys: "226IntlBackslash,60IntlBackslash,220IntlBackslash",
-                key: ""
-            },
-            {
-                keys: "111NumpadDivide",
-                key: ""
-            },
-            {
-                keys: "106NumpadMultiply",
-                key: ""
-            },
-            {
-                keys: "109NumpadSubtract",
-                key: ""
-            },
-            {
-                keys: "107NumpadAdd",
-                key: ""
-            },
-            {
-                keys: "",
-                key: "",
+                key: "", // 90: special num lock key to switch between joystick and numpad
                 text: "Num",
                 title: "Num / Joy",
                 style: 1
@@ -10011,11 +10011,11 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
         VirtualKeyboard.virtualKeyboardAlpha = [
             [66, 64, 65, 57, 56, 49, 48, 41, 40, 33, 32, 25, 24, 16, 79],
             [68, 67, 59, 58, 50, 51, 43, 42, 35, 34, 27, 26, 17, 18],
-            [70, 69, 60, 61, 53, 52, 44, 45, 37, 36, 29, 28, 19, 90],
+            [70, 69, 60, 61, 53, 52, 44, 45, 37, 36, 29, 28, 19, 90], // 90=virtual numpad button
             [
                 21, 71, 63, 62, 55, 54, 46, 38, 39, 31, 30, 22,
                 {
-                    key: 21,
+                    key: 21, // right shift has same code and style
                     style: 2
                 }
             ],
@@ -11006,49 +11006,49 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         // (green and gray palette will be computed if needed)
         Canvas.palettes = {
             color: [
-                "#000000",
-                "#000080",
-                "#0000FF",
-                "#800000",
-                "#800080",
-                "#8000FF",
-                "#FF0000",
-                "#FF0080",
-                "#FF00FF",
-                "#008000",
-                "#008080",
-                "#0080FF",
-                "#808000",
-                "#808080",
-                "#8080FF",
-                "#FF8000",
-                "#FF8080",
-                "#FF80FF",
-                "#00FF00",
-                "#00FF80",
-                "#00FFFF",
-                "#80FF00",
-                "#80FF80",
-                "#80FFFF",
-                "#FFFF00",
-                "#FFFF80",
-                "#FFFFFF",
-                "#808080",
-                "#FF00FF",
-                "#FFFF80",
-                "#000080",
+                "#000000", //  0 Black
+                "#000080", //  1 Blue
+                "#0000FF", //  2 Bright Blue
+                "#800000", //  3 Red
+                "#800080", //  4 Magenta
+                "#8000FF", //  5 Mauve
+                "#FF0000", //  6 Bright Red
+                "#FF0080", //  7 Purple
+                "#FF00FF", //  8 Bright Magenta
+                "#008000", //  9 Green
+                "#008080", // 10 Cyan
+                "#0080FF", // 11 Sky Blue
+                "#808000", // 12 Yellow
+                "#808080", // 13 White
+                "#8080FF", // 14 Pastel Blue
+                "#FF8000", // 15 Orange
+                "#FF8080", // 16 Pink
+                "#FF80FF", // 17 Pastel Magenta
+                "#00FF00", // 18 Bright Green
+                "#00FF80", // 19 Sea Green
+                "#00FFFF", // 20 Bright Cyan
+                "#80FF00", // 21 Lime
+                "#80FF80", // 22 Pastel Green
+                "#80FFFF", // 23 Pastel Cyan
+                "#FFFF00", // 24 Bright Yellow
+                "#FFFF80", // 25 Pastel Yellow
+                "#FFFFFF", // 26 Bright White
+                "#808080", // 27 White (same as 13)
+                "#FF00FF", // 28 Bright Magenta (same as 8)
+                "#FFFF80", // 29 Pastel Yellow (same as 25)
+                "#000080", // 30 Blue (same as 1)
                 "#00FF80" //  31 Sea Green (same as 19)
             ]
         };
         // mode 0: pen 0-15,16=border; inks for pen 14,15 are alternating: "1,24", "16,11"
         Canvas.defaultInks = [
-            [1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1],
+            [1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1], // eslint-disable-line array-element-newline
             [1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 24, 11, 1] // eslint-disable-line array-element-newline
         ];
         Canvas.modeData = [
             {
-                pens: 16,
-                pixelWidth: 4,
+                pens: 16, // number of pens
+                pixelWidth: 4, // pixel width
                 pixelHeight: 2 // pixel height
             },
             {
@@ -11062,7 +11062,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 pixelHeight: 2
             },
             {
-                pens: 16,
+                pens: 16, // mode 3 not available on a real CPC
                 pixelWidth: 1,
                 pixelHeight: 1
             }
@@ -11428,7 +11428,7 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
                 bottom: 24
             },
             {
-                left: 0,
+                left: 0, // mode 3 not available on CPC
                 right: 79,
                 top: 0,
                 bottom: 49
@@ -11448,8 +11448,10 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
         function NodeAdapt() {
         }
         NodeAdapt.doAdapt = function () {
-            var https, // nodeJs
-            fs, module, audioContext;
+            /* eslint-disable prefer-const */
+            var https = undefined, // nodeJs - set via fnEval, invisible to TS
+            fs = undefined, module, audioContext;
+            /* eslint-enable prefer-const */
             var domElements = {}, myCreateElement = function (id) {
                 domElements[id] = {
                     className: "",
@@ -12067,7 +12069,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                         func: this.toggleAreaHidden
                     },
                     {
-                        id: "window" /* ViewID.window */,
+                        id: "window" /* ViewID.window */, //TTT do we need this?
                         controllerFunc: this.controller.onWindowClick
                     }
                 ],
@@ -13016,8 +13018,8 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
         ZipFile.prototype.readEocd = function (eocdPos) {
             var eocd = {
                 signature: this.readUInt(eocdPos),
-                entries: this.readUShort(eocdPos + 10),
-                cdfhOffset: this.readUInt(eocdPos + 16),
+                entries: this.readUShort(eocdPos + 10), // total number of central directory records
+                cdfhOffset: this.readUInt(eocdPos + 16), // offset of start of central directory, relative to start of archive
                 cdSize: this.readUInt(eocdPos + 20) // size of central directory (just for information)
             };
             return eocd;
@@ -13025,17 +13027,17 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
         ZipFile.prototype.readCdfh = function (pos) {
             var cdfh = {
                 signature: this.readUInt(pos),
-                version: this.readUShort(pos + 6),
-                flag: this.readUShort(pos + 8),
-                compressionMethod: this.readUShort(pos + 10),
-                modificationTime: this.readUShort(pos + 12),
-                crc: this.readUInt(pos + 16),
-                compressedSize: this.readUInt(pos + 20),
-                size: this.readUInt(pos + 24),
-                fileNameLength: this.readUShort(pos + 28),
-                extraFieldLength: this.readUShort(pos + 30),
-                fileCommentLength: this.readUShort(pos + 32),
-                localOffset: this.readUInt(pos + 42),
+                version: this.readUShort(pos + 6), // version needed to extract (minimum)
+                flag: this.readUShort(pos + 8), // General purpose bit flag
+                compressionMethod: this.readUShort(pos + 10), // compression method
+                modificationTime: this.readUShort(pos + 12), // File last modification time (DOS time)
+                crc: this.readUInt(pos + 16), // CRC-32 of uncompressed data
+                compressedSize: this.readUInt(pos + 20), // compressed size
+                size: this.readUInt(pos + 24), // Uncompressed size
+                fileNameLength: this.readUShort(pos + 28), // file name length
+                extraFieldLength: this.readUShort(pos + 30), // extra field length
+                fileCommentLength: this.readUShort(pos + 32), // file comment length
+                localOffset: this.readUInt(pos + 42), // relative offset of local file header
                 // set later...
                 name: "",
                 isDirectory: false,
@@ -13472,8 +13474,8 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
             //this.random = new Random();
             this.stopCount = this.initialStop;
             this.stopEntry = {
-                reason: "",
-                priority: 0,
+                reason: "", // stop reason
+                priority: 0, // stop priority (higher number means higher priority which can overwrite lower priority)
                 paras: {}
             };
             this.inputValues = []; // values to input into script
@@ -13595,13 +13597,13 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
         };
         CpcVm.prototype.vmResetTimers = function () {
             var data = {
-                line: 0,
-                repeat: false,
-                intervalMs: 0,
-                active: false,
-                nextTimeMs: 0,
-                handlerRunning: false,
-                stackIndexReturn: 0,
+                line: 0, // gosub line when timer expires
+                repeat: false, // flag if timer is repeating (every) or one time (after)
+                intervalMs: 0, // interval or timeout
+                active: false, // flag if timer is active
+                nextTimeMs: 0, // next expiration time
+                handlerRunning: false, // flag if handler (subroutine) is running
+                stackIndexReturn: 0, // index in gosub stack with return, if handler is running
                 savedPriority: 0 // priority befora calling the handler
             }, timer = this.timerList, sqTimer = this.sqTimer;
             for (var i = 0; i < CpcVm.timerCount; i += 1) {
@@ -13626,12 +13628,12 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
                 this.vmResetPenPaperWindowData();
             }
             var data = {
-                pos: 0,
+                pos: 0, // current text position in line
                 vpos: 0,
-                textEnabled: true,
-                tag: false,
-                transparent: false,
-                cursorOn: false,
+                textEnabled: true, // text enabled
+                tag: false, // tag=text at graphics
+                transparent: false, // transparent mode
+                cursorOn: false, // system switch
                 cursorEnabled: true // user switch
             }, printData = {
                 pos: 0,
@@ -14724,7 +14726,7 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
             }
             this.vmStop("deleteLines", 85, false, {
                 command: "DELETE",
-                stream: 0,
+                stream: 0, // unused
                 first: first,
                 last: last,
                 line: this.line // unused
@@ -14764,9 +14766,9 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
         CpcVm.prototype.edit = function (line) {
             var lineParas = {
                 command: "edit",
-                stream: 0,
+                stream: 0, // unused
                 first: line,
-                last: 0,
+                last: 0, // unused,
                 line: this.line // unused
             };
             this.vmStop("editLine", 85, false, lineParas);
@@ -14793,15 +14795,15 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
                 for (var i = 0; i < args.length; i += 3) { // starting with 1: 3 parameters per section
                     if (args[i] !== undefined) {
                         arg = {
-                            steps: this.vmInRangeRound(args[i], 0, 239, "ENT"),
-                            diff: this.vmInRangeRound(args[i + 1], -128, 127, "ENT"),
-                            time: this.vmInRangeRound(args[i + 2], 0, 255, "ENT"),
+                            steps: this.vmInRangeRound(args[i], 0, 239, "ENT"), // number of steps: 0..239
+                            diff: this.vmInRangeRound(args[i + 1], -128, 127, "ENT"), // size (period change) of steps: -128..+127
+                            time: this.vmInRangeRound(args[i + 2], 0, 255, "ENT"), // time per step: 0..255 (0=256)
                             repeat: repeat
                         }; // as ToneEnvData1
                     }
                     else { // special handling
                         arg = {
-                            period: this.vmInRangeRound(args[i + 1], 0, 4095, "ENT"),
+                            period: this.vmInRangeRound(args[i + 1], 0, 4095, "ENT"), // absolute period
                             time: this.vmInRangeRound(args[i + 2], 0, 255, "ENT") // time: 0..255 (0=256)
                         }; // as ToneEnvData2
                     }
@@ -14827,9 +14829,9 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
             for (var i = 0; i < args.length; i += 3) { // starting with 1: 3 parameters per section
                 if (args[i] !== undefined) {
                     arg = {
-                        steps: this.vmInRangeRound(args[i], 0, 127, "ENV"),
+                        steps: this.vmInRangeRound(args[i], 0, 127, "ENV"), // number of steps: 0..127
                         /* eslint-disable no-bitwise */
-                        diff: this.vmInRangeRound(args[i + 1], -128, 127, "ENV") & 0x0f,
+                        diff: this.vmInRangeRound(args[i + 1], -128, 127, "ENV") & 0x0f, // size (volume) of steps: moved to range 0..15
                         /* eslint-enable no-bitwise */
                         time: this.vmInRangeRound(args[i + 2], 0, 255, "ENV") // time per step: 0..255 (0=256)
                     }; // as VolEnvData1
@@ -14839,7 +14841,7 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
                 }
                 else { // special handling for register parameters
                     arg = {
-                        register: this.vmInRangeRound(args[i + 1], 0, 15, "ENV"),
+                        register: this.vmInRangeRound(args[i + 1], 0, 15, "ENV"), // register: 0..15
                         period: this.vmInRangeRound(args[i + 2], -32768, 65535, "ENV")
                     }; // as VolEnvData2
                 }
@@ -15521,9 +15523,9 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
             this.clear();
             var lineParas = {
                 command: "new",
-                stream: 0,
-                first: 0,
-                last: 0,
+                stream: 0, // unused
+                first: 0, // unused
+                last: 0, // unused
                 line: this.line // unused
             };
             this.vmStop("new", 90, false, lineParas);
@@ -16231,8 +16233,8 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
             keep = this.vmInRangeRound(keep, 1, 65535, "RENUM");
             var lineRenumParas = {
                 command: "renum",
-                stream: 0,
-                line: this.line,
+                stream: 0, // unused
+                line: this.line, // unused
                 newLine: newLine,
                 oldLine: oldLine,
                 step: step,
@@ -16348,9 +16350,9 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
             if (input !== null) {
                 var lineParas = {
                     command: "run",
-                    stream: 0,
+                    stream: 0, // unused
                     first: inFile.line,
-                    last: 0,
+                    last: 0, // unused
                     line: this.line
                 };
                 this.vmStop("run", 95, false, lineParas);
@@ -16376,9 +16378,9 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
                 }
                 var lineParas = {
                     command: "run",
-                    stream: 0,
+                    stream: 0, // unused
                     first: numOrString || 0,
-                    last: 0,
+                    last: 0, // unused
                     line: this.line
                 };
                 this.vmStop("run", 95, false, lineParas);
@@ -16905,7 +16907,7 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
                 bottom: 24
             },
             {
-                left: 0,
+                left: 0, // mode 3 not available on CPC
                 right: 79,
                 top: 0,
                 bottom: 49
@@ -16941,103 +16943,103 @@ define("CpcVm", ["require", "exports", "Utils", "CpcVmRsx"], function (require, 
             376: 159
         };
         CpcVm.controlCodeParameterCount = [
-            0,
-            1,
-            0,
-            0,
-            1,
-            1,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            1,
-            1,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            1,
-            1,
-            0,
-            9,
-            4,
-            0,
-            3,
-            2,
-            0,
+            0, // 0x00
+            1, // 0x01
+            0, // 0x02
+            0, // 0x03
+            1, // 0x04
+            1, // 0x05
+            0, // 0x06
+            0, // 0x07
+            0, // 0x08
+            0, // 0x09
+            0, // 0x0a
+            0, // 0x0b
+            0, // 0x0c
+            0, // 0x0d
+            1, // 0x0e
+            1, // 0x0f
+            0, // 0x10
+            0, // 0x11
+            0, // 0x12
+            0, // 0x13
+            0, // 0x14
+            0, // 0x15
+            1, // 0x16
+            1, // 0x17
+            0, // 0x18
+            9, // 0x19
+            4, // 0x1a
+            0, // 0x1b
+            3, // 0x1c
+            2, // 0x1d
+            0, // 0x1e
             2 //  0x1f
         ];
         CpcVm.errors = [
-            "Improper argument",
-            "Unexpected NEXT",
-            "Syntax Error",
-            "Unexpected RETURN",
-            "DATA exhausted",
-            "Improper argument",
-            "Overflow",
-            "Memory full",
-            "Line does not exist",
-            "Subscript out of range",
-            "Array already dimensioned",
-            "Division by zero",
-            "Invalid direct command",
-            "Type mismatch",
-            "String space full",
-            "String too long",
-            "String expression too complex",
-            "Cannot CONTinue",
-            "Unknown user function",
-            "RESUME missing",
-            "Unexpected RESUME",
-            "Direct command found",
-            "Operand missing",
-            "Line too long",
-            "EOF met",
-            "File type error",
-            "NEXT missing",
-            "File already open",
-            "Unknown command",
-            "WEND missing",
-            "Unexpected WEND",
-            "File not open",
-            "Broken",
+            "Improper argument", // 0
+            "Unexpected NEXT", // 1
+            "Syntax Error", // 2
+            "Unexpected RETURN", // 3
+            "DATA exhausted", // 4
+            "Improper argument", // 5
+            "Overflow", // 6
+            "Memory full", // 7
+            "Line does not exist", // 8
+            "Subscript out of range", // 9
+            "Array already dimensioned", // 10
+            "Division by zero", // 11
+            "Invalid direct command", // 12
+            "Type mismatch", // 13
+            "String space full", // 14
+            "String too long", // 15
+            "String expression too complex", // 16
+            "Cannot CONTinue", // 17
+            "Unknown user function", // 18
+            "RESUME missing", // 19
+            "Unexpected RESUME", // 20
+            "Direct command found", // 21
+            "Operand missing", // 22
+            "Line too long", // 23
+            "EOF met", // 24
+            "File type error", // 25
+            "NEXT missing", // 26
+            "File already open", // 27
+            "Unknown command", // 28
+            "WEND missing", // 29
+            "Unexpected WEND", // 30
+            "File not open", // 31,
+            "Broken", // 32 "Broken in" (derr=146: xxx not found)
             "Unknown error" // 33...
         ];
         CpcVm.stopPriority = {
-            "": 0,
-            direct: 0,
-            timer: 20,
-            waitFrame: 40,
-            waitKey: 41,
-            waitSound: 43,
-            waitInput: 45,
-            fileCat: 45,
-            fileDir: 45,
-            fileEra: 45,
-            fileRen: 45,
-            error: 50,
-            onError: 50,
-            stop: 60,
-            "break": 80,
-            escape: 85,
-            renumLines: 85,
-            deleteLines: 85,
-            editLine: 85,
-            end: 90,
-            list: 90,
-            fileLoad: 90,
-            fileSave: 90,
-            "new": 90,
+            "": 0, // nothing
+            direct: 0, // direct input mode
+            timer: 20, // timer expired
+            waitFrame: 40, // FRAME command: wait for frame fly
+            waitKey: 41, // wait for key (higher priority that waitFrame)
+            waitSound: 43, // wait for sound queue
+            waitInput: 45, // wait for input: INPUT, LINE INPUT, RANDOMIZE without parameter
+            fileCat: 45, // CAT
+            fileDir: 45, // |DIR
+            fileEra: 45, // |ERA
+            fileRen: 45, // |REN
+            error: 50, // BASIC error, ERROR command
+            onError: 50, // ON ERROR GOTO active, hide error
+            stop: 60, // STOP or END command
+            "break": 80, // break pressed
+            escape: 85, // escape key, set in controller
+            renumLines: 85, // RENUMber program
+            deleteLines: 85, // delete lines
+            editLine: 85, // edit line
+            end: 90, // end of program
+            list: 90, // LIST program
+            fileLoad: 90, // CHAIN, CHAIN MERGE, LOAD, MERGE, OPENIN, RUN
+            fileSave: 90, // OPENOUT, SAVE
+            "new": 90, // NEW, remove program, variables
             run: 95,
-            parse: 95,
-            parseRun: 95,
+            parse: 95, // set in controller
+            parseRun: 95, // parse and run, used in controller
             reset: 99 // reset system
         };
         return CpcVm;
@@ -17232,7 +17234,7 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
             var zip;
             try {
                 zip = new ZipFile_1.ZipFile({
-                    data: uint8Array,
+                    data: uint8Array, // rather data
                     zipName: name
                 });
             }
@@ -17538,7 +17540,7 @@ define("RsxAmsdos", ["require", "exports"], function (require, exports) {
             var fileParas = {
                 stream: stream,
                 command: "|ren",
-                fileMask: "",
+                fileMask: "", // unused
                 newName: newName2,
                 oldName: oldName2,
                 line: this.line
@@ -18153,13 +18155,13 @@ define("Z80Disass", ["require", "exports"], function (require, exports) {
         /* eslint-disable array-element-newline */
         Z80Disass.bregtab = [
             ["B", "C", "D", "E", "H", "L", "(HL)", "A"],
-            ["B", "C", "D", "E", "HX", "LX", "(IX+", "A"],
+            ["B", "C", "D", "E", "HX", "LX", "(IX+", "A"], // DD-Prefix
             ["B", "C", "D", "E", "HY", "LY", "(IY+", "A"] // FD-Prefix
         ];
         /* eslint-disable array-element-newline */
         Z80Disass.wregtab = [
             ["BC", "DE", "HL", "SP"],
-            ["BC", "DE", "IX", "SP"],
+            ["BC", "DE", "IX", "SP"], // DD-Prefix
             ["BC", "DE", "IY", "SP"] // FD-Prefix
         ];
         Z80Disass.unknownOp = "unknown";
@@ -18337,7 +18339,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
     exports.Controller = void 0;
     var Controller = /** @class */ (function () {
         function Controller(model, view) {
-            this.fnScript = undefined; // eslint-disable-line @typescript-eslint/ban-types
+            this.fnScript = undefined; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
             this.timeoutHandlerActive = false;
             this.nextLoopTimeOut = 0; // next timeout for the main loop
             this.initialLoopTimeout = 0;
@@ -18494,7 +18496,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     command: "",
                     stream: 0,
                     line: 0,
-                    first: 0,
+                    first: 0, // unused
                     last: 0 // unused
                 }
             }; // backup of stop object
@@ -18768,7 +18770,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         var dataString = storage.getItem(key) || "", data = Controller.splitMeta(dataString);
                         example = {
                             key: key,
-                            title: "",
+                            title: "", // or set key?
                             meta: data.meta.typeString // currently we take only the type
                         };
                         this.model.setExample(example);
@@ -18836,8 +18838,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.vm.vmStop("escape", 85, false, {
                     command: "escape",
                     stream: stream,
-                    first: 0,
-                    last: 0,
+                    first: 0, // unused
+                    last: 0, // unused
                     line: this.vm.line
                 });
             }
@@ -19599,7 +19601,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         first: inFile.first,
                         last: inFile.last,
                         command: "CHAIN MERGE",
-                        stream: 0,
+                        stream: 0, // unused
                         line: this.vm.line
                     });
                     this.vm.vmStop("fileLoad", 90); // restore
@@ -19942,7 +19944,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         // eslint-disable-next-line complexity
         Controller.prototype.fnDownload = function () {
             var options = this.view.getSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), format = this.view.getSelectValue("exportDSKFormatSelect" /* ViewID.exportDSKFormatSelect */), stripEmpty = this.view.getInputChecked("exportDSKStripEmptyInput" /* ViewID.exportDSKStripEmptyInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), editorText = Controller.exportEditorText, meta = {
-                typeString: "A",
+                typeString: "A", // ASCII
                 start: 0x170,
                 length: 0,
                 entry: 0
@@ -20317,11 +20319,11 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var stream = 0;
             this.vm.vmStop("renumLines", 85, false, {
                 command: "renum",
-                stream: 0,
-                newLine: Number(this.view.getInputValue("renumNewInput" /* ViewID.renumNewInput */)),
-                oldLine: Number(this.view.getInputValue("renumStartInput" /* ViewID.renumStartInput */)),
-                step: Number(this.view.getInputValue("renumStepInput" /* ViewID.renumStepInput */)),
-                keep: Number(this.view.getInputValue("renumKeepInput" /* ViewID.renumKeepInput */)),
+                stream: 0, // unused
+                newLine: Number(this.view.getInputValue("renumNewInput" /* ViewID.renumNewInput */)), // 10
+                oldLine: Number(this.view.getInputValue("renumStartInput" /* ViewID.renumStartInput */)), // 1
+                step: Number(this.view.getInputValue("renumStepInput" /* ViewID.renumStepInput */)), // 10
+                keep: Number(this.view.getInputValue("renumKeepInput" /* ViewID.renumKeepInput */)), // 65535, keep lines
                 line: this.vm.line
             });
             if (this.vm.pos(stream) > 1) {
@@ -21100,28 +21102,28 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
         cpcBasic.config = {
             arrayBounds: false,
             autorun: true,
-            basicVersion: "1.1",
-            bench: 0,
-            canvasType: "graphics",
-            databaseDirs: "examples",
-            database: "examples",
+            basicVersion: "1.1", // "1.1" or "1.0"
+            bench: 0, // debug: number of parse bench loops
+            canvasType: "graphics", // "graphics", "text", "none"
+            databaseDirs: "examples", // example base directories (comma separated)
+            database: "examples", // examples, apps, saved
             debug: 0,
             example: "cpcbasic",
-            exampleIndex: "0index.js",
-            implicitLines: false,
-            input: "",
-            integerOverflow: false,
-            kbdLayout: "alphanum",
-            linesOnLoad: true,
+            exampleIndex: "0index.js", // example index for every databaseDir
+            implicitLines: false, // allow implicit line numbers
+            input: "", // keyboard input when starting the app
+            integerOverflow: false, // check for integer overflow
+            kbdLayout: "alphanum", // alphanum, alpha, num
+            linesOnLoad: true, // add missing line numbers on load
             dragElements: false,
-            palette: "color",
-            prettyBrackets: true,
-            prettyColons: true,
-            prettyLowercaseVars: false,
-            prettySpace: false,
-            processFileImports: true,
-            random: "cpc",
-            selectDataFiles: false,
+            palette: "color", // "color", "green", "grey"
+            prettyBrackets: true, // pretty print: brackets
+            prettyColons: true, // pretty print: colons
+            prettyLowercaseVars: false, // pretty print: lowercase variables
+            prettySpace: false, // pretty print: spaces
+            processFileImports: true, // open ZIP, DSK files on import
+            random: "cpc", // cpc or minstd
+            selectDataFiles: false, // select data files in example selection
             showConsoleLog: false,
             showCpc: true,
             showDisass: false,

@@ -318,13 +318,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 sectorInfoList: sectorInfoList,
                 sectorNum2Index: {}
             }, diskInfo = {
-                ident: "MV - CPCEMU Disk-File\r\nDisk-Info\r\n",
-                creator: (this.options.creator || "CpcBasicTS").padEnd(14, " "),
+                ident: "MV - CPCEMU Disk-File\r\nDisk-Info\r\n", // 34
+                creator: (this.options.creator || "CpcBasicTS").padEnd(14, " "), // 14
                 tracks: formatDescriptor.tracks,
                 heads: formatDescriptor.heads,
-                trackSize: DiskImage.trackInfoSize + formatDescriptor.spt * sectorSize,
+                trackSize: DiskImage.trackInfoSize + formatDescriptor.spt * sectorSize, // eslint-disable-line no-bitwise
                 trackInfo: trackInfo,
-                trackSizes: [],
+                trackSizes: [], // only for extended DSK format
                 trackInfoPosList: [],
                 extended: false
             }, emptySectorData = DiskImage.uInt8ToString(formatDescriptor.fill).repeat(sectorSize);
@@ -377,10 +377,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var extent = {
                     user: this.readUInt8(pos),
                     name: this.readUtf(pos + 1, 8),
-                    ext: this.readUtf(pos + 9, 3),
+                    ext: this.readUtf(pos + 9, 3), // extension with flags
                     extent: this.readUInt8(pos + 12),
                     lastRecBytes: this.readUInt8(pos + 13),
-                    extentHi: this.readUInt8(pos + 14),
+                    extentHi: this.readUInt8(pos + 14), // used for what?
                     records: this.readUInt8(pos + 15),
                     blocks: []
                 };
@@ -451,7 +451,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             logSec = block * blockSectors, // directory is in block 0-1
             pos = {
                 track: Math.floor(logSec / spt) + formatDescriptor.off,
-                head: 0,
+                head: 0, // currently always 0
                 sector: (logSec % spt) + formatDescriptor.firstSector
             };
             return pos;
@@ -770,10 +770,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         DiskImage.parseAmsdosHeader = function (data) {
             var typeMap = {
-                0: "T",
-                1: "P",
-                2: "B",
-                8: "G",
+                0: "T", // tokenized BASIC (T=not official)
+                1: "P", // protected BASIC (also tokenized)
+                2: "B", // Binary
+                8: "G", // GENA3 Assember (G=not official)
                 0x16: "A" // ASCII
             };
             var header;
@@ -798,10 +798,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         DiskImage.combineAmsdosHeader = function (header) {
             var typeMap = {
-                T: 0,
-                P: 1,
-                B: 2,
-                G: 8,
+                T: 0, // tokenized BASIC (T=not official)
+                P: 1, // protected BASIC
+                B: 2, // Binary
+                G: 8, // GENA3 Assember (G=not official)
                 A: 0x16 // ASCII
             };
             var type = header.typeNumber;
@@ -841,19 +841,19 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         DiskImage.twoHeads = "2h";
         DiskImage.formatDescriptors = {
             data: {
-                tracks: 40,
-                heads: 1,
+                tracks: 40, // number of tracks (1-85)
+                heads: 1, // number of heads/sides (1-2)
                 // head: 0, // head number?
-                bps: 2,
-                spt: 9,
-                gap3: 0x4e,
-                fill: 0xe5,
-                firstSector: 0xc1,
-                bls: 1024,
+                bps: 2, // Bytes per Sector (1-5)
+                spt: 9, // Sectors per Track (1-18)
+                gap3: 0x4e, // gap between ID and data
+                fill: 0xe5, // filler byte
+                firstSector: 0xc1, // first sector number
+                bls: 1024, // BLS: data block allocaton size (1024, 2048, 4096, 8192, 16384)
                 // bsh: 3, // log2 BLS - 7
                 // blm: 7, // BLS / 128 - 1
-                al0: 0xc0,
-                al1: 0x00,
+                al0: 0xc0, // bit significant representation of reserved directory blocks 0..7 (0x80=0, 0xc00=0 and 1,,...)
+                al1: 0x00, // bit significant representation of reserved directory blocks 8..15 (0x80=8,...)
                 off: 0 // number of reserved tracks (also the track where the directory starts)
             },
             data42t: {
@@ -894,7 +894,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             },
             big780k: {
                 parentRef: "data",
-                al0: 0x80,
+                al0: 0x80, // block 0 reserved
                 tracks: 80,
                 off: 1,
                 firstSector: 0x01
@@ -914,7 +914,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         // see AMSDOS ROM, &D252
         /* eslint-disable array-element-newline */
         DiskImage.protectTable = [
-            [0xe2, 0x9d, 0xdb, 0x1a, 0x42, 0x29, 0x39, 0xc6, 0xb3, 0xc6, 0x90, 0x45, 0x8a],
+            [0xe2, 0x9d, 0xdb, 0x1a, 0x42, 0x29, 0x39, 0xc6, 0xb3, 0xc6, 0x90, 0x45, 0x8a], // 13 bytes
             [0x49, 0xb1, 0x36, 0xf0, 0x2e, 0x1e, 0x06, 0x2a, 0x28, 0x19, 0xea] // 11 bytes
         ];
         return DiskImage;

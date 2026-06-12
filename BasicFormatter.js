@@ -47,7 +47,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var labelEntry = {
                 value: label,
                 pos: node.pos,
-                len: origLen,
+                len: origLen, // original length
                 refCount: 0
             };
             return labelEntry;

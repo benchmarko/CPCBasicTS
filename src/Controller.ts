@@ -55,7 +55,7 @@ export class Controller implements IController {
 	private readonly fnWaitForContinueHandler: () => void;
 	private readonly fnEditLineCallbackHandler: () => boolean;
 
-	private fnScript?: Function = undefined; // eslint-disable-line @typescript-eslint/ban-types
+	private fnScript?: Function = undefined; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
 
 	private timeoutHandlerActive = false;
 	private nextLoopTimeOut = 0; // next timeout for the main loop
@@ -2252,7 +2252,7 @@ export class Controller implements IController {
 		}
 	}
 
-	private fnRunPart1(fnScript: Function) { // eslint-disable-line @typescript-eslint/ban-types
+	private fnRunPart1(fnScript: Function) { // eslint-disable-line @typescript-eslint/no-unsafe-function-type
 		try {
 			fnScript(this.vm);
 		} catch (e) {

@@ -219,7 +219,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             if (key === "Enter" || key === " ") { // enter or space
                 var simPointerEvent = {
                     type: event.type,
-                    target: activeElement,
+                    target: activeElement, // active selected element
                     preventDefault: function () {
                         // empty
                     }
@@ -240,447 +240,447 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         VirtualKeyboard.cpcKey2Key = [
             {
-                keys: "38ArrowUp",
+                keys: "38ArrowUp", // 0: cursor up
                 key: "ArrowUp",
                 text: "\u2191",
                 title: "Cursor up"
             },
             {
-                keys: "39ArrowRight",
+                keys: "39ArrowRight", // 1: cursor right
                 key: "ArrowRight",
                 text: "\u2192",
                 title: "Cursor right",
                 style: 1
             },
             {
-                keys: "40ArrowDown",
+                keys: "40ArrowDown", // 2: cursor down
                 key: "ArrowDown",
                 text: "\u2193",
                 title: "Cursor down"
             },
             {
-                keys: "105Numpad9,120F9",
+                keys: "105Numpad9,120F9", // 3: numpad f9
                 key: "9",
                 text: "f9",
                 style: 1,
                 numLockCpcKey: 81 // joy 0 up+right
             },
             {
-                keys: "102Numpad6,117F6",
+                keys: "102Numpad6,117F6", // 4: numpad f6
                 key: "6",
                 text: "f6",
                 style: 1,
                 numLockCpcKey: 75 // joy 0 right
             },
             {
-                keys: "99Numpad3,114F3",
+                keys: "99Numpad3,114F3", // 5: numpad f3
                 key: "3",
                 text: "f3",
                 style: 1,
                 numLockCpcKey: 83 // joy 0 down+right
             },
             {
-                keys: "13NumpadEnter",
+                keys: "13NumpadEnter", // 6: numpad enter
                 key: "Enter",
                 style: 4
             },
             {
-                keys: "110NumpadDecimal",
+                keys: "110NumpadDecimal", // 7: numpad .
                 key: ".",
                 numLockCpcKey: 77 // joy 0 fire 1
             },
             {
-                keys: "37ArrowLeft",
+                keys: "37ArrowLeft", // 8: cursor left
                 key: "ArrowLeft",
                 text: "\u2190",
                 title: "Cursor left",
                 style: 1
             },
             {
-                keys: "18AltLeft",
+                keys: "18AltLeft", // 9: copy
                 key: "Alt",
                 text: "Copy",
                 style: 2
             },
             {
-                keys: "103Numpad7,118F7",
+                keys: "103Numpad7,118F7", // 10: numpad f7
                 key: "7",
                 text: "f7",
                 style: 1,
                 numLockCpcKey: 80 // joy 0 up+left
             },
             {
-                keys: "104Numpad8,119F8",
+                keys: "104Numpad8,119F8", // 11: numpad f8
                 key: "8",
                 text: "f8",
                 style: 1,
                 numLockCpcKey: 72 // joy 0 up
             },
             {
-                keys: "101Numpad5,116F5",
+                keys: "101Numpad5,116F5", // 12: numpad f5
                 key: "5",
                 text: "f5",
                 style: 1,
                 numLockCpcKey: 76 // joy 0 fire 2
             },
             {
-                keys: "97Numpad1,112F1",
+                keys: "97Numpad1,112F1", // 13: numpad f1
                 key: "1",
                 text: "f1",
                 style: 1,
                 numLockCpcKey: 82 // joy 0 down+left
             },
             {
-                keys: "98Numpad2,113F2",
+                keys: "98Numpad2,113F2", // 14: numpad f2
                 key: "2",
                 text: "f2",
                 style: 1,
                 numLockCpcKey: 73 // joy 0 down
             },
             {
-                keys: "96Numpad0,121F10",
+                keys: "96Numpad0,121F10", // 15: numpad f0
                 key: "0",
                 text: "f0",
                 style: 1
                 // numLockCpcKey: 90 // Num lock
             },
             {
-                keys: "46Delete",
+                keys: "46Delete", // 16: clr
                 key: "Delete",
                 text: "Clr",
                 title: "Clear",
                 style: 1
             },
             {
-                keys: "187BracketRight,171BracketRight,221BracketRight",
+                keys: "187BracketRight,171BracketRight,221BracketRight", // 17: [ { (Chrome: 187; FF: 171); EN: 221BracketRight
                 key: "[",
                 keyShift: "{"
             },
             {
-                keys: "13Enter",
+                keys: "13Enter", // 18: return
                 key: "Enter",
                 text: "Ret",
                 title: "Return",
                 style: 2
             },
             {
-                keys: "191Backslash,163Backslash,220Backslash",
+                keys: "191Backslash,163Backslash,220Backslash", // 19: ] } => # ' (Chrome: 191; FF: 163); EN: 220Backslash
                 key: "]",
                 keyShift: "}"
             },
             {
-                keys: "100Numpad4,115F4",
+                keys: "100Numpad4,115F4", // 20: numpad f4
                 key: "4",
                 text: "f4",
                 style: 1,
                 numLockCpcKey: 74 // joy 0 left
             },
             {
-                keys: "16ShiftLeft,16ShiftRight",
+                keys: "16ShiftLeft,16ShiftRight", // 21: shift left, shift right (2 keys!)
                 key: "Shift",
                 style: 4
             },
             {
-                keys: "220Backquote,160Backquote,192Backquote",
+                keys: "220Backquote,160Backquote,192Backquote", // 22: \ ` (different location, key!; Chrome: 220; FF: 160); EN: 192Backquote, 226IntlBackslash?
                 key: "\\",
                 keyShift: "`"
             },
             {
-                keys: "17ControlLeft,17ControlRight",
+                keys: "17ControlLeft,17ControlRight", // 23: Note: alt-gr also triggers ctrl-left and alt-gr!
                 key: "Control",
                 text: "Ctrl",
                 title: "Control",
                 style: 4
             },
             {
-                keys: "221Equal,192Equal,187Equal",
+                keys: "221Equal,192Equal,187Equal", // 24: ^ £ (pound: \u00A3) (Chrome: 221; FF: 192); EN: 187Equal
                 key: "^",
                 keyShift: "£"
             },
             {
-                keys: "219Minus,63Minus,189Minus",
+                keys: "219Minus,63Minus,189Minus", // 25: - = (Chrome: 219; FF: 63); EN: 189Minus
                 key: "-",
                 keyShift: "="
             },
             {
-                keys: "186BracketLeft,59BracketLeft,219BracketLeft",
+                keys: "186BracketLeft,59BracketLeft,219BracketLeft", // 26: @ | (Chrome: 168; FF: 59); EN: 219BracketLeft
                 key: "@",
                 keyShift: "|",
                 style: 1
             },
             {
-                keys: "80KeyP",
+                keys: "80KeyP", // 27: P
                 key: "p",
                 keyShift: "P"
             },
             {
-                keys: "222Quote,192Quote",
+                keys: "222Quote,192Quote", // 28: ; + (same on Chrome, FF); Android Bluetooth EN: 192Quote
                 key: ";",
                 keyShift: "+"
             },
             {
-                keys: "192Semicolon,186Semicolon",
+                keys: "192Semicolon,186Semicolon", // 29: : * (same on Chrome, FF); EN: 186Semicolon
                 key: ":",
                 keyShift: "*"
             },
             {
-                keys: "189Slash,173Slash,191Slash",
+                keys: "189Slash,173Slash,191Slash", // 30: / ? (Chrome: 189; FF: 173); EN: 191Slash
                 key: "/",
                 keyShift: "?"
             },
             {
-                keys: "190Period",
+                keys: "190Period", // 31: . <
                 key: ".",
                 keyShift: "<"
             },
             {
-                keys: "48Digit0",
+                keys: "48Digit0", // 32: 0 _
                 key: "0",
                 keyShift: "_"
             },
             {
-                keys: "57Digit9",
+                keys: "57Digit9", // 33: 9 )
                 key: "9",
                 keyShift: ")"
             },
             {
-                keys: "79KeyO",
+                keys: "79KeyO", // 34:
                 key: "o",
                 keyShift: "O"
             },
             {
-                keys: "73KeyI",
+                keys: "73KeyI", // 35:
                 key: "i",
                 keyShift: "I"
             },
             {
-                keys: "76KeyL",
+                keys: "76KeyL", // 36:
                 key: "l",
                 keyShift: "L"
             },
             {
-                keys: "75KeyK",
+                keys: "75KeyK", // 37:
                 key: "k",
                 keyShift: "K"
             },
             {
-                keys: "77KeyM",
+                keys: "77KeyM", // 38:
                 key: "m",
                 keyShift: "M"
             },
             {
-                keys: "188Comma",
+                keys: "188Comma", // 39: , >
                 key: ",",
                 keyShift: ">"
             },
             {
-                keys: "56Digit8",
+                keys: "56Digit8", // 40: 8 (
                 key: "8",
                 keyShift: "("
             },
             {
-                keys: "55Digit7",
+                keys: "55Digit7", // 41: 7 '
                 key: "7",
                 keyShift: "'"
             },
             {
-                keys: "85KeyU",
+                keys: "85KeyU", // 42:
                 key: "u",
                 keyShift: "U"
             },
             {
-                keys: "90KeyY,89KeyY",
+                keys: "90KeyY,89KeyY", // 43:
                 key: "y",
                 keyShift: "Y"
             },
             {
-                keys: "72KeyH",
+                keys: "72KeyH", // 44:
                 key: "h",
                 keyShift: "H"
             },
             {
-                keys: "74KeyJ",
+                keys: "74KeyJ", // 45:
                 key: "j",
                 keyShift: "J"
             },
             {
-                keys: "78KeyN",
+                keys: "78KeyN", // 46:
                 key: "n",
                 keyShift: "N"
             },
             {
-                keys: "32Space",
+                keys: "32Space", // 47: space
                 key: " ",
                 text: "Space",
                 style: 5
             },
             {
-                keys: "54Digit6",
+                keys: "54Digit6", // 48: 6 &
                 key: "6",
                 keyShift: "("
             },
             {
-                keys: "53Digit5",
+                keys: "53Digit5", // 49: 5 %
                 key: "5",
                 keyShift: "%"
             },
             {
-                keys: "82KeyR",
+                keys: "82KeyR", // 50:
                 key: "r",
                 keyShift: "R"
             },
             {
-                keys: "84KeyT",
+                keys: "84KeyT", // 51:
                 key: "t",
                 keyShift: "T"
             },
             {
-                keys: "71KeyG",
+                keys: "71KeyG", // 52:
                 key: "g",
                 keyShift: "G"
             },
             {
-                keys: "70KeyF",
+                keys: "70KeyF", // 53:
                 key: "f",
                 keyShift: "F"
             },
             {
-                keys: "66KeyB",
+                keys: "66KeyB", // 54:
                 key: "b",
                 keyShift: "B"
             },
             {
-                keys: "86KeyV",
+                keys: "86KeyV", // 55:
                 key: "v",
                 keyShift: "V"
             },
             {
-                keys: "52Digit4",
+                keys: "52Digit4", // 56: 4 $
                 key: "4",
                 keyShift: "$"
             },
             {
-                keys: "51Digit3",
+                keys: "51Digit3", // 57: 3 #
                 key: "3",
                 keyShift: "#"
             },
             {
-                keys: "69KeyE",
+                keys: "69KeyE", // 58:
                 key: "e",
                 keyShift: "E"
             },
             {
-                keys: "87KeyW",
+                keys: "87KeyW", // 59:
                 key: "w",
                 keyShift: "W"
             },
             {
-                keys: "83KeyS",
+                keys: "83KeyS", // 60:
                 key: "s",
                 keyShift: "S"
             },
             {
-                keys: "68KeyD",
+                keys: "68KeyD", // 61:
                 key: "d",
                 keyShift: "D"
             },
             {
-                keys: "67KeyC",
+                keys: "67KeyC", // 62:
                 key: "c",
                 keyShift: "C"
             },
             {
-                keys: "88KeyX",
+                keys: "88KeyX", // 63:
                 key: "x",
                 keyShift: "X"
             },
             {
-                keys: "49Digit1",
+                keys: "49Digit1", // 64: 1 !
                 key: "1",
                 keyShift: "!"
             },
             {
-                keys: "50Digit2",
+                keys: "50Digit2", // 65: 2 "
                 key: "2",
                 keyShift: "\""
             },
             {
-                keys: "27Escape",
+                keys: "27Escape", // 66: esc
                 key: "Escape",
                 text: "Esc",
                 title: "Escape",
                 style: 1
             },
             {
-                keys: "81KeyQ",
+                keys: "81KeyQ", // 67:
                 key: "q",
                 keyShift: "Q"
             },
             {
-                keys: "9Tab",
+                keys: "9Tab", // 68:
                 key: "Tab",
                 style: 2
             },
             {
-                keys: "65KeyA",
+                keys: "65KeyA", // 69:
                 key: "a",
                 keyShift: "A"
             },
             {
-                keys: "20CapsLock",
+                keys: "20CapsLock", // 70: caps lock
                 key: "CapsLock",
                 text: "Caps",
                 title: "Caps Lock",
                 style: 3
             },
             {
-                keys: "89KeyZ,90KeyZ",
+                keys: "89KeyZ,90KeyZ", // 71: DE,EN
                 key: "z",
                 keyShift: "Z"
             },
             {
-                keys: "38Numpad8",
+                keys: "38Numpad8", // 72: joy 0 up (arrow up)
                 key: "JoyUp",
                 text: "\u21D1",
                 title: "Joy up"
             },
             {
-                keys: "40Numpad2",
+                keys: "40Numpad2", // 73: joy 0 down
                 key: "JoyDown",
                 text: "\u21D3",
                 title: "Joy down"
             },
             {
-                keys: "37Numpad4",
+                keys: "37Numpad4", // 74: joy 0 left
                 key: "JoyLeft",
                 text: "\u21D0",
                 title: "Joy left"
             },
             {
-                keys: "39Numpad6",
+                keys: "39Numpad6", // 75: joy 0 right
                 key: "JoyRight",
                 text: "\u21D2",
                 title: "Joy right"
             },
             {
-                keys: "12Numpad5,45Numpad0",
+                keys: "12Numpad5,45Numpad0", // 76: joy 0 fire 2 (clear,...)
                 key: "X",
                 text: "\u29BF",
                 title: "Joy fire"
             },
             {
-                keys: "46NumpadDecimal",
+                keys: "46NumpadDecimal", // 77: joy 0 fire 1
                 key: "Z",
                 text: "\u25E6",
                 title: "Joy fire 1"
             },
             {
-                keys: "",
+                keys: "", // 78: ""? not null? (joy 0 fire 3?)
                 key: ""
             },
             {
-                keys: "8Backspace",
-                key: "Backspace",
+                keys: "8Backspace", // 79: del
+                key: "Backspace", // 79: del
                 text: "Del",
                 title: "Delete",
                 style: 1
@@ -688,56 +688,56 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             // starting with 80, not on CPC
             // not on CPC:
             {
-                keys: "36Numpad7",
+                keys: "36Numpad7", // 80: joy 0 up+left
                 key: "",
                 text: "\u21D6",
                 title: "Joy up+left"
             },
             {
-                keys: "33Numpad9",
+                keys: "33Numpad9", // 81: joy 0 up+right
                 key: "",
                 text: "\u21D7",
                 title: "Joy up+right"
             },
             {
-                keys: "35Numpad1",
+                keys: "35Numpad1", // 82: joy 0 down+left
                 key: "",
                 text: "\u21D9",
                 title: "Joy down+leftt"
             },
             {
-                keys: "34Numpad3",
+                keys: "34Numpad3", // 83: joy 0 down+right
                 key: "",
                 text: "\u21D8",
                 title: "Joy down+right"
             },
             {
+                keys: "", // 84: (not null?)
+                key: ""
+            },
+            {
+                keys: "226IntlBackslash,60IntlBackslash,220IntlBackslash", // 85: < > | // key not on CPC! (Chrome: 226, FF: 60);  Android Bluetooth EN: 220IntlBackslash
+                key: ""
+            },
+            {
+                keys: "111NumpadDivide", // 86:
+                key: ""
+            },
+            {
+                keys: "106NumpadMultiply", // 87:
+                key: ""
+            },
+            {
+                keys: "109NumpadSubtract", // 88:
+                key: ""
+            },
+            {
+                keys: "107NumpadAdd", // 89:
+                key: ""
+            },
+            {
                 keys: "",
-                key: ""
-            },
-            {
-                keys: "226IntlBackslash,60IntlBackslash,220IntlBackslash",
-                key: ""
-            },
-            {
-                keys: "111NumpadDivide",
-                key: ""
-            },
-            {
-                keys: "106NumpadMultiply",
-                key: ""
-            },
-            {
-                keys: "109NumpadSubtract",
-                key: ""
-            },
-            {
-                keys: "107NumpadAdd",
-                key: ""
-            },
-            {
-                keys: "",
-                key: "",
+                key: "", // 90: special num lock key to switch between joystick and numpad
                 text: "Num",
                 title: "Num / Joy",
                 style: 1
@@ -749,11 +749,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         VirtualKeyboard.virtualKeyboardAlpha = [
             [66, 64, 65, 57, 56, 49, 48, 41, 40, 33, 32, 25, 24, 16, 79],
             [68, 67, 59, 58, 50, 51, 43, 42, 35, 34, 27, 26, 17, 18],
-            [70, 69, 60, 61, 53, 52, 44, 45, 37, 36, 29, 28, 19, 90],
+            [70, 69, 60, 61, 53, 52, 44, 45, 37, 36, 29, 28, 19, 90], // 90=virtual numpad button
             [
                 21, 71, 63, 62, 55, 54, 46, 38, 39, 31, 30, 22,
                 {
-                    key: 21,
+                    key: 21, // right shift has same code and style
                     style: 2
                 }
             ],

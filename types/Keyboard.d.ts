@@ -11,7 +11,7 @@ export interface CpcKeyExpansionsOptions {
     shift?: number;
     ctrl?: number;
 }
-export declare type PressReleaseCpcKey = (event: KeyboardEvent | PointerEvent, cpcKey: number, pressedKey: string, key: string) => void;
+export type PressReleaseCpcKey = (event: KeyboardEvent | PointerEvent, cpcKey: number, pressedKey: string, key: string) => void;
 export declare class Keyboard {
     private readonly fnKeydownOrKeyupHandler;
     private readonly options;

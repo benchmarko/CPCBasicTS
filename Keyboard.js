@@ -59,17 +59,17 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         Keyboard.prototype.resetCpcKeysExpansions = function () {
             var cpcKeyExpansions = this.cpcKeyExpansions;
             cpcKeyExpansions.normal = {
-                15: 0 + 128,
-                13: 1 + 128,
-                14: 2 + 128,
-                5: 3 + 128,
-                20: 4 + 128,
-                12: 5 + 128,
-                4: 6 + 128,
-                10: 7 + 128,
-                11: 8 + 128,
-                3: 9 + 128,
-                7: 10 + 128,
+                15: 0 + 128, // F0
+                13: 1 + 128, // F1
+                14: 2 + 128, // F2
+                5: 3 + 128, // F3
+                20: 4 + 128, // F4
+                12: 5 + 128, // F5
+                4: 6 + 128, // F6
+                10: 7 + 128, // F7
+                11: 8 + 128, // F8
+                3: 9 + 128, // F9
+                7: 10 + 128, // F.
                 6: 11 + 128 // Enter
             };
             cpcKeyExpansions.shift = {};
@@ -506,7 +506,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             "107NumpadAdd": 89
         };
         Keyboard.specialKeys = {
-            Alt: String.fromCharCode(224),
+            Alt: String.fromCharCode(224), // Copy
             ArrowUp: String.fromCharCode(240),
             ArrowDown: String.fromCharCode(241),
             ArrowLeft: String.fromCharCode(242),
@@ -526,8 +526,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             JoyDown: String.fromCharCode(10),
             JoyLeft: String.fromCharCode(8),
             JoyRight: String.fromCharCode(9),
-            Clear: "X",
-            Spacebar: " ",
+            Clear: "X", // joy fire 2
+            Spacebar: " ", // for IE
             Tab: String.fromCharCode(9),
             ä: ";",
             Ä: "+",
@@ -538,8 +538,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             ß: "-",
             DeadBackquote: "^",
             "°": "£",
-            DeadEqual: String.fromCharCode(161),
-            "´": String.fromCharCode(161),
+            DeadEqual: String.fromCharCode(161), // tick
+            "´": String.fromCharCode(161), // IE: tick
             DeadEqualShift: "`" // backtick
         };
         /* eslint-disable array-element-newline */

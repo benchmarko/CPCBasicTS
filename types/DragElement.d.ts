@@ -1,12 +1,12 @@
 import { ViewID } from "./Constants";
 import { View } from "./View";
-declare type DragElementOptionEntryType = {
+type DragElementOptionEntryType = {
     itemId: ViewID;
     xOffset: number;
     yOffset: number;
     enabled: boolean;
 };
-export declare type DragElementOptions = {
+export type DragElementOptions = {
     view: View;
     entries: Record<string, DragElementOptionEntryType>;
 };

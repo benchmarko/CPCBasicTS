@@ -1,7 +1,7 @@
 import { ModelPropID } from "./Constants";
 import { ICpcVmRsx } from "./Interfaces";
-export declare type ConfigEntryType = string | number | boolean;
-export declare type ConfigType = Record<string, ConfigEntryType>;
+export type ConfigEntryType = string | number | boolean;
+export type ConfigType = Record<string, ConfigEntryType>;
 export interface DatabaseEntry {
     text: string;
     title: string;
@@ -17,7 +17,7 @@ export interface ExampleEntry {
     rsx?: ICpcVmRsx;
     loaded?: boolean;
 }
-export declare type DatabasesType = Record<string, DatabaseEntry>;
+export type DatabasesType = Record<string, DatabaseEntry>;
 export declare class Model {
     private config;
     private initialConfig;

@@ -19,10 +19,12 @@ interface NodePath {
 	resolve: (dir: string, name: string) => string
 }
 
-let https: NodeHttps, // nodeJs
-	fs: NodeFs,
-	path: NodePath,
-	__dirname: string; // eslint-disable-line no-underscore-dangle
+/* eslint-disable prefer-const */
+let https = undefined as unknown as NodeHttps, // nodeJs - set via fnEval, invisible to TS
+	fs = undefined as unknown as NodeFs,
+	path = undefined as unknown as NodePath,
+	__dirname = "" as string; // eslint-disable-line no-underscore-dangle
+/* eslint-enable prefer-const */
 
 import { ModelPropID } from "../Constants";
 import { Utils } from "../Utils";
@@ -51,7 +53,7 @@ const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function
 			if (Object.prototype.toString.call(myGlobalThis.process) === "[object process]") {
 				nodeJs = true;
 			}
-		} catch (e) {
+		} catch (_e) {
 			// empty
 		}
 		return nodeJs;
@@ -555,7 +557,7 @@ function testParseExample(example: ExampleEntry) {
 
 	let	checks = "",
 		output: IOutput,
-		fnScript: Function; // eslint-disable-line @typescript-eslint/ban-types
+		fnScript: Function; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
 
 	if (example.meta !== "D" && hasLineNumbers(input)) { // skip data files  && example.meta !== "X" && example.meta !== "Z") { // skip data, dsk and zip files
 		checks = "Js";

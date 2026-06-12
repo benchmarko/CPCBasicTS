@@ -355,7 +355,7 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
                 bottom: 24
             },
             {
-                left: 0,
+                left: 0, // mode 3 not available on CPC
                 right: 79,
                 top: 0,
                 bottom: 49

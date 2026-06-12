@@ -37,7 +37,7 @@ var Polyfills = {
 			if (Object.prototype.toString.call(myGlobalThis.process) === "[object process]") {
 				nodeJs = true;
 			}
-		} catch (e) {
+		} catch (_e) {
 			// empty
 		}
 		return nodeJs;
@@ -51,7 +51,7 @@ var Polyfills = {
 			Object.defineProperty({}, "p1", {
 				value: "1"
 			});
-		} catch (e) { // on IE8 we get "TypeError: Object does not support this action"
+		} catch (_e) { // on IE8 we get "TypeError: Object does not support this action"
 			return false;
 		}
 		return true;
@@ -423,7 +423,7 @@ if (!Object.defineProperty || !Polyfills.isDefinePropertyOk) { // IE8
 if (!Object.keys) { // IE8
 	Polyfills.log("Object.keys");
 	// based on: https://tokenposts.blogspot.com/2012/04/javascript-objectkeys-browser.html
-	Object.keys = function (o: object): string[] { // eslint-disable-line @typescript-eslint/ban-types
+	Object.keys = function (o: object): string[] { // eslint-disable-line @typescript-eslint/no-unsafe-function-type
 		const k: string[] = [];
 
 		if (o !== Object(o)) {
@@ -441,7 +441,7 @@ if (!Object.keys) { // IE8
 if (!Object.values) { // IE11
 	Polyfills.log("Object.values");
 	// based on: https://github.com/KhaledElAnsari/Object.values/blob/master/index.js
-	Object.values = function (o: object): any[] { // eslint-disable-line @typescript-eslint/ban-types
+	Object.values = function (o: object): any[] { // eslint-disable-line @typescript-eslint/no-unsafe-function-type
 		return Object.keys(o).map(function (key) {
 			return (o as Record<string, any>)[key];
 		});
@@ -710,7 +710,7 @@ if (!window.JSON) { // simple polyfill for JSON.parse only
 		parse: function (text: string) {
 			return eval("(" + text + ")"); // eslint-disable-line no-eval
 		},
-		stringify: function (o: Object) { // eslint-disable-line @typescript-eslint/ban-types
+		stringify: function (o: Object) { // eslint-disable-line @typescript-eslint/no-unsafe-function-type
 			(Polyfills.console || window.console).error("Not implemented: window.JSON.stringify");
 			return String(o);
 		}

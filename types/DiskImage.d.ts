@@ -25,7 +25,7 @@ export interface AmsdosHeader {
     length: number;
     typeString: string;
 }
-declare type DirectoryListType = Record<string, ExtentEntry[]>;
+type DirectoryListType = Record<string, ExtentEntry[]>;
 export declare class DiskImage {
     private readonly options;
     private diskInfo;
