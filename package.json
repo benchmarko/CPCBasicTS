@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.3.21",
+  "version": "0.4.0",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "src/cpcbasic.ts",
   "directories": {
@@ -10,15 +10,15 @@
     "npm": "^8.19.2"
   },
   "devDependencies": {
-    "@types/node": "^17.0.45",
+    "@types/node": "^22.9.0",
     "@types/qunit": "^2.19.2",
-    "@typescript-eslint/eslint-plugin": "^4.33.0",
-    "@typescript-eslint/parser": "^4.33.0",
-    "eslint": "^7.32.0",
+    "@typescript-eslint/eslint-plugin": "^8.47.0",
+    "@typescript-eslint/parser": "^8.47.0",
+    "eslint": "^8.57.1",
     "gh-pages": "^3.2.3",
     "mkdirp": "^1.0.4",
     "qunit": "^2.19.1",
-    "typescript": "^4.8.2"
+    "typescript": "^5.6.3"
   },
   "files": [
     "src/"

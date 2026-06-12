@@ -15,6 +15,10 @@ module.exports = {
 		"node": true,
 		"es6": true
 	},
+	"ignorePatterns": [
+		"package.json",
+		"package-lock.json"
+	],
 	"rules": {
 		"accessor-pairs": "error",
 		"array-bracket-newline": "error",
@@ -361,7 +365,32 @@ module.exports = {
 			"error",
 			"never"
 		],
-		"@typescript-eslint/no-this-alias": "warn"
-	}
+		"@typescript-eslint/no-this-alias": "warn",
+		// v8: configure _-prefix convention for intentionally-unused interface params
+		"@typescript-eslint/no-unused-vars": [
+			"error",
+			{
+				"argsIgnorePattern": "^_",
+				"varsIgnorePattern": "^_",
+				"caughtErrorsIgnorePattern": "^_"
+			}
+		]
+	},
+	"overrides": [
+		{
+			// amdLoader uses require() by design for AMD module loading
+			"files": ["src/amdLoader.ts"],
+			"rules": {
+				"@typescript-eslint/no-require-imports": "off"
+			}
+		},
+		{
+			// Polyfills uses wrapper Object type intentionally for ES5 shims
+			"files": ["src/Polyfills.ts"],
+			"rules": {
+				"@typescript-eslint/no-wrapper-object-types": "off"
+			}
+		}
+	]
 };
 /* eslint-enable array-bracket-newline, array-element-newline, quote-props */
