@@ -3,9 +3,6 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 //
-define(["require", "exports"], function (require, exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-});
+export {};
 //
 //# sourceMappingURL=Interfaces.js.map

@@ -1,6 +1,12 @@
 import { ConfigType } from "./Model";
 import { ICpcVmRsx } from "./Interfaces";
-declare class cpcBasic {
+export interface CpcBasicStartupAdapter {
+    getConfigOverrides: () => Partial<ConfigType>;
+    getUrlQuery: () => string;
+    getArgs: () => string[];
+    isNodeRuntime: () => boolean;
+}
+export declare class cpcBasic {
     private static readonly config;
     private static model;
     private static view;
@@ -16,6 +22,7 @@ declare class cpcBasic {
     private static createDebugUtilsConsole;
     private static fnRedirectExamples;
     private static fnDoStart;
+    static start(startupAdapter: CpcBasicStartupAdapter): void;
     static fnOnLoad(): void;
 }
 declare global {
@@ -24,5 +31,4 @@ declare global {
         cpcConfig: ConfigType;
     }
 }
-export {};
 //# sourceMappingURL=cpcbasic.d.ts.map

@@ -2,33 +2,25 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>QUnit Testsuite for CPCBasicTS</title>
+  <title>QUnit Testsuite for CPCBasicTS (Bundled)</title>
+  <!-- <link rel="stylesheet" href="../../node_modules/qunit/qunit/qunit.css"> -->
   <link rel="stylesheet" href="https://unpkg.com/qunitjs/qunit/qunit.css">
-  <link rel="stylesheet" href="https://unpkg.com/qunit-composite/qunit-composite.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+  </style>
 </head>
 <body>
   <div id="qunit"></div>
   <div id="qunit-fixture"></div>
+
+  <!-- Load QUnit runner first (needed by test-bundle.js) -->
+  <!-- <script src="../../node_modules/qunit/qunit/qunit.js"></script> -->
   <script src="https://unpkg.com/qunitjs/qunit/qunit.js"></script>
-  <script src="https://unpkg.com/qunit-composite/qunit-composite.js"></script>
-  <script>
-    QUnit.testSuites("CPCBasic tests", [
-        "BasicFormatter.qunit.html",
-        "BasicLexer.qunit.html",
-        "BasicParser.qunit.html",
-        "BasicTokenizer.qunit.html",
-        "CodeGeneratorBasic.qunit.html",
-        "CodeGeneratorJs.qunit.html",
-        "CodeGeneratorToken.qunit.html",
-        "CpcVm.qunit.html",
-        "Diff.qunit.html",
-        "DiskImage.qunit.html",
-        "Model.qunit.html",
-        "Sound.qunit.html",
-        "testParseExamples.qunit.html",
-        "Variables.qunit.html",
-        "ZipFile.qunit.html",
-    ]);
-  </script>
+  <!-- Load Polyfills for browser environment compatibility -->
+  <script src="../../dist/Polyfills.js"></script>
+  <!-- Load bundled tests (contains all 16 test modules) -->
+  <script src="../../dist/test-bundle.js"></script>
 </body>
 </html>
