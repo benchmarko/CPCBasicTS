@@ -1,1 +1,2 @@
-export { NodeAdapt } from "../NodeAdapt";
+export { NodeUtils } from "./NodeUtils";
+export { NodeDocumentAdapter } from "./NodeDocumentAdapter";

@@ -23,8 +23,18 @@ export interface AreaInputElement {
 export type PointerEventNamesType = Record<"down"|"move"|"up"|"cancel"|"out"|"type", string>;
 
 export class View {
+	private static myDocument: Document | any = window.document;
+
+	static setDocument(doc: Document | any) {
+		View.myDocument = doc;
+	}
+
+	private static getDocument() {
+		return View.myDocument;
+	}
+
 	static getElementById1(id: ViewID): HTMLElement {
-		const element = window.document.getElementById(id);
+		const element = View.getDocument().getElementById(id);
 
 		if (!element) {
 			throw new Error("Unknown " + id);
@@ -135,14 +145,14 @@ export class View {
 				label: HTMLLabelElement;
 
 			if (i * 2 >= childNodes.length) {
-				input = window.document.createElement("input");
+				input = View.getDocument().createElement("input");
 				input.type = "radio";
 				input.id = "galleryItem" + i;
 				input.name = "gallery";
 				input.value = item.value;
 				input.checked = item.checked;
 
-				label = window.document.createElement("label");
+				label = View.getDocument().createElement("label");
 				label.setAttribute("for", "galleryItem" + i);
 				label.setAttribute("style", 'background: url("' + item.imgUrl + '"); background-size: cover');
 				label.setAttribute("title", item.title);
@@ -180,7 +190,7 @@ export class View {
 		// pre-create additional options
 		for (let i = existingElements; i < options.length; i += 1) {
 			const item = options[i],
-				option = window.document.createElement("option");
+				option = View.getDocument().createElement("option");
 
 			option.value = item.value;
 			option.text = item.text;
@@ -309,7 +319,7 @@ export class View {
 		if (element) {
 			element.addEventListener(type, eventListener, false);
 		} else {
-			window.document.addEventListener(type, eventListener, false);
+			View.getDocument().addEventListener(type, eventListener, false);
 		}
 		return this;
 	}
@@ -328,7 +338,7 @@ export class View {
 		if (element) {
 			element.removeEventListener(type, eventListener, false);
 		} else {
-			window.document.removeEventListener(type, eventListener, false);
+			View.getDocument().removeEventListener(type, eventListener, false);
 		}
 		return this;
 	}
@@ -438,9 +448,9 @@ export class View {
 			fullscreenchangedHandler = function (event: Event) {
 				const target = View.getEventTarget(event);
 
-				if (document.fullscreenElement) {
+				if (View.getDocument().fullscreenElement) {
 					if (Utils.debug > 0) {
-						Utils.console.debug("Entered fullscreen mode: " + document.fullscreenElement.id);
+						Utils.console.debug("Entered fullscreen mode: " + View.getDocument().fullscreenElement.id);
 					}
 				} else {
 					if (Utils.debug > 0) {
@@ -500,7 +510,7 @@ export class View {
 		}
 
 		const url = URL.createObjectURL(blob),
-			a = document.createElement("a"),
+			a = View.getDocument().createElement("a"),
 			clickHandler = function () {
 				setTimeout(function () {
 					URL.revokeObjectURL(url);

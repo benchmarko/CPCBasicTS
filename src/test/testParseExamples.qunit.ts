@@ -7,6 +7,8 @@
 // node dist/test/testParseExamples.qunit.js
 // npm test...
 
+
+/*
 interface NodeHttps {
 	get: (url: string, fn: (res: any) => void) => any
 }
@@ -14,16 +16,23 @@ interface NodeHttps {
 interface NodeFs {
 	readFile: (name: string, encoding: string, fn: (res: any) => void) => any
 }
-
+*/
 interface NodePath {
-	resolve: (dir: string, name: string) => string
+	resolve: (dir: string, name: string) => string,
+	dirname: (dir: string) => string
 }
 
+/*
+interface NodeUrl {
+	fileURLToPath: (url: string) => string
+}
+*/
+
 /* eslint-disable prefer-const */
-let https = undefined as unknown as NodeHttps, // nodeJs - set via fnEval, invisible to TS
-	fs = undefined as unknown as NodeFs,
-	path = undefined as unknown as NodePath,
-	__dirname = "" as string; // eslint-disable-line no-underscore-dangle
+let //https = undefined as unknown as NodeHttps, // nodeJs - set via fnEval, invisible to TS
+	//fs = undefined as unknown as NodeFs,
+	path = undefined as unknown as NodePath;
+	//nodeUrl = undefined as unknown as NodeUrl;
 /* eslint-enable prefer-const */
 
 import { ModelPropID } from "../Constants";
@@ -39,6 +48,9 @@ import { VarTypes, Variables } from "../Variables";
 import { DiskImage } from "../DiskImage";
 import { cpcconfig } from "../cpcconfig";
 import { TestHelper } from "./TestHelper";
+
+import { TestNodeUtils } from "./TestNodeUtils";
+import { TestUiUtils } from "./TestUiUtils";
 
 type QUnitAssertType3 = { ok: (r: any, e: any, msg: string) => void, expect: (arg: any) => void, async: () => (() => void) };
 
@@ -68,6 +80,7 @@ function fnEval(code: string) {
 	return eval(code); // eslint-disable-line no-eval
 }
 
+/*
 function nodeReadUrl(url: string, fnDataLoaded: (error: Error | undefined, data?: string) => void) {
 	if (!https) {
 		fnEval('https = require("https");'); // to trick TypeScript
@@ -96,6 +109,7 @@ function nodeReadFile(name: string, fnDataLoaded: (error: Error | undefined, dat
 	}
 	fs.readFile(name, "utf8", fnDataLoaded);
 }
+*/
 
 
 function nodeGetAbsolutePath(name: string) {
@@ -104,10 +118,24 @@ function nodeGetAbsolutePath(name: string) {
 		fnEval('path = require("path");'); // to trick TypeScript
 	}
 
-	// https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
-	const dirname = __dirname || (path as any).dirname(__filename),
+	/*
+	//import { fileURLToPath } from "node:url";
+	if (!nodeUrl) {
+		// eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
+		fnEval('nodeUrl = require("node:url");'); // to trick TypeScript
+	}
+		filename = nodeUrl.fileURLToPath(import.meta.url),
+      	dirname = path.dirname(filename),
+		absolutePath = path.resolve(dirname, name);
+	//console.log("process.argv[1]=", process.argv[1]); // ...CPCBasicTS/node_modules/.bin/qunit
+	*/
+
+	const dirname = process.cwd() + "/dist/test/", // "...CPCBasicTS/" + ...
 		absolutePath = path.resolve(dirname, name);
 
+	if (Utils.debug > 0) {
+		Utils.console.debug("nodeGetAbsolutePath: dirname=", dirname, "name=", name, "absolutePath=", absolutePath);
+	}
 	return absolutePath;
 }
 
@@ -163,12 +191,12 @@ class cpcBasic {
 		parser: cpcBasic.basicParser,
 		trace: false,
 		quiet: true
-	})
+	});
 
 	static codeGeneratorToken = new CodeGeneratorToken({
 		lexer: cpcBasic.basicLexer,
 		parser: cpcBasic.convertParser
-	})
+	});
 
 	static vmMock = {
 		line: "" as string | number,
@@ -669,6 +697,7 @@ function testLoadExample(exampleEntry: ExampleEntry) {
 	}
 
 	try {
+		/*
 		if (nodeJsAvail) {
 			if (isUrl(fileOrUrl)) {
 				nodeReadUrl(fileOrUrl, fnExampleLoaded);
@@ -678,6 +707,8 @@ function testLoadExample(exampleEntry: ExampleEntry) {
 		} else {
 			Utils.loadScript(fileOrUrl, fnExampleLoadedUtils, fnExampleErrorUtils, example);
 		}
+		*/
+		Utils.loadScript(fileOrUrl, fnExampleLoadedUtils, fnExampleErrorUtils, example);
 	} catch (e) {
 		Utils.console.error("Error in file", example);
 		Utils.console.error(e);
@@ -702,15 +733,17 @@ function testNextExample() {
 }
 
 
-function fnIndexLoaded(error: Error | undefined, code?: string) {
+function fnIndexLoaded(error: Error | undefined, _code?: string) {
 	if (error) {
 		throw error;
 	}
 	cpcBasic.fnIndexDone1();
 
-	if (code) {
+	/*
+	if (nodeJsAvail && code) {
 		fnEval(code); // load index (for nodeJs)
 	}
+	*/
 
 	const allExamples = cpcBasic.model.getAllExamples();
 
@@ -758,6 +791,7 @@ function testLoadIndex(exampeDb: DatabaseEntry) {
 				Utils.console.debug("testParseExamples: __dirname=", __dirname, " dir=", dir);
 			}
 			dir = nodeGetAbsolutePath(dir); // convert to absolute path to get it working also for "npm test" and not only for node
+			//Utils.console.debug("testParseExamples: nodeGetAbsolutePath=", dir);
 		}
 	}
 	cpcBasic.dataBaseDirOrUrl = dir;
@@ -766,6 +800,7 @@ function testLoadIndex(exampeDb: DatabaseEntry) {
 
 	Utils.console.log("testParseExamples: Using Database index:", fileOrUrl);
 
+	/*
 	if (nodeJsAvail) {
 		if (isUrl(dir)) {
 			if (TestHelper.config.testAll) {
@@ -777,6 +812,13 @@ function testLoadIndex(exampeDb: DatabaseEntry) {
 		} else {
 			nodeReadFile(fileOrUrl, fnIndexLoaded);
 		}
+	} else {
+		Utils.loadScript(fileOrUrl, fnIndexLoadedUtils, fnIndexErrorUtils, exampeDb.text);
+	}
+	*/
+	if (nodeJsAvail && isUrl(dir) && !TestHelper.config.testAll) {
+		Utils.console.log("testParseExamples: testAll=" + TestHelper.config.testAll + ": skipping index loading for", fileOrUrl);
+		fnIndexLoadedUtils(); // skip loading index
 	} else {
 		Utils.loadScript(fileOrUrl, fnIndexLoadedUtils, fnIndexErrorUtils, exampeDb.text);
 	}
@@ -820,6 +862,12 @@ function testStart() {
 
 TestHelper.init();
 
+if (nodeJsAvail) {
+	TestNodeUtils.setLoadScriptForNode();
+} else {
+	Utils.setLoadScript(TestUiUtils.loadScript);
+}
+
 if (typeof myGlobalThis.QUnit !== "undefined") {
 	Utils.console.log("Using QUnit");
 	const QUnit = myGlobalThis.QUnit;
@@ -838,7 +886,6 @@ if (typeof myGlobalThis.QUnit !== "undefined") {
 	cpcBasic.fnExampleDone1 = function () {
 		// empty
 	};
-
 	testStart();
 }
 // end

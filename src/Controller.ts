@@ -13,7 +13,6 @@ import { Canvas } from "./Canvas";
 import { CodeGeneratorBasic } from "./CodeGeneratorBasic";
 import { CodeGeneratorJs } from "./CodeGeneratorJs";
 import { CodeGeneratorToken } from "./CodeGeneratorToken";
-import { CommonEventHandler } from "./CommonEventHandler";
 import { cpcCharset } from "./cpcCharset";
 import { CpcVm, FileMeta, VmStopEntry } from "./CpcVm";
 import { Diff } from "./Diff";
@@ -35,12 +34,18 @@ import { DragElement, DragElementOptions } from "./DragElement";
 import { Random } from "./Random";
 import { RsxAmsdos } from "./RsxAmsdos";
 import { RsxCpcBasic } from "./RsxCpcBasic";
+import { UiController } from "./UiController";
 import { Z80Disass } from "./Z80Disass"; // test
 
 
 interface FileMetaAndData {
 	meta: FileMeta
 	data: string
+}
+
+export interface ControllerOptions {
+	isHeadlessDirectInput?: boolean
+	onResultText?: (value: string) => void
 }
 
 export class Controller implements IController {
@@ -71,7 +76,7 @@ export class Controller implements IController {
 	private codeGeneratorBasic?: CodeGeneratorBasic; // for pretty print
 	private readonly model: Model;
 	private readonly view: View;
-	private readonly commonEventHandler: CommonEventHandler;
+	private readonly uiController: UiController;
 
 	private readonly basicLexer: BasicLexer;
 	private readonly basicParser: BasicParser;
@@ -101,11 +106,12 @@ export class Controller implements IController {
 	private fileSelect?: FileSelect;
 
 	private hasStorageDatabase: boolean;
+	private readonly options: ControllerOptions;
 
 	private z80Disass?: Z80Disass;
 
 
-	constructor(model: Model, view: View) {
+	constructor(model: Model, view: View, options: ControllerOptions = {}) {
 		this.fnRunLoopHandler = this.fnRunLoop.bind(this);
 		this.fnWaitKeyHandler = this.fnWaitKey.bind(this);
 		this.fnWaitInputHandler = this.fnWaitInput.bind(this);
@@ -119,16 +125,9 @@ export class Controller implements IController {
 
 		this.model = model;
 		this.view = view;
+		this.options = options;
 
-		this.commonEventHandler = new CommonEventHandler({
-			model: model,
-			view: view,
-			controller: this
-		});
-		this.view.addEventListener("click", this.commonEventHandler);
-		this.view.addEventListener("change", this.commonEventHandler);
-
-		this.commonEventHandler.initToggles();
+		this.uiController = new UiController(model, view, this, this.fnOnUserActionHandler);
 
 		this.canvas = this.setCanvasType(model.getProperty<string>(ModelPropID.canvasType));
 
@@ -137,8 +136,6 @@ export class Controller implements IController {
 		});
 
 		this.fnSpeed();
-
-		this.commonEventHandler.onKbdLayoutSelectChange(this.commonEventHandler.getEventDefById("change", ViewID.kbdLayoutSelect));
 
 		this.keyboard = new Keyboard({
 			view: this.view,
@@ -149,7 +146,7 @@ export class Controller implements IController {
 			this.getVirtualKeyboard();
 		}
 
-		this.commonEventHandler.fnSetUserAction(this.fnOnUserActionHandler); // check first user action, also if sound is not yet on
+		// check first user action, also if sound is not yet on
 
 		const random = new Random(model.getProperty<string>(ModelPropID.random) === "cpc");
 
@@ -277,7 +274,7 @@ export class Controller implements IController {
 	}
 
 	private onUserAction(/* event, id */) {
-		this.commonEventHandler.fnSetUserAction(undefined); // deactivate user action
+		this.uiController.deactivateUserAction(); // deactivate user action
 		this.sound.setActivatedByUser();
 		this.setSoundActive();
 	}
@@ -1946,7 +1943,7 @@ export class Controller implements IController {
 
 		this.invalidateScript();
 		this.setVarSelectOptions(ViewID.varSelect, this.variables);
-		this.commonEventHandler.onVarSelectChange();
+		this.uiController.onVarSelectChange();
 		return output;
 	}
 
@@ -2377,6 +2374,12 @@ export class Controller implements IController {
 	}
 
 	private startWithDirectInput() {
+		if (this.options.isHeadlessDirectInput) {
+			this.stopUpdateCanvas();
+			Utils.console.log("We are ready.");
+			return;
+		}
+
 		const vm = this.vm,
 			stream = 0,
 			msg = "Ready\r\n";
@@ -2402,7 +2405,12 @@ export class Controller implements IController {
 	}
 
 	private updateResultText() {
-		this.view.setAreaValue(ViewID.resultText, this.vm.vmGetOutBuffer());
+		const outText = this.vm.vmGetOutBuffer();
+
+		this.view.setAreaValue(ViewID.resultText, outText);
+		if (this.options.onResultText) {
+			this.options.onResultText(outText);
+		}
 		this.view.setAreaScrollTop(ViewID.resultText); // scroll to bottom
 	}
 
@@ -2417,7 +2425,7 @@ export class Controller implements IController {
 		this.view.setDisabled(ViewID.continueButton, reason === "end" || reason === "fileLoad" || reason === "fileSave" || reason === "parse" || reason === "renumLines" || reason === "reset");
 
 		this.setVarSelectOptions(ViewID.varSelect, this.variables);
-		this.commonEventHandler.onVarSelectChange();
+		this.uiController.onVarSelectChange();
 
 		if (reason === "stop" || reason === "end" || reason === "error" || reason === "parse" || reason === "parseRun") {
 			this.startWithDirectInput();
@@ -2632,7 +2640,7 @@ export class Controller implements IController {
 			}
 		}
 		this.setVarSelectOptions(ViewID.varSelect, variables);
-		this.commonEventHandler.onVarSelectChange(); // title change?
+		this.uiController.onVarSelectChange(); // title change?
 	}
 
 	setBasicVersion(basicVersion: string): void {
@@ -2694,7 +2702,7 @@ export class Controller implements IController {
 
 				// make sure canvas area is not hidden when creating canvas object (allows to get width, height)
 				if (isAreaHidden) {
-					this.commonEventHandler.toggleAreaHiddenById("change", ViewID.showCpcInput); // show: ViewID.cpcArea
+					this.uiController.toggleAreaHiddenById("change", ViewID.showCpcInput); // show: ViewID.cpcArea
 				}
 				this.view.setHidden(ViewID.cpcCanvas, false);
 				canvas = new Canvas({
@@ -2703,7 +2711,7 @@ export class Controller implements IController {
 					palette: validPalette
 				});
 				if (isAreaHidden) {
-					this.commonEventHandler.toggleAreaHiddenById("change", ViewID.showCpcInput); // hide again: ViewID.cpcArea
+					this.uiController.toggleAreaHiddenById("change", ViewID.showCpcInput); // hide again: ViewID.cpcArea
 				}
 			}
 			this.canvases[canvasType] = canvas;
@@ -3063,7 +3071,7 @@ export class Controller implements IController {
 
 		vm.closein();
 
-		this.commonEventHandler.setPopoversHiddenExcept(); // hide all popovers, especially the gallery
+		this.uiController.setPopoversHiddenExcept(); // hide all popovers, especially the gallery
 		inFile.open = true;
 
 		let exampleName = this.view.getSelectValue(ViewID.exampleSelect);
@@ -3122,7 +3130,7 @@ export class Controller implements IController {
 	}
 
 	onCpcCanvasClick(event: MouseEvent): void {
-		this.commonEventHandler.setPopoversHiddenExcept(); // hide all popovers
+		this.uiController.setPopoversHiddenExcept(); // hide all popovers
 
 		this.canvas.onCanvasClick(event);
 		this.keyboard.setActive(true);

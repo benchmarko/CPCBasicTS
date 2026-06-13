@@ -5,7 +5,7 @@
 
 import { ModelPropID, ViewID } from "./Constants";
 import { Utils } from "./Utils";
-import { Controller } from "./Controller";
+import { Controller, ControllerOptions } from "./Controller";
 import { cpcconfig } from "./cpcconfig";
 import { Model, ConfigType, ConfigEntryType } from "./Model";
 import { View } from "./View";
@@ -278,7 +278,16 @@ export class cpcBasic {
 			this.fnRedirectExamples(redirectExamples as unknown as Record<string, Record<"database" | "example", string>>);
 		}
 
-		cpcBasic.controller = new Controller(cpcBasic.model, cpcBasic.view);
+		const controllerOptions: ControllerOptions = startupAdapter.isNodeRuntime() ? {
+			isHeadlessDirectInput: true,
+			onResultText: (value: string) => {
+				if (value) {
+					Utils.console.log(value);
+				}
+			}
+		} : {};
+
+		cpcBasic.controller = new Controller(cpcBasic.model, cpcBasic.view, controllerOptions);
 		cpcBasic.controller.onDatabaseSelectChange(); // trigger loading example
 	}
 

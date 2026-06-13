@@ -1,11 +1,10 @@
 import "../Polyfills";
-import "../amdLoader";
 
 import { cpcBasic, CpcBasicStartupAdapter } from "../cpcbasic";
-import { NodeAdapt } from "../NodeAdapt";
+import { NodeUtils } from "./NodeUtils";
+import { NodeDocumentAdapter } from "./NodeDocumentAdapter";
 import { Utils } from "../Utils";
 import { View } from "../View";
-import { Controller } from "../Controller";
 
 const nodeStartupAdapter: CpcBasicStartupAdapter = {
 	getConfigOverrides: () => window.cpcConfig || {},
@@ -22,11 +21,16 @@ const nodeStartupAdapter: CpcBasicStartupAdapter = {
 window.cpcBasic = cpcBasic;
 
 if (window.Polyfills.isNodeAvailable) {
-	NodeAdapt.doAdapt({
-		View,
-		Controller,
-		Utils
-	});
+	const nodeDocument = new NodeDocumentAdapter();
+
+	(window as any).console = console;
+	(window as any).document = nodeDocument;
+	(window as any).AudioContext = () => {
+		throw new Error("AudioContext not supported");
+	};
+	View.setDocument(nodeDocument as unknown as Document);
+
+	NodeUtils.setLoadScriptForNode();
 	cpcBasic.start(nodeStartupAdapter);
 	Utils.console.debug("End of main.");
 }
