@@ -1,8 +1,28 @@
 {
   "name": "cpcbasicts",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
-  "main": "src/cpcbasic.ts",
+  "main": "./dist/cpcbasic-ui-bootstrap.js",
+  "exports": {
+    ".": {
+      "require": "./dist/cpcbasic-ui-bootstrap.js"
+    },
+    "./core": {
+      "require": "./dist/cpcbasic-core.js"
+    },
+    "./ui": {
+      "require": "./dist/cpcbasic-ui.js"
+    },
+    "./ui/bootstrap": {
+      "require": "./dist/cpcbasic-ui-bootstrap.js"
+    },
+    "./node": {
+      "require": "./dist/cpcbasic-node.js"
+    },
+    "./node/bootstrap": {
+      "require": "./dist/cpcbasic-node-bootstrap.js"
+    }
+  },
   "directories": {
     "test": "dist/test"
   },
@@ -18,6 +38,8 @@
     "gh-pages": "^3.2.3",
     "mkdirp": "^1.0.4",
     "qunit": "^2.19.1",
+    "rollup": "^4.45.1",
+    "rollup-plugin-esbuild": "^6.2.1",
     "typescript": "^5.6.3"
   },
   "files": [
@@ -28,12 +50,12 @@
     "clean": "rm -rf dist/*",
     "cleancache": "rm -rf node_modules/.cache/gh-pages/",
     "copy": "cp src/*.html src/*.css LICENSE favicon.ico dist/ && mkdirp -p dist/src && cp -r src/*.ts dist/src && mkdirp -p dist/src/test && cp -r src/test/*.ts dist/src/test && cp src/test/*.html dist/test/ && mkdirp -p dist/examples && cp -r examples/* dist/examples && mkdirp -p dist/img && cp img/* dist/img",
-    "build:one": "tsc --build src/tsconfig-one.json",
     "build:separate": "tsc --build",
-    "build": "npm run build:separate && npm run build:one && node updateVersion.js && npm run copy",
-    "testnode": "node dist/cpcbasicts.js sound=false canvasType=text example=test/testpage",
-    "test": "qunit --require ./dist/Polyfills.js --require ./dist/amdLoader.js dist/test/*.qunit.js",
-    "testAll": "qunit --require ./dist/Polyfills.js --require ./dist/amdLoader.js dist/test/*.qunit.js testAll=true",
+    "build:rollup": "rollup -c",
+    "build": "npm run build:separate && npm run build:rollup && node updateVersion.js && npm run copy",
+    "testnode": "node dist/cpcbasic-node-bootstrap.js sound=false canvasType=text example=test/testpage",
+    "test": "qunit --require ./dist/Polyfills.js dist/test-bundle.js",
+    "testAll": "qunit --require ./dist/Polyfills.js dist/test-bundle.js testAll=true",
     "deploy": "gh-pages -d dist",
     "lint": "eslint src --ext .ts"
   },

@@ -9,12 +9,18 @@ import { Controller } from "./Controller";
 import { cpcconfig } from "./cpcconfig";
 import { Model, ConfigType, ConfigEntryType } from "./Model";
 import { View } from "./View";
-import { NodeAdapt } from "./NodeAdapt";
 import { ICpcVmRsx } from "./Interfaces";
 
 type RedirectExamplesType = Record<string, Record<"database" | "example", string>>;
 
-class cpcBasic {
+export interface CpcBasicStartupAdapter {
+	getConfigOverrides: () => Partial<ConfigType>;
+	getUrlQuery: () => string;
+	getArgs: () => string[];
+	isNodeRuntime: () => boolean;
+}
+
+export class cpcBasic {
 	private static readonly config: ConfigType = {
 		arrayBounds: false,
 		autorun: true,
@@ -229,11 +235,11 @@ class cpcBasic {
 		}
 	}
 
-	private static fnDoStart() {
+	private static fnDoStart(startupAdapter: CpcBasicStartupAdapter) {
 		const startConfig = cpcBasic.config,
-			winCpcConfig = window.cpcConfig || {};
+			adapterConfig = startupAdapter.getConfigOverrides() || {};
 
-		Object.assign(startConfig, cpcconfig, winCpcConfig);
+		Object.assign(startConfig, cpcconfig, adapterConfig);
 
 		const redirectExamples = startConfig.redirectExamples;
 
@@ -241,13 +247,10 @@ class cpcBasic {
 
 		cpcBasic.model = new Model(startConfig);
 
-		// eslint-disable-next-line no-new-func
-		const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
-
-		if (!myGlobalThis.process) { // browser
-			cpcBasic.fnParseUri(window.location.search.substring(1), startConfig);
+		if (!startupAdapter.isNodeRuntime()) { // browser
+			cpcBasic.fnParseUri(startupAdapter.getUrlQuery(), startConfig);
 		} else { // nodeJs
-			cpcBasic.fnParseArgs(myGlobalThis.process.argv.slice(2), startConfig);
+			cpcBasic.fnParseArgs(startupAdapter.getArgs(), startConfig);
 		}
 
 		cpcBasic.view = new View();
@@ -279,9 +282,30 @@ class cpcBasic {
 		cpcBasic.controller.onDatabaseSelectChange(); // trigger loading example
 	}
 
-	static fnOnLoad() {
+	static start(startupAdapter: CpcBasicStartupAdapter) {
 		Utils.console.log("CPCBasic started at", Utils.dateFormat(new Date()));
-		cpcBasic.fnDoStart();
+		cpcBasic.fnDoStart(startupAdapter);
+	}
+
+	static fnOnLoad() {
+		const defaultStartupAdapter: CpcBasicStartupAdapter = {
+			getConfigOverrides: () => window.cpcConfig || {},
+			getUrlQuery: () => window.location.search.substring(1),
+			getArgs: () => {
+				// eslint-disable-next-line no-new-func
+				const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
+
+				return (myGlobalThis.process && myGlobalThis.process.argv) ? myGlobalThis.process.argv.slice(2) : [];
+			},
+			isNodeRuntime: () => {
+				// eslint-disable-next-line no-new-func
+				const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
+
+				return Boolean(myGlobalThis.process);
+			}
+		};
+
+		cpcBasic.start(defaultStartupAdapter);
 	}
 }
 
@@ -290,16 +314,4 @@ declare global {
 		cpcBasic: cpcBasic;
 		cpcConfig: ConfigType;
 	}
-}
-
-window.cpcBasic = cpcBasic;
-
-window.onload = () => {
-	cpcBasic.fnOnLoad();
-};
-
-if (window.Polyfills.isNodeAvailable) {
-	NodeAdapt.doAdapt();
-	cpcBasic.fnOnLoad();
-	Utils.console.debug("End of main.");
 }

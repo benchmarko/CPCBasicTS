@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-      "module": "amd",
+      "module": "es2020",
       "pretty": true,
       "lib": [
         "es2017",

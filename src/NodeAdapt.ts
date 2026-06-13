@@ -3,6 +3,8 @@
 
 import { ViewID } from "./Constants";
 import { Utils } from "./Utils";
+import { View } from "./View";
+import { Controller } from "./Controller";
 
 // examples:
 // npm run build:one
@@ -16,8 +18,17 @@ interface NodeFs {
 	readFile: (name: string, encoding: string, fn: (res: any) => void) => any
 }
 
+interface NodeAdaptDeps {
+	View: typeof View;
+	Controller: typeof Controller;
+	Utils: typeof Utils;
+}
+
 export class NodeAdapt {
-	static doAdapt(): void {
+	static doAdapt(deps?: NodeAdaptDeps): void {
+		const view = (deps ? deps.View : (typeof View !== "undefined" ? View : undefined)) as typeof View,
+			controller = (deps ? deps.Controller : (typeof Controller !== "undefined" ? Controller : undefined)) as typeof Controller,
+			utils = (deps ? deps.Utils : Utils) as typeof Utils;
 		/* eslint-disable prefer-const */
 		let https = undefined as unknown as NodeHttps, // nodeJs - set via fnEval, invisible to TS
 			fs = undefined as unknown as NodeFs,
@@ -90,14 +101,11 @@ export class NodeAdapt {
 			AudioContext: audioContext
 		});
 
-		// eslint-disable-next-line no-eval
-		const nodeExports = eval("exports"),
-			view = nodeExports.View,
-			setSelectOptionsOrig = view.prototype.setSelectOptions;
+		const setSelectOptionsOrig = (view.prototype as any).setSelectOptions;
 
 		// fast hacks...
 
-		view.prototype.setSelectOptions = (id: string, options: any[]) => {
+		(view.prototype as any).setSelectOptions = (id: string, options: any[]) => {
 			const element = domElements[id] || myCreateElement(id);
 
 			if (!element.options.add) {
@@ -112,9 +120,9 @@ export class NodeAdapt {
 			return setSelectOptionsOrig(id, options);
 		};
 
-		const setAreaValueOrig = view.prototype.setAreaValue;
+		const setAreaValueOrig = (view.prototype as any).setAreaValue;
 
-		view.prototype.setAreaValue = (id: string, value: string) => {
+		(view.prototype as any).setAreaValue = (id: string, value: string) => {
 			if (id === ViewID.resultText) {
 				if (value) {
 					Utils.console.log(value);
@@ -125,9 +133,7 @@ export class NodeAdapt {
 
 		// https://nodejs.dev/learn/accept-input-from-the-command-line-in-nodejs
 		// readline?
-		const controller = nodeExports.Controller;
-
-		controller.prototype.startWithDirectInput = function () {
+		(controller.prototype as any).startWithDirectInput = function () {
 			this.stopUpdateCanvas();
 			Utils.console.log("We are ready.");
 		};
@@ -180,8 +186,6 @@ export class NodeAdapt {
 			fs.readFile(name2, "utf8", fnDataLoaded);
 		}
 
-		const utils = nodeExports.Utils;
-
 		utils.loadScript = (fileOrUrl: string, fnSuccess: ((url2: string, key: string) => void), _fnError: ((url2: string, key: string) => void), key: string) => {
 			const fnLoaded = (error: Error | undefined, data?: string) => {
 				if (error) {
@@ -201,4 +205,3 @@ export class NodeAdapt {
 		};
 	}
 }
-// end
