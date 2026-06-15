@@ -3,35 +3,13 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-export interface CustomError extends Error {
-	value: string
-	pos: number
-	len?: number,
-	line?: number | string
-	hidden?: boolean
-	shortMessage?: string
-	errCode?: number
-}
-
-export type LoadScriptFn = (url: string, fnSuccess: (url2: string, key: string) => void, fnError: (url2: string, key: string) => void, key: string) => void;
-
-const Polyfills = window.Polyfills;
-
+import type { CustomError } from "./Interfaces";
 export class Utils {
 	static debug = 0;
-	static console = Polyfills.console;
-	private static fnLoadScript?: LoadScriptFn;
+	static console = console;
 
-	static loadScript(url: string, fnSuccess: (url2: string, key: string) => void, fnError: (url2: string, key: string) => void, key: string): void {
-		if (!this.fnLoadScript) {
-			throw new Error("Utils.loadScript: No platform loader registered. Call Utils.setLoadScript(...) during bootstrap.");
-		}
-
-		this.fnLoadScript(url, fnSuccess, fnError, key);
-	}
-
-	static setLoadScript(fnLoadScript: LoadScriptFn): void {
-		this.fnLoadScript = fnLoadScript;
+	public static setDebug(debug: number) {
+		Utils.debug = debug;
 	}
 
 	static hexEscape(str: string): string { // as hex
@@ -39,14 +17,6 @@ export class Utils {
 			return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
 		});
 	}
-
-	/*
-	static hexUnescape(str: string): string {
-		return str.replace(/\\x([0-9A-Fa-f]{2})/g, function () {
-			return String.fromCharCode(parseInt(arguments[1], 16));
-		});
-	}
-	*/
 
 	static dateFormat(d: Date): string {
 		return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "
@@ -98,16 +68,6 @@ export class Utils {
 
 	static stringTrimEnd(str: string): string {
 		return str.replace(/[\s\uFEFF\xA0]+$/, "");
-	}
-
-	static localStorage = Polyfills.localStorage || window.localStorage;
-
-	static atob = function (data: string): string {
-		return window.atob(data);
-	}
-
-	static btoa = function (data: string): string {
-		return window.btoa(data);
 	}
 
 	static isCustomError(e: unknown): e is CustomError {

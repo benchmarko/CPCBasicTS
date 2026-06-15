@@ -1,15 +1,15 @@
 import { CommonEventHandler } from "./CommonEventHandler";
 import { ViewID } from "./Constants";
-import { IController } from "./Interfaces";
-import { Model } from "./Model";
+import type { ICore } from "../Interfaces";
+import type { IController } from "./UiInterfaces";
 import { View } from "./View";
 
 export class UiController {
 	private readonly commonEventHandler: CommonEventHandler;
 
-	constructor(model: Model, view: View, controller: IController, onUserAction: () => void) {
+	constructor(core: ICore, view: View, controller: IController, onUserAction: () => void) {
 		this.commonEventHandler = new CommonEventHandler({
-			model,
+			model: core.getModel(),
 			view,
 			controller
 		});

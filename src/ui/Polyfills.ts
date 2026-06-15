@@ -26,23 +26,6 @@ var Polyfills = {
 		return rc as Storage; // if it is undefined, localStorage is set in Polyfills
 	}()),
 
-	isNodeAvailable: (function () {
-		// eslint-disable-next-line no-new-func
-		const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
-		let nodeJs = false;
-
-		// https://www.npmjs.com/package/detect-node
-		// Only Node.JS has a process variable that is of [[Class]] process
-		try {
-			if (Object.prototype.toString.call(myGlobalThis.process) === "[object process]") {
-				nodeJs = true;
-			}
-		} catch (_e) {
-			// empty
-		}
-		return nodeJs;
-	}()),
-
 	isDefinePropertyOk: (function () {
 		if (!Object.defineProperty) {
 			return false;
@@ -544,96 +527,86 @@ if (!String.prototype.trim) { // IE8
 // https://mths.be/base64 v0.1.0 by @mathias | MIT license
 if (!window.atob) { // IE9 (and node.js)
 	Polyfills.log("window.atob, window.btoa");
-	if (Polyfills.isNodeAvailable) { // for nodeJS we have an alternative
-		// https://dirask.com/posts/Node-js-atob-btoa-functions-equivalents-1Aqb51
+	(function () {
+		const table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+			reSpaceCharacters = /[\t\n\f\r ]/g; // http://whatwg.org/html/common-microsyntaxes.html#space-character
+
+		/* eslint-disable no-bitwise */
 		window.atob = function (input: string) { // decode
-			return Buffer.from(input, "base64").toString("binary");
+			input = String(input).replace(reSpaceCharacters, "");
+			let length = input.length;
+
+			if (length % 4 === 0) {
+				input = input.replace(/[=]=?$/, ""); // additional brackets to maks eslint happy
+				length = input.length;
+			}
+			if (length % 4 === 1 || (/[^+a-zA-Z0-9/]/).test(input)) { // http://whatwg.org/C#alphanumeric-ascii-characters
+				throw new TypeError("Polyfills:atob: Invalid character: the string to be decoded is not correctly encoded.");
+			}
+
+			let bitCounter = 0,
+				output = "",
+				position = 0,
+				bitStorage = 0;
+
+			while (position < length) {
+				const buffer = table.indexOf(input.charAt(position));
+
+				bitStorage = bitCounter % 4 ? bitStorage * 64 + buffer : buffer;
+				bitCounter += 1;
+				if ((bitCounter - 1) % 4) { // Unless this is the first of a group of 4 characters...
+					output += String.fromCharCode(0xFF & bitStorage >> (-2 * bitCounter & 6)); // ...convert the first 8 bits to a single ASCII character
+				}
+				position += 1;
+			}
+			return output;
 		};
+
 		window.btoa = function (input: string) { // encode
-			return Buffer.from(input, "binary").toString("base64");
+			input = String(input);
+			if ((/[^\0-\xFF]/).test(input)) {
+				throw new TypeError("Polyfills:btoa: The string to be encoded contains characters outside of the Latin1 range.");
+			}
+
+			const padding = input.length % 3,
+				length = input.length - padding; // Make sure any padding is handled outside of the loop
+			let output = "",
+				position = 0;
+
+			while (position < length) {
+				// Read three bytes, i.e. 24 bits.
+				const a = input.charCodeAt(position) << 16;
+
+				position += 1;
+				const b = input.charCodeAt(position) << 8;
+
+				position += 1;
+				const c = input.charCodeAt(position);
+
+				position += 1;
+				const buffer = a + b + c;
+
+				// Turn the 24 bits into four chunks of 6 bits each, and append the matching character for each of them to the output
+				output += table.charAt(buffer >> 18 & 0x3F) + table.charAt(buffer >> 12 & 0x3F) + table.charAt(buffer >> 6 & 0x3F) + table.charAt(buffer & 0x3F);
+			}
+
+			if (padding === 2) {
+				const a = input.charCodeAt(position) << 8;
+
+				position += 1;
+				const b = input.charCodeAt(position),
+					buffer = a + b;
+
+				output += table.charAt(buffer >> 10) + table.charAt((buffer >> 4) & 0x3F) + table.charAt((buffer << 2) & 0x3F) + "=";
+			} else if (padding === 1) {
+				const buffer = input.charCodeAt(position);
+
+				output += table.charAt(buffer >> 2) + table.charAt((buffer << 4) & 0x3F) + "==";
+			}
+			return output;
 		};
-	} else {
-		(function () {
-			const table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
-				reSpaceCharacters = /[\t\n\f\r ]/g; // http://whatwg.org/html/common-microsyntaxes.html#space-character
-
-			/* eslint-disable no-bitwise */
-			window.atob = function (input: string) { // decode
-				input = String(input).replace(reSpaceCharacters, "");
-				let length = input.length;
-
-				if (length % 4 === 0) {
-					input = input.replace(/[=]=?$/, ""); // additional brackets to maks eslint happy
-					length = input.length;
-				}
-				if (length % 4 === 1 || (/[^+a-zA-Z0-9/]/).test(input)) { // http://whatwg.org/C#alphanumeric-ascii-characters
-					throw new TypeError("Polyfills:atob: Invalid character: the string to be decoded is not correctly encoded.");
-				}
-
-				let bitCounter = 0,
-					output = "",
-					position = 0,
-					bitStorage = 0;
-
-				while (position < length) {
-					const buffer = table.indexOf(input.charAt(position));
-
-					bitStorage = bitCounter % 4 ? bitStorage * 64 + buffer : buffer;
-					bitCounter += 1;
-					if ((bitCounter - 1) % 4) { // Unless this is the first of a group of 4 characters...
-						output += String.fromCharCode(0xFF & bitStorage >> (-2 * bitCounter & 6)); // ...convert the first 8 bits to a single ASCII character
-					}
-					position += 1;
-				}
-				return output;
-			};
-
-			window.btoa = function (input: string) { // encode
-				input = String(input);
-				if ((/[^\0-\xFF]/).test(input)) {
-					throw new TypeError("Polyfills:btoa: The string to be encoded contains characters outside of the Latin1 range.");
-				}
-
-				const padding = input.length % 3,
-					length = input.length - padding; // Make sure any padding is handled outside of the loop
-				let output = "",
-					position = 0;
-
-				while (position < length) {
-					// Read three bytes, i.e. 24 bits.
-					const a = input.charCodeAt(position) << 16;
-
-					position += 1;
-					const b = input.charCodeAt(position) << 8;
-
-					position += 1;
-					const c = input.charCodeAt(position);
-
-					position += 1;
-					const buffer = a + b + c;
-
-					// Turn the 24 bits into four chunks of 6 bits each, and append the matching character for each of them to the output
-					output += table.charAt(buffer >> 18 & 0x3F) + table.charAt(buffer >> 12 & 0x3F) + table.charAt(buffer >> 6 & 0x3F) + table.charAt(buffer & 0x3F);
-				}
-
-				if (padding === 2) {
-					const a = input.charCodeAt(position) << 8;
-
-					position += 1;
-					const b = input.charCodeAt(position),
-						buffer = a + b;
-
-					output += table.charAt(buffer >> 10) + table.charAt((buffer >> 4) & 0x3F) + table.charAt((buffer << 2) & 0x3F) + "=";
-				} else if (padding === 1) {
-					const buffer = input.charCodeAt(position);
-
-					output += table.charAt(buffer >> 2) + table.charAt((buffer << 4) & 0x3F) + "==";
-				}
-				return output;
-			};
-			/* eslint-enable no-bitwise */
-		}());
-	}
+		/* eslint-enable no-bitwise */
+	}());
 }
 
 // For IE and Edge, localStorage is only available if page is hosted on web server, so we simulate it (do not use property "length" or method names as keys!)
@@ -710,7 +683,7 @@ if (!window.JSON) { // simple polyfill for JSON.parse only
 		parse: function (text: string) {
 			return eval("(" + text + ")"); // eslint-disable-line no-eval
 		},
-		stringify: function (o: Object) { // eslint-disable-line @typescript-eslint/no-unsafe-function-type
+		stringify: function (o: Object) { // eslint-disable-line @typescript-eslint/no-unsafe-function-type,@typescript-eslint/no-wrapper-object-types
 			(Polyfills.console || window.console).error("Not implemented: window.JSON.stringify");
 			return String(o);
 		}
@@ -760,6 +733,6 @@ if (!window.Uint8Array.prototype.copyWithin) {
 
 (Polyfills.console || window.console).debug("Polyfills: (" + Polyfills.getList().length + ") " + Polyfills.getList().join("; "));
 
-window.Polyfills = Polyfills; // for nodeJs
+window.Polyfills = Polyfills;
 
 // end

@@ -5,7 +5,7 @@
 
 import { ViewID } from "./Constants";
 import { View } from "./View";
-import { CanvasOptions, ICanvas, CanvasCharType } from "./Interfaces";
+import type { CanvasOptions, ICanvas, CanvasCharType } from "./UiInterfaces";
 
 export class TextCanvas implements ICanvas {
 	private readonly options: CanvasOptions;

@@ -8,5 +8,5 @@
   },
   "include": [
     "./*.ts"
-  ]
+, "ui/View.ts", "ui/FileHandler.ts", "ui/FileSelect.ts", "ui/Keyboard.ts", "ui/VirtualKeyboard.ts", "ui/Canvas.ts", "ui/DragElement.ts", "ui/Sound.ts", "ui/UiController.ts", "ui/NoCanvas.ts", "ui/TextCanvas.ts", "ui/CommonEventHandler.ts", "BasicFormatter.ts", "BasicLexer.ts", "BasicParser.ts", "BasicTokenizer.ts", "CodeGeneratorBasic.ts", "CodeGeneratorJs.ts", "CodeGeneratorToken.ts", "ui/Controller.ts", "ui/Polyfills.ts", "ui/UiPolyfills.ts", "ui/Constants.ts", "ui/UiInterfaces.ts", "ui/UiUtils.ts" ]
 }

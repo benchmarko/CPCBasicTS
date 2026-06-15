@@ -3,8 +3,7 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-import { CanvasOptions, ICanvas, CanvasCharType } from "./Interfaces";
-
+import type { CanvasOptions, ICanvas, CanvasCharType } from "./UiInterfaces";
 
 export class NoCanvas implements ICanvas {
 	private readonly options: CanvasOptions;

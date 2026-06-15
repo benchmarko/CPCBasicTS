@@ -3,7 +3,7 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-import { ICpcVmRsx, ICpcVm, VmFileParas, RsxCommandType } from "./Interfaces";
+import type { ICpcVmRsx, ICpcVm, VmFileParas, RsxCommandType } from "./Interfaces";
 
 export class RsxAmsdos implements ICpcVmRsx {
 	private static fnGetParameterAsString(vm: ICpcVm, stringOrAddress?: string | number) {
@@ -108,7 +108,7 @@ export class RsxAmsdos implements ICpcVmRsx {
 		user: function (this: ICpcVm) {
 			this.vmNotImplemented("|USER");
 		}
-	}
+	};
 
 	getRsxCommands(): Record<string, RsxCommandType> { // eslint-disable-line class-methods-use-this
 		return RsxAmsdos.rsxCommands;

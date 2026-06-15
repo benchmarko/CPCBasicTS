@@ -4,11 +4,10 @@
 //
 //
 
-import { Utils, CustomError } from "./Utils";
+import type { CustomError, IOutput } from "./Interfaces";
+import { Utils } from "./Utils";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser";
-import { IOutput } from "./Interfaces";
-
 interface CodeGeneratorTokenOptions {
 	lexer: BasicLexer
 	parser: BasicParser
@@ -230,7 +229,7 @@ export class CodeGeneratorToken {
 		xor: 0xfd,
 		not: 0xfe
 		// 0xff: (prefix for additional keywords)
-	}
+	};
 
 	private static readonly tokensFF: Record<string, number> = {
 		// Functions with one argument
@@ -293,7 +292,7 @@ export class CodeGeneratorToken {
 		testr: 0x7d,
 		copychr$: 0x7e, // (v1.1)
 		vpos: 0x7f
-	}
+	};
 
 	private composeError(error: Error, message: string, value: string, pos: number) { // eslint-disable-line class-methods-use-this
 		return Utils.composeError("CodeGeneratorToken", error, message, value, pos, undefined, this.label);

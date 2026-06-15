@@ -3,11 +3,12 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-import { Utils, CustomError } from "./Utils";
-import { ICpcVm, ICanvas, VariableValue, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmStopParas, ICpcVmRsx } from "./Interfaces";
-import { Keyboard, CpcKeyExpansionsOptions } from "./Keyboard";
+import { Utils } from "./Utils";
+import type { CustomError, ICpcVm, VariableValue, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmStopParas, ICpcVmRsx } from "./Interfaces";
+import type { ICanvas } from "./ui/UiInterfaces";
+import { Keyboard, CpcKeyExpansionsOptions } from "./ui/Keyboard";
 import { Random } from "./Random";
-import { Sound, SoundData, ToneEnvData, VolEnvData } from "./Sound";
+import { Sound, SoundData, ToneEnvData, VolEnvData } from "./ui/Sound";
 import { Variables, VariableMap, VarTypes, VariableTypeMap } from "./Variables";
 import { CpcVmRsx } from "./CpcVmRsx";
 

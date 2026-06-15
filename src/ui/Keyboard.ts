@@ -4,7 +4,7 @@
 //
 
 import { ViewID } from "./Constants";
-import { Utils } from "./Utils";
+import { UiUtils } from "./UiUtils";
 import { View } from "./View";
 
 interface KeyboardOptions {
@@ -321,8 +321,8 @@ export class Keyboard {
 		const key2CpcKey = this.key2CpcKey,
 			newMap: Key2CpcKeyType = {};
 
-		if (Utils.debug > 1) {
-			Utils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
+		if (UiUtils.debug > 1) {
+			UiUtils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
 		}
 		for (const key in key2CpcKey) {
 			if (key2CpcKey.hasOwnProperty(key)) {
@@ -357,8 +357,8 @@ export class Keyboard {
 		cpcKeyEntry.keys[pressedKey] = true;
 		cpcKeyEntry.shift = shiftKey;
 		cpcKeyEntry.ctrl = ctrlKey;
-		if (Utils.debug > 1) {
-			Utils.console.log("fnPressCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKey);
+		if (UiUtils.debug > 1) {
+			UiUtils.console.log("fnPressCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKey);
 		}
 
 		const repeat = cpcKeyExpansions.repeat;
@@ -422,11 +422,11 @@ export class Keyboard {
 			pressedKeys = this.pressedKeys,
 			cpcKey = pressedKeys[cpcKeyCode];
 
-		if (Utils.debug > 1) {
-			Utils.console.log("fnReleaseCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKeyCode + ", keys:", (cpcKey ? cpcKey.keys : "undef."));
+		if (UiUtils.debug > 1) {
+			UiUtils.console.log("fnReleaseCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKeyCode + ", keys:", (cpcKey ? cpcKey.keys : "undef."));
 		}
 		if (!cpcKey) {
-			Utils.console.warn("fnReleaseCpcKey: cpcKey was not pressed:", cpcKeyCode);
+			UiUtils.console.warn("fnReleaseCpcKey: cpcKey was not pressed:", cpcKeyCode);
 		} else {
 			delete cpcKey.keys[pressedKey];
 			if (!Object.keys(cpcKey.keys).length) {
@@ -468,7 +468,7 @@ export class Keyboard {
 		"104Numpad8": "38Numpad8",
 		"105Numpad9": "33Numpad9",
 		"110NumpadDecimal": "46NumpadDecimal"
-	}
+	};
 
 	private fnKeyboardKeydown(event: KeyboardEvent) { // eslint-disable-line complexity
 		const keyCode = event.which || event.keyCode;
@@ -480,8 +480,8 @@ export class Keyboard {
 			this.codeStringsRemoved = true;
 		}
 
-		if (Utils.debug > 1) {
-			Utils.console.log("fnKeyboardKeydown: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
+		if (UiUtils.debug > 1) {
+			UiUtils.console.log("fnKeyboardKeydown: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
 		}
 
 		if (pressedKey in this.key2CpcKey) {
@@ -523,14 +523,14 @@ export class Keyboard {
 			this.fnPressCpcKey(event, cpcKey, pressedKey, key);
 		} else if (key.length === 1) { // put normal keys in buffer, ignore special keys with more than 1 character
 			this.putKeyInBuffer(key);
-			Utils.console.log("fnKeyboardKeydown: Partly unhandled key", pressedKey + ":", key);
+			UiUtils.console.log("fnKeyboardKeydown: Partly unhandled key", pressedKey + ":", key);
 		} else if (pressedKey === "12NumLock") { // key = "Clear"; MacOS
 			this.simulatedNumLock = this.simulatedNumLock !== undefined ? !this.simulatedNumLock : false;
-			if (Utils.debug > 1) {
-				Utils.console.log("fnKeyboardKeydown: simulatedNumLock=" + this.simulatedNumLock);
+			if (UiUtils.debug > 1) {
+				UiUtils.console.log("fnKeyboardKeydown: simulatedNumLock=" + this.simulatedNumLock);
 			}
 		} else {
-			Utils.console.log("fnKeyboardKeydown: Unhandled key", pressedKey + ":", key);
+			UiUtils.console.log("fnKeyboardKeydown: Unhandled key", pressedKey + ":", key);
 		}
 	}
 
@@ -539,8 +539,8 @@ export class Keyboard {
 			key = event.key || Keyboard.keyIdentifier2Char(event) || ""; // SliTaz web browser has not key but keyIdentifier
 		let pressedKey = String(keyCode) + (event.code ? event.code : ""); // event.code available for e.g. Chrome, Firefox
 
-		if (Utils.debug > 1) {
-			Utils.console.log("fnKeyboardKeyup: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
+		if (UiUtils.debug > 1) {
+			UiUtils.console.log("fnKeyboardKeyup: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
 		}
 
 		if (pressedKey in this.key2CpcKey) {
@@ -556,11 +556,11 @@ export class Keyboard {
 			}
 			this.fnReleaseCpcKey(event, cpcKey, pressedKey, key);
 		} else if (pressedKey === "12NumLock") { // key = "Clear"; MacOS
-			if (Utils.debug > 1) {
-				Utils.console.log("fnKeyboardKeyup: simulatedNumLock=" + this.simulatedNumLock);
+			if (UiUtils.debug > 1) {
+				UiUtils.console.log("fnKeyboardKeyup: simulatedNumLock=" + this.simulatedNumLock);
 			}
 		} else {
-			Utils.console.log("fnKeyboardKeyup: Unhandled key", pressedKey + ":", key);
+			UiUtils.console.log("fnKeyboardKeyup: Unhandled key", pressedKey + ":", key);
 		}
 	}
 
@@ -662,7 +662,7 @@ export class Keyboard {
 			} else if (event.type === "keyup") {
 				this.fnKeyboardKeyup(event);
 			} else {
-				Utils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
+				UiUtils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
 			}
 			event.preventDefault();
 			return false;

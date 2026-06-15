@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "./dist/cpcbasic-ui-bootstrap.js",
   "exports": {
@@ -54,8 +54,8 @@
     "build:rollup": "rollup -c",
     "build": "npm run build:separate && npm run build:rollup && node updateVersion.js && npm run copy",
     "testnode": "node dist/cpcbasic-node-bootstrap.js sound=false canvasType=text example=test/testpage",
-    "test": "qunit --require ./dist/Polyfills.js dist/test-bundle.js",
-    "testAll": "qunit --require ./dist/Polyfills.js dist/test-bundle.js testAll=true",
+    "test": "qunit dist/test-bundle.js",
+    "testAll": "qunit dist/test-bundle.js testAll=true",
     "deploy": "gh-pages -d dist",
     "lint": "eslint src --ext .ts"
   },

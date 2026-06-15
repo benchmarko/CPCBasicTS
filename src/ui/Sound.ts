@@ -3,7 +3,7 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-import { Utils } from "./Utils";
+import { UiUtils } from "./UiUtils";
 
 export interface SoundData {
 	state: number,
@@ -85,7 +85,7 @@ export class Sound {
 			};
 		}
 
-		if (Utils.debug > 1) {
+		if (UiUtils.debug > 1) {
 			this.debugLogList = []; // access: cpcBasic.controller.sound.debugLog
 		}
 	}
@@ -160,14 +160,23 @@ export class Sound {
 
 	private createSoundContext() {
 		const channelMap2Cpc = [ // channel map for CPC: left, middle (center), right; so swap middle and right
-			0,
-			2,
-			1
-		];
+				0,
+				2,
+				1
+			],
+			AudioContextConstructor = this.options.AudioContextConstructor;
 		let context;
 
+		if (!AudioContextConstructor) {
+			if (!this.contextNotAvailable) {
+				UiUtils.console.warn("createSoundContext: AudioContext not available");
+			}
+			this.contextNotAvailable = true;
+			return context;
+		}
+
 		try {
-			context = new this.options.AudioContextConstructor(); // may produce exception if not available
+			context = new AudioContextConstructor(); // may produce exception if not available
 
 			const mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
 
@@ -179,7 +188,7 @@ export class Sound {
 				this.gainNodes[i] = gainNode;
 			}
 		} catch (e) {
-			Utils.console.warn("createSoundContext:", e);
+			UiUtils.console.warn("createSoundContext:", e);
 			this.contextNotAvailable = true;
 		}
 
@@ -400,7 +409,7 @@ export class Sound {
 	}
 
 	private scheduleNote(oscillator: number, fTime: number, soundData: SoundData) {
-		if (Utils.debug > 1) {
+		if (UiUtils.debug > 1) {
 			this.debugLog("scheduleNote: " + oscillator + " " + fTime);
 		}
 		if (!this.isSoundOn) {
@@ -416,8 +425,8 @@ export class Sound {
 
 		oscillatorNode.connect(this.gainNodes[oscillator]);
 		if (fTime < context.currentTime) {
-			if (Utils.debug) {
-				Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", context.currentTime);
+			if (UiUtils.debug) {
+				UiUtils.console.debug("Test: sound: scheduleNote:", fTime, "<", context.currentTime);
 			}
 		}
 
@@ -497,7 +506,7 @@ export class Sound {
 					this.stopOscillator(i);
 				}
 				queue.soundData.push(soundData); // just a reference
-				if (Utils.debug > 1) {
+				if (UiUtils.debug > 1) {
 					this.debugLog("sound: " + i + " " + state + ":" + queue.soundData.length);
 				}
 				this.updateQueueStatus(i, queue);
@@ -587,7 +596,7 @@ export class Sound {
 			return;
 		}
 
-		if (Utils.debug > 1) {
+		if (UiUtils.debug > 1) {
 			this.debugLog("release: " + releaseMask);
 		}
 
@@ -647,8 +656,8 @@ export class Sound {
 			}
 
 			this.isSoundOn = true;
-			if (Utils.debug) {
-				Utils.console.debug("soundOn: Sound switched on");
+			if (UiUtils.debug) {
+				UiUtils.console.debug("soundOn: Sound switched on");
 			}
 		}
 		return Boolean(this.context); // true if sound is available
@@ -660,8 +669,8 @@ export class Sound {
 				(this.mergerNode as ChannelMergerNode).disconnect(this.context.destination);
 			}
 			this.isSoundOn = false;
-			if (Utils.debug) {
-				Utils.console.debug("soundOff: Sound switched off");
+			if (UiUtils.debug) {
+				UiUtils.console.debug("soundOff: Sound switched off");
 			}
 		}
 	}

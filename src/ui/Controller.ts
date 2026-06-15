@@ -4,39 +4,38 @@
 //
 
 import { ModelPropID, ViewID } from "./Constants";
-import { Utils, CustomError } from "./Utils";
-import { BasicFormatter } from "./BasicFormatter";
-import { BasicLexer } from "./BasicLexer";
-import { BasicParser } from "./BasicParser";
-import { BasicTokenizer } from "./BasicTokenizer";
+import { UiUtils } from "./UiUtils";
+import { BasicFormatter } from "../BasicFormatter";
+import { BasicLexer } from "../BasicLexer";
+import { BasicParser } from "../BasicParser";
+import { BasicTokenizer } from "../BasicTokenizer";
 import { Canvas } from "./Canvas";
-import { CodeGeneratorBasic } from "./CodeGeneratorBasic";
-import { CodeGeneratorJs } from "./CodeGeneratorJs";
-import { CodeGeneratorToken } from "./CodeGeneratorToken";
-import { cpcCharset } from "./cpcCharset";
-import { CpcVm, FileMeta, VmStopEntry } from "./CpcVm";
-import { Diff } from "./Diff";
-import { DiskImage } from "./DiskImage";
+import { CodeGeneratorBasic } from "../CodeGeneratorBasic";
+import { CodeGeneratorJs } from "../CodeGeneratorJs";
+import { CodeGeneratorToken } from "../CodeGeneratorToken";
+import { cpcCharset } from "../cpcCharset";
+import { CpcVm, FileMeta, VmStopEntry } from "../CpcVm";
+import { Diff } from "../Diff";
+import { DiskImage } from "../DiskImage";
 import { FileHandler } from "./FileHandler";
 import { FileSelect } from "./FileSelect";
-import { InputStack } from "./InputStack";
-import { IController, IOutput, ICanvas, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmBaseParas, VariableValue, ICpcVmRsx } from "./Interfaces";
+import { InputStack } from "../InputStack";
+import type { CustomError, ICore, IModel, IOutput, LoadScriptFn, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmBaseParas, VariableValue } from "../Interfaces";
+import type { IController, ICanvas } from "./UiInterfaces";
 import { Keyboard } from "./Keyboard";
 import { NoCanvas } from "./NoCanvas";
 import { TextCanvas } from "./TextCanvas";
 import { VirtualKeyboard } from "./VirtualKeyboard";
-import { Model, DatabasesType, ExampleEntry } from "./Model";
-import { Snapshot } from "./Snapshot";
+import { Snapshot } from "../Snapshot";
 import { Sound, SoundData } from "./Sound";
-import { Variables } from "./Variables";
+import { Variables } from "../Variables";
 import { View, SelectOptionElement, AreaInputElement } from "./View";
 import { DragElement, DragElementOptions } from "./DragElement";
-import { Random } from "./Random";
-import { RsxAmsdos } from "./RsxAmsdos";
-import { RsxCpcBasic } from "./RsxCpcBasic";
+import { Random } from "../Random";
+import { RsxAmsdos } from "../RsxAmsdos";
+import { RsxCpcBasic } from "../RsxCpcBasic";
 import { UiController } from "./UiController";
-import { Z80Disass } from "./Z80Disass"; // test
-
+import { Z80Disass } from "../Z80Disass"; // test
 
 interface FileMetaAndData {
 	meta: FileMeta
@@ -46,6 +45,9 @@ interface FileMetaAndData {
 export interface ControllerOptions {
 	isHeadlessDirectInput?: boolean
 	onResultText?: (value: string) => void
+	onOutputText?: (value: string) => void
+	onProgramEnd?: () => void
+	loadScript?: LoadScriptFn
 }
 
 export class Controller implements IController {
@@ -74,7 +76,8 @@ export class Controller implements IController {
 	private basicTokenizer?: BasicTokenizer; // to decode tokenized BASIC
 	private codeGeneratorToken?: CodeGeneratorToken; // to encode tokenized BASIC
 	private codeGeneratorBasic?: CodeGeneratorBasic; // for pretty print
-	private readonly model: Model;
+	private readonly core: ICore;
+	private readonly model: IModel;
 	private readonly view: View;
 	private readonly uiController: UiController;
 
@@ -111,7 +114,7 @@ export class Controller implements IController {
 	private z80Disass?: Z80Disass;
 
 
-	constructor(model: Model, view: View, options: ControllerOptions = {}) {
+	constructor(core: ICore, view: View, options: ControllerOptions = {}) {
 		this.fnRunLoopHandler = this.fnRunLoop.bind(this);
 		this.fnWaitKeyHandler = this.fnWaitKey.bind(this);
 		this.fnWaitInputHandler = this.fnWaitInput.bind(this);
@@ -123,11 +126,13 @@ export class Controller implements IController {
 		this.fnWaitForContinueHandler = this.fnWaitForContinue.bind(this);
 		this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
 
+		this.core = core;
+		const model = this.core.getModel();
 		this.model = model;
 		this.view = view;
 		this.options = options;
 
-		this.uiController = new UiController(model, view, this, this.fnOnUserActionHandler);
+		this.uiController = new UiController(core, view, this, this.fnOnUserActionHandler);
 
 		this.canvas = this.setCanvasType(model.getProperty<string>(ModelPropID.canvasType));
 
@@ -201,7 +206,9 @@ export class Controller implements IController {
 
 		view.setSelectValue(ViewID.exampleSelect, example);
 
-		this.hasStorageDatabase = this.initDatabases();
+		//this.hasStorageDatabase = this.initDatabases();
+		this.setDatabaseSelectOptions();
+		this.hasStorageDatabase = this.getHasStorageDatabase();
 
 		if (model.getProperty<boolean>(ModelPropID.showCpc)) {
 			this.canvas.startUpdateCanvas();
@@ -209,6 +216,10 @@ export class Controller implements IController {
 		if (model.getProperty<boolean>(ModelPropID.dragElements)) {
 			this.fnDragElementsActive(true);
 		}
+	}
+
+	private static getLocalStorage() {
+		return Polyfills.localStorage || window.localStorage;
 	}
 
 	private static readonly codeGenJsBasicParserOptions = {
@@ -232,6 +243,8 @@ export class Controller implements IController {
 		keepTokens: false
 	};
 
+	//TODO
+	/*
 	private static getUniqueDbKey(name: string, databases: DatabasesType) {
 		let key = name,
 			index = 2;
@@ -244,6 +257,7 @@ export class Controller implements IController {
 	}
 
 	private initDatabases() {
+		/*
 		const model = this.model,
 			databases: DatabasesType = {},
 			databaseDirs = model.getProperty<string>(ModelPropID.databaseDirs).split(",");
@@ -272,65 +286,32 @@ export class Controller implements IController {
 		this.setDatabaseSelectOptions();
 		return hasStorageDatabase;
 	}
+	*/
+
+	private getHasStorageDatabase() {
+		const databases = this.model.getAllDatabases();
+
+		let hasStorageDatabase = false;
+		for (const value in databases) {
+			if (databases.hasOwnProperty(value)) {
+				if (value === "storage") {
+					hasStorageDatabase = true;
+				}
+			}
+		}
+		return hasStorageDatabase;
+	}
+
+	/*
+	private initDatabases() {
+		return getHasStorageDatabase
+	}
+	∂*/
 
 	private onUserAction(/* event, id */) {
 		this.uiController.deactivateUserAction(); // deactivate user action
 		this.sound.setActivatedByUser();
 		this.setSoundActive();
-	}
-
-	// Also called from index file 0index.js
-	addIndex(_dir: string, input: Record<string, unknown>): void { // dir maybe ""
-		for (const value in input) {
-			if (input.hasOwnProperty(value)) {
-				const item = input[value] as ExampleEntry[];
-
-				for (let i = 0; i < item.length; i += 1) {
-					//item[i].dir = dir; // TTT to check
-					this.model.setExample(item[i]);
-				}
-			}
-		}
-	}
-
-	// Also called from example files xxxxx.js
-	addItem(key: string, input: string): string { // key maybe ""
-		if (!key) { // maybe ""
-			key = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty<string>(ModelPropID.example);
-			// on IE we can just get the current example
-		}
-		input = input.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
-		// beware of data files ending with newlines! (do not use trimEnd)
-
-		const implicitLines = this.model.getProperty<boolean>(ModelPropID.implicitLines),
-			linesOnLoad = this.model.getProperty<boolean>(ModelPropID.linesOnLoad);
-
-		if (input.startsWith("REM ") && !implicitLines && linesOnLoad) {
-			input = Controller.addLineNumbers(input);
-		}
-
-		const example = this.model.getExample(key);
-
-		example.key = key; // maybe changed
-		example.script = input;
-		example.loaded = true;
-		Utils.console.log("addItem:", key);
-		return key;
-	}
-
-	addRsx(key: string, RsxConstructor: new () => ICpcVmRsx): string {
-		if (!key) { // maybe ""
-			key = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty<string>(ModelPropID.example);
-			// on IE we can just get the current example
-		}
-
-		const example = this.model.getExample(key);
-
-		example.key = key; // maybe changed
-		example.rsx = new RsxConstructor();
-		example.loaded = true;
-		Utils.console.log("addItem:", key);
-		return key;
 	}
 
 	private setDatabaseSelectOptions() {
@@ -531,7 +512,7 @@ export class Controller implements IController {
 		}
 
 		const database = this.model.getProperty<string>(ModelPropID.database),
-			storage = Utils.localStorage;
+			storage = Controller.getLocalStorage();
 
 		let selectedExample = "",
 			exampleChanged = false;
@@ -574,7 +555,7 @@ export class Controller implements IController {
 					this.model.setExample(example);
 				}
 			} else {
-				Utils.console.error("updateStorageDatabase: unknown action", action);
+				UiUtils.console.error("updateStorageDatabase: unknown action", action);
 			}
 		}
 
@@ -696,7 +677,7 @@ export class Controller implements IController {
 		const key = this.keyboard.getKeyFromBuffer();
 
 		if (key !== "") { // do we have a key from the buffer already?
-			Utils.console.log("Wait for key:", key);
+			UiUtils.console.log("Wait for key:", key);
 			this.vm.vmStop("", 0, true);
 			this.removeKeyBoardHandler();
 		} else {
@@ -817,7 +798,7 @@ export class Controller implements IController {
 		let inputOk = false;
 
 		if (key === "\r") {
-			Utils.console.log("fnWaitInput:", input, "reason", stop.reason);
+			UiUtils.console.log("fnWaitInput:", input, "reason", stop.reason);
 			if (!inputParas.noCRLF) {
 				this.vm.print(stream, "\r\n");
 			}
@@ -881,7 +862,7 @@ export class Controller implements IController {
 		}
 
 		if (lineParts.length % 2 !== 0) {
-			Utils.console.warn("splitLines: No line numbers?");
+			UiUtils.console.warn("splitLines: No line numbers?");
 			const error = this.vm.vmComposeError(Error(), 21, "split"); // "Direct command found"
 
 			this.outputError(error, true);
@@ -903,8 +884,8 @@ export class Controller implements IController {
 
 	// merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
 	private mergeScripts(script1: string, script2: string) {
-		const lines1 = this.splitLines(Utils.stringTrimEnd(script1)),
-			lines2 = this.splitLines(Utils.stringTrimEnd(script2));
+		const lines1 = this.splitLines(UiUtils.stringTrimEnd(script1)),
+			lines2 = this.splitLines(UiUtils.stringTrimEnd(script2));
 		let result = [],
 			lineNumber1: number | undefined,
 			lineNumber2: number | undefined;
@@ -990,7 +971,7 @@ export class Controller implements IController {
 	}
 
 	private static fnGetStorageDirectoryEntries(mask?: string) {
-		const storage = Utils.localStorage,
+		const storage = Controller.getLocalStorage(),
 			metaIdent = FileHandler.getMetaIdent(),
 			dir: string[] = [];
 		let	regExp: RegExp | undefined;
@@ -1081,7 +1062,7 @@ export class Controller implements IController {
 
 	private fnFileEra(paras: VmFileParas): void {
 		const stream = paras.stream,
-			storage = Utils.localStorage,
+			storage = Controller.getLocalStorage(),
 			fileMask = Controller.fnLocalStorageName(paras.fileMask || ""),
 			dir = Controller.fnGetStorageDirectoryEntries(fileMask);
 
@@ -1095,12 +1076,12 @@ export class Controller implements IController {
 			if (storage.getItem(name) !== null) {
 				storage.removeItem(name);
 				this.updateStorageDatabase("remove", name);
-				if (Utils.debug > 0) {
-					Utils.console.debug("fnEraseFile: name=" + name + ": removed from localStorage");
+				if (UiUtils.debug > 0) {
+					UiUtils.console.debug("fnEraseFile: name=" + name + ": removed from localStorage");
 				}
 			} else {
 				this.vm.print(stream, name + " not found\r\n");
-				Utils.console.warn("fnEraseFile: file not found in localStorage:", name);
+				UiUtils.console.warn("fnEraseFile: file not found in localStorage:", name);
 			}
 		}
 		this.vm.vmStop("", 0, true);
@@ -1108,7 +1089,7 @@ export class Controller implements IController {
 
 	private fnFileRen(paras: VmFileParas): void {
 		const stream = paras.stream,
-			storage = Utils.localStorage,
+			storage = Controller.getLocalStorage(),
 			newName = Controller.fnLocalStorageName(paras.newName as string),
 			oldName = Controller.fnLocalStorageName(paras.oldName as string),
 			item = storage.getItem(oldName);
@@ -1218,16 +1199,16 @@ export class Controller implements IController {
 
 		if (output.error) {
 			this.outputError(output.error);
-		} else if (Utils.debug > 1) {
+		} else if (UiUtils.debug > 1) {
 			const outputText = output.text,
 				hex = outputText.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","),
 				decoded = this.decodeTokenizedBasic(outputText),
 				diff = Diff.testDiff(input.toUpperCase(), decoded.toUpperCase()); // for testing
 
-			Utils.console.debug("TokenizerInput (" + name + ") [len=" + input.length + "]:\n" + input);
-			Utils.console.debug("TokenizerOutputHex (" + name + ") [len=" + outputText.length + "]:\n" + hex);
-			Utils.console.debug("TokenizerOutputDecoded (" + name + ") [len=" + decoded.length + "]:\n" + decoded);
-			Utils.console.debug("TokenizerDiff (" + name + ") [len=" + diff.length + "]:\n" + diff);
+			UiUtils.console.debug("TokenizerInput (" + name + ") [len=" + input.length + "]:\n" + input);
+			UiUtils.console.debug("TokenizerOutputHex (" + name + ") [len=" + outputText.length + "]:\n" + hex);
+			UiUtils.console.debug("TokenizerOutputDecoded (" + name + ") [len=" + decoded.length + "]:\n" + decoded);
+			UiUtils.console.debug("TokenizerDiff (" + name + ") [len=" + diff.length + "]:\n" + diff);
 		}
 
 		return output.text;
@@ -1332,7 +1313,7 @@ export class Controller implements IController {
 			input = data.data; // maybe changed
 
 			if (data.meta.encoding === "base64") {
-				input = Utils.atob(input); // decode base64
+				input = window.atob(input); // decode base64
 			}
 
 			const type = data.meta.typeString;
@@ -1375,12 +1356,12 @@ export class Controller implements IController {
 				// the callback could close inFile, so do not use it any more
 				putInMemory = inFile.fnFileCallback(input, data && data.meta) as boolean;
 			} catch (e) {
-				Utils.console.warn(e);
+				UiUtils.console.warn(e);
 			}
 		}
 
 		if (input === undefined) {
-			Utils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
+			UiUtils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
 			this.vm.vmStop("stop", 60, true);
 			this.startMainLoop();
 			return;
@@ -1402,7 +1383,7 @@ export class Controller implements IController {
 		case "chainMerge":
 			input = this.mergeScripts(this.view.getAreaValue(ViewID.inputText), input);
 			this.setInputText(input);
-			this.view.setAreaValue(ViewID.resultText, "");
+			this.setResultText("");
 			startLine = inFileLine;
 			this.invalidateScript();
 			this.fnParseChain();
@@ -1410,7 +1391,7 @@ export class Controller implements IController {
 		case "load":
 			if (!putInMemory) {
 				this.setInputText(input);
-				this.view.setAreaValue(ViewID.resultText, "");
+				this.setResultText("");
 				this.invalidateScript();
 				this.vm.vmStop("end", 90);
 			}
@@ -1418,14 +1399,14 @@ export class Controller implements IController {
 		case "merge":
 			input = this.mergeScripts(this.view.getAreaValue(ViewID.inputText), input);
 			this.setInputText(input);
-			this.view.setAreaValue(ViewID.resultText, "");
+			this.setResultText("");
 			this.invalidateScript();
 			this.fnRemoveAllVariables();
 			this.vm.vmStop("end", 90);
 			break;
 		case "chain": // TODO: if we have a line number, make sure it is not optimized away when compiling
 			this.setInputText(input);
-			this.view.setAreaValue(ViewID.resultText, "");
+			this.setResultText("");
 			startLine = inFileLine;
 			this.invalidateScript();
 			this.fnParseChain();
@@ -1433,7 +1414,7 @@ export class Controller implements IController {
 		case "run":
 			if (!putInMemory) {
 				this.setInputText(input);
-				this.view.setAreaValue(ViewID.resultText, "");
+				this.setResultText("");
 				startLine = inFileLine;
 				if (!data || data.meta.typeString !== "S") { // keep memory, config for snapshots
 					this.fnReset();
@@ -1445,7 +1426,7 @@ export class Controller implements IController {
 			}
 			break;
 		default:
-			Utils.console.error("loadExample: Unknown command:", command);
+			UiUtils.console.error("loadExample: Unknown command:", command);
 			break;
 		}
 		this.vm.vmSetStartLine(startLine);
@@ -1455,12 +1436,12 @@ export class Controller implements IController {
 	private createFnExampleLoaded(example: string, url: string, inFile: ReturnType<typeof this.vm.vmGetInFileObject>) {
 		return (_sFullUrl: string, key: string, suppressLog?: boolean) => {
 			if (key !== example) {
-				Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
+				UiUtils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
 			}
 			const exampleEntry = this.model.getExample(example);
 
 			if (!suppressLog) {
-				Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + "loaded");
+				UiUtils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + "loaded");
 			}
 			this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
 			this.vm.vmStop("", 0, true);
@@ -1477,7 +1458,7 @@ export class Controller implements IController {
 
 	private createFnExampleError(example: string, url: string, inFile: ReturnType<typeof this.vm.vmGetInFileObject>) {
 		return () => {
-			Utils.console.log("Example", url, "error");
+			UiUtils.console.log("Example", url, "error");
 			this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
 
 			this.vm.vmStop("", 0, true);
@@ -1491,6 +1472,27 @@ export class Controller implements IController {
 			this.outputError(error, true);
 			this.loadFileContinue(null);
 		};
+	}
+
+	private getLoadScript() {
+		return this.options.loadScript || UiUtils.loadScript;
+	}
+
+	private setOutputText(text: string) {
+		this.view.setAreaValue(ViewID.outputText, text);
+		if (this.options.onOutputText) {
+			this.options.onOutputText(text);
+		}
+	}
+
+	private setResultText(text: string, scroll = false) {
+		this.view.setAreaValue(ViewID.resultText, text);
+		if (this.options.onResultText) {
+			this.options.onResultText(text);
+		}
+		if (scroll) {
+			this.view.setAreaScrollTop(ViewID.resultText); // scroll to bottom
+		}
 	}
 
 	private loadExample() {
@@ -1514,8 +1516,8 @@ export class Controller implements IController {
 		}
 		const example = name;
 
-		if (Utils.debug > 0) {
-			Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
+		if (UiUtils.debug > 0) {
+			UiUtils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
 		}
 
 		const exampleEntry = this.model.getExample(example); // already loaded
@@ -1532,11 +1534,11 @@ export class Controller implements IController {
 			const databaseDir = this.model.getDatabase().src;
 
 			url = databaseDir + "/" + example + ".js";
-			Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
+			this.getLoadScript()(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
 		} else { // keep original example in this error case
 			url = example;
 			if (example !== "") { // only if not empty
-				Utils.console.warn("loadExample: Unknown file:", example);
+				UiUtils.console.warn("loadExample: Unknown file:", example);
 				const fnExampleError = this.createFnExampleError(example, url, inFile);
 
 				fnExampleError();
@@ -1563,7 +1565,7 @@ export class Controller implements IController {
 	];
 
 	private static tryLoadingFromLocalStorage(name: string) {
-		const storage = Utils.localStorage;
+		const storage = Controller.getLocalStorage();
 
 		let input: string | null = null;
 
@@ -1599,15 +1601,15 @@ export class Controller implements IController {
 
 			const name = inFile.name;
 
-			if (Utils.debug > 1) {
-				Utils.console.debug("fnFileLoad:", inFile.command, name, "details:", inFile);
+			if (UiUtils.debug > 1) {
+				UiUtils.console.debug("fnFileLoad:", inFile.command, name, "details:", inFile);
 			}
 
 			const input = Controller.tryLoadingFromLocalStorage(name);
 
 			if (input !== null) {
-				if (Utils.debug > 0) {
-					Utils.console.debug("fnFileLoad:", inFile.command, name, "from localStorage");
+				if (UiUtils.debug > 0) {
+					UiUtils.console.debug("fnFileLoad:", inFile.command, name, "from localStorage");
 				}
 				this.vm.vmStop("", 0, true);
 				this.loadFileContinue(input);
@@ -1615,7 +1617,7 @@ export class Controller implements IController {
 				this.loadExample(/* name */);
 			}
 		} else {
-			Utils.console.error("fnFileLoad:", inFile.name, "File not open!"); // hopefully isName is defined
+			UiUtils.console.error("fnFileLoad:", inFile.name, "File not open!"); // hopefully isName is defined
 		}
 		this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
 	}
@@ -1659,7 +1661,7 @@ export class Controller implements IController {
 
 	private fnFileSave() {
 		const outFile = this.vm.vmGetOutFileObject(),
-			storage = Utils.localStorage;
+			storage = Controller.getLocalStorage();
 		let	defaultExtension = "";
 
 		if (outFile.open) {
@@ -1693,8 +1695,8 @@ export class Controller implements IController {
 				outFile.length = fileData.length; // set length
 			}
 
-			if (Utils.debug > 0) {
-				Utils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
+			if (UiUtils.debug > 0) {
+				UiUtils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
 			}
 
 			const meta = FileHandler.joinMeta(outFile);
@@ -1706,12 +1708,12 @@ export class Controller implements IController {
 				try {
 					outFile.fnFileCallback(fileData); // close file
 				} catch (e) {
-					Utils.console.warn(e);
+					UiUtils.console.warn(e);
 				}
 			}
 			this.vm.vmResetOutFileHandling(); // make sure it is closed
 		} else {
-			Utils.console.error("fnFileSave: file not open!");
+			UiUtils.console.error("fnFileSave: file not open!");
 		}
 		this.vm.vmStop("", 0, true); // continue
 	}
@@ -1786,7 +1788,7 @@ export class Controller implements IController {
 		}
 
 		vm.vmStop("end", 0, true); // set "end" with priority 0, so that "compile only" still works
-		this.view.setAreaValue(ViewID.outputText, "");
+		this.setOutputText("");
 		this.invalidateScript();
 	}
 
@@ -1794,7 +1796,7 @@ export class Controller implements IController {
 		const stream = 0;
 		let shortError: string;
 
-		if (Utils.isCustomError(error)) {
+		if (UiUtils.isCustomError(error)) {
 			shortError = error.shortMessage || error.message;
 			if (!noSelection) {
 				const startPos = error.pos || 0,
@@ -1825,7 +1827,7 @@ export class Controller implements IController {
 		const output = basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
 
 		if (output.error) {
-			Utils.console.warn(output.error);
+			UiUtils.console.warn(output.error);
 			this.outputError(output.error);
 		} else {
 			this.fnPutChangedInputOnStack();
@@ -1889,7 +1891,7 @@ export class Controller implements IController {
 
 			output = this.codeGeneratorJs.generate(input, this.variables);
 			time = Date.now() - time;
-			Utils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
+			UiUtils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
 			if (output.error) {
 				break;
 			}
@@ -1926,20 +1928,20 @@ export class Controller implements IController {
 			// optional: tokenize to put tokens into memory...
 			const tokens = this.encodeTokenizedBasic(input);
 
-			if (Utils.debug) {
-				Utils.console.debug("parse: input length:", input.length, ", tokenized length:", tokens.length);
+			if (UiUtils.debug) {
+				UiUtils.console.debug("parse: input length:", input.length, ", tokenized length:", tokens.length);
 			}
 			try {
 				this.vm.vmPutProgramInMem(tokens);
 			} catch (e) {
-				Utils.console.error("vmPutProgramInMem", e);
+				UiUtils.console.error("vmPutProgramInMem", e);
 			}
 		}
 
 		if (outputString && outputString.length > 0) {
 			outputString += "\n";
 		}
-		this.view.setAreaValue(ViewID.outputText, outputString);
+		this.setOutputText(outputString);
 
 		this.invalidateScript();
 		this.setVarSelectOptions(ViewID.varSelect, this.variables);
@@ -1962,7 +1964,7 @@ export class Controller implements IController {
 			// for testing:
 			const diff = Diff.testDiff(input.toUpperCase(), output.toUpperCase());
 
-			this.view.setAreaValue(ViewID.outputText, diff);
+			this.setOutputText(diff);
 		}
 	}
 
@@ -2043,7 +2045,7 @@ export class Controller implements IController {
 			meta.encoding = "base64";
 			const metaString = FileHandler.joinMeta(meta);
 
-			data = metaString + "," + Utils.btoa(data);
+			data = metaString + "," + window.btoa(data);
 			name += ".b64.txt";
 		};
 
@@ -2093,7 +2095,7 @@ export class Controller implements IController {
 						meta.length = data.length;
 						meta.entry = 0;
 					} else {
-						Utils.console.warn("Controller: Cannot tokenize, keeping ASCII: " + item.value);
+						UiUtils.console.warn("Controller: Cannot tokenize, keeping ASCII: " + item.value);
 					}
 				}
 
@@ -2161,7 +2163,7 @@ export class Controller implements IController {
 			}
 			pos += columnNumber;
 
-			Utils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
+			UiUtils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
 
 			this.view.setAreaSelection(ViewID.outputText, pos, pos + 1);
 		}
@@ -2185,7 +2187,7 @@ export class Controller implements IController {
 			try {
 				this.fnScript = new Function("o", script); // eslint-disable-line no-new-func
 			} catch (e) {
-				Utils.console.error(e);
+				UiUtils.console.error(e);
 				if (e instanceof Error) {
 					this.selectJsError(script, e);
 					(e as CustomError).shortMessage = "JS " + String(e);
@@ -2222,8 +2224,8 @@ export class Controller implements IController {
 			}
 		}
 
-		if (Utils.debug > 1) {
-			Utils.console.debug("End of fnRun");
+		if (UiUtils.debug > 1) {
+			UiUtils.console.debug("End of fnRun");
 		}
 	}
 
@@ -2261,19 +2263,19 @@ export class Controller implements IController {
 						customError = this.vm.vmComposeError(customError, customError.errCode, customError.value);
 					}
 					if (!customError.hidden) {
-						Utils.console.warn(customError);
+						UiUtils.console.warn(customError);
 						this.outputError(customError, !customError.pos);
 					} else {
-						Utils.console.log(customError.message);
+						UiUtils.console.log(customError.message);
 					}
 				} else {
-					Utils.console.error(e);
+					UiUtils.console.error(e);
 					this.selectJsError(this.view.getAreaValue(ViewID.outputText), e);
 					this.vm.vmComposeError(e, 2, "JS " + String(e)); // generate Syntax Error, set also err and erl and set stop
 					this.outputError(e, true);
 				}
 			} else {
-				Utils.console.error(e);
+				UiUtils.console.error(e);
 			}
 		}
 	}
@@ -2290,8 +2292,8 @@ export class Controller implements IController {
 			const inputText = this.view.getAreaValue(ViewID.inputText);
 
 			if (!isNaN(Controller.parseLineNumber(input))) { // start with number?
-				if (Utils.debug > 0) {
-					Utils.console.debug("fnDirectInput: insert line=" + input);
+				if (UiUtils.debug > 0) {
+					UiUtils.console.debug("fnDirectInput: insert line=" + input);
 				}
 				input = this.mergeScripts(inputText, input);
 				this.setInputText(input, true);
@@ -2305,7 +2307,7 @@ export class Controller implements IController {
 				return false; // continue direct input
 			}
 
-			Utils.console.log("fnDirectInput: execute:", input);
+			UiUtils.console.log("fnDirectInput: execute:", input);
 
 			const codeGeneratorJs = this.codeGeneratorJs;
 			let	output: IOutput | undefined,
@@ -2340,7 +2342,7 @@ export class Controller implements IController {
 			if (outputString && outputString.length > 0) {
 				outputString += "\n";
 			}
-			this.view.setAreaValue(ViewID.outputText, outputString);
+			this.setOutputText(outputString);
 
 			if (!output.error) {
 				this.vm.vmSetStartLine(this.vm.line as number); // fast hack
@@ -2352,7 +2354,7 @@ export class Controller implements IController {
 					this.fnScript = fnScript;
 					this.vm.vmSetSourceMap(codeGeneratorJs.getSourceMap());
 				} catch (e) {
-					Utils.console.error(e);
+					UiUtils.console.error(e);
 					if (e instanceof Error) {
 						this.outputError(e, true);
 					}
@@ -2376,7 +2378,10 @@ export class Controller implements IController {
 	private startWithDirectInput() {
 		if (this.options.isHeadlessDirectInput) {
 			this.stopUpdateCanvas();
-			Utils.console.log("We are ready.");
+			UiUtils.console.log("We are ready.");
+			if (this.options.onProgramEnd) {
+				this.options.onProgramEnd();
+			}
 			return;
 		}
 
@@ -2407,11 +2412,7 @@ export class Controller implements IController {
 	private updateResultText() {
 		const outText = this.vm.vmGetOutBuffer();
 
-		this.view.setAreaValue(ViewID.resultText, outText);
-		if (this.options.onResultText) {
-			this.options.onResultText(outText);
-		}
-		this.view.setAreaScrollTop(ViewID.resultText); // scroll to bottom
+		this.setResultText(outText, true);
 	}
 
 	private exitLoop() {
@@ -2460,7 +2461,7 @@ export class Controller implements IController {
 		if (stop.reason in this.handlers) {
 			this.handlers[stop.reason].call(this, stop.paras);
 		} else {
-			Utils.console.warn("runLoop: Unknown run mode:", stop.reason);
+			UiUtils.console.warn("runLoop: Unknown run mode:", stop.reason);
 			this.vm.vmStop("error", 50);
 		}
 
@@ -2634,9 +2635,9 @@ export class Controller implements IController {
 				const value2 = this.vm.vmAssign(varType, value);
 
 				variables.setVariable(par, value2);
-				Utils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
+				UiUtils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
 			} catch (e) {
-				Utils.console.warn(e);
+				UiUtils.console.warn(e);
 			}
 		}
 		this.setVarSelectOptions(ViewID.varSelect, variables);
@@ -2779,7 +2780,7 @@ export class Controller implements IController {
 			if (opts.addr > addr) {
 				addr = opts.addr;
 			} else {
-				Utils.console.error("setDisassAddr: Not increasing:", addr, opts.addr);
+				UiUtils.console.error("setDisassAddr: Not increasing:", addr, opts.addr);
 				break;
 			}
 		}
@@ -3002,7 +3003,7 @@ export class Controller implements IController {
 			if (selectedName === key) {
 				this.model.getDatabase().loaded = true;
 			} else { // should not occur
-				Utils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
+				UiUtils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
 				this.model.setProperty(ModelPropID.database, key);
 				const database = this.model.getDatabase();
 
@@ -3012,7 +3013,7 @@ export class Controller implements IController {
 				this.model.setProperty(ModelPropID.database, selectedName);
 			}
 
-			Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
+			UiUtils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
 			this.setDirectorySelectOptions();
 			this.onDirectorySelectChange();
 		};
@@ -3020,11 +3021,11 @@ export class Controller implements IController {
 
 	private createFnDatabaseError(url: string) {
 		return (_sFullUrl: string, key: string) => {
-			Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
+			UiUtils.console.error("fnDatabaseError: database error: " + key + ": " + url);
 			this.setDirectorySelectOptions();
 			this.onDirectorySelectChange();
 			this.setInputText("");
-			this.view.setAreaValue(ViewID.resultText, "Cannot load database: " + key);
+			this.setResultText("Cannot load database: " + key);
 		};
 	}
 
@@ -3037,7 +3038,7 @@ export class Controller implements IController {
 		const database = this.model.getDatabase();
 
 		if (!database) {
-			Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
+			UiUtils.console.error("onDatabaseSelectChange: database not available:", databaseName);
 			return;
 		}
 
@@ -3054,7 +3055,7 @@ export class Controller implements IController {
 			const exampleIndex = this.model.getProperty<string>(ModelPropID.exampleIndex),
 				url = database.src + "/" + exampleIndex;
 
-			Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
+			this.getLoadScript()(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
 		}
 	}
 
@@ -3107,7 +3108,7 @@ export class Controller implements IController {
 
 	// currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
 	exportAsBase64(storageName: string): string { // eslint-disable-line class-methods-use-this
-		const storage = Utils.localStorage;
+		const storage = Controller.getLocalStorage();
 		let data = storage.getItem(storageName),
 			out = "";
 
@@ -3118,14 +3119,14 @@ export class Controller implements IController {
 				const meta = data.substring(0, index);
 
 				data = data.substring(index + 1);
-				data = Utils.btoa(data);
+				data = window.btoa(data);
 				out = meta + ";base64," + data;
 			} else { // hmm, no meta info
-				data = Utils.btoa(data);
+				data = window.btoa(data);
 				out = "base64," + data;
 			}
 		}
-		Utils.console.log(out);
+		UiUtils.console.log(out);
 		return out;
 	}
 
@@ -3230,6 +3231,6 @@ export class Controller implements IController {
 		parse: this.fnParse,
 		parseRun: this.fnParseRun,
 		reset: this.fnReset
-	}
+	};
 	/* eslint-enable no-invalid-this */
 }

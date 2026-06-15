@@ -24,7 +24,7 @@ module.exports = {
 		"array-bracket-newline": "error",
 		"array-bracket-spacing": "error",
 		"array-callback-return": "error",
-		"array-element-newline": "error",
+		"array-element-newline": "warn",
 		"arrow-body-style": "error",
 		"arrow-parens": "error",
 		"arrow-spacing": "error",
@@ -80,7 +80,7 @@ module.exports = {
 		"generator-star-spacing": "error",
 		"getter-return": "error",
 		"global-require": "error",
-		"guard-for-in": "error",
+		"guard-for-in": "off",
 		"handle-callback-err": "error",
 		"id-blacklist": "error",
 		"id-length": "off",
@@ -111,7 +111,7 @@ module.exports = {
 		"multiline-ternary": ["warn", "never"],
 		"new-cap": "error",
 		"new-parens": "error",
-		"newline-after-var": 1,
+		"newline-after-var": "off",
 		"newline-before-return": "off",
 		"newline-per-chained-call": "off",
 		"no-alert": "error",
@@ -234,7 +234,7 @@ module.exports = {
 		"no-with": "error",
 		"nonblock-statement-body-position": "error",
 		"object-curly-newline": [
-			"error",
+			"warn",
 			{
 				"ObjectExpression": {
 					"multiline": true,
@@ -260,9 +260,7 @@ module.exports = {
 		"one-var": [
 			"warn",
 			{
-				"var": "always",
-				"let": "consecutive",
-				"const": "consecutive"
+				"var": "always"
 			}
 		],
 		"one-var-declaration-per-line": "warn",
@@ -300,7 +298,7 @@ module.exports = {
 			}
 		],
 		"quotes": [
-			"warn",
+			"off",
 			"double",
 			{
 				"avoidEscape": true
@@ -374,7 +372,8 @@ module.exports = {
 				"varsIgnorePattern": "^_",
 				"caughtErrorsIgnorePattern": "^_"
 			}
-		]
+		],
+		"@typescript-eslint/no-explicit-any": "warn"
 	},
 	"overrides": [
 		{

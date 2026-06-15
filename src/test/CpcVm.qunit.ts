@@ -3,10 +3,11 @@
 
 import { Utils } from "../Utils";
 import { CpcVm, CpcVmOptions, FileMeta } from "../CpcVm";
-import { ICanvas, VmInputParas } from "../Interfaces";
-import { Keyboard } from "../Keyboard";
+import type { VmInputParas } from "../Interfaces";
+import type { ICanvas } from "../ui/UiInterfaces";
+import { Keyboard } from "../ui/Keyboard";
 import { Random } from "../Random";
-import { Sound } from "../Sound";
+import { Sound } from "../ui/Sound";
 import { Variables } from "../Variables";
 import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
 

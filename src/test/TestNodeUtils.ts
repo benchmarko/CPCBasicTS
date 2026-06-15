@@ -1,4 +1,5 @@
-import { LoadScriptFn, Utils } from "../Utils";
+import { Utils } from "../Utils";
+import type { LoadScriptFn } from "../Interfaces";
 
 interface NodeHttps {
 	get: (url: string, fn: (res: any) => void) => any
@@ -41,7 +42,7 @@ export class TestNodeUtils {
 		return s.startsWith("http"); // http or https
 	}
 
-	static readonly loadScript: LoadScriptFn = (fileOrUrl, fnSuccess, _fnError, key) => {
+	public static readonly loadScript: LoadScriptFn = (fileOrUrl: string, fnSuccess: (url2: string, key: string) => void, _fnError, key: string) => {
 		const fnLoaded = (error: Error | undefined, data?: string) => {
 			if (error) {
 				Utils.console.error("file error: ", error);
@@ -59,7 +60,25 @@ export class TestNodeUtils {
 		}
 	};
 
+	/*
 	static setLoadScriptForNode() {
 		Utils.setLoadScript(TestNodeUtils.loadScript);
+	}
+	*/
+
+	// https://dirask.com/posts/Node-js-atob-btoa-functions-equivalents-1Aqb51
+	public static atob(input: string) { // decode
+		return Buffer.from(input, "base64").toString("binary");
+	}
+
+	public static btoa(input: string) { // encode
+		return Buffer.from(input, "binary").toString("base64");
+	}
+
+	public static isNodeRuntime() {
+		// eslint-disable-next-line no-new-func
+		const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
+
+		return Boolean(myGlobalThis.process);
 	}
 }

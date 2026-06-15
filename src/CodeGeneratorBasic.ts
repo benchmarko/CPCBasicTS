@@ -4,10 +4,10 @@
 //
 //
 
-import { Utils, CustomError } from "./Utils";
+import { Utils } from "./Utils";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser"; // BasicParser just for keyword definitions
-import { IOutput } from "./Interfaces";
+import type { CustomError, IOutput } from "./Interfaces";
 
 interface CodeGeneratorBasicOptions {
 	lexer: BasicLexer

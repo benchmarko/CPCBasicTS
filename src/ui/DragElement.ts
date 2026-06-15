@@ -4,7 +4,7 @@
 //
 
 import { ViewID } from "./Constants";
-import { Utils } from "./Utils";
+import { UiUtils } from "./UiUtils";
 import { View } from "./View";
 
 // see also:
@@ -96,8 +96,8 @@ export class DragElement {
 		this.initialY = clientObject.clientY - dragInfo.yOffset;
 
 		this.options.view.fnAttachPointerEvents(this.containerId, undefined, this.fnDragMoveHandler, this.fnDragEndHandler);
-		if (Utils.debug > 0) {
-			Utils.console.debug("dragStart: " + dragInfo.itemId + ": x=" + this.initialX + ", y=" + this.initialY);
+		if (UiUtils.debug > 0) {
+			UiUtils.console.debug("dragStart: " + dragInfo.itemId + ": x=" + this.initialX + ", y=" + this.initialY);
 		}
 	}
 
@@ -126,8 +126,8 @@ export class DragElement {
 
 		if (dragInfo) {
 			this.options.view.fnDetachPointerEvents(this.containerId, undefined, this.fnDragMoveHandler, this.fnDragEndHandler);
-			if (Utils.debug > 0) {
-				Utils.console.debug("dragEnd: " + dragInfo.itemId + ": x=" + this.currentX + ", y=" + this.currentY);
+			if (UiUtils.debug > 0) {
+				UiUtils.console.debug("dragEnd: " + dragInfo.itemId + ": x=" + this.currentX + ", y=" + this.currentY);
 			}
 		}
 	}

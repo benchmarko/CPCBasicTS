@@ -1,18 +1,16 @@
-import "../Polyfills";
+import "./Polyfills";
+import { UI } from "./UI";
 
 import { cpcBasic, CpcBasicStartupAdapter } from "../cpcbasic";
-import { Utils } from "../Utils";
-import { UiUtils } from "./UiUtils";
+import type { ConfigType } from "../Interfaces";
 
 const uiStartupAdapter: CpcBasicStartupAdapter = {
-	getConfigOverrides: () => window.cpcConfig || {},
-	getUrlQuery: () => window.location.search.substring(1),
+	getConfigOverrides: () => ({} as Partial<ConfigType>), //TODO window?.cpcConfig || {},
 	getArgs: () => [],
-	isNodeRuntime: () => false
+	getUI: () => new UI(),
+	isNodeRuntime: () => false,
+	getNodeUtils: () => undefined
 };
-
-window.cpcBasic = cpcBasic;
-Utils.setLoadScript(UiUtils.loadScript);
 
 window.onload = () => {
 	cpcBasic.start(uiStartupAdapter);

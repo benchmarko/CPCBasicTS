@@ -1,4 +1,12 @@
-import { LoadScriptFn, Utils } from "../Utils";
+import { Utils } from "../Utils";
+import type { LoadScriptFn } from "../Interfaces";
+
+interface PolyfillProperties {
+	atob: typeof window.atob;
+	getList: () => string[];
+}
+
+declare const Polyfills: PolyfillProperties | undefined;
 
 export class TestUiUtils {
 	private static fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement, fnSuccess: (url: string, key: string) => void, fnError: (url: string, key: string) => void) {
@@ -63,7 +71,7 @@ export class TestUiUtils {
 		document.getElementsByTagName("head")[0].appendChild(script);
 	}
 
-	static readonly loadScript: LoadScriptFn = (url, fnSuccess, fnError, key) => {
+	static readonly loadScript: LoadScriptFn = (url: string, fnSuccess: (url2: string, key: string) => void, fnError: (url2: string, key: string) => void, key: string) => {
 		const script = document.createElement("script");
 
 		script.type = "text/javascript";
@@ -74,4 +82,14 @@ export class TestUiUtils {
 
 		TestUiUtils.fnLoadScriptOrStyle(script, fnSuccess, fnError);
 	};
+
+	public static atob(s: string): string {
+		const atobFn = typeof Polyfills !== "undefined" ? Polyfills.atob : window.atob;
+		return atobFn(s);
+	}
+
+	public static getPolyfills() {
+		const polyfills = typeof Polyfills !== "undefined" ? Polyfills.getList() : [];
+		return polyfills;
+	}
 }

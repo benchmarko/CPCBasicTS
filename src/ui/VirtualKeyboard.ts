@@ -4,7 +4,7 @@
 //
 
 import { ViewID } from "./Constants";
-import { Utils } from "./Utils";
+import { UiUtils } from "./UiUtils";
 import { PressReleaseCpcKey } from "./Keyboard";
 import { View, PointerEventNamesType } from "./View";
 
@@ -766,8 +766,8 @@ export class VirtualKeyboard {
 		const node = View.getEventTarget<HTMLElement>(event),
 			cpcKey = node.getAttribute("data-key");
 
-		if (Utils.debug > 1) {
-			Utils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
+		if (UiUtils.debug > 1) {
+			UiUtils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
 		}
 
 		if (cpcKey !== null) {
@@ -819,8 +819,8 @@ export class VirtualKeyboard {
 	private onVirtualKeyboardKeyupOrKeyout(event: PointerEvent) {
 		const node = View.getEventTarget<HTMLElement>(event);
 
-		if (Utils.debug > 1) {
-			Utils.console.debug("onVirtualKeyboardKeyupOrKeyout: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
+		if (UiUtils.debug > 1) {
+			UiUtils.console.debug("onVirtualKeyboardKeyupOrKeyout: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
 		}
 
 		this.fnVirtualKeyboardKeyupOrKeyout(event);
@@ -868,7 +868,7 @@ export class VirtualKeyboard {
 			} else if (event.type === "keyup") {
 				this.onVirtualKeyboardKeyupOrKeyout(simPointerEvent);
 			} else {
-				Utils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
+				UiUtils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
 			}
 			event.preventDefault();
 			return false;

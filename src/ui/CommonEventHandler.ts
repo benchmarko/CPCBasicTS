@@ -3,13 +3,13 @@
 // https://benchmarko.github.io/CPCBasicTS/
 
 import { ModelPropID, ViewID } from "./Constants";
-import { Utils } from "./Utils";
-import { IController } from "./Interfaces";
-import { Model, ConfigType } from "./Model";
+import { UiUtils } from "./UiUtils";
+import type { ConfigType, IModel } from "../Interfaces";
+import type { IController } from "./UiInterfaces";
 import { View } from "./View";
 
 interface CommonEventHandlerOptions {
-	model: Model,
+	model: IModel,
 	view: View,
 	controller: IController
 }
@@ -31,7 +31,7 @@ type EventDefMapType = Record<string, EventDefType[]>;
 export class CommonEventHandler implements EventListenerObject {
 	private readonly options: CommonEventHandlerOptions;
 
-	private readonly model: Model;
+	private readonly model: IModel;
 	private readonly view: View;
 	private readonly controller: IController;
 
@@ -69,8 +69,8 @@ export class CommonEventHandler implements EventListenerObject {
 				const isEnabled = this.model.getProperty<boolean>(eventDef.property);
 
 				this.view.setHidden(eventDef.toggleId, !isEnabled, eventDef.display);
-				if (Utils.debug > 3) {
-					Utils.console.debug("initToggles: setHidden: togglId:", eventDef.toggleId, ", property:", eventDef.property, ", hidden:", !isEnabled, ", display:", eventDef.display);
+				if (UiUtils.debug > 3) {
+					UiUtils.console.debug("initToggles: setHidden: togglId:", eventDef.toggleId, ", property:", eventDef.property, ", hidden:", !isEnabled, ", display:", eventDef.display);
 				}
 			}
 
@@ -78,22 +78,22 @@ export class CommonEventHandler implements EventListenerObject {
 				const isEnabled2 = this.model.getProperty<boolean>(eventDef.property);
 
 				this.view.setInputChecked(id, isEnabled2);
-				if (Utils.debug > 3) {
-					Utils.console.debug("initToggles: checked: id:", id, ", property:", eventDef.property, ", checked:", isEnabled2);
+				if (UiUtils.debug > 3) {
+					UiUtils.console.debug("initToggles: checked: id:", id, ", property:", eventDef.property, ", checked:", isEnabled2);
 				}
 			} else if (eventDef.viewType === "select") {
 				const value = this.model.getProperty<string>(eventDef.property);
 
 				this.view.setSelectValue(id, value);
-				if (Utils.debug > 3) {
-					Utils.console.debug("initToggles: select: id:", id, ", property:", eventDef.property, ", value:", value);
+				if (UiUtils.debug > 3) {
+					UiUtils.console.debug("initToggles: select: id:", id, ", property:", eventDef.property, ", value:", value);
 				}
 			} else if (eventDef.viewType === "numberInput") {
 				const value = this.model.getProperty<number>(eventDef.property);
 
 				this.view.setInputValue(id, String(value));
-				if (Utils.debug > 3) {
-					Utils.console.debug("initToggles: numberInput: id:", id, ", property:", eventDef.property, ", value:", value);
+				if (UiUtils.debug > 3) {
+					UiUtils.console.debug("initToggles: numberInput: id:", id, ", property:", eventDef.property, ", value:", value);
 				}
 			}
 		}
@@ -119,7 +119,7 @@ export class CommonEventHandler implements EventListenerObject {
 
 	private static getToggleId(eventDef: EventDefType) {
 		if (!eventDef.toggleId) {
-			Utils.console.error("getToggleId: id=" + eventDef.id + ": toggleId missing!");
+			UiUtils.console.error("getToggleId: id=" + eventDef.id + ": toggleId missing!");
 			return "" as ViewID; //TTT
 		}
 		return eventDef.toggleId;
@@ -127,7 +127,7 @@ export class CommonEventHandler implements EventListenerObject {
 
 	private static getproperty(eventDef: EventDefType) {
 		if (!eventDef.property) {
-			Utils.console.error("setPopoversHiddenExcept: id=" + eventDef.id + ": property missing!");
+			UiUtils.console.error("setPopoversHiddenExcept: id=" + eventDef.id + ": property missing!");
 			return "" as ModelPropID; //TTT
 		}
 		return eventDef.property;
@@ -181,7 +181,7 @@ export class CommonEventHandler implements EventListenerObject {
 			eventDef = eventDefForType[id];
 
 		if (!eventDef) {
-			Utils.console.error("getEventDefById: type=" + type + ", id=" + id + ": No eventDef!");
+			UiUtils.console.error("getEventDefById: type=" + type + ", id=" + id + ": No eventDef!");
 		}
 		return eventDef;
 	}
@@ -285,7 +285,7 @@ export class CommonEventHandler implements EventListenerObject {
 		if (window.navigator && window.navigator.clipboard) {
 			window.navigator.clipboard.writeText(textText.value);
 		} else {
-			Utils.console.warn("Copy to clipboard not available");
+			UiUtils.console.warn("Copy to clipboard not available");
 		}
 	}
 
@@ -349,7 +349,7 @@ export class CommonEventHandler implements EventListenerObject {
 	private onDebugInputChange(eventDef: EventDefType) {
 		const value = this.onNumberInputChange(eventDef);
 
-		Utils.debug = value;
+		UiUtils.debug = value;
 	}
 
 	private onDragElementsInputChange(eventDef: EventDefType) {
@@ -412,14 +412,14 @@ export class CommonEventHandler implements EventListenerObject {
 			// for ViewID.textText (textArea), we use the surrounding div...
 			id = ViewID.textCanvasDiv;
 		} else {
-			Utils.console.warn("Fullscreen only possible for graphics or text canvas");
+			UiUtils.console.warn("Fullscreen only possible for graphics or text canvas");
 			return;
 		}
 
 		const switched = this.view.requestFullscreenForId(id); // make sure to use an element with tabindex set to get keyboard events
 
 		if (!switched) {
-			Utils.console.warn("Switch to fullscreen not available");
+			UiUtils.console.warn("Switch to fullscreen not available");
 		}
 	}
 
@@ -849,8 +849,8 @@ export class CommonEventHandler implements EventListenerObject {
 			if (this.eventDefInternalMap[type] && this.eventDefInternalMap[type][id as ViewID]) {
 				const eventDef = this.eventDefInternalMap[type][id as ViewID];
 
-				if (Utils.debug) {
-					Utils.console.debug("handleEvent: " + type + ", " + id + ":", eventDef);
+				if (UiUtils.debug) {
+					UiUtils.console.debug("handleEvent: " + type + ", " + id + ":", eventDef);
 				}
 				if (eventDef.func) {
 					eventDef.func.call(this, eventDef, event);
@@ -859,10 +859,10 @@ export class CommonEventHandler implements EventListenerObject {
 					eventDef.controllerFunc.call(this.controller, eventDef, event);
 				}
 			} else if (!id.endsWith("Select") && !id.endsWith("Input")) { // do not print all messages; these are usually handled by change
-				Utils.console.log("handleEvent: " + type + ", " + id + ": No handler");
+				UiUtils.console.log("handleEvent: " + type + ", " + id + ": No handler");
 			}
-		} else if (Utils.debug) {
-			Utils.console.log("handleEvent: " + type + ": unknown target:", target.tagName, target.id);
+		} else if (UiUtils.debug) {
+			UiUtils.console.log("handleEvent: " + type + ": unknown target:", target.tagName, target.id);
 		}
 
 		if (type === "click") { // special

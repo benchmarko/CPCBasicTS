@@ -4,7 +4,7 @@
 //
 
 import { ViewID } from "./Constants";
-import { Utils } from "./Utils";
+import { UiUtils } from "./UiUtils";
 
 export interface SelectOptionElement { // similar to HtmlOptionElement
 	value: string,
@@ -54,7 +54,7 @@ export class View {
 	setHidden(id: ViewID, hidden: boolean, display?: string): this { // eslint-disable-line class-methods-use-this
 		// optional display: block or flex or inherit
 		const element = View.getElementById1(id),
-			displayVisible = "display" + Utils.stringCapitalize(display || "block");
+			displayVisible = "display" + UiUtils.stringCapitalize(display || "block");
 
 		if (hidden) {
 			if (element.className.indexOf("displayNone") < 0) {
@@ -162,8 +162,8 @@ export class View {
 			} else {
 				input = childNodes[i * 2] as HTMLInputElement;
 				if (input.value !== item.value) {
-					if (Utils.debug > 3) {
-						Utils.console.debug("setInputList: " + id + ": value changed for index " + i + ": " + item.value);
+					if (UiUtils.debug > 3) {
+						UiUtils.console.debug("setInputList: " + id + ": value changed for index " + i + ": " + item.value);
 					}
 					input.value = item.value;
 					label = childNodes[i * 2 + 1] as HTMLLabelElement;
@@ -210,8 +210,8 @@ export class View {
 					option.value = item.value;
 				}
 				if (option.text !== item.text) {
-					if (Utils.debug > 3) {
-						Utils.console.debug("setSelectOptions: " + id + ": text changed for index " + i + ": " + item.text);
+					if (UiUtils.debug > 3) {
+						UiUtils.console.debug("setSelectOptions: " + id + ": text changed for index " + i + ": " + item.text);
 					}
 					option.text = item.text;
 					option.title = item.title;
@@ -325,8 +325,8 @@ export class View {
 	}
 
 	addEventListenerById(type: string, eventListener: EventListenerOrEventListenerObject, id: ViewID): this {
-		if (Utils.debug) {
-			Utils.console.debug("addEventListenerById: type=" + type + ", id=" + id);
+		if (UiUtils.debug) {
+			UiUtils.console.debug("addEventListenerById: type=" + type + ", id=" + id);
 		}
 		const element = id === ViewID.window ? undefined : View.getElementById1(id);
 
@@ -344,8 +344,8 @@ export class View {
 	}
 
 	removeEventListenerById(type: string, eventListener: EventListenerOrEventListenerObject, id: ViewID): this {
-		if (Utils.debug) {
-			Utils.console.debug("removeEventListener: type=" + type + ", id=" + id);
+		if (UiUtils.debug) {
+			UiUtils.console.debug("removeEventListener: type=" + type + ", id=" + id);
 		}
 		const element = id === ViewID.window ? undefined : View.getElementById1(id);
 
@@ -435,7 +435,7 @@ export class View {
 		const target = event.target || event.srcElement; // target, not currentTarget; srcElement for IE8
 
 		if (!target) {
-			Utils.console.error("getEventTarget: Undefined event target: " + target);
+			UiUtils.console.error("getEventTarget: Undefined event target: " + target);
 		}
 		return target as T;
 	}
@@ -449,12 +449,12 @@ export class View {
 				const target = View.getEventTarget(event);
 
 				if (View.getDocument().fullscreenElement) {
-					if (Utils.debug > 0) {
-						Utils.console.debug("Entered fullscreen mode: " + View.getDocument().fullscreenElement.id);
+					if (UiUtils.debug > 0) {
+						UiUtils.console.debug("Entered fullscreen mode: " + View.getDocument().fullscreenElement.id);
 					}
 				} else {
-					if (Utils.debug > 0) {
-						Utils.console.debug("Leaving fullscreen mode.");
+					if (UiUtils.debug > 0) {
+						UiUtils.console.debug("Leaving fullscreen mode.");
 					}
 					that.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
 
@@ -471,12 +471,12 @@ export class View {
 
 			if (promise) {
 				promise.then(function () {
-					if (Utils.debug > 0) {
-						Utils.console.debug("requestFullscreenForId: " + id + ": success");
+					if (UiUtils.debug > 0) {
+						UiUtils.console.debug("requestFullscreenForId: " + id + ": success");
 					}
 					that.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
 				}).catch(function (err: unknown) {
-					Utils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
+					UiUtils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
 				});
 			}
 		} else if (typeof (window as any).ActiveXObject !== "undefined") { // older IE
@@ -494,11 +494,11 @@ export class View {
 	// https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
 	fnDownloadBlob(data: string, filename: string): void {
 		if (typeof Blob === "undefined") {
-			Utils.console.warn("fnDownloadBlob: Blob undefined");
+			UiUtils.console.warn("fnDownloadBlob: Blob undefined");
 			return;
 		}
 
-		const data8 = Utils.string2Uint8Array(data),
+		const data8 = UiUtils.string2Uint8Array(data),
 			type = "octet/stream",
 			blob = new Blob([data8.buffer as ArrayBuffer], {
 				type: type

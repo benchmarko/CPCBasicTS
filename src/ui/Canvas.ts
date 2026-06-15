@@ -5,9 +5,9 @@
 /* globals ArrayBuffer, Uint8Array, Uint32Array */
 
 import { ViewID } from "./Constants";
-import { Utils } from "./Utils";
+import { Utils } from "../Utils";
 import { View } from "./View";
-import { CanvasOptions, ICanvas, CanvasCharType } from "./Interfaces";
+import type { CanvasOptions, ICanvas, CanvasCharType } from "./UiInterfaces";
 
 interface ModeData {
 	pens: number // number of pens

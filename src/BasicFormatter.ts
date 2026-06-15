@@ -4,10 +4,10 @@
 //
 //
 
-import { Utils, CustomError } from "./Utils";
+import { Utils } from "./Utils";
+import type { CustomError, IOutput } from "./Interfaces";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser";
-import { IOutput } from "./Interfaces";
 
 interface BasicFormatterOptions {
 	lexer: BasicLexer

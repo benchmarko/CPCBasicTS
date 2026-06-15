@@ -3,7 +3,7 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-import { RsxCommandType, ICpcVm, ICpcVmRsx } from "./Interfaces";
+import type { RsxCommandType, ICpcVm, ICpcVmRsx } from "./Interfaces";
 
 export class CpcVmRsx {
 	private readonly rsxPermanent: Record<string, RsxCommandType> = {};

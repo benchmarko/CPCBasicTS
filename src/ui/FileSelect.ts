@@ -3,7 +3,7 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-import { Utils } from "./Utils";
+import { UiUtils } from "./UiUtils";
 import { View } from "./View";
 
 
@@ -50,7 +50,7 @@ export class FileSelect {
 				lastModifiedDate = lastModified ? new Date(lastModified) : (file as any).lastModifiedDate as Date, // lastModifiedDate deprecated, but for old IE
 				text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
 
-			Utils.console.log(text);
+			UiUtils.console.log(text);
 			if (file.type === "text/plain") {
 				reader.readAsText(file);
 			} else if (file.type === "application/x-zip-compressed" || file.type === "application/zip") { // on Mac OS it is "application/zip"
@@ -66,7 +66,7 @@ export class FileSelect {
 
 	private fnOnLoad(event: ProgressEvent<FileReader>) {
 		if (!this.file) {
-			Utils.console.error("fnOnLoad: Programming error: No file");
+			UiUtils.console.error("fnOnLoad: Programming error: No file");
 			return;
 		}
 		const file = this.file,
@@ -91,7 +91,7 @@ export class FileSelect {
 					// remove meta prefix
 					data = data.substring(index + 1);
 					if (info1.indexOf("base64") >= 0) {
-						data = Utils.atob(data); // decode base64
+						data = window.atob(data); // decode base64
 					}
 					if (info1.indexOf("text/") >= 0) {
 						type = "A";
@@ -100,7 +100,7 @@ export class FileSelect {
 			}
 			this.options.fnLoad2(data, name, type, this.imported);
 		} else {
-			Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
+			UiUtils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
 		}
 
 		if (reader) {
@@ -117,7 +117,7 @@ export class FileSelect {
 			msg += ": " + String(reader.error);
 		}
 
-		Utils.console.error(msg);
+		UiUtils.console.error(msg);
 
 		if (reader) {
 			this.fnReadNextFile(reader);
@@ -134,7 +134,7 @@ export class FileSelect {
 			files = dataTransfer ? dataTransfer.files : View.getEventTarget<HTMLInputElement>(event).files; // dataTransfer for drag&drop, target.files for file input
 
 		if (!files || !files.length) {
-			Utils.console.error("fnHandleFileSelect: No files!");
+			UiUtils.console.error("fnHandleFileSelect: No files!");
 			return;
 		}
 		this.files = files;
@@ -148,7 +148,7 @@ export class FileSelect {
 			reader.onload = this.fnOnLoadHandler;
 			this.fnReadNextFile(reader);
 		} else {
-			Utils.console.warn("fnHandleFileSelect: FileReader API not supported.");
+			UiUtils.console.warn("fnHandleFileSelect: FileReader API not supported.");
 		}
 	}
 
