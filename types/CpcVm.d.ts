@@ -1,8 +1,8 @@
-import { CustomError } from "./Utils";
-import { ICpcVm, ICanvas, VariableValue, VmStopParas, ICpcVmRsx } from "./Interfaces";
-import { Keyboard } from "./Keyboard";
+import type { CustomError, ICpcVm, VariableValue, VmStopParas, ICpcVmRsx } from "./Interfaces";
+import type { ICanvas } from "./ui/UiInterfaces";
+import { Keyboard } from "./ui/Keyboard";
 import { Random } from "./Random";
-import { Sound, SoundData } from "./Sound";
+import { Sound, SoundData } from "./ui/Sound";
 import { Variables, VariableMap, VariableTypeMap } from "./Variables";
 export interface CpcVmOptions {
     canvas: ICanvas;

@@ -166,76 +166,15 @@
 	  return ViewID2;
 	})(ViewID || {});
 
-	const Polyfills = window.Polyfills;
 	const _Utils = class _Utils {
-	  static fnLoadScriptOrStyle(script, fnSuccess, fnError) {
-	    let ieTimeoutCount = 3;
-	    const onScriptLoad = function(event) {
-	      const type = event.type, node = event.currentTarget || event.srcElement, fullUrl = node.src || node.href, key = node.getAttribute("data-key");
-	      if (_Utils.debug > 1) {
-	        _Utils.console.debug("onScriptLoad:", type, fullUrl, key);
-	      }
-	      node.removeEventListener("load", onScriptLoad, false);
-	      node.removeEventListener("error", onScriptLoad, false);
-	      if (type === "load") {
-	        fnSuccess(fullUrl, key);
-	      } else {
-	        fnError(fullUrl, key);
-	      }
-	    }, onScriptReadyStateChange = function(event) {
-	      const node = event ? event.currentTarget || event.srcElement : script, fullUrl = node.src || node.href, key = node.getAttribute("data-key"), node2 = node;
-	      if (node2.detachEvent) {
-	        node2.detachEvent("onreadystatechange", onScriptReadyStateChange);
-	      }
-	      if (_Utils.debug > 1) {
-	        _Utils.console.debug("onScriptReadyStateChange: " + fullUrl);
-	      }
-	      if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
-	        if (node2.readyState === "loading" && ieTimeoutCount) {
-	          ieTimeoutCount -= 1;
-	          const timeout = 200;
-	          _Utils.console.error("onScriptReadyStateChange: Still loading: " + fullUrl + " Waiting " + timeout + "ms (count=" + ieTimeoutCount + ")");
-	          setTimeout(function() {
-	            onScriptReadyStateChange();
-	          }, timeout);
-	        } else {
-	          _Utils.console.error("onScriptReadyStateChange: Cannot load file " + fullUrl + " readystate=" + node2.readyState);
-	          fnError(fullUrl, key);
-	        }
-	      } else {
-	        fnSuccess(fullUrl, key);
-	      }
-	    };
-	    if (script.readyState) {
-	      ieTimeoutCount = 3;
-	      script.attachEvent("onreadystatechange", onScriptReadyStateChange);
-	    } else {
-	      script.addEventListener("load", onScriptLoad, false);
-	      script.addEventListener("error", onScriptLoad, false);
-	    }
-	    document.getElementsByTagName("head")[0].appendChild(script);
-	  }
-	  static loadScript(url, fnSuccess, fnError, key) {
-	    const script = document.createElement("script");
-	    script.type = "text/javascript";
-	    script.charset = "utf-8";
-	    script.async = true;
-	    script.src = url;
-	    script.setAttribute("data-key", key);
-	    this.fnLoadScriptOrStyle(script, fnSuccess, fnError);
+	  static setDebug(debug) {
+	    _Utils.debug = debug;
 	  }
 	  static hexEscape(str) {
 	    return str.replace(/[\x00-\x1f]/g, function(char) {
 	      return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
 	    });
 	  }
-	  /*
-	  static hexUnescape(str: string): string {
-	  	return str.replace(/\\x([0-9A-Fa-f]{2})/g, function () {
-	  		return String.fromCharCode(parseInt(arguments[1], 16));
-	  	});
-	  }
-	  */
 	  static dateFormat(d) {
 	    return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);
 	  }
@@ -327,22 +266,139 @@
 	  }
 	};
 	_Utils.debug = 0;
-	_Utils.console = Polyfills.console;
+	_Utils.console = console;
 	_Utils.supportsBinaryLiterals = _Utils.testIsSupported("0b01");
 	// does the browser support binary literals?
 	_Utils.supportReservedNames = _Utils.testIsSupported("({}).return()");
-	_Utils.localStorage = Polyfills.localStorage || window.localStorage;
-	_Utils.atob = function(data) {
-	  return window.atob(data);
-	};
-	_Utils.btoa = function(data) {
-	  return window.btoa(data);
-	};
 	let Utils = _Utils;
 
+	const _UiUtils = class _UiUtils {
+	  static setDebug(debug) {
+	    _UiUtils.debug = debug;
+	  }
+	  static fnLoadScriptOrStyle(script, fnSuccess, fnError) {
+	    let ieTimeoutCount = 3;
+	    const onScriptLoad = function(event) {
+	      const type = event.type, node = event.currentTarget || event.srcElement, fullUrl = node.src || node.href, key = node.getAttribute("data-key");
+	      if (_UiUtils.debug > 1) {
+	        console.debug("onScriptLoad:", type, fullUrl, key);
+	      }
+	      node.removeEventListener("load", onScriptLoad, false);
+	      node.removeEventListener("error", onScriptLoad, false);
+	      if (type === "load") {
+	        fnSuccess(fullUrl, key);
+	      } else {
+	        fnError(fullUrl, key);
+	      }
+	    }, onScriptReadyStateChange = function(event) {
+	      const node = event ? event.currentTarget || event.srcElement : script, fullUrl = node.src || node.href, key = node.getAttribute("data-key"), node2 = node;
+	      if (node2.detachEvent) {
+	        node2.detachEvent("onreadystatechange", onScriptReadyStateChange);
+	      }
+	      if (_UiUtils.debug > 1) {
+	        console.debug("onScriptReadyStateChange: " + fullUrl);
+	      }
+	      if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
+	        if (node2.readyState === "loading" && ieTimeoutCount) {
+	          ieTimeoutCount -= 1;
+	          const timeout = 200;
+	          console.error("onScriptReadyStateChange: Still loading: " + fullUrl + " Waiting " + timeout + "ms (count=" + ieTimeoutCount + ")");
+	          setTimeout(function() {
+	            onScriptReadyStateChange();
+	          }, timeout);
+	        } else {
+	          console.error("onScriptReadyStateChange: Cannot load file " + fullUrl + " readystate=" + node2.readyState);
+	          fnError(fullUrl, key);
+	        }
+	      } else {
+	        fnSuccess(fullUrl, key);
+	      }
+	    };
+	    if (script.readyState) {
+	      ieTimeoutCount = 3;
+	      script.attachEvent("onreadystatechange", onScriptReadyStateChange);
+	    } else {
+	      script.addEventListener("load", onScriptLoad, false);
+	      script.addEventListener("error", onScriptLoad, false);
+	    }
+	    document.getElementsByTagName("head")[0].appendChild(script);
+	  }
+	  static stringCapitalize(str) {
+	    return str.charAt(0).toUpperCase() + str.substring(1);
+	  }
+	  static stringTrimEnd(str) {
+	    return str.replace(/[\s\uFEFF\xA0]+$/, "");
+	  }
+	  static string2Uint8Array(data) {
+	    const buf = new ArrayBuffer(data.length), view = new Uint8Array(buf);
+	    for (let i = 0; i < data.length; i += 1) {
+	      view[i] = data.charCodeAt(i);
+	    }
+	    return view;
+	  }
+	  static isCustomError(e) {
+	    return e.pos !== void 0;
+	  }
+	  static uint8Array2string(data) {
+	    const callSize = 25e3;
+	    let len = data.length, offset = 0, out = "";
+	    while (len) {
+	      const chunkLen = Math.min(len, callSize), chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen);
+	      out += String.fromCharCode.apply(null, chunk);
+	      offset += chunkLen;
+	      len -= chunkLen;
+	    }
+	    return out;
+	  }
+	  static composeError(name, errorObject, message, value, pos, len, line, hidden) {
+	    const customError = errorObject;
+	    customError.name = name;
+	    customError.message = message;
+	    customError.value = value;
+	    if (pos !== void 0) {
+	      customError.pos = pos;
+	    }
+	    if (len !== void 0) {
+	      customError.len = len;
+	    }
+	    if (line !== customError.line) {
+	      customError.line = line;
+	    }
+	    if (hidden !== void 0) {
+	      customError.hidden = hidden;
+	    }
+	    let errorLen = customError.len;
+	    if (errorLen === void 0 && customError.value !== void 0) {
+	      errorLen = String(customError.value).length;
+	    }
+	    const endPos = (customError.pos || 0) + (errorLen || 0), lineMsg = customError.line !== void 0 ? " in " + customError.line : "", posMsg = pos !== void 0 ? " at pos " + (pos !== endPos ? customError.pos + "-" + endPos : customError.pos) : "";
+	    customError.shortMessage = customError.message + (lineMsg || posMsg) + ": " + customError.value;
+	    customError.message += lineMsg + posMsg + ": " + customError.value;
+	    return customError;
+	  }
+	};
+	_UiUtils.debug = 0;
+	_UiUtils.console = console;
+	_UiUtils.loadScript = (url, fnSuccess, fnError, key) => {
+	  const script = document.createElement("script");
+	  script.type = "text/javascript";
+	  script.charset = "utf-8";
+	  script.async = true;
+	  script.src = url;
+	  script.setAttribute("data-key", key);
+	  _UiUtils.fnLoadScriptOrStyle(script, fnSuccess, fnError);
+	};
+	let UiUtils = _UiUtils;
+
 	const _View = class _View {
+	  static setDocument(doc) {
+	    _View.myDocument = doc;
+	  }
+	  static getDocument() {
+	    return _View.myDocument;
+	  }
 	  static getElementById1(id) {
-	    const element = window.document.getElementById(id);
+	    const element = _View.getDocument().getElementById(id);
 	    if (!element) {
 	      throw new Error("Unknown " + id);
 	    }
@@ -356,7 +412,7 @@
 	    return element.className.indexOf("displayNone") >= 0;
 	  }
 	  setHidden(id, hidden, display) {
-	    const element = _View.getElementById1(id), displayVisible = "display" + Utils.stringCapitalize(display || "block");
+	    const element = _View.getElementById1(id), displayVisible = "display" + UiUtils.stringCapitalize(display || "block");
 	    if (hidden) {
 	      if (element.className.indexOf("displayNone") < 0) {
 	        this.toggleClass(id, "displayNone");
@@ -426,13 +482,13 @@
 	      const item = inputs[i];
 	      let input, label;
 	      if (i * 2 >= childNodes.length) {
-	        input = window.document.createElement("input");
+	        input = _View.getDocument().createElement("input");
 	        input.type = "radio";
 	        input.id = "galleryItem" + i;
 	        input.name = "gallery";
 	        input.value = item.value;
 	        input.checked = item.checked;
-	        label = window.document.createElement("label");
+	        label = _View.getDocument().createElement("label");
 	        label.setAttribute("for", "galleryItem" + i);
 	        label.setAttribute("style", 'background: url("' + item.imgUrl + '"); background-size: cover');
 	        label.setAttribute("title", item.title);
@@ -441,8 +497,8 @@
 	      } else {
 	        input = childNodes[i * 2];
 	        if (input.value !== item.value) {
-	          if (Utils.debug > 3) {
-	            Utils.console.debug("setInputList: " + id + ": value changed for index " + i + ": " + item.value);
+	          if (UiUtils.debug > 3) {
+	            UiUtils.console.debug("setInputList: " + id + ": value changed for index " + i + ": " + item.value);
 	          }
 	          input.value = item.value;
 	          label = childNodes[i * 2 + 1];
@@ -462,7 +518,7 @@
 	  setSelectOptions(id, options) {
 	    const element = _View.getElementByIdAs(id), optionList = [], existingElements = element.length;
 	    for (let i = existingElements; i < options.length; i += 1) {
-	      const item = options[i], option = window.document.createElement("option");
+	      const item = options[i], option = _View.getDocument().createElement("option");
 	      option.value = item.value;
 	      option.text = item.text;
 	      option.title = item.title;
@@ -478,8 +534,8 @@
 	          option.value = item.value;
 	        }
 	        if (option.text !== item.text) {
-	          if (Utils.debug > 3) {
-	            Utils.console.debug("setSelectOptions: " + id + ": text changed for index " + i + ": " + item.text);
+	          if (UiUtils.debug > 3) {
+	            UiUtils.console.debug("setSelectOptions: " + id + ": text changed for index " + i + ": " + item.text);
 	          }
 	          option.text = item.text;
 	          option.title = item.title;
@@ -561,13 +617,13 @@
 	    if (element) {
 	      element.addEventListener(type, eventListener, false);
 	    } else {
-	      window.document.addEventListener(type, eventListener, false);
+	      _View.getDocument().addEventListener(type, eventListener, false);
 	    }
 	    return this;
 	  }
 	  addEventListenerById(type, eventListener, id) {
-	    if (Utils.debug) {
-	      Utils.console.debug("addEventListenerById: type=" + type + ", id=" + id);
+	    if (UiUtils.debug) {
+	      UiUtils.console.debug("addEventListenerById: type=" + type + ", id=" + id);
 	    }
 	    const element = id === ViewID.window ? void 0 : _View.getElementById1(id);
 	    this.addEventListener(type, eventListener, element);
@@ -577,13 +633,13 @@
 	    if (element) {
 	      element.removeEventListener(type, eventListener, false);
 	    } else {
-	      window.document.removeEventListener(type, eventListener, false);
+	      _View.getDocument().removeEventListener(type, eventListener, false);
 	    }
 	    return this;
 	  }
 	  removeEventListenerById(type, eventListener, id) {
-	    if (Utils.debug) {
-	      Utils.console.debug("removeEventListener: type=" + type + ", id=" + id);
+	    if (UiUtils.debug) {
+	      UiUtils.console.debug("removeEventListener: type=" + type + ", id=" + id);
 	    }
 	    const element = id === ViewID.window ? void 0 : _View.getElementById1(id);
 	    this.removeEventListener(type, eventListener, element);
@@ -635,20 +691,20 @@
 	  static getEventTarget(event) {
 	    const target = event.target || event.srcElement;
 	    if (!target) {
-	      Utils.console.error("getEventTarget: Undefined event target: " + target);
+	      UiUtils.console.error("getEventTarget: Undefined event target: " + target);
 	    }
 	    return target;
 	  }
 	  requestFullscreenForId(id) {
 	    const element = _View.getElementById1(id), anyEl = element, that = this, requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen, fullscreenchangedHandler = function(event) {
 	      const target = _View.getEventTarget(event);
-	      if (document.fullscreenElement) {
-	        if (Utils.debug > 0) {
-	          Utils.console.debug("Entered fullscreen mode: " + document.fullscreenElement.id);
+	      if (_View.getDocument().fullscreenElement) {
+	        if (UiUtils.debug > 0) {
+	          UiUtils.console.debug("Entered fullscreen mode: " + _View.getDocument().fullscreenElement.id);
 	        }
 	      } else {
-	        if (Utils.debug > 0) {
-	          Utils.console.debug("Leaving fullscreen mode.");
+	        if (UiUtils.debug > 0) {
+	          UiUtils.console.debug("Leaving fullscreen mode.");
 	        }
 	        that.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
 	        that.setHidden(id, true);
@@ -661,12 +717,12 @@
 	      const promise = requestMethod.call(element);
 	      if (promise) {
 	        promise.then(function() {
-	          if (Utils.debug > 0) {
-	            Utils.console.debug("requestFullscreenForId: " + id + ": success");
+	          if (UiUtils.debug > 0) {
+	            UiUtils.console.debug("requestFullscreenForId: " + id + ": success");
 	          }
 	          that.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
 	        }).catch(function(err) {
-	          Utils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
+	          UiUtils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
 	        });
 	      }
 	    } else if (typeof window.ActiveXObject !== "undefined") {
@@ -682,17 +738,17 @@
 	  // https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
 	  fnDownloadBlob(data, filename) {
 	    if (typeof Blob === "undefined") {
-	      Utils.console.warn("fnDownloadBlob: Blob undefined");
+	      UiUtils.console.warn("fnDownloadBlob: Blob undefined");
 	      return;
 	    }
-	    const data8 = Utils.string2Uint8Array(data), type = "octet/stream", blob = new Blob([data8.buffer], {
+	    const data8 = UiUtils.string2Uint8Array(data), type = "octet/stream", blob = new Blob([data8.buffer], {
 	      type
 	    });
 	    if (window.navigator && window.navigator.msSaveOrOpenBlob) {
 	      window.navigator.msSaveOrOpenBlob(blob, filename);
 	      return;
 	    }
-	    const url = URL.createObjectURL(blob), a = document.createElement("a"), clickHandler = function() {
+	    const url = URL.createObjectURL(blob), a = _View.getDocument().createElement("a"), clickHandler = function() {
 	      setTimeout(function() {
 	        URL.revokeObjectURL(url);
 	        a.removeEventListener("click", clickHandler);
@@ -704,6 +760,7 @@
 	    a.click();
 	  }
 	};
+	_View.myDocument = window.document;
 	_View.pointerEventNames = {
 	  down: "pointerdown",
 	  move: "pointermove",
@@ -1769,27 +1826,27 @@
 	      if (eventDef.toggleId) {
 	        const isEnabled = this.model.getProperty(eventDef.property);
 	        this.view.setHidden(eventDef.toggleId, !isEnabled, eventDef.display);
-	        if (Utils.debug > 3) {
-	          Utils.console.debug("initToggles: setHidden: togglId:", eventDef.toggleId, ", property:", eventDef.property, ", hidden:", !isEnabled, ", display:", eventDef.display);
+	        if (UiUtils.debug > 3) {
+	          UiUtils.console.debug("initToggles: setHidden: togglId:", eventDef.toggleId, ", property:", eventDef.property, ", hidden:", !isEnabled, ", display:", eventDef.display);
 	        }
 	      }
 	      if (eventDef.viewType === "checked") {
 	        const isEnabled2 = this.model.getProperty(eventDef.property);
 	        this.view.setInputChecked(id, isEnabled2);
-	        if (Utils.debug > 3) {
-	          Utils.console.debug("initToggles: checked: id:", id, ", property:", eventDef.property, ", checked:", isEnabled2);
+	        if (UiUtils.debug > 3) {
+	          UiUtils.console.debug("initToggles: checked: id:", id, ", property:", eventDef.property, ", checked:", isEnabled2);
 	        }
 	      } else if (eventDef.viewType === "select") {
 	        const value = this.model.getProperty(eventDef.property);
 	        this.view.setSelectValue(id, value);
-	        if (Utils.debug > 3) {
-	          Utils.console.debug("initToggles: select: id:", id, ", property:", eventDef.property, ", value:", value);
+	        if (UiUtils.debug > 3) {
+	          UiUtils.console.debug("initToggles: select: id:", id, ", property:", eventDef.property, ", value:", value);
 	        }
 	      } else if (eventDef.viewType === "numberInput") {
 	        const value = this.model.getProperty(eventDef.property);
 	        this.view.setInputValue(id, String(value));
-	        if (Utils.debug > 3) {
-	          Utils.console.debug("initToggles: numberInput: id:", id, ", property:", eventDef.property, ", value:", value);
+	        if (UiUtils.debug > 3) {
+	          UiUtils.console.debug("initToggles: numberInput: id:", id, ", property:", eventDef.property, ", value:", value);
 	        }
 	      }
 	    }
@@ -1810,14 +1867,14 @@
 	  }
 	  static getToggleId(eventDef) {
 	    if (!eventDef.toggleId) {
-	      Utils.console.error("getToggleId: id=" + eventDef.id + ": toggleId missing!");
+	      UiUtils.console.error("getToggleId: id=" + eventDef.id + ": toggleId missing!");
 	      return "";
 	    }
 	    return eventDef.toggleId;
 	  }
 	  static getproperty(eventDef) {
 	    if (!eventDef.property) {
-	      Utils.console.error("setPopoversHiddenExcept: id=" + eventDef.id + ": property missing!");
+	      UiUtils.console.error("setPopoversHiddenExcept: id=" + eventDef.id + ": property missing!");
 	      return "";
 	    }
 	    return eventDef.property;
@@ -1853,7 +1910,7 @@
 	  getEventDefById(type, id) {
 	    const eventDefForType = this.eventDefInternalMap[type], eventDef = eventDefForType[id];
 	    if (!eventDef) {
-	      Utils.console.error("getEventDefById: type=" + type + ", id=" + id + ": No eventDef!");
+	      UiUtils.console.error("getEventDefById: type=" + type + ", id=" + id + ": No eventDef!");
 	    }
 	    return eventDef;
 	  }
@@ -1924,7 +1981,7 @@
 	    if (window.navigator && window.navigator.clipboard) {
 	      window.navigator.clipboard.writeText(textText.value);
 	    } else {
-	      Utils.console.warn("Copy to clipboard not available");
+	      UiUtils.console.warn("Copy to clipboard not available");
 	    }
 	  }
 	  static encodeUriParam(params) {
@@ -1967,7 +2024,7 @@
 	  }
 	  onDebugInputChange(eventDef) {
 	    const value = this.onNumberInputChange(eventDef);
-	    Utils.debug = value;
+	    UiUtils.debug = value;
 	  }
 	  onDragElementsInputChange(eventDef) {
 	    const checked = this.onCheckedChange(eventDef);
@@ -2011,12 +2068,12 @@
 	    } else if (!this.view.getHidden(ViewID.textText)) {
 	      id = ViewID.textCanvasDiv;
 	    } else {
-	      Utils.console.warn("Fullscreen only possible for graphics or text canvas");
+	      UiUtils.console.warn("Fullscreen only possible for graphics or text canvas");
 	      return;
 	    }
 	    const switched = this.view.requestFullscreenForId(id);
 	    if (!switched) {
-	      Utils.console.warn("Switch to fullscreen not available");
+	      UiUtils.console.warn("Switch to fullscreen not available");
 	    }
 	  }
 	  onCpcCanvasClick(_eventDef, event) {
@@ -2439,8 +2496,8 @@
 	      }
 	      if (this.eventDefInternalMap[type] && this.eventDefInternalMap[type][id]) {
 	        const eventDef = this.eventDefInternalMap[type][id];
-	        if (Utils.debug) {
-	          Utils.console.debug("handleEvent: " + type + ", " + id + ":", eventDef);
+	        if (UiUtils.debug) {
+	          UiUtils.console.debug("handleEvent: " + type + ", " + id + ":", eventDef);
 	        }
 	        if (eventDef.func) {
 	          eventDef.func.call(this, eventDef, event);
@@ -2449,10 +2506,10 @@
 	          eventDef.controllerFunc.call(this.controller, eventDef, event);
 	        }
 	      } else if (!id.endsWith("Select") && !id.endsWith("Input")) {
-	        Utils.console.log("handleEvent: " + type + ", " + id + ": No handler");
+	        UiUtils.console.log("handleEvent: " + type + ", " + id + ": No handler");
 	      }
-	    } else if (Utils.debug) {
-	      Utils.console.log("handleEvent: " + type + ": unknown target:", target.tagName, target.id);
+	    } else if (UiUtils.debug) {
+	      UiUtils.console.log("handleEvent: " + type + ": unknown target:", target.tagName, target.id);
 	    }
 	    if (type === "click") {
 	      if (id !== ViewID.cpcCanvas && id !== ViewID.textText) {
@@ -13580,14 +13637,14 @@
 	          data = dsk.readFile(dir[fileName]);
 	          this.fnLoad2(data, fileName, "", imported);
 	        } catch (e) {
-	          Utils.console.error(e);
+	          UiUtils.console.error(e);
 	          if (e instanceof Error) {
 	            this.options.outputError(e, true);
 	          }
 	        }
 	      }
 	    } catch (e) {
-	      Utils.console.error(e);
+	      UiUtils.console.error(e);
 	      if (e instanceof Error) {
 	        this.options.outputError(e, true);
 	      }
@@ -13602,7 +13659,7 @@
 	        zipName: name
 	      });
 	    } catch (e) {
-	      Utils.console.error(e);
+	      UiUtils.console.error(e);
 	      if (e instanceof Error) {
 	        this.options.outputError(e, true);
 	      }
@@ -13612,13 +13669,13 @@
 	      for (let i = 0; i < entries.length; i += 1) {
 	        const name2 = entries[i];
 	        if (name2.startsWith("__MACOSX/")) {
-	          Utils.console.log("processZipFile: Ignoring file:", name2);
+	          UiUtils.console.log("processZipFile: Ignoring file:", name2);
 	        } else {
 	          let data2;
 	          try {
 	            data2 = zip.readData(name2);
 	          } catch (e) {
-	            Utils.console.error(e);
+	            UiUtils.console.error(e);
 	            if (e instanceof Error) {
 	              this.options.outputError(e, true);
 	            }
@@ -13674,7 +13731,7 @@
 	        break;
 	      case "Z":
 	        if (this.processFileImports) {
-	          this.processZipFile(data instanceof Uint8Array ? data : Utils.string2Uint8Array(data), name, imported);
+	          this.processZipFile(data instanceof Uint8Array ? data : UiUtils.string2Uint8Array(data), name, imported);
 	        } else {
 	          header = DiskImage.createAmsdosHeader({
 	            typeString: type,
@@ -13683,7 +13740,7 @@
 	        }
 	        break;
 	      default:
-	        Utils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
+	        UiUtils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
 	        header = DiskImage.createAmsdosHeader({
 	          typeString: "B",
 	          length: data.length
@@ -13691,14 +13748,14 @@
 	        break;
 	    }
 	    if (header) {
-	      const storageName = _FileHandler.fnLocalStorageName(this.options.adaptFilename(name, "FILE")), meta = _FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? Utils.uint8Array2string(data) : data;
+	      const storageName = _FileHandler.fnLocalStorageName(this.options.adaptFilename(name, "FILE")), meta = _FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? UiUtils.uint8Array2string(data) : data;
 	      try {
-	        Utils.localStorage.setItem(storageName, meta + "," + dataAsString);
+	        (Polyfills.localStorage || window.localStorage).setItem(storageName, meta + "," + dataAsString);
 	        this.options.updateStorageDatabase("set", storageName);
-	        Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+	        UiUtils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
 	        imported.push(name);
 	      } catch (e) {
-	        Utils.console.error(e);
+	        UiUtils.console.error(e);
 	        if (e instanceof Error) {
 	          if (e.name === "QuotaExceededError") {
 	            e.shortMessage = storageName + ": Quota exceeded";
@@ -13735,7 +13792,7 @@
 	      const file = this.files[this.fileIndex];
 	      this.fileIndex += 1;
 	      const lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
-	      Utils.console.log(text);
+	      UiUtils.console.log(text);
 	      if (file.type === "text/plain") {
 	        reader.readAsText(file);
 	      } else if (file.type === "application/x-zip-compressed" || file.type === "application/zip") {
@@ -13750,7 +13807,7 @@
 	  }
 	  fnOnLoad(event) {
 	    if (!this.file) {
-	      Utils.console.error("fnOnLoad: Programming error: No file");
+	      UiUtils.console.error("fnOnLoad: Programming error: No file");
 	      return;
 	    }
 	    const file = this.file, name = file.name, reader = event.target;
@@ -13767,7 +13824,7 @@
 	          const info1 = data.substring(0, index);
 	          data = data.substring(index + 1);
 	          if (info1.indexOf("base64") >= 0) {
-	            data = Utils.atob(data);
+	            data = window.atob(data);
 	          }
 	          if (info1.indexOf("text/") >= 0) {
 	            type = "A";
@@ -13776,7 +13833,7 @@
 	      }
 	      this.options.fnLoad2(data, name, type, this.imported);
 	    } else {
-	      Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
+	      UiUtils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
 	    }
 	    if (reader) {
 	      this.fnReadNextFile(reader);
@@ -13788,7 +13845,7 @@
 	    if (reader && reader.error) {
 	      msg += ": " + String(reader.error);
 	    }
-	    Utils.console.error(msg);
+	    UiUtils.console.error(msg);
 	    if (reader) {
 	      this.fnReadNextFile(reader);
 	    }
@@ -13800,7 +13857,7 @@
 	    event.preventDefault();
 	    const dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : View.getEventTarget(event).files;
 	    if (!files || !files.length) {
-	      Utils.console.error("fnHandleFileSelect: No files!");
+	      UiUtils.console.error("fnHandleFileSelect: No files!");
 	      return;
 	    }
 	    this.files = files;
@@ -13812,7 +13869,7 @@
 	      reader.onload = this.fnOnLoadHandler;
 	      this.fnReadNextFile(reader);
 	    } else {
-	      Utils.console.warn("fnHandleFileSelect: FileReader API not supported.");
+	      UiUtils.console.warn("fnHandleFileSelect: FileReader API not supported.");
 	    }
 	  }
 	  //TODO: can we use View.attachEventHandler() somehow?
@@ -13951,8 +14008,8 @@
 	  }
 	  removeCodeStringsFromKeymap() {
 	    const key2CpcKey = this.key2CpcKey, newMap = {};
-	    if (Utils.debug > 1) {
-	      Utils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
 	    }
 	    for (const key in key2CpcKey) {
 	      if (key2CpcKey.hasOwnProperty(key)) {
@@ -13977,8 +14034,8 @@
 	    cpcKeyEntry.keys[pressedKey] = true;
 	    cpcKeyEntry.shift = shiftKey;
 	    cpcKeyEntry.ctrl = ctrlKey;
-	    if (Utils.debug > 1) {
-	      Utils.console.log("fnPressCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKey);
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.log("fnPressCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKey);
 	    }
 	    const repeat = cpcKeyExpansions.repeat;
 	    if (keyAlreadyPressed && (cpcKey in repeat && !repeat[cpcKey])) {
@@ -14028,11 +14085,11 @@
 	  }
 	  fnReleaseCpcKey(event, cpcKeyCode, pressedKey, key) {
 	    const shiftKey = event.shiftKey, ctrlKey = event.ctrlKey, pressedKeys = this.pressedKeys, cpcKey = pressedKeys[cpcKeyCode];
-	    if (Utils.debug > 1) {
-	      Utils.console.log("fnReleaseCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKeyCode + ", keys:", cpcKey ? cpcKey.keys : "undef.");
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.log("fnReleaseCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKeyCode + ", keys:", cpcKey ? cpcKey.keys : "undef.");
 	    }
 	    if (!cpcKey) {
-	      Utils.console.warn("fnReleaseCpcKey: cpcKey was not pressed:", cpcKeyCode);
+	      UiUtils.console.warn("fnReleaseCpcKey: cpcKey was not pressed:", cpcKeyCode);
 	    } else {
 	      delete cpcKey.keys[pressedKey];
 	      if (!Object.keys(cpcKey.keys).length) {
@@ -14064,8 +14121,8 @@
 	      this.removeCodeStringsFromKeymap();
 	      this.codeStringsRemoved = true;
 	    }
-	    if (Utils.debug > 1) {
-	      Utils.console.log("fnKeyboardKeydown: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.log("fnKeyboardKeydown: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
 	    }
 	    if (pressedKey in this.key2CpcKey) {
 	      const numTabOffKey = this.simulatedNumLock === false ? _Keyboard.numPadOffKeyMap[pressedKey] : void 0;
@@ -14102,21 +14159,21 @@
 	      this.fnPressCpcKey(event, cpcKey, pressedKey, key);
 	    } else if (key.length === 1) {
 	      this.putKeyInBuffer(key);
-	      Utils.console.log("fnKeyboardKeydown: Partly unhandled key", pressedKey + ":", key);
+	      UiUtils.console.log("fnKeyboardKeydown: Partly unhandled key", pressedKey + ":", key);
 	    } else if (pressedKey === "12NumLock") {
 	      this.simulatedNumLock = this.simulatedNumLock !== void 0 ? !this.simulatedNumLock : false;
-	      if (Utils.debug > 1) {
-	        Utils.console.log("fnKeyboardKeydown: simulatedNumLock=" + this.simulatedNumLock);
+	      if (UiUtils.debug > 1) {
+	        UiUtils.console.log("fnKeyboardKeydown: simulatedNumLock=" + this.simulatedNumLock);
 	      }
 	    } else {
-	      Utils.console.log("fnKeyboardKeydown: Unhandled key", pressedKey + ":", key);
+	      UiUtils.console.log("fnKeyboardKeydown: Unhandled key", pressedKey + ":", key);
 	    }
 	  }
 	  fnKeyboardKeyup(event) {
 	    const keyCode = event.which || event.keyCode, key = event.key || _Keyboard.keyIdentifier2Char(event) || "";
 	    let pressedKey = String(keyCode) + (event.code ? event.code : "");
-	    if (Utils.debug > 1) {
-	      Utils.console.log("fnKeyboardKeyup: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.log("fnKeyboardKeyup: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
 	    }
 	    if (pressedKey in this.key2CpcKey) {
 	      const numTabOffKey = this.simulatedNumLock === false ? _Keyboard.numPadOffKeyMap[pressedKey] : void 0;
@@ -14129,11 +14186,11 @@
 	      }
 	      this.fnReleaseCpcKey(event, cpcKey, pressedKey, key);
 	    } else if (pressedKey === "12NumLock") {
-	      if (Utils.debug > 1) {
-	        Utils.console.log("fnKeyboardKeyup: simulatedNumLock=" + this.simulatedNumLock);
+	      if (UiUtils.debug > 1) {
+	        UiUtils.console.log("fnKeyboardKeyup: simulatedNumLock=" + this.simulatedNumLock);
 	      }
 	    } else {
-	      Utils.console.log("fnKeyboardKeyup: Unhandled key", pressedKey + ":", key);
+	      UiUtils.console.log("fnKeyboardKeyup: Unhandled key", pressedKey + ":", key);
 	    }
 	  }
 	  getKeyFromBuffer() {
@@ -14211,7 +14268,7 @@
 	      } else if (event.type === "keyup") {
 	        this.fnKeyboardKeyup(event);
 	      } else {
-	        Utils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
+	        UiUtils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
 	      }
 	      event.preventDefault();
 	      return false;
@@ -15014,8 +15071,8 @@
 	  }
 	  onVirtualKeyboardKeydown(event) {
 	    const node = View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
-	    if (Utils.debug > 1) {
-	      Utils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
 	    }
 	    if (cpcKey !== null) {
 	      let cpcKeyCode = Number(cpcKey);
@@ -15051,8 +15108,8 @@
 	  }
 	  onVirtualKeyboardKeyupOrKeyout(event) {
 	    const node = View.getEventTarget(event);
-	    if (Utils.debug > 1) {
-	      Utils.console.debug("onVirtualKeyboardKeyupOrKeyout: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.debug("onVirtualKeyboardKeyupOrKeyout: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
 	    }
 	    this.fnVirtualKeyboardKeyupOrKeyout(event);
 	    if (this.eventNames.out) {
@@ -15090,7 +15147,7 @@
 	      } else if (event.type === "keyup") {
 	        this.onVirtualKeyboardKeyupOrKeyout(simPointerEvent);
 	      } else {
-	        Utils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
+	        UiUtils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
 	      }
 	      event.preventDefault();
 	      return false;
@@ -15769,7 +15826,7 @@
 	        rendevousMask: 0
 	      };
 	    }
-	    if (Utils.debug > 1) {
+	    if (UiUtils.debug > 1) {
 	      this.debugLogList = [];
 	    }
 	  }
@@ -15831,10 +15888,17 @@
 	      0,
 	      2,
 	      1
-	    ];
+	    ], AudioContextConstructor = this.options.AudioContextConstructor;
 	    let context;
+	    if (!AudioContextConstructor) {
+	      if (!this.contextNotAvailable) {
+	        UiUtils.console.warn("createSoundContext: AudioContext not available");
+	      }
+	      this.contextNotAvailable = true;
+	      return context;
+	    }
 	    try {
-	      context = new this.options.AudioContextConstructor();
+	      context = new AudioContextConstructor();
 	      const mergerNode = context.createChannelMerger(6);
 	      this.mergerNode = mergerNode;
 	      for (let i = 0; i < 3; i += 1) {
@@ -15843,7 +15907,7 @@
 	        this.gainNodes[i] = gainNode;
 	      }
 	    } catch (e) {
-	      Utils.console.warn("createSoundContext:", e);
+	      UiUtils.console.warn("createSoundContext:", e);
 	      this.contextNotAvailable = true;
 	    }
 	    const oldContextStartTime = this.contextStartTime;
@@ -15995,7 +16059,7 @@
 	    return fDuration;
 	  }
 	  scheduleNote(oscillator, fTime, soundData) {
-	    if (Utils.debug > 1) {
+	    if (UiUtils.debug > 1) {
 	      this.debugLog("scheduleNote: " + oscillator + " " + fTime);
 	    }
 	    if (!this.isSoundOn) {
@@ -16006,8 +16070,8 @@
 	    oscillatorNode.frequency.value = soundData.period >= 3 ? 62500 / soundData.period : 0;
 	    oscillatorNode.connect(this.gainNodes[oscillator]);
 	    if (fTime < context.currentTime) {
-	      if (Utils.debug) {
-	        Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", context.currentTime);
+	      if (UiUtils.debug) {
+	        UiUtils.console.debug("Test: sound: scheduleNote:", fTime, "<", context.currentTime);
 	      }
 	    }
 	    const volume = soundData.volume, gain = this.gainNodes[oscillator].gain, maxVolume = 15, fVolume = volume / maxVolume;
@@ -16059,7 +16123,7 @@
 	          this.stopOscillator(i);
 	        }
 	        queue.soundData.push(soundData);
-	        if (Utils.debug > 1) {
+	        if (UiUtils.debug > 1) {
 	          this.debugLog("sound: " + i + " " + state + ":" + queue.soundData.length);
 	        }
 	        this.updateQueueStatus(i, queue);
@@ -16128,7 +16192,7 @@
 	    if (!queues.length) {
 	      return;
 	    }
-	    if (Utils.debug > 1) {
+	    if (UiUtils.debug > 1) {
 	      this.debugLog("release: " + releaseMask);
 	    }
 	    for (let i = 0; i < 3; i += 1) {
@@ -16171,8 +16235,8 @@
 	        this.mergerNode.connect(this.context.destination);
 	      }
 	      this.isSoundOn = true;
-	      if (Utils.debug) {
-	        Utils.console.debug("soundOn: Sound switched on");
+	      if (UiUtils.debug) {
+	        UiUtils.console.debug("soundOn: Sound switched on");
 	      }
 	    }
 	    return Boolean(this.context);
@@ -16183,8 +16247,8 @@
 	        this.mergerNode.disconnect(this.context.destination);
 	      }
 	      this.isSoundOn = false;
-	      if (Utils.debug) {
-	        Utils.console.debug("soundOff: Sound switched off");
+	      if (UiUtils.debug) {
+	        UiUtils.console.debug("soundOff: Sound switched off");
 	      }
 	    }
 	  }
@@ -16394,8 +16458,8 @@
 	    this.initialX = clientObject.clientX - dragInfo.xOffset;
 	    this.initialY = clientObject.clientY - dragInfo.yOffset;
 	    this.options.view.fnAttachPointerEvents(this.containerId, void 0, this.fnDragMoveHandler, this.fnDragEndHandler);
-	    if (Utils.debug > 0) {
-	      Utils.console.debug("dragStart: " + dragInfo.itemId + ": x=" + this.initialX + ", y=" + this.initialY);
+	    if (UiUtils.debug > 0) {
+	      UiUtils.console.debug("dragStart: " + dragInfo.itemId + ": x=" + this.initialX + ", y=" + this.initialY);
 	    }
 	  }
 	  static setDragTranslate(xPos, yPos, el) {
@@ -16417,8 +16481,8 @@
 	    const dragInfo = this.dragInfo;
 	    if (dragInfo) {
 	      this.options.view.fnDetachPointerEvents(this.containerId, void 0, this.fnDragMoveHandler, this.fnDragEndHandler);
-	      if (Utils.debug > 0) {
-	        Utils.console.debug("dragEnd: " + dragInfo.itemId + ": x=" + this.currentX + ", y=" + this.currentY);
+	      if (UiUtils.debug > 0) {
+	        UiUtils.console.debug("dragEnd: " + dragInfo.itemId + ": x=" + this.currentX + ", y=" + this.currentY);
 	      }
 	    }
 	  }
@@ -16635,6 +16699,33 @@
 	  }
 	};
 	let RsxCpcBasic = _RsxCpcBasic;
+
+	class UiController {
+	  constructor(core, view, controller, onUserAction) {
+	    this.commonEventHandler = new CommonEventHandler({
+	      model: core.getModel(),
+	      view,
+	      controller
+	    });
+	    view.addEventListener("click", this.commonEventHandler);
+	    view.addEventListener("change", this.commonEventHandler);
+	    this.commonEventHandler.initToggles();
+	    this.commonEventHandler.onKbdLayoutSelectChange(this.commonEventHandler.getEventDefById("change", ViewID.kbdLayoutSelect));
+	    this.commonEventHandler.fnSetUserAction(onUserAction);
+	  }
+	  deactivateUserAction() {
+	    this.commonEventHandler.fnSetUserAction(void 0);
+	  }
+	  onVarSelectChange() {
+	    this.commonEventHandler.onVarSelectChange();
+	  }
+	  setPopoversHiddenExcept(exceptId) {
+	    this.commonEventHandler.setPopoversHiddenExcept(exceptId);
+	  }
+	  toggleAreaHiddenById(type, id) {
+	    return this.commonEventHandler.toggleAreaHiddenById(type, id);
+	  }
+	}
 
 	const _Z80Disass = class _Z80Disass {
 	  // actual prefix: 0=none, 1=0xDD, 2=0xFD, 4=0xED
@@ -17171,7 +17262,7 @@
 	let Z80Disass = _Z80Disass;
 
 	const _Controller = class _Controller {
-	  constructor(model, view) {
+	  constructor(core, view, options = {}) {
 	    this.fnScript = void 0;
 	    // eslint-disable-line @typescript-eslint/no-unsafe-function-type
 	    this.timeoutHandlerActive = false;
@@ -17287,22 +17378,17 @@
 	    this.fnOnUserActionHandler = this.onUserAction.bind(this);
 	    this.fnWaitForContinueHandler = this.fnWaitForContinue.bind(this);
 	    this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
+	    this.core = core;
+	    const model = this.core.getModel();
 	    this.model = model;
 	    this.view = view;
-	    this.commonEventHandler = new CommonEventHandler({
-	      model,
-	      view,
-	      controller: this
-	    });
-	    this.view.addEventListener("click", this.commonEventHandler);
-	    this.view.addEventListener("change", this.commonEventHandler);
-	    this.commonEventHandler.initToggles();
+	    this.options = options;
+	    this.uiController = new UiController(core, view, this, this.fnOnUserActionHandler);
 	    this.canvas = this.setCanvasType(model.getProperty(ModelPropID.canvasType));
 	    this.variables = new Variables({
 	      arrayBounds: model.getProperty(ModelPropID.arrayBounds)
 	    });
 	    this.fnSpeed();
-	    this.commonEventHandler.onKbdLayoutSelectChange(this.commonEventHandler.getEventDefById("change", ViewID.kbdLayoutSelect));
 	    this.keyboard = new Keyboard({
 	      view: this.view,
 	      fnOnEscapeHandler: this.fnOnEscapeHandler
@@ -17310,7 +17396,6 @@
 	    if (this.model.getProperty(ModelPropID.showKbd)) {
 	      this.getVirtualKeyboard();
 	    }
-	    this.commonEventHandler.fnSetUserAction(this.fnOnUserActionHandler);
 	    const random = new Random(model.getProperty(ModelPropID.random) === "cpc");
 	    this.vm = new CpcVm({
 	      canvas: this.canvas,
@@ -17357,7 +17442,8 @@
 	    this.initDropZone();
 	    const example = model.getProperty(ModelPropID.example);
 	    view.setSelectValue(ViewID.exampleSelect, example);
-	    this.hasStorageDatabase = this.initDatabases();
+	    this.setDatabaseSelectOptions();
+	    this.hasStorageDatabase = this.getHasStorageDatabase();
 	    if (model.getProperty(ModelPropID.showCpc)) {
 	      this.canvas.startUpdateCanvas();
 	    }
@@ -17365,75 +17451,74 @@
 	      this.fnDragElementsActive(true);
 	    }
 	  }
-	  static getUniqueDbKey(name, databases) {
-	    let key = name, index = 2;
-	    while (databases[key]) {
-	      key = name + index;
-	      index += 1;
-	    }
-	    return key;
+	  static getLocalStorage() {
+	    return Polyfills.localStorage || window.localStorage;
 	  }
-	  initDatabases() {
-	    const model = this.model, databases = {}, databaseDirs = model.getProperty(ModelPropID.databaseDirs).split(",");
+	  //TODO
+	  /*
+	  	private static getUniqueDbKey(name: string, databases: DatabasesType) {
+	  		let key = name,
+	  			index = 2;
+	  
+	  		while (databases[key]) {
+	  			key = name + index;
+	  			index += 1;
+	  		}
+	  		return key;
+	  	}
+	  
+	  	private initDatabases() {
+	  		/*
+	  		const model = this.model,
+	  			databases: DatabasesType = {},
+	  			databaseDirs = model.getProperty<string>(ModelPropID.databaseDirs).split(",");
+	  		let hasStorageDatabase = false;
+	  
+	  		for (let i = 0; i < databaseDirs.length; i += 1) {
+	  			const databaseDir = databaseDirs[i],
+	  				parts1 = databaseDir.split("="),
+	  				databaseSrc = parts1[0],
+	  				assignedName = parts1.length > 1 ? parts1[1] : "",
+	  				parts2 = databaseSrc.split("/"),
+	  				name = assignedName || parts2[parts2.length - 1],
+	  				key = Controller.getUniqueDbKey(name, databases);
+	  
+	  			databases[key] = {
+	  				text: key,
+	  				title: databaseSrc,
+	  				src: databaseSrc
+	  			};
+	  			if (databaseDir === "storage") {
+	  				hasStorageDatabase = true;
+	  			}
+	  		}
+	  		this.model.addDatabases(databases);
+	  
+	  		this.setDatabaseSelectOptions();
+	  		return hasStorageDatabase;
+	  	}
+	  	*/
+	  getHasStorageDatabase() {
+	    const databases = this.model.getAllDatabases();
 	    let hasStorageDatabase = false;
-	    for (let i = 0; i < databaseDirs.length; i += 1) {
-	      const databaseDir = databaseDirs[i], parts1 = databaseDir.split("="), databaseSrc = parts1[0], assignedName = parts1.length > 1 ? parts1[1] : "", parts2 = databaseSrc.split("/"), name = assignedName || parts2[parts2.length - 1], key = _Controller.getUniqueDbKey(name, databases);
-	      databases[key] = {
-	        text: key,
-	        title: databaseSrc,
-	        src: databaseSrc
-	      };
-	      if (databaseDir === "storage") {
-	        hasStorageDatabase = true;
-	      }
-	    }
-	    this.model.addDatabases(databases);
-	    this.setDatabaseSelectOptions();
-	    return hasStorageDatabase;
-	  }
-	  onUserAction() {
-	    this.commonEventHandler.fnSetUserAction(void 0);
-	    this.sound.setActivatedByUser();
-	    this.setSoundActive();
-	  }
-	  // Also called from index file 0index.js
-	  addIndex(_dir, input) {
-	    for (const value in input) {
-	      if (input.hasOwnProperty(value)) {
-	        const item = input[value];
-	        for (let i = 0; i < item.length; i += 1) {
-	          this.model.setExample(item[i]);
+	    for (const value in databases) {
+	      if (databases.hasOwnProperty(value)) {
+	        if (value === "storage") {
+	          hasStorageDatabase = true;
 	        }
 	      }
 	    }
+	    return hasStorageDatabase;
 	  }
-	  // Also called from example files xxxxx.js
-	  addItem(key, input) {
-	    if (!key) {
-	      key = document.currentScript && document.currentScript.getAttribute("data-key") || this.model.getProperty(ModelPropID.example);
-	    }
-	    input = input.replace(/^\n/, "").replace(/\n$/, "");
-	    const implicitLines = this.model.getProperty(ModelPropID.implicitLines), linesOnLoad = this.model.getProperty(ModelPropID.linesOnLoad);
-	    if (input.startsWith("REM ") && !implicitLines && linesOnLoad) {
-	      input = _Controller.addLineNumbers(input);
-	    }
-	    const example = this.model.getExample(key);
-	    example.key = key;
-	    example.script = input;
-	    example.loaded = true;
-	    Utils.console.log("addItem:", key);
-	    return key;
+	  /*
+	  private initDatabases() {
+	  	return getHasStorageDatabase
 	  }
-	  addRsx(key, RsxConstructor) {
-	    if (!key) {
-	      key = document.currentScript && document.currentScript.getAttribute("data-key") || this.model.getProperty(ModelPropID.example);
-	    }
-	    const example = this.model.getExample(key);
-	    example.key = key;
-	    example.rsx = new RsxConstructor();
-	    example.loaded = true;
-	    Utils.console.log("addItem:", key);
-	    return key;
+	  ∂*/
+	  onUserAction() {
+	    this.uiController.deactivateUserAction();
+	    this.sound.setActivatedByUser();
+	    this.setSoundActive();
 	  }
 	  setDatabaseSelectOptions() {
 	    const items = [], databases = this.model.getAllDatabases(), database = this.model.getProperty(ModelPropID.database);
@@ -17570,7 +17655,7 @@
 	    if (!this.hasStorageDatabase) {
 	      return;
 	    }
-	    const database = this.model.getProperty(ModelPropID.database), storage = Utils.localStorage;
+	    const database = this.model.getProperty(ModelPropID.database), storage = _Controller.getLocalStorage();
 	    let selectedExample = "", exampleChanged = false;
 	    if (database !== "storage") {
 	      this.model.setProperty(ModelPropID.database, "storage");
@@ -17605,7 +17690,7 @@
 	          this.model.setExample(example);
 	        }
 	      } else {
-	        Utils.console.error("updateStorageDatabase: unknown action", action);
+	        UiUtils.console.error("updateStorageDatabase: unknown action", action);
 	      }
 	    }
 	    if (database === "storage") {
@@ -17703,7 +17788,7 @@
 	  fnWaitKey() {
 	    const key = this.keyboard.getKeyFromBuffer();
 	    if (key !== "") {
-	      Utils.console.log("Wait for key:", key);
+	      UiUtils.console.log("Wait for key:", key);
 	      this.vm.vmStop("", 0, true);
 	      this.removeKeyBoardHandler();
 	    } else {
@@ -17814,7 +17899,7 @@
 	    inputParas.input = input;
 	    let inputOk = false;
 	    if (key === "\r") {
-	      Utils.console.log("fnWaitInput:", input, "reason", stop.reason);
+	      UiUtils.console.log("fnWaitInput:", input, "reason", stop.reason);
 	      if (!inputParas.noCRLF) {
 	        this.vm.print(stream, "\r\n");
 	      }
@@ -17866,7 +17951,7 @@
 	      lineParts.shift();
 	    }
 	    if (lineParts.length % 2 !== 0) {
-	      Utils.console.warn("splitLines: No line numbers?");
+	      UiUtils.console.warn("splitLines: No line numbers?");
 	      const error = this.vm.vmComposeError(Error(), 21, "split");
 	      this.outputError(error, true);
 	      return lines;
@@ -17883,7 +17968,7 @@
 	  }
 	  // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
 	  mergeScripts(script1, script2) {
-	    const lines1 = this.splitLines(Utils.stringTrimEnd(script1)), lines2 = this.splitLines(Utils.stringTrimEnd(script2));
+	    const lines1 = this.splitLines(UiUtils.stringTrimEnd(script1)), lines2 = this.splitLines(UiUtils.stringTrimEnd(script2));
 	    let result = [], lineNumber1, lineNumber2;
 	    while (lines1.length && lines2.length) {
 	      lineNumber1 = lineNumber1 || _Controller.parseLineNumber(lines1[0]);
@@ -17948,7 +18033,7 @@
 	    return dir;
 	  }
 	  static fnGetStorageDirectoryEntries(mask) {
-	    const storage = Utils.localStorage, metaIdent = FileHandler.getMetaIdent(), dir = [];
+	    const storage = _Controller.getLocalStorage(), metaIdent = FileHandler.getMetaIdent(), dir = [];
 	    let regExp;
 	    if (mask) {
 	      regExp = _Controller.fnPrepareMaskRegExp(mask);
@@ -18009,7 +18094,7 @@
 	    this.vm.vmStop("", 0, true);
 	  }
 	  fnFileEra(paras) {
-	    const stream = paras.stream, storage = Utils.localStorage, fileMask = _Controller.fnLocalStorageName(paras.fileMask || ""), dir = _Controller.fnGetStorageDirectoryEntries(fileMask);
+	    const stream = paras.stream, storage = _Controller.getLocalStorage(), fileMask = _Controller.fnLocalStorageName(paras.fileMask || ""), dir = _Controller.fnGetStorageDirectoryEntries(fileMask);
 	    if (!dir.length) {
 	      this.vm.print(stream, fileMask + " not found\r\n");
 	    }
@@ -18018,18 +18103,18 @@
 	      if (storage.getItem(name) !== null) {
 	        storage.removeItem(name);
 	        this.updateStorageDatabase("remove", name);
-	        if (Utils.debug > 0) {
-	          Utils.console.debug("fnEraseFile: name=" + name + ": removed from localStorage");
+	        if (UiUtils.debug > 0) {
+	          UiUtils.console.debug("fnEraseFile: name=" + name + ": removed from localStorage");
 	        }
 	      } else {
 	        this.vm.print(stream, name + " not found\r\n");
-	        Utils.console.warn("fnEraseFile: file not found in localStorage:", name);
+	        UiUtils.console.warn("fnEraseFile: file not found in localStorage:", name);
 	      }
 	    }
 	    this.vm.vmStop("", 0, true);
 	  }
 	  fnFileRen(paras) {
-	    const stream = paras.stream, storage = Utils.localStorage, newName = _Controller.fnLocalStorageName(paras.newName), oldName = _Controller.fnLocalStorageName(paras.oldName), item = storage.getItem(oldName);
+	    const stream = paras.stream, storage = _Controller.getLocalStorage(), newName = _Controller.fnLocalStorageName(paras.newName), oldName = _Controller.fnLocalStorageName(paras.oldName), item = storage.getItem(oldName);
 	    if (item !== null) {
 	      if (!storage.getItem(newName)) {
 	        storage.setItem(newName, item);
@@ -18116,14 +18201,14 @@
 	    const output = codeGeneratorToken.generate(input);
 	    if (output.error) {
 	      this.outputError(output.error);
-	    } else if (Utils.debug > 1) {
+	    } else if (UiUtils.debug > 1) {
 	      const outputText = output.text, hex = outputText.split("").map(function(s) {
 	        return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
 	      }).join(","), decoded = this.decodeTokenizedBasic(outputText), diff = Diff.testDiff(input.toUpperCase(), decoded.toUpperCase());
-	      Utils.console.debug("TokenizerInput (" + name + ") [len=" + input.length + "]:\n" + input);
-	      Utils.console.debug("TokenizerOutputHex (" + name + ") [len=" + outputText.length + "]:\n" + hex);
-	      Utils.console.debug("TokenizerOutputDecoded (" + name + ") [len=" + decoded.length + "]:\n" + decoded);
-	      Utils.console.debug("TokenizerDiff (" + name + ") [len=" + diff.length + "]:\n" + diff);
+	      UiUtils.console.debug("TokenizerInput (" + name + ") [len=" + input.length + "]:\n" + input);
+	      UiUtils.console.debug("TokenizerOutputHex (" + name + ") [len=" + outputText.length + "]:\n" + hex);
+	      UiUtils.console.debug("TokenizerOutputDecoded (" + name + ") [len=" + decoded.length + "]:\n" + decoded);
+	      UiUtils.console.debug("TokenizerDiff (" + name + ") [len=" + diff.length + "]:\n" + diff);
 	    }
 	    return output.text;
 	  }
@@ -18173,7 +18258,7 @@
 	      data = _Controller.splitMeta(input);
 	      input = data.data;
 	      if (data.meta.encoding === "base64") {
-	        input = Utils.atob(input);
+	        input = window.atob(input);
 	      }
 	      const type = data.meta.typeString;
 	      if (type === "T") {
@@ -18203,11 +18288,11 @@
 	      try {
 	        putInMemory = inFile.fnFileCallback(input, data && data.meta);
 	      } catch (e) {
-	        Utils.console.warn(e);
+	        UiUtils.console.warn(e);
 	      }
 	    }
 	    if (input === void 0) {
-	      Utils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
+	      UiUtils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
 	      this.vm.vmStop("stop", 60, true);
 	      this.startMainLoop();
 	      return;
@@ -18226,7 +18311,7 @@
 	      case "chainMerge":
 	        input = this.mergeScripts(this.view.getAreaValue(ViewID.inputText), input);
 	        this.setInputText(input);
-	        this.view.setAreaValue(ViewID.resultText, "");
+	        this.setResultText("");
 	        startLine = inFileLine;
 	        this.invalidateScript();
 	        this.fnParseChain();
@@ -18234,7 +18319,7 @@
 	      case "load":
 	        if (!putInMemory) {
 	          this.setInputText(input);
-	          this.view.setAreaValue(ViewID.resultText, "");
+	          this.setResultText("");
 	          this.invalidateScript();
 	          this.vm.vmStop("end", 90);
 	        }
@@ -18242,14 +18327,14 @@
 	      case "merge":
 	        input = this.mergeScripts(this.view.getAreaValue(ViewID.inputText), input);
 	        this.setInputText(input);
-	        this.view.setAreaValue(ViewID.resultText, "");
+	        this.setResultText("");
 	        this.invalidateScript();
 	        this.fnRemoveAllVariables();
 	        this.vm.vmStop("end", 90);
 	        break;
 	      case "chain":
 	        this.setInputText(input);
-	        this.view.setAreaValue(ViewID.resultText, "");
+	        this.setResultText("");
 	        startLine = inFileLine;
 	        this.invalidateScript();
 	        this.fnParseChain();
@@ -18257,7 +18342,7 @@
 	      case "run":
 	        if (!putInMemory) {
 	          this.setInputText(input);
-	          this.view.setAreaValue(ViewID.resultText, "");
+	          this.setResultText("");
 	          startLine = inFileLine;
 	          if (!data || data.meta.typeString !== "S") {
 	            this.fnReset();
@@ -18269,7 +18354,7 @@
 	        }
 	        break;
 	      default:
-	        Utils.console.error("loadExample: Unknown command:", command);
+	        UiUtils.console.error("loadExample: Unknown command:", command);
 	        break;
 	    }
 	    this.vm.vmSetStartLine(startLine);
@@ -18278,11 +18363,11 @@
 	  createFnExampleLoaded(example, url, inFile) {
 	    return (_sFullUrl, key, suppressLog) => {
 	      if (key !== example) {
-	        Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
+	        UiUtils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
 	      }
 	      const exampleEntry = this.model.getExample(example);
 	      if (!suppressLog) {
-	        Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + "loaded");
+	        UiUtils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + "loaded");
 	      }
 	      this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
 	      this.vm.vmStop("", 0, true);
@@ -18295,7 +18380,7 @@
 	  }
 	  createFnExampleError(example, url, inFile) {
 	    return () => {
-	      Utils.console.log("Example", url, "error");
+	      UiUtils.console.log("Example", url, "error");
 	      this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
 	      this.vm.vmStop("", 0, true);
 	      const error = this.vm.vmComposeError(Error(), 32, example + " not found");
@@ -18305,6 +18390,24 @@
 	      this.outputError(error, true);
 	      this.loadFileContinue(null);
 	    };
+	  }
+	  getLoadScript() {
+	    return this.options.loadScript || UiUtils.loadScript;
+	  }
+	  setOutputText(text) {
+	    this.view.setAreaValue(ViewID.outputText, text);
+	    if (this.options.onOutputText) {
+	      this.options.onOutputText(text);
+	    }
+	  }
+	  setResultText(text, scroll = false) {
+	    this.view.setAreaValue(ViewID.resultText, text);
+	    if (this.options.onResultText) {
+	      this.options.onResultText(text);
+	    }
+	    if (scroll) {
+	      this.view.setAreaScrollTop(ViewID.resultText);
+	    }
 	  }
 	  loadExample() {
 	    const inFile = this.vm.vmGetInFileObject(), key = this.model.getProperty(ModelPropID.example);
@@ -18322,8 +18425,8 @@
 	      }
 	    }
 	    const example = name;
-	    if (Utils.debug > 0) {
-	      Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
+	    if (UiUtils.debug > 0) {
+	      UiUtils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
 	    }
 	    const exampleEntry = this.model.getExample(example);
 	    let url;
@@ -18336,11 +18439,11 @@
 	      this.model.setProperty(ModelPropID.example, example);
 	      const databaseDir = this.model.getDatabase().src;
 	      url = databaseDir + "/" + example + ".js";
-	      Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
+	      this.getLoadScript()(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
 	    } else {
 	      url = example;
 	      if (example !== "") {
-	        Utils.console.warn("loadExample: Unknown file:", example);
+	        UiUtils.console.warn("loadExample: Unknown file:", example);
 	        const fnExampleError = this.createFnExampleError(example, url, inFile);
 	        fnExampleError();
 	      } else {
@@ -18357,7 +18460,7 @@
 	    return name;
 	  }
 	  static tryLoadingFromLocalStorage(name) {
-	    const storage = Utils.localStorage;
+	    const storage = _Controller.getLocalStorage();
 	    let input = null;
 	    if (name.indexOf(".") >= 0) {
 	      input = storage.getItem(name);
@@ -18387,13 +18490,13 @@
 	        this.vm.vmStop("fileLoad", 90);
 	      }
 	      const name = inFile.name;
-	      if (Utils.debug > 1) {
-	        Utils.console.debug("fnFileLoad:", inFile.command, name, "details:", inFile);
+	      if (UiUtils.debug > 1) {
+	        UiUtils.console.debug("fnFileLoad:", inFile.command, name, "details:", inFile);
 	      }
 	      const input = _Controller.tryLoadingFromLocalStorage(name);
 	      if (input !== null) {
-	        if (Utils.debug > 0) {
-	          Utils.console.debug("fnFileLoad:", inFile.command, name, "from localStorage");
+	        if (UiUtils.debug > 0) {
+	          UiUtils.console.debug("fnFileLoad:", inFile.command, name, "from localStorage");
 	        }
 	        this.vm.vmStop("", 0, true);
 	        this.loadFileContinue(input);
@@ -18403,7 +18506,7 @@
 	        );
 	      }
 	    } else {
-	      Utils.console.error("fnFileLoad:", inFile.name, "File not open!");
+	      UiUtils.console.error("fnFileLoad:", inFile.name, "File not open!");
 	    }
 	    this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame();
 	  }
@@ -18436,7 +18539,7 @@
 	    return metaAndData;
 	  }
 	  fnFileSave() {
-	    const outFile = this.vm.vmGetOutFileObject(), storage = Utils.localStorage;
+	    const outFile = this.vm.vmGetOutFileObject(), storage = _Controller.getLocalStorage();
 	    let defaultExtension = "";
 	    if (outFile.open) {
 	      const type = outFile.typeString, name = outFile.name;
@@ -18464,8 +18567,8 @@
 	        }
 	        outFile.length = fileData.length;
 	      }
-	      if (Utils.debug > 0) {
-	        Utils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
+	      if (UiUtils.debug > 0) {
+	        UiUtils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
 	      }
 	      const meta = FileHandler.joinMeta(outFile);
 	      storage.setItem(storageName, meta + "," + fileData);
@@ -18474,12 +18577,12 @@
 	        try {
 	          outFile.fnFileCallback(fileData);
 	        } catch (e) {
-	          Utils.console.warn(e);
+	          UiUtils.console.warn(e);
 	        }
 	      }
 	      this.vm.vmResetOutFileHandling();
 	    } else {
-	      Utils.console.error("fnFileSave: file not open!");
+	      UiUtils.console.error("fnFileSave: file not open!");
 	    }
 	    this.vm.vmStop("", 0, true);
 	  }
@@ -18533,13 +18636,13 @@
 	      this.virtualKeyboard.reset();
 	    }
 	    vm.vmStop("end", 0, true);
-	    this.view.setAreaValue(ViewID.outputText, "");
+	    this.setOutputText("");
 	    this.invalidateScript();
 	  }
 	  outputError(error, noSelection) {
 	    const stream = 0;
 	    let shortError;
-	    if (Utils.isCustomError(error)) {
+	    if (UiUtils.isCustomError(error)) {
 	      shortError = error.shortMessage || error.message;
 	      if (!noSelection) {
 	        const startPos = error.pos || 0, len = error.len || (error.value !== void 0 ? String(error.value).length : 0), endPos = startPos + len;
@@ -18560,7 +18663,7 @@
 	    this.basicParser.setOptions(_Controller.formatterBasicParserOptions);
 	    const output = basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
 	    if (output.error) {
-	      Utils.console.warn(output.error);
+	      UiUtils.console.warn(output.error);
 	      this.outputError(output.error);
 	    } else {
 	      this.fnPutChangedInputOnStack();
@@ -18610,7 +18713,7 @@
 	      let time = Date.now();
 	      output = this.codeGeneratorJs.generate(input, this.variables);
 	      time = Date.now() - time;
-	      Utils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
+	      UiUtils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
 	      if (output.error) {
 	        break;
 	      }
@@ -18636,22 +18739,22 @@
 	      outputString = output.text;
 	      this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
 	      const tokens = this.encodeTokenizedBasic(input);
-	      if (Utils.debug) {
-	        Utils.console.debug("parse: input length:", input.length, ", tokenized length:", tokens.length);
+	      if (UiUtils.debug) {
+	        UiUtils.console.debug("parse: input length:", input.length, ", tokenized length:", tokens.length);
 	      }
 	      try {
 	        this.vm.vmPutProgramInMem(tokens);
 	      } catch (e) {
-	        Utils.console.error("vmPutProgramInMem", e);
+	        UiUtils.console.error("vmPutProgramInMem", e);
 	      }
 	    }
 	    if (outputString && outputString.length > 0) {
 	      outputString += "\n";
 	    }
-	    this.view.setAreaValue(ViewID.outputText, outputString);
+	    this.setOutputText(outputString);
 	    this.invalidateScript();
 	    this.setVarSelectOptions(ViewID.varSelect, this.variables);
-	    this.commonEventHandler.onVarSelectChange();
+	    this.uiController.onVarSelectChange();
 	    return output;
 	  }
 	  fnPretty() {
@@ -18661,7 +18764,7 @@
 	      this.setInputText(output, true);
 	      this.fnPutChangedInputOnStack();
 	      const diff = Diff.testDiff(input.toUpperCase(), output.toUpperCase());
-	      this.view.setAreaValue(ViewID.outputText, diff);
+	      this.setOutputText(diff);
 	    }
 	  }
 	  fnAddLines() {
@@ -18718,7 +18821,7 @@
 	    const fnExportBase64 = function() {
 	      meta.encoding = "base64";
 	      const metaString = FileHandler.joinMeta(meta);
-	      data = metaString + "," + Utils.btoa(data);
+	      data = metaString + "," + window.btoa(data);
 	      name += ".b64.txt";
 	    };
 	    if (exportDSK) {
@@ -18759,7 +18862,7 @@
 	            meta.length = data.length;
 	            meta.entry = 0;
 	          } else {
-	            Utils.console.warn("Controller: Cannot tokenize, keeping ASCII: " + item.value);
+	            UiUtils.console.warn("Controller: Cannot tokenize, keeping ASCII: " + item.value);
 	          }
 	        }
 	        if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
@@ -18812,7 +18915,7 @@
 	        line += 1;
 	      }
 	      pos += columnNumber;
-	      Utils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
+	      UiUtils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
 	      this.view.setAreaSelection(ViewID.outputText, pos, pos + 1);
 	    }
 	  }
@@ -18830,7 +18933,7 @@
 	      try {
 	        this.fnScript = new Function("o", script);
 	      } catch (e) {
-	        Utils.console.error(e);
+	        UiUtils.console.error(e);
 	        if (e instanceof Error) {
 	          this.selectJsError(script, e);
 	          e.shortMessage = "JS " + String(e);
@@ -18860,8 +18963,8 @@
 	        }, timeout);
 	      }
 	    }
-	    if (Utils.debug > 1) {
-	      Utils.console.debug("End of fnRun");
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.debug("End of fnRun");
 	    }
 	  }
 	  fnRun(paras) {
@@ -18892,19 +18995,19 @@
 	            customError = this.vm.vmComposeError(customError, customError.errCode, customError.value);
 	          }
 	          if (!customError.hidden) {
-	            Utils.console.warn(customError);
+	            UiUtils.console.warn(customError);
 	            this.outputError(customError, !customError.pos);
 	          } else {
-	            Utils.console.log(customError.message);
+	            UiUtils.console.log(customError.message);
 	          }
 	        } else {
-	          Utils.console.error(e);
+	          UiUtils.console.error(e);
 	          this.selectJsError(this.view.getAreaValue(ViewID.outputText), e);
 	          this.vm.vmComposeError(e, 2, "JS " + String(e));
 	          this.outputError(e, true);
 	        }
 	      } else {
-	        Utils.console.error(e);
+	        UiUtils.console.error(e);
 	      }
 	    }
 	  }
@@ -18917,8 +19020,8 @@
 	      this.vm.cursor(stream, 0);
 	      const inputText = this.view.getAreaValue(ViewID.inputText);
 	      if (!isNaN(_Controller.parseLineNumber(input))) {
-	        if (Utils.debug > 0) {
-	          Utils.console.debug("fnDirectInput: insert line=" + input);
+	        if (UiUtils.debug > 0) {
+	          UiUtils.console.debug("fnDirectInput: insert line=" + input);
 	        }
 	        input = this.mergeScripts(inputText, input);
 	        this.setInputText(input, true);
@@ -18929,7 +19032,7 @@
 	        this.updateResultText();
 	        return false;
 	      }
-	      Utils.console.log("fnDirectInput: execute:", input);
+	      UiUtils.console.log("fnDirectInput: execute:", input);
 	      const codeGeneratorJs = this.codeGeneratorJs;
 	      let output, outputString;
 	      if (inputText && (!isNaN(_Controller.parseLineNumber(inputText)) || this.model.getProperty(ModelPropID.implicitLines))) {
@@ -18956,7 +19059,7 @@
 	      if (outputString && outputString.length > 0) {
 	        outputString += "\n";
 	      }
-	      this.view.setAreaValue(ViewID.outputText, outputString);
+	      this.setOutputText(outputString);
 	      if (!output.error) {
 	        this.vm.vmSetStartLine(this.vm.line);
 	        this.vm.vmGoto("direct");
@@ -18965,7 +19068,7 @@
 	          this.fnScript = fnScript;
 	          this.vm.vmSetSourceMap(codeGeneratorJs.getSourceMap());
 	        } catch (e) {
-	          Utils.console.error(e);
+	          UiUtils.console.error(e);
 	          if (e instanceof Error) {
 	            this.outputError(e, true);
 	          }
@@ -18983,6 +19086,14 @@
 	    return false;
 	  }
 	  startWithDirectInput() {
+	    if (this.options.isHeadlessDirectInput) {
+	      this.stopUpdateCanvas();
+	      UiUtils.console.log("We are ready.");
+	      if (this.options.onProgramEnd) {
+	        this.options.onProgramEnd();
+	      }
+	      return;
+	    }
 	    const vm = this.vm, stream = 0, msg = "Ready\r\n";
 	    this.vm.tagoff(stream);
 	    this.vm.vmResetControlBuffer();
@@ -19003,8 +19114,8 @@
 	    this.fnWaitInput();
 	  }
 	  updateResultText() {
-	    this.view.setAreaValue(ViewID.resultText, this.vm.vmGetOutBuffer());
-	    this.view.setAreaScrollTop(ViewID.resultText);
+	    const outText = this.vm.vmGetOutBuffer();
+	    this.setResultText(outText, true);
 	  }
 	  exitLoop() {
 	    const stop = this.vm.vmGetStopObject(), reason = stop.reason;
@@ -19013,7 +19124,7 @@
 	    this.view.setDisabled(ViewID.stopButton, reason !== "fileLoad" && reason !== "fileSave");
 	    this.view.setDisabled(ViewID.continueButton, reason === "end" || reason === "fileLoad" || reason === "fileSave" || reason === "parse" || reason === "renumLines" || reason === "reset");
 	    this.setVarSelectOptions(ViewID.varSelect, this.variables);
-	    this.commonEventHandler.onVarSelectChange();
+	    this.uiController.onVarSelectChange();
 	    if (reason === "stop" || reason === "end" || reason === "error" || reason === "parse" || reason === "parseRun") {
 	      this.startWithDirectInput();
 	    }
@@ -19039,7 +19150,7 @@
 	    if (stop.reason in this.handlers) {
 	      this.handlers[stop.reason].call(this, stop.paras);
 	    } else {
-	      Utils.console.warn("runLoop: Unknown run mode:", stop.reason);
+	      UiUtils.console.warn("runLoop: Unknown run mode:", stop.reason);
 	      this.vm.vmStop("error", 50);
 	    }
 	    if (stop.reason && stop.reason !== "waitSound" && stop.reason !== "waitKey" && stop.reason !== "waitInput") {
@@ -19176,13 +19287,13 @@
 	      try {
 	        const value2 = this.vm.vmAssign(varType, value);
 	        variables.setVariable(par, value2);
-	        Utils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
+	        UiUtils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
 	      } catch (e) {
-	        Utils.console.warn(e);
+	        UiUtils.console.warn(e);
 	      }
 	    }
 	    this.setVarSelectOptions(ViewID.varSelect, variables);
-	    this.commonEventHandler.onVarSelectChange();
+	    this.uiController.onVarSelectChange();
 	  }
 	  setBasicVersion(basicVersion) {
 	    this.basicParser.setOptions({
@@ -19230,7 +19341,7 @@
 	      } else {
 	        const isAreaHidden = this.view.getHidden(ViewID.cpcArea);
 	        if (isAreaHidden) {
-	          this.commonEventHandler.toggleAreaHiddenById("change", ViewID.showCpcInput);
+	          this.uiController.toggleAreaHiddenById("change", ViewID.showCpcInput);
 	        }
 	        this.view.setHidden(ViewID.cpcCanvas, false);
 	        canvas = new Canvas({
@@ -19239,7 +19350,7 @@
 	          palette: validPalette
 	        });
 	        if (isAreaHidden) {
-	          this.commonEventHandler.toggleAreaHiddenById("change", ViewID.showCpcInput);
+	          this.uiController.toggleAreaHiddenById("change", ViewID.showCpcInput);
 	        }
 	      }
 	      this.canvases[canvasType] = canvas;
@@ -19291,7 +19402,7 @@
 	      if (opts.addr > addr) {
 	        addr = opts.addr;
 	      } else {
-	        Utils.console.error("setDisassAddr: Not increasing:", addr, opts.addr);
+	        UiUtils.console.error("setDisassAddr: Not increasing:", addr, opts.addr);
 	        break;
 	      }
 	    }
@@ -19412,7 +19523,7 @@
 	      if (selectedName === key) {
 	        this.model.getDatabase().loaded = true;
 	      } else {
-	        Utils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
+	        UiUtils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
 	        this.model.setProperty(ModelPropID.database, key);
 	        const database = this.model.getDatabase();
 	        if (database) {
@@ -19420,18 +19531,18 @@
 	        }
 	        this.model.setProperty(ModelPropID.database, selectedName);
 	      }
-	      Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
+	      UiUtils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
 	      this.setDirectorySelectOptions();
 	      this.onDirectorySelectChange();
 	    };
 	  }
 	  createFnDatabaseError(url) {
 	    return (_sFullUrl, key) => {
-	      Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
+	      UiUtils.console.error("fnDatabaseError: database error: " + key + ": " + url);
 	      this.setDirectorySelectOptions();
 	      this.onDirectorySelectChange();
 	      this.setInputText("");
-	      this.view.setAreaValue(ViewID.resultText, "Cannot load database: " + key);
+	      this.setResultText("Cannot load database: " + key);
 	    };
 	  }
 	  onDatabaseSelectChange() {
@@ -19440,7 +19551,7 @@
 	    this.view.setSelectTitleFromSelectedOption(ViewID.databaseSelect);
 	    const database = this.model.getDatabase();
 	    if (!database) {
-	      Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
+	      UiUtils.console.error("onDatabaseSelectChange: database not available:", databaseName);
 	      return;
 	    }
 	    if (database.text === "storage") {
@@ -19453,7 +19564,7 @@
 	    } else {
 	      this.setInputText("#loading database " + databaseName + "...");
 	      const exampleIndex = this.model.getProperty(ModelPropID.exampleIndex), url = database.src + "/" + exampleIndex;
-	      Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
+	      this.getLoadScript()(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
 	    }
 	  }
 	  onDirectorySelectChange() {
@@ -19463,7 +19574,7 @@
 	  onExampleSelectChange() {
 	    const vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getProperty(ModelPropID.database), directoryName = this.view.getSelectValue(ViewID.directorySelect);
 	    vm.closein();
-	    this.commonEventHandler.setPopoversHiddenExcept();
+	    this.uiController.setPopoversHiddenExcept();
 	    inFile.open = true;
 	    let exampleName = this.view.getSelectValue(ViewID.exampleSelect);
 	    if (directoryName) {
@@ -19491,25 +19602,25 @@
 	  }
 	  // currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
 	  exportAsBase64(storageName) {
-	    const storage = Utils.localStorage;
+	    const storage = _Controller.getLocalStorage();
 	    let data = storage.getItem(storageName), out = "";
 	    if (data !== null) {
 	      const index = data.indexOf(",");
 	      if (index >= 0) {
 	        const meta = data.substring(0, index);
 	        data = data.substring(index + 1);
-	        data = Utils.btoa(data);
+	        data = window.btoa(data);
 	        out = meta + ";base64," + data;
 	      } else {
-	        data = Utils.btoa(data);
+	        data = window.btoa(data);
 	        out = "base64," + data;
 	      }
 	    }
-	    Utils.console.log(out);
+	    UiUtils.console.log(out);
 	    return out;
 	  }
 	  onCpcCanvasClick(event) {
-	    this.commonEventHandler.setPopoversHiddenExcept();
+	    this.uiController.setPopoversHiddenExcept();
 	    this.canvas.onCanvasClick(event);
 	    this.keyboard.setActive(true);
 	  }
@@ -19636,7 +19747,10 @@
 	exports.FileSelect = FileSelect;
 	exports.Keyboard = Keyboard;
 	exports.NoCanvas = NoCanvas;
+	exports.Sound = Sound;
 	exports.TextCanvas = TextCanvas;
+	exports.UiController = UiController;
+	exports.UiUtils = UiUtils;
 	exports.View = View;
 	exports.VirtualKeyboard = VirtualKeyboard;
 

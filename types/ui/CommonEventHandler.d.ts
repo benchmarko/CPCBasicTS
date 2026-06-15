@@ -1,0 +1,73 @@
+import { ModelPropID, ViewID } from "./Constants";
+import type { IModel } from "../Interfaces";
+import type { IController } from "./UiInterfaces";
+import { View } from "./View";
+interface CommonEventHandlerOptions {
+    model: IModel;
+    view: View;
+    controller: IController;
+}
+export type EventDefType = {
+    id: ViewID;
+    viewType?: string;
+    toggleId?: ViewID;
+    property?: ModelPropID;
+    display?: string;
+    isPopover?: boolean;
+    func?: Function;
+    controllerFunc?: Function;
+};
+export declare class CommonEventHandler implements EventListenerObject {
+    private readonly options;
+    private readonly model;
+    private readonly view;
+    private readonly controller;
+    private readonly eventDefInternalMap;
+    private fnUserAction;
+    constructor(options: CommonEventHandlerOptions);
+    getOptions(): CommonEventHandlerOptions;
+    private setOptions;
+    fnSetUserAction(fnAction: ((event: Event, id: string) => void) | undefined): void;
+    private initOneToggle;
+    initToggles(): void;
+    private static getToggleId;
+    private static getproperty;
+    setPopoversHiddenExcept(exceptId?: ViewID): void;
+    private toggleAreaHidden;
+    getEventDefById(type: string, id: ViewID): EventDefType;
+    toggleAreaHiddenById(type: string, id: ViewID): boolean;
+    private onCheckedChange;
+    private onNumberInputChange;
+    private onSelectChange;
+    private onExportButtonClick;
+    private onGalleryButtonClick;
+    private fnUpdateAreaText;
+    private onUndoButtonClick;
+    private onRedoButtonClick;
+    private onContinueButtonClick;
+    private onParseRunButtonClick;
+    private static onHelpButtonClick;
+    private onGalleryItemClick;
+    private onCopyTextButtonClick;
+    private static encodeUriParam;
+    private onReloadButtonClick;
+    onVarSelectChange(): void;
+    onKbdLayoutSelectChange(eventDef: EventDefType): void;
+    private onBasicVersionSelectChange;
+    private onPaletteSelectChange;
+    private onCanvasTypeSelectChange;
+    private onDebugInputChange;
+    private onDragElementsInputChange;
+    private onShowCpcInputChange;
+    private onShowKbdInputChange;
+    private onDisassInputChange;
+    private onSoundInputChange;
+    private onScreenshotButtonClick;
+    private onClearInputButtonClick;
+    private onFullscreenButtonClick;
+    private onCpcCanvasClick;
+    private createEventDefMap;
+    handleEvent(event: Event): void;
+}
+export {};
+//# sourceMappingURL=CommonEventHandler.d.ts.map

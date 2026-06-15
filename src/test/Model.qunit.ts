@@ -1,7 +1,7 @@
 // Model.qunit.ts - QUnit tests for CPCBasic Model
 //
 
-import { ModelPropID } from "../Constants";
+import { ModelPropID } from "../ui/Constants";
 import { Model } from "../Model";
 import { } from "qunit";
 

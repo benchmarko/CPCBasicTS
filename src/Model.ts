@@ -2,36 +2,13 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 
-import { ModelPropID } from "./Constants";
+
 import { Utils } from "./Utils";
-import { ICpcVmRsx } from "./Interfaces";
+import type { ConfigEntryType, ConfigType, DatabaseEntry, DatabasesType, ExampleEntry, ExamplesType, IModel } from "./Interfaces";
 
-export type ConfigEntryType = string | number | boolean;
+const ModelPropIDdatabase = "database"; //TODO
 
-export type ConfigType = Record<string, ConfigEntryType>;
-
-export interface DatabaseEntry {
-	text: string
-	title: string
-	src: string
-	script?: string
-	loaded?: boolean
-}
-
-export interface ExampleEntry {
-	key: string
-	title: string
-	meta: string // D=data
-	script?: string
-	rsx?: ICpcVmRsx
-	loaded?: boolean
-}
-
-export type DatabasesType = Record<string, DatabaseEntry>;
-
-type ExamplesType = Record<string, Record<string, ExampleEntry>>;
-
-export class Model {
+export class Model implements IModel {
 	private config: ConfigType;
 	private initialConfig: ConfigType;
 	private databases: DatabasesType;
@@ -44,11 +21,12 @@ export class Model {
 		this.examples = {}; // loaded examples per database
 	}
 
-	getProperty<T extends ConfigEntryType>(property: ModelPropID): T {
-		return this.config[property] as T;
+	// {
+	getProperty<T extends ConfigEntryType>(property: string): T { //getProperty<T extends ConfigEntryType>(property: ModelPropID): T
+		return this.config[property as any] as T; // keyof ConfigType?
 	}
-	setProperty<T extends ConfigEntryType>(property: ModelPropID, value: T): void {
-		this.config[property] = value;
+	setProperty<T extends ConfigEntryType>(property: string, value: T): void {
+		this.config[property as any] = value;
 	}
 	getAllProperties(): ConfigType {
 		return this.config;
@@ -86,23 +64,23 @@ export class Model {
 		return this.databases;
 	}
 	getDatabase(): DatabaseEntry {
-		const database = this.getProperty<string>(ModelPropID.database);
+		const database = this.getProperty<string>(ModelPropIDdatabase);
 
 		return this.databases[database];
 	}
 
 	getAllExamples(): {	[x: string]: ExampleEntry; } {
-		const database = this.getProperty<string>(ModelPropID.database);
+		const database = this.getProperty<string>(ModelPropIDdatabase);
 
 		return this.examples[database];
 	}
 	getExample(key: string): ExampleEntry {
-		const database = this.getProperty<string>(ModelPropID.database);
+		const database = this.getProperty<string>(ModelPropIDdatabase);
 
 		return this.examples[database][key];
 	}
 	setExample(example: ExampleEntry): void {
-		const database = this.getProperty<string>(ModelPropID.database),
+		const database = this.getProperty<string>(ModelPropIDdatabase),
 			key = example.key;
 
 		if (!this.examples[database][key]) {
@@ -113,7 +91,7 @@ export class Model {
 		this.examples[database][key] = example;
 	}
 	removeExample(key: string): void {
-		const database = this.getProperty<string>(ModelPropID.database);
+		const database = this.getProperty<string>(ModelPropIDdatabase);
 
 		if (!this.examples[database][key]) {
 			Utils.console.warn("removeExample: example does not exist: " + key);

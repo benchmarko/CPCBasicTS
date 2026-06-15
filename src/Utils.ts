@@ -3,97 +3,13 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-export interface CustomError extends Error {
-	value: string
-	pos: number
-	len?: number,
-	line?: number | string
-	hidden?: boolean
-	shortMessage?: string
-	errCode?: number
-}
-
-const Polyfills = window.Polyfills;
-
+import type { CustomError } from "./Interfaces";
 export class Utils {
 	static debug = 0;
-	static console = Polyfills.console;
+	static console = console;
 
-	private static fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement, fnSuccess: (url: string, key: string) => void, fnError: (url: string, key: string) => void) {
-		// inspired by https://github.com/requirejs/requirejs/blob/master/require.js
-		let ieTimeoutCount = 3; // IE timeout count
-		const onScriptLoad = function (event: Event) {
-				const type = event.type, // "load" or "error"
-					node = (event.currentTarget || event.srcElement) as HTMLScriptElement | HTMLLinkElement,
-					fullUrl = (node as HTMLScriptElement).src || (node as HTMLLinkElement).href, // src for script, href for link
-					key = node.getAttribute("data-key") as string;
-
-				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptLoad:", type, fullUrl, key);
-				}
-				node.removeEventListener("load", onScriptLoad, false);
-				node.removeEventListener("error", onScriptLoad, false);
-
-				if (type === "load") {
-					fnSuccess(fullUrl, key);
-				} else {
-					fnError(fullUrl, key);
-				}
-			},
-			onScriptReadyStateChange = function (event?: Event) { // for old IE8
-				const node = (event ? (event.currentTarget || event.srcElement) : script) as HTMLScriptElement | HTMLLinkElement,
-					fullUrl = (node as HTMLScriptElement).src || (node as HTMLLinkElement).href, // src for script, href for link
-					key = node.getAttribute("data-key") as string,
-					node2 = node as any;
-
-				if (node2.detachEvent) {
-					node2.detachEvent("onreadystatechange", onScriptReadyStateChange);
-				}
-
-				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptReadyStateChange: " + fullUrl);
-				}
-				// check also: https://stackoverflow.com/questions/1929742/can-script-readystate-be-trusted-to-detect-the-end-of-dynamic-script-loading
-				if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
-					if (node2.readyState === "loading" && ieTimeoutCount) {
-						ieTimeoutCount -= 1;
-						const timeout = 200; // some delay
-
-						Utils.console.error("onScriptReadyStateChange: Still loading: " + fullUrl + " Waiting " + timeout + "ms (count=" + ieTimeoutCount + ")");
-						setTimeout(function () {
-							onScriptReadyStateChange(); // check again
-						}, timeout);
-					} else {
-						// ieTimeoutCount = 3;
-						Utils.console.error("onScriptReadyStateChange: Cannot load file " + fullUrl + " readystate=" + node2.readyState);
-						fnError(fullUrl, key);
-					}
-				} else {
-					fnSuccess(fullUrl, key);
-				}
-			};
-
-		if ((script as any).readyState) { // old IE8
-			ieTimeoutCount = 3;
-			(script as any).attachEvent("onreadystatechange", onScriptReadyStateChange);
-		} else { // Others
-			script.addEventListener("load", onScriptLoad, false);
-			script.addEventListener("error", onScriptLoad, false);
-		}
-		document.getElementsByTagName("head")[0].appendChild(script);
-	}
-
-	static loadScript(url: string, fnSuccess: (url2: string, key: string) => void, fnError: (url2: string, key: string) => void, key: string): void {
-		const script = document.createElement("script");
-
-		script.type = "text/javascript";
-		script.charset = "utf-8";
-		script.async = true;
-		script.src = url;
-
-		script.setAttribute("data-key", key);
-
-		this.fnLoadScriptOrStyle(script, fnSuccess, fnError);
+	public static setDebug(debug: number) {
+		Utils.debug = debug;
 	}
 
 	static hexEscape(str: string): string { // as hex
@@ -101,14 +17,6 @@ export class Utils {
 			return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
 		});
 	}
-
-	/*
-	static hexUnescape(str: string): string {
-		return str.replace(/\\x([0-9A-Fa-f]{2})/g, function () {
-			return String.fromCharCode(parseInt(arguments[1], 16));
-		});
-	}
-	*/
 
 	static dateFormat(d: Date): string {
 		return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "
@@ -160,16 +68,6 @@ export class Utils {
 
 	static stringTrimEnd(str: string): string {
 		return str.replace(/[\s\uFEFF\xA0]+$/, "");
-	}
-
-	static localStorage = Polyfills.localStorage || window.localStorage;
-
-	static atob = function (data: string): string {
-		return window.atob(data);
-	}
-
-	static btoa = function (data: string): string {
-		return window.btoa(data);
 	}
 
 	static isCustomError(e: unknown): e is CustomError {

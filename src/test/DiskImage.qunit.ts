@@ -10,6 +10,9 @@ import { AmsdosHeader, DiskImage } from "../DiskImage";
 import { ZipFile } from "../ZipFile"; // we need this just to reduce stored disk image size
 import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
 
+import { TestNodeUtils } from "./TestNodeUtils";
+import { TestUiUtils } from "./TestUiUtils";
+
 QUnit.dump.maxDepth = 10;
 
 // key:  compressed part of disk image file; Controller.exportAsBase64("cpcdata.zip.xxx")
@@ -80,7 +83,8 @@ function readFilesFromDiskImage(disk: DiskImage) {
 
 function extractFirstFileFromZip(key: string) {
 	const parts = Utils.split2(key, ","),
-		compressed = Utils.atob(parts[1]), // decode base64
+		atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob,
+		compressed = atobFn(parts[1]), // decode base64
 		zip = new ZipFile({
 			data: Utils.string2Uint8Array(compressed),
 			zipName: "name"

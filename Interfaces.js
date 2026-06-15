@@ -3,6 +3,6 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 //
+;
 export {};
-//
 //# sourceMappingURL=Interfaces.js.map

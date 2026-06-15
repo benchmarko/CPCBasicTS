@@ -1,4 +1,4 @@
-import { VariableValue } from "./Interfaces";
+import type { VariableValue } from "./Interfaces";
 interface VariablesOptions {
     arrayBounds?: boolean;
 }

@@ -7,58 +7,36 @@
 // node dist/test/testParseExamples.qunit.js
 // npm test...
 
-interface NodeHttps {
-	get: (url: string, fn: (res: any) => void) => any
-}
-
-interface NodeFs {
-	readFile: (name: string, encoding: string, fn: (res: any) => void) => any
-}
-
 interface NodePath {
-	resolve: (dir: string, name: string) => string
+	resolve: (dir: string, name: string) => string,
+	dirname: (dir: string) => string
 }
 
 /* eslint-disable prefer-const */
-let https = undefined as unknown as NodeHttps, // nodeJs - set via fnEval, invisible to TS
-	fs = undefined as unknown as NodeFs,
-	path = undefined as unknown as NodePath,
-	__dirname = "" as string; // eslint-disable-line no-underscore-dangle
+let path = undefined as unknown as NodePath;
 /* eslint-enable prefer-const */
 
-import { ModelPropID } from "../Constants";
+import { ModelPropID } from "../ui/Constants";
 import { Utils } from "../Utils";
-import { ICpcVmRsx, IOutput } from "../Interfaces";
+import type { DatabaseEntry, DatabasesType, ExampleEntry, ICpcVmRsx, IOutput } from "../Interfaces";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { BasicTokenizer } from "../BasicTokenizer";
 import { CodeGeneratorJs } from "../CodeGeneratorJs";
 import { CodeGeneratorToken } from "../CodeGeneratorToken";
-import { Model, DatabaseEntry, DatabasesType, ExampleEntry } from "../Model";
+import { Model } from "../Model";
 import { VarTypes, Variables } from "../Variables";
 import { DiskImage } from "../DiskImage";
 import { cpcconfig } from "../cpcconfig";
 import { TestHelper } from "./TestHelper";
 
+import { TestNodeUtils } from "./TestNodeUtils";
+import { TestUiUtils } from "./TestUiUtils";
+
 type QUnitAssertType3 = { ok: (r: any, e: any, msg: string) => void, expect: (arg: any) => void, async: () => (() => void) };
 
 // eslint-disable-next-line no-new-func
-const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(), // for old IE
-	nodeJsAvail = (function () {
-		let nodeJs = false;
-
-		// https://www.npmjs.com/package/detect-node
-		// Only Node.JS has a process variable that is of [[Class]] process
-		try {
-			if (Object.prototype.toString.call(myGlobalThis.process) === "[object process]") {
-				nodeJs = true;
-			}
-		} catch (_e) {
-			// empty
-		}
-		return nodeJs;
-	}());
-
+const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
 
 function isUrl(s: string) {
 	return s.startsWith("http"); // http or https
@@ -68,49 +46,20 @@ function fnEval(code: string) {
 	return eval(code); // eslint-disable-line no-eval
 }
 
-function nodeReadUrl(url: string, fnDataLoaded: (error: Error | undefined, data?: string) => void) {
-	if (!https) {
-		fnEval('https = require("https");'); // to trick TypeScript
-	}
-	https.get(url, (resp) => {
-		let data = "";
-
-		// A chunk of data has been received.
-		resp.on("data", (chunk: string) => {
-			data += chunk;
-		});
-
-		// The whole response has been received. Print out the result.
-		resp.on("end", () => {
-			fnDataLoaded(undefined, data);
-		});
-	}).on("error", (err: Error) => {
-		Utils.console.log("Error: " + err.message);
-		fnDataLoaded(err);
-	});
-}
-
-function nodeReadFile(name: string, fnDataLoaded: (error: Error | undefined, data?: string) => void) {
-	if (!fs) {
-		fnEval('fs = require("fs");'); // to trick TypeScript
-	}
-	fs.readFile(name, "utf8", fnDataLoaded);
-}
-
-
 function nodeGetAbsolutePath(name: string) {
 	if (!path) {
 		// eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
 		fnEval('path = require("path");'); // to trick TypeScript
 	}
 
-	// https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
-	const dirname = __dirname || (path as any).dirname(__filename),
+	const dirname = process.cwd() + "/dist/test/", // "...CPCBasicTS/" + ...
 		absolutePath = path.resolve(dirname, name);
 
+	if (Utils.debug > 0) {
+		Utils.console.debug("nodeGetAbsolutePath: dirname=", dirname, "name=", name, "absolutePath=", absolutePath);
+	}
 	return absolutePath;
 }
-
 
 function createModel() {
 	const startConfig = {};
@@ -120,7 +69,6 @@ function createModel() {
 
 	return model;
 }
-
 
 class cpcBasic {
 	static assert: any;
@@ -163,12 +111,12 @@ class cpcBasic {
 		parser: cpcBasic.basicParser,
 		trace: false,
 		quiet: true
-	})
+	});
 
 	static codeGeneratorToken = new CodeGeneratorToken({
 		lexer: cpcBasic.basicLexer,
 		parser: cpcBasic.convertParser
-	})
+	});
 
 	static vmMock = {
 		line: "" as string | number,
@@ -512,7 +460,8 @@ function testCheckMeta(input: string) {
 	input = data.data; // maybe changed
 
 	if (data.meta.encoding === "base64") {
-		input = Utils.atob(input); // decode base64
+		const atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob;
+		input = atobFn(input); // decode base64
 	}
 
 	const type = data.meta.type;
@@ -669,15 +618,9 @@ function testLoadExample(exampleEntry: ExampleEntry) {
 	}
 
 	try {
-		if (nodeJsAvail) {
-			if (isUrl(fileOrUrl)) {
-				nodeReadUrl(fileOrUrl, fnExampleLoaded);
-			} else {
-				nodeReadFile(fileOrUrl, fnExampleLoaded);
-			}
-		} else {
-			Utils.loadScript(fileOrUrl, fnExampleLoadedUtils, fnExampleErrorUtils, example);
-		}
+		const fnLoadScript = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.loadScript : TestUiUtils.loadScript;
+
+		fnLoadScript(fileOrUrl, fnExampleLoadedUtils, fnExampleErrorUtils, example);
 	} catch (e) {
 		Utils.console.error("Error in file", example);
 		Utils.console.error(e);
@@ -702,15 +645,11 @@ function testNextExample() {
 }
 
 
-function fnIndexLoaded(error: Error | undefined, code?: string) {
+function fnIndexLoaded(error: Error | undefined, _code?: string) {
 	if (error) {
 		throw error;
 	}
 	cpcBasic.fnIndexDone1();
-
-	if (code) {
-		fnEval(code); // load index (for nodeJs)
-	}
 
 	const allExamples = cpcBasic.model.getAllExamples();
 
@@ -752,7 +691,7 @@ function testLoadIndex(exampeDb: DatabaseEntry) {
 		cpcBasic.fnIndexDone1 = cpcBasic.assert.async();
 	}
 
-	if (nodeJsAvail) {
+	if (TestNodeUtils.isNodeRuntime()) {
 		if (!isUrl(dir)) {
 			if (Utils.debug > 0) {
 				Utils.console.debug("testParseExamples: __dirname=", __dirname, " dir=", dir);
@@ -766,19 +705,13 @@ function testLoadIndex(exampeDb: DatabaseEntry) {
 
 	Utils.console.log("testParseExamples: Using Database index:", fileOrUrl);
 
-	if (nodeJsAvail) {
-		if (isUrl(dir)) {
-			if (TestHelper.config.testAll) {
-				nodeReadUrl(fileOrUrl, fnIndexLoaded);
-			} else {
-				Utils.console.log("testParseExamples: testAll=" + TestHelper.config.testAll + ": skipping index loading for", fileOrUrl);
-				fnIndexLoaded(undefined, ""); // skip loading index
-			}
-		} else {
-			nodeReadFile(fileOrUrl, fnIndexLoaded);
-		}
+	if (TestNodeUtils.isNodeRuntime() && isUrl(dir) && !TestHelper.config.testAll) {
+		Utils.console.log("testParseExamples: testAll=" + TestHelper.config.testAll + ": skipping index loading for", fileOrUrl);
+		fnIndexLoadedUtils(); // skip loading index
 	} else {
-		Utils.loadScript(fileOrUrl, fnIndexLoadedUtils, fnIndexErrorUtils, exampeDb.text);
+		const fnLoadScript = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.loadScript : TestUiUtils.loadScript;
+
+		fnLoadScript(fileOrUrl, fnIndexLoadedUtils, fnIndexErrorUtils, exampeDb.text);
 	}
 }
 
@@ -806,9 +739,13 @@ function testNextIndex() {
 }
 
 function testStart() {
-	const Polyfills = (window as any).Polyfills;
+	const isNodeRuntime = TestNodeUtils.isNodeRuntime();
 
-	Utils.console.log("testParseExamples: nodeJs:", nodeJsAvail, " Polyfills.getList().length:", Polyfills.getList().length);
+	Utils.console.log("testParseExamples: isNodeRuntime:", isNodeRuntime);
+
+	if (!isNodeRuntime) {
+		Utils.console.log("testParseExamples: Polyfills.length:", TestUiUtils.getPolyfills().length);
+	}
 
 	cpcBasic.initVmMock1();
 	cpcBasic.totalExamples = 0;
@@ -838,7 +775,5 @@ if (typeof myGlobalThis.QUnit !== "undefined") {
 	cpcBasic.fnExampleDone1 = function () {
 		// empty
 	};
-
 	testStart();
 }
-// end

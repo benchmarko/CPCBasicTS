@@ -3,6 +3,8 @@
 import { Utils } from "../Utils";
 import { ZipFile } from "../ZipFile";
 import { TestHelper } from "./TestHelper";
+import { TestNodeUtils } from "./TestNodeUtils";
+import { TestUiUtils } from "./TestUiUtils";
 QUnit.dump.maxDepth = 10;
 QUnit.module("ZipFile: Tests", function (hooks) {
     // examples store.zip and deflate.zip taken from https://github.com/bower/decompress-zip/tree/master/test/assets/file-mode-pack
@@ -31,7 +33,7 @@ QUnit.module("ZipFile: Tests", function (hooks) {
     function runTestsFor(category, tests, assert, results) {
         for (var key in tests) {
             if (tests.hasOwnProperty(key)) {
-                var parts = Utils.split2(key, ","), meta = parts[0], data = Utils.atob(parts[1]), // decode base64
+                var parts = Utils.split2(key, ","), meta = parts[0], atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob, data = atobFn(parts[1]), // decode base64
                 zip = new ZipFile({
                     data: Utils.string2Uint8Array(data),
                     zipName: "name"

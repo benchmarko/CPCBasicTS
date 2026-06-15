@@ -1,6 +1,6 @@
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser } from "./BasicParser";
-import { IOutput } from "./Interfaces";
+import type { IOutput } from "./Interfaces";
 interface CodeGeneratorBasicOptions {
     lexer: BasicLexer;
     parser: BasicParser;

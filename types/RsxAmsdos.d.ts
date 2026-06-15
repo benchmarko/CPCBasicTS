@@ -1,4 +1,4 @@
-import { ICpcVmRsx, RsxCommandType } from "./Interfaces";
+import type { ICpcVmRsx, RsxCommandType } from "./Interfaces";
 export declare class RsxAmsdos implements ICpcVmRsx {
     private static fnGetParameterAsString;
     private static dir;

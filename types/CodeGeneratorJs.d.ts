@@ -1,4 +1,4 @@
-import { IOutput } from "./Interfaces";
+import type { IOutput } from "./Interfaces";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser } from "./BasicParser";
 import { Variables } from "./Variables";

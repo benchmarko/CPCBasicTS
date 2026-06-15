@@ -2,6 +2,7 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 import { Utils } from "./Utils";
+var ModelPropIDdatabase = "database"; //TODO
 var Model = /** @class */ (function () {
     function Model(config) {
         this.config = config || {}; // store only a reference
@@ -9,8 +10,9 @@ var Model = /** @class */ (function () {
         this.databases = {};
         this.examples = {}; // loaded examples per database
     }
+    // {
     Model.prototype.getProperty = function (property) {
-        return this.config[property];
+        return this.config[property]; // keyof ConfigType?
     };
     Model.prototype.setProperty = function (property, value) {
         this.config[property] = value;
@@ -45,19 +47,19 @@ var Model = /** @class */ (function () {
         return this.databases;
     };
     Model.prototype.getDatabase = function () {
-        var database = this.getProperty("database" /* ModelPropID.database */);
+        var database = this.getProperty(ModelPropIDdatabase);
         return this.databases[database];
     };
     Model.prototype.getAllExamples = function () {
-        var database = this.getProperty("database" /* ModelPropID.database */);
+        var database = this.getProperty(ModelPropIDdatabase);
         return this.examples[database];
     };
     Model.prototype.getExample = function (key) {
-        var database = this.getProperty("database" /* ModelPropID.database */);
+        var database = this.getProperty(ModelPropIDdatabase);
         return this.examples[database][key];
     };
     Model.prototype.setExample = function (example) {
-        var database = this.getProperty("database" /* ModelPropID.database */), key = example.key;
+        var database = this.getProperty(ModelPropIDdatabase), key = example.key;
         if (!this.examples[database][key]) {
             if (Utils.debug > 1) {
                 Utils.console.debug("setExample: creating new example:", key);
@@ -66,7 +68,7 @@ var Model = /** @class */ (function () {
         this.examples[database][key] = example;
     };
     Model.prototype.removeExample = function (key) {
-        var database = this.getProperty("database" /* ModelPropID.database */);
+        var database = this.getProperty(ModelPropIDdatabase);
         if (!this.examples[database][key]) {
             Utils.console.warn("removeExample: example does not exist: " + key);
         }

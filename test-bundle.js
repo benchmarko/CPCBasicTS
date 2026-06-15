@@ -1,76 +1,15 @@
 (function () {
 	'use strict';
 
-	const Polyfills = window.Polyfills;
 	const _Utils = class _Utils {
-	  static fnLoadScriptOrStyle(script, fnSuccess, fnError) {
-	    let ieTimeoutCount = 3;
-	    const onScriptLoad = function(event) {
-	      const type = event.type, node = event.currentTarget || event.srcElement, fullUrl = node.src || node.href, key = node.getAttribute("data-key");
-	      if (_Utils.debug > 1) {
-	        _Utils.console.debug("onScriptLoad:", type, fullUrl, key);
-	      }
-	      node.removeEventListener("load", onScriptLoad, false);
-	      node.removeEventListener("error", onScriptLoad, false);
-	      if (type === "load") {
-	        fnSuccess(fullUrl, key);
-	      } else {
-	        fnError(fullUrl, key);
-	      }
-	    }, onScriptReadyStateChange = function(event) {
-	      const node = event ? event.currentTarget || event.srcElement : script, fullUrl = node.src || node.href, key = node.getAttribute("data-key"), node2 = node;
-	      if (node2.detachEvent) {
-	        node2.detachEvent("onreadystatechange", onScriptReadyStateChange);
-	      }
-	      if (_Utils.debug > 1) {
-	        _Utils.console.debug("onScriptReadyStateChange: " + fullUrl);
-	      }
-	      if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
-	        if (node2.readyState === "loading" && ieTimeoutCount) {
-	          ieTimeoutCount -= 1;
-	          const timeout = 200;
-	          _Utils.console.error("onScriptReadyStateChange: Still loading: " + fullUrl + " Waiting " + timeout + "ms (count=" + ieTimeoutCount + ")");
-	          setTimeout(function() {
-	            onScriptReadyStateChange();
-	          }, timeout);
-	        } else {
-	          _Utils.console.error("onScriptReadyStateChange: Cannot load file " + fullUrl + " readystate=" + node2.readyState);
-	          fnError(fullUrl, key);
-	        }
-	      } else {
-	        fnSuccess(fullUrl, key);
-	      }
-	    };
-	    if (script.readyState) {
-	      ieTimeoutCount = 3;
-	      script.attachEvent("onreadystatechange", onScriptReadyStateChange);
-	    } else {
-	      script.addEventListener("load", onScriptLoad, false);
-	      script.addEventListener("error", onScriptLoad, false);
-	    }
-	    document.getElementsByTagName("head")[0].appendChild(script);
-	  }
-	  static loadScript(url, fnSuccess, fnError, key) {
-	    const script = document.createElement("script");
-	    script.type = "text/javascript";
-	    script.charset = "utf-8";
-	    script.async = true;
-	    script.src = url;
-	    script.setAttribute("data-key", key);
-	    this.fnLoadScriptOrStyle(script, fnSuccess, fnError);
+	  static setDebug(debug) {
+	    _Utils.debug = debug;
 	  }
 	  static hexEscape(str) {
 	    return str.replace(/[\x00-\x1f]/g, function(char) {
 	      return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
 	    });
 	  }
-	  /*
-	  static hexUnescape(str: string): string {
-	  	return str.replace(/\\x([0-9A-Fa-f]{2})/g, function () {
-	  		return String.fromCharCode(parseInt(arguments[1], 16));
-	  	});
-	  }
-	  */
 	  static dateFormat(d) {
 	    return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);
 	  }
@@ -162,17 +101,10 @@
 	  }
 	};
 	_Utils.debug = 0;
-	_Utils.console = Polyfills.console;
+	_Utils.console = console;
 	_Utils.supportsBinaryLiterals = _Utils.testIsSupported("0b01");
 	// does the browser support binary literals?
 	_Utils.supportReservedNames = _Utils.testIsSupported("({}).return()");
-	_Utils.localStorage = Polyfills.localStorage || window.localStorage;
-	_Utils.atob = function(data) {
-	  return window.atob(data);
-	};
-	_Utils.btoa = function(data) {
-	  return window.btoa(data);
-	};
 	let Utils = _Utils;
 
 	class BasicLexer {
@@ -20369,6 +20301,132 @@
 	  }
 	}
 
+	const _TestNodeUtils = class _TestNodeUtils {
+	  static nodeReadUrl(url, fnDataLoaded) {
+	    const nodeHttps = eval("require")("https");
+	    nodeHttps.get(url, (resp) => {
+	      let data2 = "";
+	      resp.on("data", (chunk) => {
+	        data2 += chunk;
+	      });
+	      resp.on("end", () => {
+	        fnDataLoaded(void 0, data2);
+	      });
+	    }).on("error", (err) => {
+	      Utils.console.log("Error: " + err.message);
+	      fnDataLoaded(err);
+	    });
+	  }
+	  static nodeReadFile(name, fnDataLoaded) {
+	    const nodeFs = eval("require")("fs"), myGlobalThis = typeof globalThis !== "undefined" ? globalThis : Function("return this")(), cwd = myGlobalThis.process && myGlobalThis.process.cwd ? myGlobalThis.process.cwd() : "", name2 = cwd && name.indexOf(":") < 0 && !name.startsWith("/") ? cwd + "/" + name : name;
+	    nodeFs.readFile(name2, "utf8", fnDataLoaded);
+	  }
+	  static isUrl(s) {
+	    return s.startsWith("http");
+	  }
+	  /*
+	  static setLoadScriptForNode() {
+	  	Utils.setLoadScript(TestNodeUtils.loadScript);
+	  }
+	  */
+	  // https://dirask.com/posts/Node-js-atob-btoa-functions-equivalents-1Aqb51
+	  static atob(input) {
+	    return Buffer.from(input, "base64").toString("binary");
+	  }
+	  static btoa(input) {
+	    return Buffer.from(input, "binary").toString("base64");
+	  }
+	  static isNodeRuntime() {
+	    const myGlobalThis2 = typeof globalThis !== "undefined" ? globalThis : Function("return this")();
+	    return Boolean(myGlobalThis2.process);
+	  }
+	};
+	_TestNodeUtils.loadScript = (fileOrUrl, fnSuccess, _fnError, key) => {
+	  const fnLoaded = (error, data) => {
+	    if (error) {
+	      Utils.console.error("file error: ", error);
+	    }
+	    if (data) {
+	      eval(data);
+	    }
+	    fnSuccess(fileOrUrl, key);
+	  };
+	  if (_TestNodeUtils.isUrl(fileOrUrl)) {
+	    _TestNodeUtils.nodeReadUrl(fileOrUrl, fnLoaded);
+	  } else {
+	    _TestNodeUtils.nodeReadFile(fileOrUrl, fnLoaded);
+	  }
+	};
+	let TestNodeUtils = _TestNodeUtils;
+
+	const _TestUiUtils = class _TestUiUtils {
+	  static fnLoadScriptOrStyle(script, fnSuccess, fnError) {
+	    let ieTimeoutCount = 3;
+	    const onScriptLoad = function(event) {
+	      const type = event.type, node = event.currentTarget || event.srcElement, fullUrl = node.src || node.href, key = node.getAttribute("data-key");
+	      if (Utils.debug > 1) {
+	        Utils.console.debug("onScriptLoad:", type, fullUrl, key);
+	      }
+	      node.removeEventListener("load", onScriptLoad, false);
+	      node.removeEventListener("error", onScriptLoad, false);
+	      if (type === "load") {
+	        fnSuccess(fullUrl, key);
+	      } else {
+	        fnError(fullUrl, key);
+	      }
+	    }, onScriptReadyStateChange = function(event) {
+	      const node = event ? event.currentTarget || event.srcElement : script, fullUrl = node.src || node.href, key = node.getAttribute("data-key"), node2 = node;
+	      if (node2.detachEvent) {
+	        node2.detachEvent("onreadystatechange", onScriptReadyStateChange);
+	      }
+	      if (Utils.debug > 1) {
+	        Utils.console.debug("onScriptReadyStateChange: " + fullUrl);
+	      }
+	      if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
+	        if (node2.readyState === "loading" && ieTimeoutCount) {
+	          ieTimeoutCount -= 1;
+	          const timeout = 200;
+	          Utils.console.error("onScriptReadyStateChange: Still loading: " + fullUrl + " Waiting " + timeout + "ms (count=" + ieTimeoutCount + ")");
+	          setTimeout(function() {
+	            onScriptReadyStateChange();
+	          }, timeout);
+	        } else {
+	          Utils.console.error("onScriptReadyStateChange: Cannot load file " + fullUrl + " readystate=" + node2.readyState);
+	          fnError(fullUrl, key);
+	        }
+	      } else {
+	        fnSuccess(fullUrl, key);
+	      }
+	    };
+	    if (script.readyState) {
+	      ieTimeoutCount = 3;
+	      script.attachEvent("onreadystatechange", onScriptReadyStateChange);
+	    } else {
+	      script.addEventListener("load", onScriptLoad, false);
+	      script.addEventListener("error", onScriptLoad, false);
+	    }
+	    document.getElementsByTagName("head")[0].appendChild(script);
+	  }
+	  static atob(s) {
+	    const atobFn = typeof Polyfills !== "undefined" ? Polyfills.atob : window.atob;
+	    return atobFn(s);
+	  }
+	  static getPolyfills() {
+	    const polyfills = typeof Polyfills !== "undefined" ? Polyfills.getList() : [];
+	    return polyfills;
+	  }
+	};
+	_TestUiUtils.loadScript = (url, fnSuccess, fnError, key) => {
+	  const script = document.createElement("script");
+	  script.type = "text/javascript";
+	  script.charset = "utf-8";
+	  script.async = true;
+	  script.src = url;
+	  script.setAttribute("data-key", key);
+	  _TestUiUtils.fnLoadScriptOrStyle(script, fnSuccess, fnError);
+	};
+	let TestUiUtils = _TestUiUtils;
+
 	QUnit.dump.maxDepth = 10;
 	const allTests$1 = {
 	  dataEmpty: {
@@ -20422,7 +20480,7 @@
 	  return result.join(" --- ");
 	}
 	function extractFirstFileFromZip(key) {
-	  const parts = Utils.split2(key, ","), compressed = Utils.atob(parts[1]), zip = new ZipFile({
+	  const parts = Utils.split2(key, ","), atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob, compressed = atobFn(parts[1]), zip = new ZipFile({
 	    data: Utils.string2Uint8Array(compressed),
 	    zipName: "name"
 	  }), firstFileInZip = Object.keys(zip.getZipDirectory())[0], uncompressed = zip.readData(firstFileInZip);
@@ -20609,6 +20667,7 @@
 	  return ModelPropID2;
 	})(ModelPropID || {});
 
+	const ModelPropIDdatabase = "database";
 	class Model {
 	  constructor(config) {
 	    this.config = config || {};
@@ -20616,6 +20675,7 @@
 	    this.databases = {};
 	    this.examples = {};
 	  }
+	  // {
 	  getProperty(property) {
 	    return this.config[property];
 	  }
@@ -20652,19 +20712,19 @@
 	    return this.databases;
 	  }
 	  getDatabase() {
-	    const database = this.getProperty(ModelPropID.database);
+	    const database = this.getProperty(ModelPropIDdatabase);
 	    return this.databases[database];
 	  }
 	  getAllExamples() {
-	    const database = this.getProperty(ModelPropID.database);
+	    const database = this.getProperty(ModelPropIDdatabase);
 	    return this.examples[database];
 	  }
 	  getExample(key) {
-	    const database = this.getProperty(ModelPropID.database);
+	    const database = this.getProperty(ModelPropIDdatabase);
 	    return this.examples[database][key];
 	  }
 	  setExample(example) {
-	    const database = this.getProperty(ModelPropID.database), key = example.key;
+	    const database = this.getProperty(ModelPropIDdatabase), key = example.key;
 	    if (!this.examples[database][key]) {
 	      if (Utils.debug > 1) {
 	        Utils.console.debug("setExample: creating new example:", key);
@@ -20673,7 +20733,7 @@
 	    this.examples[database][key] = example;
 	  }
 	  removeExample(key) {
-	    const database = this.getProperty(ModelPropID.database);
+	    const database = this.getProperty(ModelPropIDdatabase);
 	    if (!this.examples[database][key]) {
 	      Utils.console.warn("removeExample: example does not exist: " + key);
 	    }
@@ -20784,6 +20844,124 @@
 	  });
 	});
 
+	const _UiUtils = class _UiUtils {
+	  static setDebug(debug) {
+	    _UiUtils.debug = debug;
+	  }
+	  static fnLoadScriptOrStyle(script, fnSuccess, fnError) {
+	    let ieTimeoutCount = 3;
+	    const onScriptLoad = function(event) {
+	      const type = event.type, node = event.currentTarget || event.srcElement, fullUrl = node.src || node.href, key = node.getAttribute("data-key");
+	      if (_UiUtils.debug > 1) {
+	        console.debug("onScriptLoad:", type, fullUrl, key);
+	      }
+	      node.removeEventListener("load", onScriptLoad, false);
+	      node.removeEventListener("error", onScriptLoad, false);
+	      if (type === "load") {
+	        fnSuccess(fullUrl, key);
+	      } else {
+	        fnError(fullUrl, key);
+	      }
+	    }, onScriptReadyStateChange = function(event) {
+	      const node = event ? event.currentTarget || event.srcElement : script, fullUrl = node.src || node.href, key = node.getAttribute("data-key"), node2 = node;
+	      if (node2.detachEvent) {
+	        node2.detachEvent("onreadystatechange", onScriptReadyStateChange);
+	      }
+	      if (_UiUtils.debug > 1) {
+	        console.debug("onScriptReadyStateChange: " + fullUrl);
+	      }
+	      if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
+	        if (node2.readyState === "loading" && ieTimeoutCount) {
+	          ieTimeoutCount -= 1;
+	          const timeout = 200;
+	          console.error("onScriptReadyStateChange: Still loading: " + fullUrl + " Waiting " + timeout + "ms (count=" + ieTimeoutCount + ")");
+	          setTimeout(function() {
+	            onScriptReadyStateChange();
+	          }, timeout);
+	        } else {
+	          console.error("onScriptReadyStateChange: Cannot load file " + fullUrl + " readystate=" + node2.readyState);
+	          fnError(fullUrl, key);
+	        }
+	      } else {
+	        fnSuccess(fullUrl, key);
+	      }
+	    };
+	    if (script.readyState) {
+	      ieTimeoutCount = 3;
+	      script.attachEvent("onreadystatechange", onScriptReadyStateChange);
+	    } else {
+	      script.addEventListener("load", onScriptLoad, false);
+	      script.addEventListener("error", onScriptLoad, false);
+	    }
+	    document.getElementsByTagName("head")[0].appendChild(script);
+	  }
+	  static stringCapitalize(str) {
+	    return str.charAt(0).toUpperCase() + str.substring(1);
+	  }
+	  static stringTrimEnd(str) {
+	    return str.replace(/[\s\uFEFF\xA0]+$/, "");
+	  }
+	  static string2Uint8Array(data) {
+	    const buf = new ArrayBuffer(data.length), view = new Uint8Array(buf);
+	    for (let i = 0; i < data.length; i += 1) {
+	      view[i] = data.charCodeAt(i);
+	    }
+	    return view;
+	  }
+	  static isCustomError(e) {
+	    return e.pos !== void 0;
+	  }
+	  static uint8Array2string(data) {
+	    const callSize = 25e3;
+	    let len = data.length, offset = 0, out = "";
+	    while (len) {
+	      const chunkLen = Math.min(len, callSize), chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen);
+	      out += String.fromCharCode.apply(null, chunk);
+	      offset += chunkLen;
+	      len -= chunkLen;
+	    }
+	    return out;
+	  }
+	  static composeError(name, errorObject, message, value, pos, len, line, hidden) {
+	    const customError = errorObject;
+	    customError.name = name;
+	    customError.message = message;
+	    customError.value = value;
+	    if (pos !== void 0) {
+	      customError.pos = pos;
+	    }
+	    if (len !== void 0) {
+	      customError.len = len;
+	    }
+	    if (line !== customError.line) {
+	      customError.line = line;
+	    }
+	    if (hidden !== void 0) {
+	      customError.hidden = hidden;
+	    }
+	    let errorLen = customError.len;
+	    if (errorLen === void 0 && customError.value !== void 0) {
+	      errorLen = String(customError.value).length;
+	    }
+	    const endPos = (customError.pos || 0) + (errorLen || 0), lineMsg = customError.line !== void 0 ? " in " + customError.line : "", posMsg = pos !== void 0 ? " at pos " + (pos !== endPos ? customError.pos + "-" + endPos : customError.pos) : "";
+	    customError.shortMessage = customError.message + (lineMsg || posMsg) + ": " + customError.value;
+	    customError.message += lineMsg + posMsg + ": " + customError.value;
+	    return customError;
+	  }
+	};
+	_UiUtils.debug = 0;
+	_UiUtils.console = console;
+	_UiUtils.loadScript = (url, fnSuccess, fnError, key) => {
+	  const script = document.createElement("script");
+	  script.type = "text/javascript";
+	  script.charset = "utf-8";
+	  script.async = true;
+	  script.src = url;
+	  script.setAttribute("data-key", key);
+	  _UiUtils.fnLoadScriptOrStyle(script, fnSuccess, fnError);
+	};
+	let UiUtils = _UiUtils;
+
 	class Sound {
 	  constructor(options) {
 	    this.isSoundOn = false;
@@ -20809,7 +20987,7 @@
 	        rendevousMask: 0
 	      };
 	    }
-	    if (Utils.debug > 1) {
+	    if (UiUtils.debug > 1) {
 	      this.debugLogList = [];
 	    }
 	  }
@@ -20871,10 +21049,17 @@
 	      0,
 	      2,
 	      1
-	    ];
+	    ], AudioContextConstructor = this.options.AudioContextConstructor;
 	    let context;
+	    if (!AudioContextConstructor) {
+	      if (!this.contextNotAvailable) {
+	        UiUtils.console.warn("createSoundContext: AudioContext not available");
+	      }
+	      this.contextNotAvailable = true;
+	      return context;
+	    }
 	    try {
-	      context = new this.options.AudioContextConstructor();
+	      context = new AudioContextConstructor();
 	      const mergerNode = context.createChannelMerger(6);
 	      this.mergerNode = mergerNode;
 	      for (let i = 0; i < 3; i += 1) {
@@ -20883,7 +21068,7 @@
 	        this.gainNodes[i] = gainNode;
 	      }
 	    } catch (e) {
-	      Utils.console.warn("createSoundContext:", e);
+	      UiUtils.console.warn("createSoundContext:", e);
 	      this.contextNotAvailable = true;
 	    }
 	    const oldContextStartTime = this.contextStartTime;
@@ -21035,7 +21220,7 @@
 	    return fDuration;
 	  }
 	  scheduleNote(oscillator, fTime, soundData) {
-	    if (Utils.debug > 1) {
+	    if (UiUtils.debug > 1) {
 	      this.debugLog("scheduleNote: " + oscillator + " " + fTime);
 	    }
 	    if (!this.isSoundOn) {
@@ -21046,8 +21231,8 @@
 	    oscillatorNode.frequency.value = soundData.period >= 3 ? 62500 / soundData.period : 0;
 	    oscillatorNode.connect(this.gainNodes[oscillator]);
 	    if (fTime < context.currentTime) {
-	      if (Utils.debug) {
-	        Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", context.currentTime);
+	      if (UiUtils.debug) {
+	        UiUtils.console.debug("Test: sound: scheduleNote:", fTime, "<", context.currentTime);
 	      }
 	    }
 	    const volume = soundData.volume, gain = this.gainNodes[oscillator].gain, maxVolume = 15, fVolume = volume / maxVolume;
@@ -21099,7 +21284,7 @@
 	          this.stopOscillator(i);
 	        }
 	        queue.soundData.push(soundData);
-	        if (Utils.debug > 1) {
+	        if (UiUtils.debug > 1) {
 	          this.debugLog("sound: " + i + " " + state + ":" + queue.soundData.length);
 	        }
 	        this.updateQueueStatus(i, queue);
@@ -21168,7 +21353,7 @@
 	    if (!queues.length) {
 	      return;
 	    }
-	    if (Utils.debug > 1) {
+	    if (UiUtils.debug > 1) {
 	      this.debugLog("release: " + releaseMask);
 	    }
 	    for (let i = 0; i < 3; i += 1) {
@@ -21211,8 +21396,8 @@
 	        this.mergerNode.connect(this.context.destination);
 	      }
 	      this.isSoundOn = true;
-	      if (Utils.debug) {
-	        Utils.console.debug("soundOn: Sound switched on");
+	      if (UiUtils.debug) {
+	        UiUtils.console.debug("soundOn: Sound switched on");
 	      }
 	    }
 	    return Boolean(this.context);
@@ -21223,8 +21408,8 @@
 	        this.mergerNode.disconnect(this.context.destination);
 	      }
 	      this.isSoundOn = false;
-	      if (Utils.debug) {
-	        Utils.console.debug("soundOff: Sound switched off");
+	      if (UiUtils.debug) {
+	        UiUtils.console.debug("soundOff: Sound switched off");
 	      }
 	    }
 	  }
@@ -24139,7 +24324,7 @@
 	  function runTestsFor(category, tests, assert, results) {
 	    for (const key in tests) {
 	      if (tests.hasOwnProperty(key)) {
-	        const parts = Utils.split2(key, ","), meta = parts[0], data = Utils.atob(parts[1]), zip = new ZipFile({
+	        const parts = Utils.split2(key, ","), meta = parts[0], atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob, data = atobFn(parts[1]), zip = new ZipFile({
 	          data: Utils.string2Uint8Array(data),
 	          zipName: "name"
 	        }), expected = tests[key];
@@ -24179,51 +24364,22 @@
 	  }
 	};
 
-	let https = void 0, fs = void 0, path = void 0, __dirname$1 = "";
-	const myGlobalThis = typeof globalThis !== "undefined" ? globalThis : Function("return this")(), nodeJsAvail = (function() {
-	  let nodeJs = false;
-	  try {
-	    if (Object.prototype.toString.call(myGlobalThis.process) === "[object process]") {
-	      nodeJs = true;
-	    }
-	  } catch (_e) {
-	  }
-	  return nodeJs;
-	})();
+	let path = void 0;
+	const myGlobalThis = typeof globalThis !== "undefined" ? globalThis : Function("return this")();
 	function isUrl(s) {
 	  return s.startsWith("http");
 	}
 	function fnEval(code) {
 	  return eval(code);
 	}
-	function nodeReadUrl(url, fnDataLoaded) {
-	  {
-	    fnEval('https = require("https");');
-	  }
-	  https.get(url, (resp) => {
-	    let data = "";
-	    resp.on("data", (chunk) => {
-	      data += chunk;
-	    });
-	    resp.on("end", () => {
-	      fnDataLoaded(void 0, data);
-	    });
-	  }).on("error", (err) => {
-	    Utils.console.log("Error: " + err.message);
-	    fnDataLoaded(err);
-	  });
-	}
-	function nodeReadFile(name, fnDataLoaded) {
-	  {
-	    fnEval('fs = require("fs");');
-	  }
-	  fs.readFile(name, "utf8", fnDataLoaded);
-	}
 	function nodeGetAbsolutePath(name) {
 	  {
 	    fnEval('path = require("path");');
 	  }
-	  const dirname = path.dirname(__filename), absolutePath = path.resolve(dirname, name);
+	  const dirname = process.cwd() + "/dist/test/", absolutePath = path.resolve(dirname, name);
+	  if (Utils.debug > 0) {
+	    Utils.console.debug("nodeGetAbsolutePath: dirname=", dirname, "name=", name, "absolutePath=", absolutePath);
+	  }
 	  return absolutePath;
 	}
 	function createModel() {
@@ -24497,7 +24653,8 @@
 	  const data = splitMeta(input || "");
 	  input = data.data;
 	  if (data.meta.encoding === "base64") {
-	    input = Utils.atob(input);
+	    const atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob;
+	    input = atobFn(input);
 	  }
 	  const type = data.meta.type;
 	  if (type === "T") {
@@ -24585,19 +24742,16 @@
 	    throw error;
 	  }
 	  cpcBasic.fnExampleDone1();
-	  if (code2) {
-	    fnEval(code2);
-	  }
 	  const key = cpcBasic.model.getProperty(ModelPropID.example), example = cpcBasic.model.getExample(key), output = testParseExample(example);
 	  if (!output.error) {
 	    testNextExample();
 	  }
 	}
 	function fnExampleLoadedUtils() {
-	  return fnExampleLoaded(void 0, "");
+	  return fnExampleLoaded(void 0);
 	}
 	function fnExampleErrorUtils(url) {
-	  return fnExampleLoaded(new Error("fnExampleErrorUtils: " + url), "");
+	  return fnExampleLoaded(new Error("fnExampleErrorUtils: " + url));
 	}
 	function testLoadExample(exampleEntry) {
 	  const example = exampleEntry.key, fileOrUrl = cpcBasic.dataBaseDirOrUrl + "/" + example + ".js";
@@ -24605,15 +24759,8 @@
 	    cpcBasic.fnExampleDone1 = cpcBasic.assert.async();
 	  }
 	  try {
-	    if (nodeJsAvail) {
-	      if (isUrl(fileOrUrl)) {
-	        nodeReadUrl(fileOrUrl, fnExampleLoaded);
-	      } else {
-	        nodeReadFile(fileOrUrl, fnExampleLoaded);
-	      }
-	    } else {
-	      Utils.loadScript(fileOrUrl, fnExampleLoadedUtils, fnExampleErrorUtils, example);
-	    }
+	    const fnLoadScript = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.loadScript : TestUiUtils.loadScript;
+	    fnLoadScript(fileOrUrl, fnExampleLoadedUtils, fnExampleErrorUtils, example);
 	  } catch (e) {
 	    Utils.console.error("Error in file", example);
 	    Utils.console.error(e);
@@ -24631,14 +24778,11 @@
 	    testNextIndex();
 	  }
 	}
-	function fnIndexLoaded(error, code2) {
+	function fnIndexLoaded(error, _code) {
 	  if (error) {
 	    throw error;
 	  }
 	  cpcBasic.fnIndexDone1();
-	  if (code2) {
-	    fnEval(code2);
-	  }
 	  const allExamples = cpcBasic.model.getAllExamples();
 	  cpcBasic.testExamples = Object.keys(allExamples);
 	  if (TestHelper.config.test) {
@@ -24655,7 +24799,7 @@
 	  testNextExample();
 	}
 	function fnIndexLoadedUtils() {
-	  return fnIndexLoaded(void 0, "");
+	  return fnIndexLoaded(void 0);
 	}
 	function fnIndexErrorUtils(url) {
 	  return fnIndexLoaded(new Error("fnIndexErrorUtils: " + url));
@@ -24668,10 +24812,10 @@
 	  if (cpcBasic.assert) {
 	    cpcBasic.fnIndexDone1 = cpcBasic.assert.async();
 	  }
-	  if (nodeJsAvail) {
+	  if (TestNodeUtils.isNodeRuntime()) {
 	    if (!isUrl(dir)) {
 	      if (Utils.debug > 0) {
-	        Utils.console.debug("testParseExamples: __dirname=", __dirname$1, " dir=", dir);
+	        Utils.console.debug("testParseExamples: __dirname=", __dirname, " dir=", dir);
 	      }
 	      dir = nodeGetAbsolutePath(dir);
 	    }
@@ -24679,19 +24823,12 @@
 	  cpcBasic.dataBaseDirOrUrl = dir;
 	  const fileOrUrl = cpcBasic.dataBaseDirOrUrl + "/0index.js";
 	  Utils.console.log("testParseExamples: Using Database index:", fileOrUrl);
-	  if (nodeJsAvail) {
-	    if (isUrl(dir)) {
-	      if (TestHelper.config.testAll) {
-	        nodeReadUrl(fileOrUrl, fnIndexLoaded);
-	      } else {
-	        Utils.console.log("testParseExamples: testAll=" + TestHelper.config.testAll + ": skipping index loading for", fileOrUrl);
-	        fnIndexLoaded(void 0, "");
-	      }
-	    } else {
-	      nodeReadFile(fileOrUrl, fnIndexLoaded);
-	    }
+	  if (TestNodeUtils.isNodeRuntime() && isUrl(dir) && !TestHelper.config.testAll) {
+	    Utils.console.log("testParseExamples: testAll=" + TestHelper.config.testAll + ": skipping index loading for", fileOrUrl);
+	    fnIndexLoadedUtils();
 	  } else {
-	    Utils.loadScript(fileOrUrl, fnIndexLoadedUtils, fnIndexErrorUtils, exampeDb.text);
+	    const fnLoadScript = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.loadScript : TestUiUtils.loadScript;
+	    fnLoadScript(fileOrUrl, fnIndexLoadedUtils, fnIndexErrorUtils, exampeDb.text);
 	  }
 	}
 	function testNextIndex() {
@@ -24712,8 +24849,11 @@
 	  }
 	}
 	function testStart() {
-	  const Polyfills = window.Polyfills;
-	  Utils.console.log("testParseExamples: nodeJs:", nodeJsAvail, " Polyfills.getList().length:", Polyfills.getList().length);
+	  const isNodeRuntime = TestNodeUtils.isNodeRuntime();
+	  Utils.console.log("testParseExamples: isNodeRuntime:", isNodeRuntime);
+	  if (!isNodeRuntime) {
+	    Utils.console.log("testParseExamples: Polyfills.length:", TestUiUtils.getPolyfills().length);
+	  }
 	  cpcBasic.initVmMock1();
 	  cpcBasic.totalExamples = 0;
 	  cpcBasic.ignoredExamples = 0;

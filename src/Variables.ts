@@ -3,7 +3,7 @@
 // https://benchmarko.github.io/CPCBasicTS/
 
 import { Utils } from "./Utils";
-import { VariableValue } from "./Interfaces";
+import type { VariableValue } from "./Interfaces";
 
 interface VariablesOptions {
 	arrayBounds?: boolean // check array bounds

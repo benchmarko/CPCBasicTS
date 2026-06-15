@@ -4,76 +4,15 @@
 	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.cpcbasicCore = {}));
 })(this, (function (exports) { 'use strict';
 
-	const Polyfills = window.Polyfills;
 	const _Utils = class _Utils {
-	  static fnLoadScriptOrStyle(script, fnSuccess, fnError) {
-	    let ieTimeoutCount = 3;
-	    const onScriptLoad = function(event) {
-	      const type = event.type, node = event.currentTarget || event.srcElement, fullUrl = node.src || node.href, key = node.getAttribute("data-key");
-	      if (_Utils.debug > 1) {
-	        _Utils.console.debug("onScriptLoad:", type, fullUrl, key);
-	      }
-	      node.removeEventListener("load", onScriptLoad, false);
-	      node.removeEventListener("error", onScriptLoad, false);
-	      if (type === "load") {
-	        fnSuccess(fullUrl, key);
-	      } else {
-	        fnError(fullUrl, key);
-	      }
-	    }, onScriptReadyStateChange = function(event) {
-	      const node = event ? event.currentTarget || event.srcElement : script, fullUrl = node.src || node.href, key = node.getAttribute("data-key"), node2 = node;
-	      if (node2.detachEvent) {
-	        node2.detachEvent("onreadystatechange", onScriptReadyStateChange);
-	      }
-	      if (_Utils.debug > 1) {
-	        _Utils.console.debug("onScriptReadyStateChange: " + fullUrl);
-	      }
-	      if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
-	        if (node2.readyState === "loading" && ieTimeoutCount) {
-	          ieTimeoutCount -= 1;
-	          const timeout = 200;
-	          _Utils.console.error("onScriptReadyStateChange: Still loading: " + fullUrl + " Waiting " + timeout + "ms (count=" + ieTimeoutCount + ")");
-	          setTimeout(function() {
-	            onScriptReadyStateChange();
-	          }, timeout);
-	        } else {
-	          _Utils.console.error("onScriptReadyStateChange: Cannot load file " + fullUrl + " readystate=" + node2.readyState);
-	          fnError(fullUrl, key);
-	        }
-	      } else {
-	        fnSuccess(fullUrl, key);
-	      }
-	    };
-	    if (script.readyState) {
-	      ieTimeoutCount = 3;
-	      script.attachEvent("onreadystatechange", onScriptReadyStateChange);
-	    } else {
-	      script.addEventListener("load", onScriptLoad, false);
-	      script.addEventListener("error", onScriptLoad, false);
-	    }
-	    document.getElementsByTagName("head")[0].appendChild(script);
-	  }
-	  static loadScript(url, fnSuccess, fnError, key) {
-	    const script = document.createElement("script");
-	    script.type = "text/javascript";
-	    script.charset = "utf-8";
-	    script.async = true;
-	    script.src = url;
-	    script.setAttribute("data-key", key);
-	    this.fnLoadScriptOrStyle(script, fnSuccess, fnError);
+	  static setDebug(debug) {
+	    _Utils.debug = debug;
 	  }
 	  static hexEscape(str) {
 	    return str.replace(/[\x00-\x1f]/g, function(char) {
 	      return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
 	    });
 	  }
-	  /*
-	  static hexUnescape(str: string): string {
-	  	return str.replace(/\\x([0-9A-Fa-f]{2})/g, function () {
-	  		return String.fromCharCode(parseInt(arguments[1], 16));
-	  	});
-	  }
-	  */
 	  static dateFormat(d) {
 	    return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);
 	  }
@@ -165,17 +104,10 @@
 	  }
 	};
 	_Utils.debug = 0;
-	_Utils.console = Polyfills.console;
+	_Utils.console = console;
 	_Utils.supportsBinaryLiterals = _Utils.testIsSupported("0b01");
 	// does the browser support binary literals?
 	_Utils.supportReservedNames = _Utils.testIsSupported("({}).return()");
-	_Utils.localStorage = Polyfills.localStorage || window.localStorage;
-	_Utils.atob = function(data) {
-	  return window.atob(data);
-	};
-	_Utils.btoa = function(data) {
-	  return window.btoa(data);
-	};
 	let Utils = _Utils;
 
 	class BasicFormatter {
@@ -5527,168 +5459,6 @@
 	};
 	let CodeGeneratorToken = _CodeGeneratorToken;
 
-	var ModelPropID = /* @__PURE__ */ ((ModelPropID2) => {
-	  ModelPropID2["arrayBounds"] = "arrayBounds";
-	  ModelPropID2["autorun"] = "autorun";
-	  ModelPropID2["basicVersion"] = "basicVersion";
-	  ModelPropID2["bench"] = "bench";
-	  ModelPropID2["canvasType"] = "canvasType";
-	  ModelPropID2["databaseDirs"] = "databaseDirs";
-	  ModelPropID2["database"] = "database";
-	  ModelPropID2["debug"] = "debug";
-	  ModelPropID2["example"] = "example";
-	  ModelPropID2["exampleIndex"] = "exampleIndex";
-	  ModelPropID2["implicitLines"] = "implicitLines";
-	  ModelPropID2["input"] = "input";
-	  ModelPropID2["integerOverflow"] = "integerOverflow";
-	  ModelPropID2["kbdLayout"] = "kbdLayout";
-	  ModelPropID2["linesOnLoad"] = "linesOnLoad";
-	  ModelPropID2["dragElements"] = "dragElements";
-	  ModelPropID2["palette"] = "palette";
-	  ModelPropID2["prettyBrackets"] = "prettyBrackets";
-	  ModelPropID2["prettyColons"] = "prettyColons";
-	  ModelPropID2["prettyLowercaseVars"] = "prettyLowercaseVars";
-	  ModelPropID2["prettySpace"] = "prettySpace";
-	  ModelPropID2["processFileImports"] = "processFileImports";
-	  ModelPropID2["random"] = "random";
-	  ModelPropID2["selectDataFiles"] = "selectDataFiles";
-	  ModelPropID2["showConsoleLog"] = "showConsoleLog";
-	  ModelPropID2["showCpc"] = "showCpc";
-	  ModelPropID2["showDisass"] = "showDisass";
-	  ModelPropID2["showExport"] = "showExport";
-	  ModelPropID2["showGallery"] = "showGallery";
-	  ModelPropID2["showInput"] = "showInput";
-	  ModelPropID2["showInp2"] = "showInp2";
-	  ModelPropID2["showKbd"] = "showKbd";
-	  ModelPropID2["showKbdSettings"] = "showKbdSettings";
-	  ModelPropID2["showMore"] = "showMore";
-	  ModelPropID2["showOutput"] = "showOutput";
-	  ModelPropID2["showPretty"] = "showPretty";
-	  ModelPropID2["showRenum"] = "showRenum";
-	  ModelPropID2["showResult"] = "showResult";
-	  ModelPropID2["showSettings"] = "showSettings";
-	  ModelPropID2["showVariable"] = "showVariable";
-	  ModelPropID2["showView"] = "showView";
-	  ModelPropID2["sound"] = "sound";
-	  ModelPropID2["speed"] = "speed";
-	  ModelPropID2["trace"] = "trace";
-	  return ModelPropID2;
-	})(ModelPropID || {});
-	var ViewID = /* @__PURE__ */ ((ViewID2) => {
-	  ViewID2["arrayBoundsInput"] = "arrayBoundsInput";
-	  ViewID2["autorunInput"] = "autorunInput";
-	  ViewID2["basicVersionSelect"] = "basicVersionSelect";
-	  ViewID2["canvasTypeSelect"] = "canvasTypeSelect";
-	  ViewID2["clearInputButton"] = "clearInputButton";
-	  ViewID2["consoleLogArea"] = "consoleLogArea";
-	  ViewID2["consoleLogText"] = "consoleLogText";
-	  ViewID2["continueButton"] = "continueButton";
-	  ViewID2["copyTextButton"] = "copyTextButton";
-	  ViewID2["cpcArea"] = "cpcArea";
-	  ViewID2["cpcCanvas"] = "cpcCanvas";
-	  ViewID2["databaseSelect"] = "databaseSelect";
-	  ViewID2["debugInput"] = "debugInput";
-	  ViewID2["directorySelect"] = "directorySelect";
-	  ViewID2["disassArea"] = "disassArea";
-	  ViewID2["disassInput"] = "disassInput";
-	  ViewID2["disassText"] = "disassText";
-	  ViewID2["downloadButton"] = "downloadButton";
-	  ViewID2["dropZone"] = "dropZone";
-	  ViewID2["enterButton"] = "enterButton";
-	  ViewID2["exampleSelect"] = "exampleSelect";
-	  ViewID2["exportArea"] = "exportArea";
-	  ViewID2["exportButton"] = "exportButton";
-	  ViewID2["exportBase64Input"] = "exportBase64Input";
-	  ViewID2["exportDSKInput"] = "exportDSKInput";
-	  ViewID2["exportDSKFormatSelect"] = "exportDSKFormatSelect";
-	  ViewID2["exportDSKStripEmptyInput"] = "exportDSKStripEmptyInput";
-	  ViewID2["exportFileSelect"] = "exportFileSelect";
-	  ViewID2["exportTokenizedInput"] = "exportTokenizedInput";
-	  ViewID2["fileInput"] = "fileInput";
-	  ViewID2["fullscreenButton"] = "fullscreenButton";
-	  ViewID2["galleryArea"] = "galleryArea";
-	  ViewID2["galleryAreaItems"] = "galleryAreaItems";
-	  ViewID2["galleryButton"] = "galleryButton";
-	  ViewID2["galleryItem"] = "galleryItem";
-	  ViewID2["helpButton"] = "helpButton";
-	  ViewID2["implicitLinesInput"] = "implicitLinesInput";
-	  ViewID2["inp2Area"] = "inp2Area";
-	  ViewID2["inp2Text"] = "inp2Text";
-	  ViewID2["inputArea"] = "inputArea";
-	  ViewID2["inputText"] = "inputText";
-	  ViewID2["integerOverflowInput"] = "integerOverflowInput";
-	  ViewID2["kbdAlpha"] = "kbdAlpha";
-	  ViewID2["kbdArea"] = "kbdArea";
-	  ViewID2["kbdAreaInner"] = "kbdAreaInner";
-	  ViewID2["kbdLayoutSelect"] = "kbdLayoutSelect";
-	  ViewID2["kbdNum"] = "kbdNum";
-	  ViewID2["lineNumberAddButton"] = "lineNumberAddButton";
-	  ViewID2["lineNumberRemoveButton"] = "lineNumberRemoveButton";
-	  ViewID2["linesOnLoadInput"] = "linesOnLoadInput";
-	  ViewID2["mainArea"] = "mainArea";
-	  ViewID2["moreArea"] = "moreArea";
-	  ViewID2["moreButton"] = "moreButton";
-	  ViewID2["dragElementsInput"] = "dragElementsInput";
-	  ViewID2["noCanvas"] = "noCanvas";
-	  ViewID2["outputArea"] = "outputArea";
-	  ViewID2["outputText"] = "outputText";
-	  ViewID2["pageBody"] = "pageBody";
-	  ViewID2["paletteSelect"] = "paletteSelect";
-	  ViewID2["parseButton"] = "parseButton";
-	  ViewID2["parseRunButton"] = "parseRunButton";
-	  ViewID2["prettyArea"] = "prettyArea";
-	  ViewID2["prettyBracketsInput"] = "prettyBracketsInput";
-	  ViewID2["prettyButton"] = "prettyButton";
-	  ViewID2["prettyColonsInput"] = "prettyColonsInput";
-	  ViewID2["prettyLowercaseVarsInput"] = "prettyLowercaseVarsInput";
-	  ViewID2["prettyPopoverButton"] = "prettyPopoverButton";
-	  ViewID2["prettySpaceInput"] = "prettySpaceInput";
-	  ViewID2["redoButton"] = "redoButton";
-	  ViewID2["redoButton2"] = "redoButton2";
-	  ViewID2["reloadButton"] = "reloadButton";
-	  ViewID2["reload2Button"] = "reload2Button";
-	  ViewID2["renumArea"] = "renumArea";
-	  ViewID2["renumButton"] = "renumButton";
-	  ViewID2["renumKeepInput"] = "renumKeepInput";
-	  ViewID2["renumNewInput"] = "renumNewInput";
-	  ViewID2["renumPopoverButton"] = "renumPopoverButton";
-	  ViewID2["renumStartInput"] = "renumStartInput";
-	  ViewID2["renumStepInput"] = "renumStepInput";
-	  ViewID2["resetButton"] = "resetButton";
-	  ViewID2["resultArea"] = "resultArea";
-	  ViewID2["resultText"] = "resultText";
-	  ViewID2["runButton"] = "runButton";
-	  ViewID2["screenshotButton"] = "screenshotButton";
-	  ViewID2["screenshotLink"] = "screenshotLink";
-	  ViewID2["selectDataFilesInput"] = "selectDataFilesInput";
-	  ViewID2["settingsArea"] = "settingsArea";
-	  ViewID2["settingsButton"] = "settingsButton";
-	  ViewID2["showConsoleLogInput"] = "showConsoleLogInput";
-	  ViewID2["showCpcInput"] = "showCpcInput";
-	  ViewID2["showDisassInput"] = "showDisassInput";
-	  ViewID2["showInp2Input"] = "showInp2Input";
-	  ViewID2["showInputInput"] = "showInputInput";
-	  ViewID2["showKbdInput"] = "showKbdInput";
-	  ViewID2["showOutputInput"] = "showOutputInput";
-	  ViewID2["showResultInput"] = "showResultInput";
-	  ViewID2["showVariableInput"] = "showVariableInput";
-	  ViewID2["soundInput"] = "soundInput";
-	  ViewID2["speedInput"] = "speedInput";
-	  ViewID2["stopButton"] = "stopButton";
-	  ViewID2["traceInput"] = "traceInput";
-	  ViewID2["textCanvasDiv"] = "textCanvasDiv";
-	  ViewID2["textText"] = "textText";
-	  ViewID2["undoButton"] = "undoButton";
-	  ViewID2["undoButton2"] = "undoButton2";
-	  ViewID2["variableArea"] = "variableArea";
-	  ViewID2["varSelect"] = "varSelect";
-	  ViewID2["varText"] = "varText";
-	  ViewID2["viewArea"] = "viewArea";
-	  ViewID2["viewButton"] = "viewButton";
-	  ViewID2["window"] = "window";
-	  return ViewID2;
-	})(ViewID || {});
-
 	class CpcVmRsx {
 	  constructor() {
 	    this.rsxPermanent = {};
@@ -10415,6 +10185,7 @@
 	];
 	let DiskImage = _DiskImage;
 
+	const ModelPropIDdatabase = "database";
 	class Model {
 	  constructor(config) {
 	    this.config = config || {};
@@ -10422,6 +10193,7 @@
 	    this.databases = {};
 	    this.examples = {};
 	  }
+	  // {
 	  getProperty(property) {
 	    return this.config[property];
 	  }
@@ -10458,19 +10230,19 @@
 	    return this.databases;
 	  }
 	  getDatabase() {
-	    const database = this.getProperty(ModelPropID.database);
+	    const database = this.getProperty(ModelPropIDdatabase);
 	    return this.databases[database];
 	  }
 	  getAllExamples() {
-	    const database = this.getProperty(ModelPropID.database);
+	    const database = this.getProperty(ModelPropIDdatabase);
 	    return this.examples[database];
 	  }
 	  getExample(key) {
-	    const database = this.getProperty(ModelPropID.database);
+	    const database = this.getProperty(ModelPropIDdatabase);
 	    return this.examples[database][key];
 	  }
 	  setExample(example) {
-	    const database = this.getProperty(ModelPropID.database), key = example.key;
+	    const database = this.getProperty(ModelPropIDdatabase), key = example.key;
 	    if (!this.examples[database][key]) {
 	      if (Utils.debug > 1) {
 	        Utils.console.debug("setExample: creating new example:", key);
@@ -10479,7 +10251,7 @@
 	    this.examples[database][key] = example;
 	  }
 	  removeExample(key) {
-	    const database = this.getProperty(ModelPropID.database);
+	    const database = this.getProperty(ModelPropIDdatabase);
 	    if (!this.examples[database][key]) {
 	      Utils.console.warn("removeExample: example does not exist: " + key);
 	    }
@@ -11874,14 +11646,12 @@
 	exports.Diff = Diff;
 	exports.DiskImage = DiskImage;
 	exports.Model = Model;
-	exports.ModelPropID = ModelPropID;
 	exports.Random = Random;
 	exports.RsxAmsdos = RsxAmsdos;
 	exports.RsxCpcBasic = RsxCpcBasic;
 	exports.Snapshot = Snapshot;
 	exports.Utils = Utils;
 	exports.Variables = Variables;
-	exports.ViewID = ViewID;
 	exports.Z80Disass = Z80Disass;
 	exports.ZipFile = ZipFile;
 

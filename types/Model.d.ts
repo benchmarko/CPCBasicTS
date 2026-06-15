@@ -1,31 +1,12 @@
-import { ModelPropID } from "./Constants";
-import { ICpcVmRsx } from "./Interfaces";
-export type ConfigEntryType = string | number | boolean;
-export type ConfigType = Record<string, ConfigEntryType>;
-export interface DatabaseEntry {
-    text: string;
-    title: string;
-    src: string;
-    script?: string;
-    loaded?: boolean;
-}
-export interface ExampleEntry {
-    key: string;
-    title: string;
-    meta: string;
-    script?: string;
-    rsx?: ICpcVmRsx;
-    loaded?: boolean;
-}
-export type DatabasesType = Record<string, DatabaseEntry>;
-export declare class Model {
+import type { ConfigEntryType, ConfigType, DatabaseEntry, DatabasesType, ExampleEntry, IModel } from "./Interfaces";
+export declare class Model implements IModel {
     private config;
     private initialConfig;
     private databases;
     private examples;
     constructor(config: ConfigType);
-    getProperty<T extends ConfigEntryType>(property: ModelPropID): T;
-    setProperty<T extends ConfigEntryType>(property: ModelPropID, value: T): void;
+    getProperty<T extends ConfigEntryType>(property: string): T;
+    setProperty<T extends ConfigEntryType>(property: string, value: T): void;
     getAllProperties(): ConfigType;
     getAllInitialProperties(): ConfigType;
     getChangedProperties(): ConfigType;

@@ -1,17 +1,8 @@
-export interface CustomError extends Error {
-    value: string;
-    pos: number;
-    len?: number;
-    line?: number | string;
-    hidden?: boolean;
-    shortMessage?: string;
-    errCode?: number;
-}
+import type { CustomError } from "./Interfaces";
 export declare class Utils {
     static debug: number;
     static console: Console;
-    private static fnLoadScriptOrStyle;
-    static loadScript(url: string, fnSuccess: (url2: string, key: string) => void, fnError: (url2: string, key: string) => void, key: string): void;
+    static setDebug(debug: number): void;
     static hexEscape(str: string): string;
     static dateFormat(d: Date): string;
     static stringCapitalize(str: string): string;
@@ -23,9 +14,6 @@ export declare class Utils {
     static supportsBinaryLiterals: boolean;
     static supportReservedNames: boolean;
     static stringTrimEnd(str: string): string;
-    static localStorage: Storage;
-    static atob: (data: string) => string;
-    static btoa: (data: string) => string;
     static isCustomError(e: unknown): e is CustomError;
     static split2(str: string, char: string): string[];
     static string2Uint8Array(data: string): Uint8Array;

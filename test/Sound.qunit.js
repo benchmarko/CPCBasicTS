@@ -1,7 +1,7 @@
 // Sound.qunit.ts - QUnit tests for CPCBasic Sound
 //
 import { Utils } from "../Utils";
-import { Sound } from "../Sound";
+import { Sound } from "../ui/Sound";
 import { TestHelper } from "./TestHelper";
 var lastTestFunctions = [];
 function clearLastTestFunctions() {

@@ -4,8 +4,8 @@
 //
 //
 
-import { Utils, CustomError } from "./Utils";
-import { IOutput } from "./Interfaces";
+import { Utils } from "./Utils";
+import type { CustomError, IOutput } from "./Interfaces";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser";
 import { Variables, VariableTypeMap, VarTypes } from "./Variables";
@@ -1610,7 +1610,7 @@ export class CodeGeneratorJs {
 		wend: this.wend,
 		"while": this.fnWhile,
 		write: this.usingOrWrite
-	}
+	};
 	/* eslint-enable no-invalid-this */
 
 	private fnParseOther(node: CodeNode) {

@@ -5,6 +5,9 @@ import { Utils } from "../Utils";
 import { ZipFile } from "../ZipFile";
 import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
 
+import { TestNodeUtils } from "./TestNodeUtils";
+import { TestUiUtils } from "./TestUiUtils";
+
 QUnit.dump.maxDepth = 10;
 
 QUnit.module("ZipFile: Tests", function (hooks) {
@@ -44,7 +47,8 @@ QUnit.module("ZipFile: Tests", function (hooks) {
 			if (tests.hasOwnProperty(key)) {
 				const parts = Utils.split2(key, ","),
 					meta = parts[0],
-					data = Utils.atob(parts[1]), // decode base64
+					atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob,
+					data = atobFn(parts[1]), // decode base64
 					zip = new ZipFile({
 						data: Utils.string2Uint8Array(data),
 						zipName: "name"

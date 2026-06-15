@@ -1,4 +1,4 @@
-import { ICpcVm, ICpcVmRsx } from "./Interfaces";
+import type { ICpcVm, ICpcVmRsx } from "./Interfaces";
 export declare class CpcVmRsx {
     private readonly rsxPermanent;
     private rsxTemporary;
