@@ -1,5 +1,5 @@
 import type { ICore, INodeUtils, ICpcVmRsx, LoadScriptFn } from "../Interfaces";
-import "../ui/Polyfills";
+import "./NodePolyfills";
 import { UiUtils } from "../ui/UiUtils";
 import { Controller, ControllerOptions } from "../ui/Controller";
 import { View } from "../ui/View";

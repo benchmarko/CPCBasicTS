@@ -38,7 +38,10 @@ var Polyfills = {
 			return false;
 		}
 		return true;
-	}())
+	}()),
+
+	atob: (typeof window !== "undefined" ? window.atob : undefined) as any,
+	btoa: (typeof window !== "undefined" ? window.btoa : undefined) as any
 
 };
 
@@ -607,6 +610,9 @@ if (!window.atob) { // IE9 (and node.js)
 		};
 		/* eslint-enable no-bitwise */
 	}());
+	// Assign polyfilled versions to Polyfills object
+	Polyfills.atob = window.atob;
+	Polyfills.btoa = window.btoa;
 }
 
 // For IE and Edge, localStorage is only available if page is hosted on web server, so we simulate it (do not use property "length" or method names as keys!)
