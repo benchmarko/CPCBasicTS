@@ -1,5 +1,6 @@
 // Test entry point - imports all test modules for bundling with Rollup
 //
+//import "../ui/Polyfills";
 import "./BasicFormatter.qunit";
 import "./BasicLexer.qunit";
 import "./BasicParser.qunit";

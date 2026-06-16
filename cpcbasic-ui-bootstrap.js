@@ -34,7 +34,9 @@
 	      return false;
 	    }
 	    return true;
-	  })()
+	  })(),
+	  atob: typeof window !== "undefined" ? window.atob : void 0,
+	  btoa: typeof window !== "undefined" ? window.btoa : void 0
 	};
 	if (!Polyfills$1.console) {
 	  const polyFillConsole = {
@@ -475,6 +477,8 @@
 	      return output;
 	    };
 	  })();
+	  Polyfills$1.atob = window.atob;
+	  Polyfills$1.btoa = window.btoa;
 	}
 	if (!Polyfills$1.localStorage) {
 	  Polyfills$1.log("window.localStorage");

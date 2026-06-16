@@ -5,5 +5,7 @@ declare var Polyfills: {
     console: Console;
     localStorage: Storage;
     isDefinePropertyOk: boolean;
+    atob: any;
+    btoa: any;
 };
 //# sourceMappingURL=Polyfills.d.ts.map

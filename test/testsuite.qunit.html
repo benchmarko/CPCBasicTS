@@ -18,9 +18,40 @@
   <!-- Load QUnit runner first (needed by test-bundle.js) -->
   <!-- <script src="../../node_modules/qunit/qunit/qunit.js"></script> -->
   <script src="https://unpkg.com/qunitjs/qunit/qunit.js"></script>
-  <!-- Load Polyfills for browser environment compatibility -->
-  <script src="../../dist/Polyfills.js"></script>
+
+  <script src="../ui/Polyfills.js"></script>
   <!-- Load bundled tests (contains all 16 test modules) -->
-  <script src="../../dist/test-bundle.js"></script>
+  <script src="../test-bundle.js"></script>
+
+  <!-- Load bundled tests (works from src/test and dist/test locations) -->
+  <!--
+  <script>
+    (function () {
+      //var candidates = ["../test-bundle.js", "../../dist/test-bundle.js"];
+
+      function loadCandidate(index, candidates) {
+        index = index || 0;
+        if (index >= candidates.length) {
+          console.error("Cannot load test-bundle.js from known locations.");
+          return;
+        }
+
+        var script = document.createElement("script");
+
+        script.src = candidates[index];
+        script.onerror = function () {
+          loadCandidate(index + 1, candidates);
+        };
+        document.body.appendChild(script);
+      }
+      loadCandidate(0, ["../ui/Polyfills.js"]);
+      loadCandidate(0, ["../test-bundle.js"]);
+
+
+      //loadCandidate(0, ["../ui/Polyfills.js", "../../dist/ui/Polyfills.js"]);
+      //loadCandidate(0, ["../test-bundle.js", "../../dist/test-bundle.js"]);
+    }());
+  </script>
+  -->
 </body>
 </html>

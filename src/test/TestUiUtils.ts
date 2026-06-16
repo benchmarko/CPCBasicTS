@@ -3,6 +3,7 @@ import type { LoadScriptFn } from "../Interfaces";
 
 interface PolyfillProperties {
 	atob: typeof window.atob;
+	btoa: typeof window.btoa;
 	getList: () => string[];
 }
 

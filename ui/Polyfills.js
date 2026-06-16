@@ -36,7 +36,9 @@ var Polyfills = {
             return false;
         }
         return true;
-    }())
+    }()),
+    atob: (typeof window !== "undefined" ? window.atob : undefined),
+    btoa: (typeof window !== "undefined" ? window.btoa : undefined)
 };
 // IE: window.console is only available when Dev Tools are open
 if (!Polyfills.console) { // browser or node.js
@@ -508,6 +510,9 @@ if (!window.atob) { // IE9 (and node.js)
         };
         /* eslint-enable no-bitwise */
     }());
+    // Assign polyfilled versions to Polyfills object
+    Polyfills.atob = window.atob;
+    Polyfills.btoa = window.btoa;
 }
 // For IE and Edge, localStorage is only available if page is hosted on web server, so we simulate it (do not use property "length" or method names as keys!)
 if (!Polyfills.localStorage) {
