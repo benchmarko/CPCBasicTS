@@ -4,72 +4,33 @@
 //
 //
 
-import type { VariableValue } from "../Interfaces";
+import type { ICanvasVm, VariableValue } from "../Interfaces";
 import type { ViewID } from "./Constants"; //TTT
+
+// Canvas
 
 type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
 export type CanvasCharType = number[]; // 8 bytes char bitmap
 export type CanvasCharsetType = CanvasCharType[];
-
 export interface CanvasOptions {
     canvasID: ViewID
-	charset: CanvasCharsetType
-	palette: "color" | "green" | "grey"
-	onCanvasClick?: CanvasClickType
+    charset: CanvasCharsetType
+    palette: "color" | "green" | "grey"
+    onCanvasClick?: CanvasClickType
 }
 
-export interface ICanvas {
+// needed for Controller?
+export interface ICanvas extends ICanvasVm {
     getOptions(): CanvasOptions
     setOptions(options: Partial<CanvasOptions>): void
-    reset(): void
-    resetCustomChars(): void
     startUpdateCanvas(): void
     stopUpdateCanvas(): void
-    setScreenOffset(offset: number): void
-    updateColorsAndCanvasImmediately(inkList: number[]): void
-    updateSpeedInk(): void
-    setCustomChar(char: number, charData: CanvasCharType): void
-    getCharData(char: number): CanvasCharType
-    setDefaultInks(): void
     onCanvasClick(event: MouseEvent): void
     onWindowClick(_event: Event): void
-    getXpos(): number
-    getYpos(): number
-    fillTextBox(left: number, top: number, width: number, height: number, paper: number): void
-    getByte(addr: number): number | null
-    setByte(addr: number, byte: number): void
-    draw(x: number, y: number): void
-    move(x: number, y: number): void
-    plot(x: number, y: number): void
-    test(x: number, y: number): number
-    setInk(pen: number, ink1: number, ink2: number): boolean
-    setBorder(ink1: number, ink2: number): void
-    setGPen(gPen: number): void
-    setGPaper(gPaper: number): void
-    setGTransparentMode(transparent: boolean): void
-    printGChar(char: number): void
-    printChar(char: number, x: number, y: number, pen: number, paper: number, transparent: boolean): void
-    drawCursor(x: number, y: number, pen: number, paper: number): void
-    readChar(x: number, y: number, pen: number, paper: number): number
-    fill(fillPen: number): void
-    setOrigin(xOrig: number, yOrig: number): void
-    getXOrigin(): number
-    getYOrigin(): number
-    setGWindow(xLeft: number, xRight: number, yTop: number, yBottom: number): void
-    setGColMode(gColMode: number): void
-    clearTextWindow(left: number, right: number, top: number, bottom: number, paper: number): void
-    clearGraphicsWindow(): void
-    clearFullWindow(): void
-    windowScrollUp(left: number, right: number, top: number, bottom: number, paper: number): void
-    windowScrollDown(left: number, right: number, top: number, bottom: number, paper: number): void
-    setSpeedInk(time1: number, time2: number): void
-    setMask(mask: number): void
-    setMaskFirst(maskFirst: number): void
-    getMode(): number
-    changeMode(mode: number): void
-    setMode(mode: number): void
     takeScreenShot(): string
 }
+
+// Controller
 
 export interface IController {
     startParse: () => void

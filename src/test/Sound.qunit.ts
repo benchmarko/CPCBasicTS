@@ -2,7 +2,8 @@
 //
 
 import { Utils } from "../Utils";
-import { Sound, SoundData, ToneEnvData, VolEnvData } from "../ui/Sound";
+import type { SoundData, ToneEnvData, VolEnvData } from "../Interfaces";
+import { Sound } from "../ui/Sound";
 import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
 
 type TestFunctionInputType = string | number | undefined; // | object | Function;

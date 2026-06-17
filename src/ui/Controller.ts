@@ -20,14 +20,14 @@ import { DiskImage } from "../DiskImage";
 import { FileHandler } from "./FileHandler";
 import { FileSelect } from "./FileSelect";
 import { InputStack } from "../InputStack";
-import type { CustomError, ICore, IModel, IOutput, LoadScriptFn, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmBaseParas, VariableValue } from "../Interfaces";
-import type { IController, ICanvas } from "./UiInterfaces";
+import type { CustomError, ICore, IModel, IOutput, LoadScriptFn, SoundData, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmBaseParas, VariableValue } from "../Interfaces";
+import type { ICanvas, IController } from "./UiInterfaces";
 import { Keyboard } from "./Keyboard";
 import { NoCanvas } from "./NoCanvas";
 import { TextCanvas } from "./TextCanvas";
 import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Snapshot } from "../Snapshot";
-import { Sound, SoundData } from "./Sound";
+import { Sound } from "./Sound";
 import { Variables } from "../Variables";
 import { View, SelectOptionElement, AreaInputElement } from "./View";
 import { DragElement, DragElementOptions } from "./DragElement";
@@ -163,6 +163,10 @@ export class Controller implements IController {
 			variables: this.variables,
 			onClickKey: this.fnPutKeyInBufferHandler
 		});
+		this.canvas.setOptions({
+				onCanvasClick: this.vm.getOnCanvasClickHandler()
+			});
+		this.vm.setCanvas(this.canvas);
 		this.vm.vmReset();
 
 		this.vm.vmRegisterRsx(new RsxAmsdos(), true);
@@ -2720,6 +2724,10 @@ export class Controller implements IController {
 		}
 
 		if (this.vm) {
+			const handler = this.vm.getOnCanvasClickHandler();
+			this.canvas.setOptions({
+				onCanvasClick: handler
+			});
 			this.vm.setCanvas(canvas);
 		}
 

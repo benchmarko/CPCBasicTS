@@ -5,9 +5,10 @@
 
 import { ViewID } from "./Constants";
 import { View } from "./View";
-import type { CanvasOptions, ICanvas, CanvasCharType } from "./UiInterfaces";
+import type { ICanvasVm } from "../Interfaces";
+import type { CanvasOptions, CanvasCharType, ICanvas } from "./UiInterfaces";
 
-export class TextCanvas implements ICanvas {
+export class TextCanvas implements ICanvas, ICanvasVm {
 	private readonly options: CanvasOptions;
 	private readonly fnUpdateCanvasHandler: () => void;
 	private readonly fnUpdateCanvas2Handler: () => void;

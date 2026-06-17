@@ -4,57 +4,18 @@
 //
 
 import { UiUtils } from "./UiUtils";
-
-export interface SoundData {
-	state: number,
-	period: number,
-	duration: number,
-	volume: number,
-	volEnv: number,
-	toneEnv: number,
-	noise: number
-}
-
-export interface ToneEnvData1 {
-	steps: number,
-	diff: number,
-	time: number,
-	repeat: boolean
-}
-
-export interface ToneEnvData2 {
-	period: number,
-	time: number
-}
-
-export type ToneEnvData = ToneEnvData1 | ToneEnvData2;
-
-export interface VolEnvData1 {
-	steps: number,
-	diff: number,
-	time: number
-}
-
-export interface VolEnvData2 {
-	register: number,
-	period: number
-}
-
-export type VolEnvData = VolEnvData1 | VolEnvData2;
+import type { SoundData, ToneEnvData, ToneEnvData1, ToneEnvData2, VolEnvData, VolEnvData1, VolEnvData2 } from "../Interfaces";
 
 type AudioContextConstructorType = typeof window.AudioContext;
-
 interface SoundOptions {
 	AudioContextConstructor: AudioContextConstructorType
 }
-
 interface Queue {
 	soundData: SoundData[],
 	fNextNoteTime: number,
 	onHold: boolean,
 	rendevousMask: number
 }
-
 export class Sound {
 	private readonly options: SoundOptions;
 
@@ -90,15 +51,17 @@ export class Sound {
 		}
 	}
 
-	getOptions(): SoundOptions {
+	/*
+	private getOptions(): SoundOptions {
 		return this.options;
 	}
+	*/
 
-	setOptions(options: Partial<SoundOptions>): void {
+	private setOptions(options: Partial<SoundOptions>): void {
 		Object.assign(this.options, options);
 	}
 
-	reset(): void {
+	public reset(): void {
 		const oscillators = this.oscillators,
 			volEnvData: VolEnvData1 = {
 				steps: 1,
@@ -145,7 +108,7 @@ export class Sound {
 		}
 	}
 
-	resetQueue(): void {
+	public resetQueue(): void {
 		const queues = this.queues;
 
 		for (let i = 0; i < queues.length; i += 1) {
@@ -472,7 +435,7 @@ export class Sound {
 		return fDuration;
 	}
 
-	testCanQueue(state: number): boolean {
+	public testCanQueue(state: number): boolean {
 		let canQueue = true;
 
 		if (this.isSoundOn && !this.isActivatedByUserFlag) { // sound on but not yet activated? -> say cannot queue
@@ -492,7 +455,7 @@ export class Sound {
 		return canQueue;
 	}
 
-	sound(soundData: SoundData): void {
+	public sound(soundData: SoundData): void {
 		const queues = this.queues,
 			state = soundData.state;
 
@@ -515,11 +478,11 @@ export class Sound {
 		this.scheduler(); // schedule early to allow SQ busy check immediately (can channels go out of sync by this?)
 	}
 
-	setVolEnv(volEnv: number, volEnvData: VolEnvData[]): void {
+	public setVolEnv(volEnv: number, volEnvData: VolEnvData[]): void {
 		this.volEnv[volEnv] = volEnvData;
 	}
 
-	setToneEnv(toneEnv: number, toneEnvData: ToneEnvData[]): void {
+	public setToneEnv(toneEnv: number, toneEnvData: ToneEnvData[]): void {
 		this.toneEnv[toneEnv] = toneEnvData;
 	}
 
@@ -540,7 +503,7 @@ export class Sound {
 	}
 
 	// idea from: https://www.html5rocks.com/en/tutorials/audio/scheduling/
-	scheduler(): void {
+	public scheduler(): void {
 		if (!this.isActivatedByUserFlag) {
 			return;
 		}
@@ -589,7 +552,7 @@ export class Sound {
 		}
 	}
 
-	release(releaseMask: number): void {
+	public release(releaseMask: number): void {
 		const queues = this.queues;
 
 		if (!queues.length) {
@@ -611,7 +574,7 @@ export class Sound {
 		this.scheduler(); // extra schedule now so that following sound instructions are not releases early
 	}
 
-	sq(n: number): number {
+	public sq(n: number): number {
 		const queues = this.queues,
 			queue = queues[n],
 			soundData = queue.soundData,

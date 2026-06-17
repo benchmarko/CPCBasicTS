@@ -7,7 +7,8 @@
 import { ViewID } from "./Constants";
 import { Utils } from "../Utils";
 import { View } from "./View";
-import type { CanvasOptions, ICanvas, CanvasCharType } from "./UiInterfaces";
+import type { CanvasOptions, ICanvas } from "./UiInterfaces";
+import type { ICanvasVm, CanvasCharType } from "../Interfaces";
 
 interface ModeData {
 	pens: number // number of pens
@@ -15,7 +16,7 @@ interface ModeData {
 	pixelHeight: number // pixel height
 }
 
-export class Canvas implements ICanvas {
+export class Canvas implements ICanvas, ICanvasVm {
 	private readonly options: CanvasOptions;
 
 	private readonly fnUpdateCanvasHandler: () => void;

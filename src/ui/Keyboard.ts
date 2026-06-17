@@ -3,6 +3,7 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
+import type { CpcKeyExpansionsOptions, IKeyboard } from "../Interfaces";
 import { ViewID } from "./Constants";
 import { UiUtils } from "./UiUtils";
 import { View } from "./View";
@@ -13,6 +14,7 @@ interface KeyboardOptions {
 	fnOnKeyDown?: () => void
 }
 
+/*
 export interface CpcKeyExpansionsOptions {
 	cpcKey: number
 	repeat: number
@@ -20,6 +22,7 @@ export interface CpcKeyExpansionsOptions {
 	shift?: number
 	ctrl?: number
 }
+*/
 
 export type PressReleaseCpcKey = (event: KeyboardEvent | PointerEvent, cpcKey: number, pressedKey: string, key: string) => void;
 
@@ -39,7 +42,7 @@ interface CpcKeyExpansions {
 	repeat: KeyExpansionsRepeatType
 }
 
-export class Keyboard {
+export class Keyboard implements IKeyboard {
 	private readonly fnKeydownOrKeyupHandler: (event: Event) => boolean;
 
 	private readonly options: KeyboardOptions;
@@ -260,7 +263,7 @@ export class Keyboard {
 	];
 	/* eslint-enable array-element-newline */
 
-	reset(): void {
+	public reset(): void {
 		this.options.fnOnKeyDown = undefined;
 		this.clearInput();
 		this.pressedKeys = {}; // currently pressed browser keys
@@ -268,11 +271,11 @@ export class Keyboard {
 		this.resetCpcKeysExpansions();
 	}
 
-	clearInput(): void {
+	public clearInput(): void {
 		this.keyBuffer.length = 0;
 	}
 
-	resetExpansionTokens(): void {
+	public resetExpansionTokens(): void {
 		const expansionTokens = this.expansionTokens;
 
 		for (let i = 0; i <= 9; i += 1) {
@@ -286,7 +289,7 @@ export class Keyboard {
 		}
 	}
 
-	resetCpcKeysExpansions(): void {
+	public resetCpcKeysExpansions(): void {
 		const cpcKeyExpansions = this.cpcKeyExpansions;
 
 		cpcKeyExpansions.normal = { // cpcKey => ExpansionToken (128-159)
@@ -564,14 +567,14 @@ export class Keyboard {
 		}
 	}
 
-	getKeyFromBuffer(): string {
+	public getKeyFromBuffer(): string {
 		const keyBuffer = this.keyBuffer,
 			key = keyBuffer.length ? keyBuffer.shift() as string : "";
 
 		return key;
 	}
 
-	putKeyInBuffer(key: string, triggerOnKeyDown?: boolean): void {
+	public putKeyInBuffer(key: string, triggerOnKeyDown?: boolean): void {
 		this.keyBuffer.push(key);
 
 		if (triggerOnKeyDown) {
@@ -591,7 +594,7 @@ export class Keyboard {
 		}
 	}
 
-	getKeyState(cpcKeyCode: number): number {
+	public getKeyState(cpcKeyCode: number): number {
 		const pressedKeys = this.pressedKeys;
 		let	state = -1;
 
@@ -603,7 +606,7 @@ export class Keyboard {
 		return state;
 	}
 
-	getJoyState(joy: number): number {
+	public getJoyState(joy: number): number {
 		const joyKeyList = Keyboard.joyKeyCodes[joy];
 		let value = 0;
 
@@ -634,11 +637,11 @@ export class Keyboard {
 		return value;
 	}
 
-	setExpansionToken(token: number, string: string): void {
+	public setExpansionToken(token: number, string: string): void {
 		this.expansionTokens[token] = string;
 	}
 
-	setCpcKeyExpansion(options: CpcKeyExpansionsOptions): void {
+	public setCpcKeyExpansion(options: CpcKeyExpansionsOptions): void {
 		const cpcKeyExpansions = this.cpcKeyExpansions,
 			cpcKey = options.cpcKey;
 
