@@ -1,18 +1,12 @@
+import type { CpcKeyExpansionsOptions, IKeyboard } from "../Interfaces";
 import { View } from "./View";
 interface KeyboardOptions {
     view: View;
     fnOnEscapeHandler?: (key: string, pressedKey: string) => void;
     fnOnKeyDown?: () => void;
 }
-export interface CpcKeyExpansionsOptions {
-    cpcKey: number;
-    repeat: number;
-    normal?: number;
-    shift?: number;
-    ctrl?: number;
-}
 export type PressReleaseCpcKey = (event: KeyboardEvent | PointerEvent, cpcKey: number, pressedKey: string, key: string) => void;
-export declare class Keyboard {
+export declare class Keyboard implements IKeyboard {
     private readonly fnKeydownOrKeyupHandler;
     private readonly options;
     private readonly keyBuffer;

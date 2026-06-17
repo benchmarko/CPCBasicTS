@@ -5560,7 +5560,7 @@
 	    this.fnRandomizeCallbackHandler = this.vmRandomizeCallback.bind(this);
 	    this.options = {};
 	    this.setOptions(options);
-	    this.canvas = this.setCanvas(options.canvas);
+	    this.canvas = options.canvas;
 	    this.keyboard = options.keyboard;
 	    this.random = options.random;
 	    this.soundClass = options.sound;
@@ -5822,15 +5822,23 @@
 	    }
 	    return tokensLen;
 	  }
+	  getOnCanvasClickHandler() {
+	    return this.fnOnCanvasClickHandler;
+	  }
 	  setCanvas(canvas) {
 	    this.canvas = canvas;
-	    if (this.canvas) {
-	      this.canvas.setOptions({
-	        onCanvasClick: this.fnOnCanvasClickHandler
-	      });
-	    }
-	    return canvas;
 	  }
+	  /*
+	  setCanvas(canvas: ICanvasVm): ICanvasVm {
+	  	this.canvas = canvas;
+	  	if (this.canvas) {
+	  		this.canvas.setOptions({
+	  			onCanvasClick: this.fnOnCanvasClickHandler
+	  		});
+	  	}
+	  	return canvas;
+	  }
+	  */
 	  vmGetLoadHandler() {
 	    return this.fnLoadHandler;
 	  }
@@ -6182,9 +6190,11 @@
 	  vmGetInFileObject() {
 	    return this.inFile;
 	  }
-	  vmGetKeyboard() {
-	    return this.keyboard;
+	  /*
+	  vmGetKeyboard(): Keyboard {
+	  	return this.keyboard;
 	  }
+	  */
 	  vmGetOutFileObject() {
 	    return this.outFile;
 	  }

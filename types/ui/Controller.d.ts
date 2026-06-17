@@ -1,6 +1,6 @@
 import { ViewID } from "./Constants";
 import type { ICore, LoadScriptFn, VariableValue } from "../Interfaces";
-import type { IController, ICanvas } from "./UiInterfaces";
+import type { ICanvas, IController } from "./UiInterfaces";
 import { VirtualKeyboard } from "./VirtualKeyboard";
 import { View } from "./View";
 export interface ControllerOptions {

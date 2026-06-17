@@ -1,5 +1,6 @@
-import type { CanvasOptions, ICanvas, CanvasCharType } from "./UiInterfaces";
-export declare class NoCanvas implements ICanvas {
+import type { ICanvasVm } from "../Interfaces";
+import type { CanvasOptions, CanvasCharType, ICanvas } from "./UiInterfaces";
+export declare class NoCanvas implements ICanvas, ICanvasVm {
     private readonly options;
     constructor(options: CanvasOptions);
     getOptions(): CanvasOptions;

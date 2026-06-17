@@ -1,14 +1,11 @@
-import type { CustomError, ICpcVm, VariableValue, VmStopParas, ICpcVmRsx } from "./Interfaces";
-import type { ICanvas } from "./ui/UiInterfaces";
-import { Keyboard } from "./ui/Keyboard";
+import type { CustomError, ICanvasVm, ICpcVm, IKeyboard, ISound, SoundData, VariableValue, VmStopParas, ICpcVmRsx } from "./Interfaces";
 import { Random } from "./Random";
-import { Sound, SoundData } from "./ui/Sound";
 import { Variables, VariableMap, VariableTypeMap } from "./Variables";
 export interface CpcVmOptions {
-    canvas: ICanvas;
-    keyboard: Keyboard;
+    canvas: ICanvasVm;
+    keyboard: IKeyboard;
     random: Random;
-    sound: Sound;
+    sound: ISound;
     variables: Variables;
     quiet?: boolean;
     onClickKey?: (arg0: string) => void;
@@ -173,7 +170,8 @@ export declare class CpcVm implements ICpcVm {
     private vmResetInks;
     vmReset4Run(): void;
     vmPutProgramInMem(tokens: string): number;
-    setCanvas(canvas: ICanvas): ICanvas;
+    getOnCanvasClickHandler(): (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
+    setCanvas(canvas: ICanvasVm): void;
     vmGetLoadHandler(): LoadHandlerType;
     vmGetMem(): number[];
     private onCanvasClickCallback;
@@ -214,7 +212,6 @@ export declare class CpcVm implements ICpcVm {
     private vmUsingFormat;
     vmGetStopObject(): VmStopEntry;
     vmGetInFileObject(): InFile;
-    vmGetKeyboard(): Keyboard;
     vmGetOutFileObject(): OutFile;
     vmAdaptFilename(name: string, err: string): string;
     vmGetSoundData(): SoundData[];

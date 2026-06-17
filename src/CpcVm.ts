@@ -4,19 +4,16 @@
 //
 
 import { Utils } from "./Utils";
-import type { CustomError, ICpcVm, VariableValue, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmStopParas, ICpcVmRsx } from "./Interfaces";
-import type { ICanvas } from "./ui/UiInterfaces";
-import { Keyboard, CpcKeyExpansionsOptions } from "./ui/Keyboard";
+import type { CpcKeyExpansionsOptions, CustomError, ICanvasVm, ICpcVm, IKeyboard, ISound, SoundData, ToneEnvData, VolEnvData, VariableValue, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmStopParas, ICpcVmRsx } from "./Interfaces";
 import { Random } from "./Random";
-import { Sound, SoundData, ToneEnvData, VolEnvData } from "./ui/Sound";
 import { Variables, VariableMap, VarTypes, VariableTypeMap } from "./Variables";
 import { CpcVmRsx } from "./CpcVmRsx";
 
 export interface CpcVmOptions {
-	canvas: ICanvas
-	keyboard: Keyboard
+	canvas: ICanvasVm
+	keyboard: IKeyboard
 	random: Random,
-	sound: Sound
+	sound: ISound
 	variables: Variables
 	quiet?: boolean
 	onClickKey?: (arg0: string) => void
@@ -111,9 +108,9 @@ export class CpcVm implements ICpcVm {
 	private readonly fnLineInputCallbackHandler: () => boolean;
 	private readonly fnRandomizeCallbackHandler: () => boolean;
 
-	private canvas: ICanvas;
-	private readonly keyboard: Keyboard;
-	private readonly soundClass: Sound;
+	private canvas: ICanvasVm;
+	private readonly keyboard: IKeyboard;
+	private readonly soundClass: ISound;
 	readonly variables: Variables;
 
 	private readonly random: Random;
@@ -395,7 +392,9 @@ export class CpcVm implements ICpcVm {
 		this.options = {} as CpcVmOptions;
 		this.setOptions(options);
 
-		this.canvas = this.setCanvas(options.canvas);
+		//this.canvas = this.setCanvas(options.canvas);//TTT
+		this.canvas = options.canvas; // setCanvas()
+
 		this.keyboard = options.keyboard;
 		this.random = options.random;
 		this.soundClass = options.sound;
@@ -731,7 +730,16 @@ export class CpcVm implements ICpcVm {
 		return tokensLen;
 	}
 
-	setCanvas(canvas: ICanvas): ICanvas {
+	getOnCanvasClickHandler() {
+		return this.fnOnCanvasClickHandler;
+	}
+
+	setCanvas(canvas: ICanvasVm) {
+		this.canvas = canvas;
+	}
+
+	/*
+	setCanvas(canvas: ICanvasVm): ICanvasVm {
 		this.canvas = canvas;
 		if (this.canvas) {
 			this.canvas.setOptions({
@@ -740,6 +748,7 @@ export class CpcVm implements ICpcVm {
 		}
 		return canvas;
 	}
+	*/
 
 	vmGetLoadHandler(): LoadHandlerType {
 		return this.fnLoadHandler;
@@ -1180,9 +1189,11 @@ export class CpcVm implements ICpcVm {
 		return this.inFile;
 	}
 
+	/*
 	vmGetKeyboard(): Keyboard {
 		return this.keyboard;
 	}
+	*/
 
 	vmGetOutFileObject(): OutFile {
 		return this.outFile;

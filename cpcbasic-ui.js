@@ -8485,7 +8485,7 @@
 	    this.fnRandomizeCallbackHandler = this.vmRandomizeCallback.bind(this);
 	    this.options = {};
 	    this.setOptions(options);
-	    this.canvas = this.setCanvas(options.canvas);
+	    this.canvas = options.canvas;
 	    this.keyboard = options.keyboard;
 	    this.random = options.random;
 	    this.soundClass = options.sound;
@@ -8747,15 +8747,23 @@
 	    }
 	    return tokensLen;
 	  }
+	  getOnCanvasClickHandler() {
+	    return this.fnOnCanvasClickHandler;
+	  }
 	  setCanvas(canvas) {
 	    this.canvas = canvas;
-	    if (this.canvas) {
-	      this.canvas.setOptions({
-	        onCanvasClick: this.fnOnCanvasClickHandler
-	      });
-	    }
-	    return canvas;
 	  }
+	  /*
+	  setCanvas(canvas: ICanvasVm): ICanvasVm {
+	  	this.canvas = canvas;
+	  	if (this.canvas) {
+	  		this.canvas.setOptions({
+	  			onCanvasClick: this.fnOnCanvasClickHandler
+	  		});
+	  	}
+	  	return canvas;
+	  }
+	  */
 	  vmGetLoadHandler() {
 	    return this.fnLoadHandler;
 	  }
@@ -9107,9 +9115,11 @@
 	  vmGetInFileObject() {
 	    return this.inFile;
 	  }
-	  vmGetKeyboard() {
-	    return this.keyboard;
+	  /*
+	  vmGetKeyboard(): Keyboard {
+	  	return this.keyboard;
 	  }
+	  */
 	  vmGetOutFileObject() {
 	    return this.outFile;
 	  }
@@ -15830,9 +15840,11 @@
 	      this.debugLogList = [];
 	    }
 	  }
-	  getOptions() {
-	    return this.options;
+	  /*
+	  private getOptions(): SoundOptions {
+	  	return this.options;
 	  }
+	  */
 	  setOptions(options) {
 	    Object.assign(this.options, options);
 	  }
@@ -17405,6 +17417,10 @@
 	      variables: this.variables,
 	      onClickKey: this.fnPutKeyInBufferHandler
 	    });
+	    this.canvas.setOptions({
+	      onCanvasClick: this.vm.getOnCanvasClickHandler()
+	    });
+	    this.vm.setCanvas(this.canvas);
 	    this.vm.vmReset();
 	    this.vm.vmRegisterRsx(new RsxAmsdos(), true);
 	    this.vm.vmRegisterRsx(new RsxCpcBasic(), true);
@@ -19357,6 +19373,10 @@
 	      this.canvas = canvas;
 	    }
 	    if (this.vm) {
+	      const handler = this.vm.getOnCanvasClickHandler();
+	      this.canvas.setOptions({
+	        onCanvasClick: handler
+	      });
 	      this.vm.setCanvas(canvas);
 	    }
 	    const canvasId = canvas.getOptions().canvasID;

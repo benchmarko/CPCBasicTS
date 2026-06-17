@@ -1,33 +1,4 @@
-export interface SoundData {
-    state: number;
-    period: number;
-    duration: number;
-    volume: number;
-    volEnv: number;
-    toneEnv: number;
-    noise: number;
-}
-export interface ToneEnvData1 {
-    steps: number;
-    diff: number;
-    time: number;
-    repeat: boolean;
-}
-export interface ToneEnvData2 {
-    period: number;
-    time: number;
-}
-export type ToneEnvData = ToneEnvData1 | ToneEnvData2;
-export interface VolEnvData1 {
-    steps: number;
-    diff: number;
-    time: number;
-}
-export interface VolEnvData2 {
-    register: number;
-    period: number;
-}
-export type VolEnvData = VolEnvData1 | VolEnvData2;
+import type { SoundData, ToneEnvData, VolEnvData } from "../Interfaces";
 type AudioContextConstructorType = typeof window.AudioContext;
 interface SoundOptions {
     AudioContextConstructor: AudioContextConstructorType;
@@ -48,8 +19,7 @@ export declare class Sound {
     private readonly toneEnv;
     private readonly debugLogList?;
     constructor(options: SoundOptions);
-    getOptions(): SoundOptions;
-    setOptions(options: Partial<SoundOptions>): void;
+    private setOptions;
     reset(): void;
     private stopOscillator;
     private debugLog;

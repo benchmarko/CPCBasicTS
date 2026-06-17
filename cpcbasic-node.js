@@ -7815,7 +7815,7 @@ const _CpcVm = class _CpcVm {
     this.fnRandomizeCallbackHandler = this.vmRandomizeCallback.bind(this);
     this.options = {};
     this.setOptions(options);
-    this.canvas = this.setCanvas(options.canvas);
+    this.canvas = options.canvas;
     this.keyboard = options.keyboard;
     this.random = options.random;
     this.soundClass = options.sound;
@@ -8077,15 +8077,23 @@ const _CpcVm = class _CpcVm {
     }
     return tokensLen;
   }
+  getOnCanvasClickHandler() {
+    return this.fnOnCanvasClickHandler;
+  }
   setCanvas(canvas) {
     this.canvas = canvas;
-    if (this.canvas) {
-      this.canvas.setOptions({
-        onCanvasClick: this.fnOnCanvasClickHandler
-      });
-    }
-    return canvas;
   }
+  /*
+  setCanvas(canvas: ICanvasVm): ICanvasVm {
+  	this.canvas = canvas;
+  	if (this.canvas) {
+  		this.canvas.setOptions({
+  			onCanvasClick: this.fnOnCanvasClickHandler
+  		});
+  	}
+  	return canvas;
+  }
+  */
   vmGetLoadHandler() {
     return this.fnLoadHandler;
   }
@@ -8437,9 +8445,11 @@ const _CpcVm = class _CpcVm {
   vmGetInFileObject() {
     return this.inFile;
   }
-  vmGetKeyboard() {
-    return this.keyboard;
+  /*
+  vmGetKeyboard(): Keyboard {
+  	return this.keyboard;
   }
+  */
   vmGetOutFileObject() {
     return this.outFile;
   }
@@ -15160,9 +15170,11 @@ class Sound {
       this.debugLogList = [];
     }
   }
-  getOptions() {
-    return this.options;
+  /*
+  private getOptions(): SoundOptions {
+  	return this.options;
   }
+  */
   setOptions(options) {
     Object.assign(this.options, options);
   }
@@ -17453,6 +17465,10 @@ const _Controller = class _Controller {
       variables: this.variables,
       onClickKey: this.fnPutKeyInBufferHandler
     });
+    this.canvas.setOptions({
+      onCanvasClick: this.vm.getOnCanvasClickHandler()
+    });
+    this.vm.setCanvas(this.canvas);
     this.vm.vmReset();
     this.vm.vmRegisterRsx(new RsxAmsdos(), true);
     this.vm.vmRegisterRsx(new RsxCpcBasic(), true);
@@ -19405,6 +19421,10 @@ const _Controller = class _Controller {
       this.canvas = canvas;
     }
     if (this.vm) {
+      const handler = this.vm.getOnCanvasClickHandler();
+      this.canvas.setOptions({
+        onCanvasClick: handler
+      });
       this.vm.setCanvas(canvas);
     }
     const canvasId = canvas.getOptions().canvasID;

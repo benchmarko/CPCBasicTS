@@ -29,9 +29,11 @@ var Sound = /** @class */ (function () {
             this.debugLogList = []; // access: cpcBasic.controller.sound.debugLog
         }
     }
-    Sound.prototype.getOptions = function () {
+    /*
+    private getOptions(): SoundOptions {
         return this.options;
-    };
+    }
+    */
     Sound.prototype.setOptions = function (options) {
         Object.assign(this.options, options);
     };

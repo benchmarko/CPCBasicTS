@@ -176,6 +176,10 @@ var Controller = /** @class */ (function () {
             variables: this.variables,
             onClickKey: this.fnPutKeyInBufferHandler
         });
+        this.canvas.setOptions({
+            onCanvasClick: this.vm.getOnCanvasClickHandler()
+        });
+        this.vm.setCanvas(this.canvas);
         this.vm.vmReset();
         this.vm.vmRegisterRsx(new RsxAmsdos(), true);
         this.vm.vmRegisterRsx(new RsxCpcBasic(), true);
@@ -2216,6 +2220,10 @@ var Controller = /** @class */ (function () {
             this.canvas = canvas;
         }
         if (this.vm) {
+            var handler = this.vm.getOnCanvasClickHandler();
+            this.canvas.setOptions({
+                onCanvasClick: handler
+            });
             this.vm.setCanvas(canvas);
         }
         var canvasId = canvas.getOptions().canvasID;

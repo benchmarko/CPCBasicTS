@@ -1,5 +1,6 @@
-import type { CanvasOptions, ICanvas, CanvasCharType } from "./UiInterfaces";
-export declare class TextCanvas implements ICanvas {
+import type { ICanvasVm } from "../Interfaces";
+import type { CanvasOptions, CanvasCharType, ICanvas } from "./UiInterfaces";
+export declare class TextCanvas implements ICanvas, ICanvasVm {
     private readonly options;
     private readonly fnUpdateCanvasHandler;
     private readonly fnUpdateCanvas2Handler;

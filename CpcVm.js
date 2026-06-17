@@ -72,7 +72,8 @@ var CpcVm = /** @class */ (function () {
         this.fnRandomizeCallbackHandler = this.vmRandomizeCallback.bind(this);
         this.options = {};
         this.setOptions(options);
-        this.canvas = this.setCanvas(options.canvas);
+        //this.canvas = this.setCanvas(options.canvas);//TTT
+        this.canvas = options.canvas; // setCanvas()
         this.keyboard = options.keyboard;
         this.random = options.random;
         this.soundClass = options.sound;
@@ -330,7 +331,14 @@ var CpcVm = /** @class */ (function () {
         }
         return tokensLen;
     };
+    CpcVm.prototype.getOnCanvasClickHandler = function () {
+        return this.fnOnCanvasClickHandler;
+    };
     CpcVm.prototype.setCanvas = function (canvas) {
+        this.canvas = canvas;
+    };
+    /*
+    setCanvas(canvas: ICanvasVm): ICanvasVm {
         this.canvas = canvas;
         if (this.canvas) {
             this.canvas.setOptions({
@@ -338,7 +346,8 @@ var CpcVm = /** @class */ (function () {
             });
         }
         return canvas;
-    };
+    }
+    */
     CpcVm.prototype.vmGetLoadHandler = function () {
         return this.fnLoadHandler;
     };
@@ -704,9 +713,11 @@ var CpcVm = /** @class */ (function () {
     CpcVm.prototype.vmGetInFileObject = function () {
         return this.inFile;
     };
-    CpcVm.prototype.vmGetKeyboard = function () {
+    /*
+    vmGetKeyboard(): Keyboard {
         return this.keyboard;
-    };
+    }
+    */
     CpcVm.prototype.vmGetOutFileObject = function () {
         return this.outFile;
     };

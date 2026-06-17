@@ -160,6 +160,140 @@ export interface IModel {
 	removeExample(key: string): void;
 };
 
+// # Canvas
+
+export type CanvasCharType = number[]; // 8 bytes char bitmap
+
+export interface ICanvasVm {
+    //getOptions(): CanvasOptions
+    //setOptions(options: Partial<CanvasOptions>): void
+    reset(): void
+    resetCustomChars(): void
+    //startUpdateCanvas(): void
+    //stopUpdateCanvas(): void
+    setScreenOffset(offset: number): void
+    updateColorsAndCanvasImmediately(inkList: number[]): void
+    updateSpeedInk(): void
+    setCustomChar(char: number, charData: CanvasCharType): void
+    getCharData(char: number): CanvasCharType
+    setDefaultInks(): void
+    //onCanvasClick(event: MouseEvent): void
+    //onWindowClick(_event: Event): void
+    getXpos(): number
+    getYpos(): number
+    fillTextBox(left: number, top: number, width: number, height: number, paper: number): void
+    getByte(addr: number): number | null
+    setByte(addr: number, byte: number): void
+    draw(x: number, y: number): void
+    move(x: number, y: number): void
+    plot(x: number, y: number): void
+    test(x: number, y: number): number
+    setInk(pen: number, ink1: number, ink2: number): boolean
+    setBorder(ink1: number, ink2: number): void
+    setGPen(gPen: number): void
+    setGPaper(gPaper: number): void
+    setGTransparentMode(transparent: boolean): void
+    printGChar(char: number): void
+    printChar(char: number, x: number, y: number, pen: number, paper: number, transparent: boolean): void
+    drawCursor(x: number, y: number, pen: number, paper: number): void
+    readChar(x: number, y: number, pen: number, paper: number): number
+    fill(fillPen: number): void
+    setOrigin(xOrig: number, yOrig: number): void
+    getXOrigin(): number
+    getYOrigin(): number
+    setGWindow(xLeft: number, xRight: number, yTop: number, yBottom: number): void
+    setGColMode(gColMode: number): void
+    clearTextWindow(left: number, right: number, top: number, bottom: number, paper: number): void
+    clearGraphicsWindow(): void
+    clearFullWindow(): void
+    windowScrollUp(left: number, right: number, top: number, bottom: number, paper: number): void
+    windowScrollDown(left: number, right: number, top: number, bottom: number, paper: number): void
+    setSpeedInk(time1: number, time2: number): void
+    setMask(mask: number): void
+    setMaskFirst(maskFirst: number): void
+    getMode(): number
+    changeMode(mode: number): void
+    setMode(mode: number): void
+    //takeScreenShot(): string
+}
+
+// # Keyboad
+
+export interface CpcKeyExpansionsOptions {
+	cpcKey: number
+	repeat: number
+	normal?: number
+	shift?: number
+	ctrl?: number
+}
+
+export interface IKeyboard {
+	reset(): void,
+	resetExpansionTokens(): void,
+	resetCpcKeysExpansions(): void,
+	clearInput(): void,
+	getKeyFromBuffer(): string,
+	putKeyInBuffer(key: string, triggerOnKeyDown?: boolean): void,
+	getKeyState(cpcKeyCode: number): number,
+	getJoyState(joy: number): number,
+	setExpansionToken(token: number, string: string): void,
+	setCpcKeyExpansion(options: CpcKeyExpansionsOptions): void
+}
+
+
+// # Sound
+
+export interface SoundData {
+	state: number,
+	period: number,
+	duration: number,
+	volume: number,
+	volEnv: number,
+	toneEnv: number,
+	noise: number
+}
+
+export interface ToneEnvData1 {
+	steps: number,
+	diff: number,
+	time: number,
+	repeat: boolean
+}
+
+export interface ToneEnvData2 {
+	period: number,
+	time: number
+}
+
+export type ToneEnvData = ToneEnvData1 | ToneEnvData2;
+
+export interface VolEnvData1 {
+	steps: number,
+	diff: number,
+	time: number
+}
+
+export interface VolEnvData2 {
+	register: number,
+	period: number
+}
+
+export type VolEnvData = VolEnvData1 | VolEnvData2;
+
+export interface ISound {
+	reset(): void,
+	resetQueue(): void,
+	testCanQueue(state: number): boolean,
+	sound(soundData: SoundData): void,
+	setVolEnv(volEnv: number, volEnvData: VolEnvData[]): void,
+	setToneEnv(toneEnv: number, toneEnvData: ToneEnvData[]): void,
+	scheduler(): void,
+	release(releaseMask: number): void,
+	sq(n: number): number
+}
+
+// # Core
+
 export interface ICore {
     setDebug(debug: number): void;
     getModel(): IModel;
