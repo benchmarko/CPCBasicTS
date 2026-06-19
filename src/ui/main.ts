@@ -2,7 +2,7 @@ export { Canvas } from "./Canvas";
 export { CommonEventHandler } from "./CommonEventHandler";
 export { Controller } from "./Controller";
 export { DragElement } from "./DragElement";
-export { FileHandler } from "./FileHandler";
+//export { FileHandler } from "./FileHandler";
 export { FileSelect } from "./FileSelect";
 export { Keyboard } from "./Keyboard";
 export { NoCanvas } from "./NoCanvas";

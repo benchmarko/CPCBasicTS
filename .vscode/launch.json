@@ -16,14 +16,14 @@
             ],
             //"program_XXX": "${workspaceFolder}\\src\\loader\\amd1.js",
             //"program": "${workspaceFolder}\\dist\\cpcbasicts.js",
-            "program": "${workspaceFolder}/dist/cpcbasicts.js",
+            "program": "${workspaceFolder}/dist/cpcbasic-node-bootstrap.js",
             //"runtimeArgs": [
             //    "--require=.\\dist\\amdLoader.js"
             //],
             "args": [
-                "sound=false",
+                //"sound=false",
                 "debug=0",
-                "canvasType=text",
+                //"canvasType=text",
                 "example=test/testpage"
                 //"example=math/euler"
             ],

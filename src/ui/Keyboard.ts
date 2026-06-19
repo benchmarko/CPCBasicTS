@@ -14,16 +14,6 @@ interface KeyboardOptions {
 	fnOnKeyDown?: () => void
 }
 
-/*
-export interface CpcKeyExpansionsOptions {
-	cpcKey: number
-	repeat: number
-	normal?: number
-	shift?: number
-	ctrl?: number
-}
-*/
-
 export type PressReleaseCpcKey = (event: KeyboardEvent | PointerEvent, cpcKey: number, pressedKey: string, key: string) => void;
 
 type KeyExpansionsType = Record<string, number>; // numbers as keys are stored as string anyway, so use string

@@ -1,12 +1,12 @@
 import { UiUtils } from "./UiUtils";
-import type { ConfigEntryType, ICore, IUI } from "../Interfaces";
+import type { ConfigEntryType, ICanvasVm, ICore, IUI } from "../Interfaces";
 import { Controller, ControllerOptions } from "./Controller";
 import { View } from "./View";
 
 export class UI implements IUI {
 	private view: View = new View();
-	private controller?: Controller;
-	private core?: ICore;
+	private controller = {} as Controller;
+	//private core = {} as ICore;
 
 	/*
 	private static fnMapObjectProperties(arg: any) {
@@ -106,13 +106,17 @@ export class UI implements IUI {
 	}
 	*/
 
+	public getCanvasVm(): ICanvasVm {
+		return this.controller?.getCanvas();
+	}
+
 	public getCurrentDataKey(): string {
 		return document.currentScript && document.currentScript.getAttribute("data-key") || "";
 	}
 
 	public onWindowLoadContinue(core: ICore): void {
 		//this.isMobile = UI.isMobile();
-		this.core = core;
+		//this.core = core;
 		const model = core.getModel();
 		const config = model.getAllProperties();
 		const args = UI.parseUri(config);

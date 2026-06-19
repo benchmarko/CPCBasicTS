@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig-base.json",
+  "compilerOptions": {
+    "outDir": "../../dist/UI",
+    "declarationDir": "../../dist/UI/types",
+    "lib": [
+      "es2020",
+      "dom"
+    ],
+    "rootDir": "../",
+    "composite": true,
+  },
+  "include": ["./*.ts"],
+  "references": [
+    { "path": "../" }
+  ]
+}

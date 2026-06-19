@@ -1,9 +1,10 @@
-import type { ICore, INodeUtils, ICpcVmRsx, LoadScriptFn } from "../Interfaces";
-import "./NodePolyfills";
-import { UiUtils } from "../ui/UiUtils";
-import { Controller, ControllerOptions } from "../ui/Controller";
-import { View } from "../ui/View";
-import { NodeDocumentAdapter } from "./NodeDocumentAdapter";
+import type { ICore, INodeUtils, ICpcVmRsx, LoadScriptFn, ICanvasVm, IKeyboard, CpcKeyExpansionsOptions, VolEnvData, ToneEnvData, SoundData, ISound, IStorage } from "../Interfaces";
+//import "./NodePolyfills";
+import { Utils } from "../Utils";
+import { Controller0, ControllerOptions0 } from "../Controller0";
+import { NoCanvas } from "../ui/NoCanvas";
+//import { View } from "../ui/View";
+//import { NodeDocumentAdapter } from "./NodeDocumentAdapter";
 
 interface NodeHttps {
 	get: (url: string, fn: (res: any) => void) => any
@@ -14,6 +15,41 @@ interface NodeFs {
 }
 
 const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // eslint-disable-line no-new-func
+
+function createLocalStorage(): IStorage {
+	const data: Record<string, string> = {};
+	const storage: Record<string, unknown> = {
+		clear() {
+			Object.keys(data).forEach((key) => {
+				delete data[key];
+				delete storage[key];
+			});
+		},
+		getItem(key: string) {
+			return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null;
+		},
+		key(index: number) {
+			const keys = Object.keys(data);
+
+			return (index >= 0 && index < keys.length) ? keys[index] : null;
+		},
+		removeItem(key: string) {
+			delete data[key];
+			delete storage[key];
+		},
+		setItem(key: string, value: string) {
+			const value2 = String(value);
+
+			data[key] = value2;
+			storage[key] = value2;
+		},
+		get length() {
+			return Object.keys(data).length;
+		}
+	};
+
+	return storage as Storage;
+}
 
 export class NodeUtils implements INodeUtils {
 	private static currentScriptKey = "";
@@ -101,13 +137,13 @@ export class NodeUtils implements INodeUtils {
 
 		if (debug) {
 			core.setDebug(debug);
-			UiUtils.setDebug(debug);
+			Utils.setDebug(debug);
 		}
 		core.init(); // init databases
 
-		const nodeDocument = new NodeDocumentAdapter();
+		//const nodeDocument = new NodeDocumentAdapter();
 
-		(myGlobalThis as any).document = nodeDocument;
+		//(myGlobalThis as any).document = nodeDocument;
 		(myGlobalThis as any).cpcBasic = {
 			addIndex: core.addIndex,
 			addItem: (key: string, input: string | (() => void)) => {
@@ -115,24 +151,65 @@ export class NodeUtils implements INodeUtils {
 			},
 			addRsx: (key: string, RsxConstructor: new () => ICpcVmRsx) => core.addRsx(key || NodeUtils.currentScriptKey, RsxConstructor)
 		};
-		View.setDocument(nodeDocument);
+		//View.setDocument(nodeDocument);
 
 		const outputState = {
 			text: ""
 		};
 
-		const controllerOptions: ControllerOptions = {
+		// const canvas: ICanvasVm = {
+		// 	resetCustomChars: () => undefined
+		// };
+		const canvas: ICanvasVm = new NoCanvas({
+				canvasID: "id" as any,
+				charset: [],
+				palette: "color"
+		});
+
+		const keyboard: IKeyboard = {
+			reset: () => undefined,
+			resetExpansionTokens: () => undefined,
+			resetCpcKeysExpansions: () => undefined,
+			clearInput: () => undefined,
+			getKeyFromBuffer: () => "",
+			putKeyInBuffer: (_key: string, _triggerOnKeyDown?: boolean) => undefined,
+			getKeyState: (_cpcKeyCode: number) => 0,
+			getJoyState: (_joy: number) => 0,
+			setExpansionToken: (_token: number, _string: string) => undefined,
+			setCpcKeyExpansion: (_options: CpcKeyExpansionsOptions) => undefined
+		};
+
+		const sound: ISound = {
+			reset: () => undefined,
+			resetQueue: () => undefined,
+			testCanQueue: (_state: number) => true,
+			sound: (_soundData: SoundData) => undefined,
+			setVolEnv: (_volEnv: number, _volEnvData: VolEnvData[]) => undefined,
+			setToneEnv: (_toneEnv: number, _toneEnvData: ToneEnvData[]) => undefined,
+			scheduler: () => undefined,
+			release: (_releaseMask: number) => undefined,
+			sq: (_n: number) => 0
+		};
+
+		const controllerOptions: ControllerOptions0 = {
+			canvas,
+			keyboard,
+			sound,
 			isHeadlessDirectInput: true,
 			loadScript: NodeUtils.loadScript,
+			onOutputText: (_value: string) => {
+				// TODO
+			},
 			onResultText: (value: string) => {
 				NodeUtils.writeResultDelta(value, outputState);
 			},
 			onProgramEnd: () => {
 				myGlobalThis.process.exit(0);
-			}
+			},
+			storage: createLocalStorage()
 		};
 
-		const controller = new Controller(core, new View(), controllerOptions);
+		const controller = new Controller0(core, controllerOptions);
 
 		controller.onDatabaseSelectChange(); // trigger loading configured example
 	}

@@ -3,10 +3,12 @@
   "compilerOptions": {
     "outDir": "../../dist/test",
     "types": ["node"],
-    "sourceRoot":"../src/test"
+    "sourceRoot":"../src/test",
+    "rootDir": "../",
   },
   "include": [
-    "./*"
+    "./*.ts",
+    "../ui/*.ts",
   ],
   "references": [
     { "path": "../" }

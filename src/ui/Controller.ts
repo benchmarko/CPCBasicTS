@@ -17,7 +17,7 @@ import { cpcCharset } from "../cpcCharset";
 import { CpcVm, FileMeta, VmStopEntry } from "../CpcVm";
 import { Diff } from "../Diff";
 import { DiskImage } from "../DiskImage";
-import { FileHandler } from "./FileHandler";
+import { FileHandler } from "../FileHandler";
 import { FileSelect } from "./FileSelect";
 import { InputStack } from "../InputStack";
 import type { CustomError, ICore, IModel, IOutput, LoadScriptFn, SoundData, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmBaseParas, VariableValue } from "../Interfaces";
@@ -246,6 +246,10 @@ export class Controller implements IController {
 		keepDataComma: false,
 		keepTokens: false
 	};
+
+	public getCanvas(): ICanvas {
+		return this.canvas;
+	}
 
 	//TODO
 	/*
@@ -2828,7 +2832,8 @@ export class Controller implements IController {
 				adaptFilename: this.adaptFilename.bind(this),
 				updateStorageDatabase: this.updateStorageDatabase.bind(this),
 				outputError: this.outputError.bind(this),
-				processFileImports: this.model.getProperty<boolean>(ModelPropID.processFileImports)
+				processFileImports: this.model.getProperty<boolean>(ModelPropID.processFileImports),
+				storage: Polyfills.localStorage || window.localStorage
 			});
 		}
 		return this.fileHandler;

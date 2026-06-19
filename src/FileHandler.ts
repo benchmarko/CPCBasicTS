@@ -3,12 +3,12 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-import type { CustomError } from "../Interfaces";
-import { UiUtils } from "./UiUtils";
-import { FileMeta } from "../CpcVm";
-import { DiskImage, AmsdosHeader } from "../DiskImage";
-import { Snapshot } from "../Snapshot";
-import { ZipFile } from "../ZipFile";
+import type { CustomError, IStorage } from "./Interfaces";
+import { Utils } from "./Utils";
+import { FileMeta } from "./CpcVm";
+import { DiskImage, AmsdosHeader } from "./DiskImage";
+import { Snapshot } from "./Snapshot";
+import { ZipFile } from "./ZipFile";
 
 
 export interface FileHandlerOptions {
@@ -16,6 +16,7 @@ export interface FileHandlerOptions {
 	updateStorageDatabase: (action: string, key: string) => void;
 	outputError: (error: Error, noSelection?: boolean) => void;
 	processFileImports?: boolean;
+	storage: IStorage;
 }
 
 export class FileHandler {
@@ -91,14 +92,14 @@ export class FileHandler {
 					data = dsk.readFile(dir[fileName]);
 					this.fnLoad2(data, fileName, "", imported); // recursive
 				} catch (e) {
-					UiUtils.console.error(e);
+					Utils.console.error(e);
 					if (e instanceof Error) { // eslint-disable-line max-depth
 						this.options.outputError(e, true);
 					}
 				}
 			}
 		} catch (e) {
-			UiUtils.console.error(e);
+			Utils.console.error(e);
 			if (e instanceof Error) {
 				this.options.outputError(e, true);
 			}
@@ -114,7 +115,7 @@ export class FileHandler {
 				zipName: name
 			});
 		} catch (e) {
-			UiUtils.console.error(e);
+			Utils.console.error(e);
 			if (e instanceof Error) {
 				this.options.outputError(e, true);
 			}
@@ -127,14 +128,14 @@ export class FileHandler {
 				const name2 = entries[i];
 
 				if (name2.startsWith("__MACOSX/")) { // MacOS X creates some extra folder in ZIP files
-					UiUtils.console.log("processZipFile: Ignoring file:", name2);
+					Utils.console.log("processZipFile: Ignoring file:", name2);
 				} else {
 					let data2: string | undefined;
 
 					try {
 						data2 = zip.readData(name2);
 					} catch (e) {
-						UiUtils.console.error(e);
+						Utils.console.error(e);
 						if (e instanceof Error) { // eslint-disable-line max-depth
 							this.options.outputError(e, true);
 						}
@@ -197,7 +198,7 @@ export class FileHandler {
 
 		case "Z": // zip file?
 			if (this.processFileImports) {
-				this.processZipFile(data instanceof Uint8Array ? data : UiUtils.string2Uint8Array(data), name, imported);
+				this.processZipFile(data instanceof Uint8Array ? data : Utils.string2Uint8Array(data), name, imported);
 			} else {
 				header = DiskImage.createAmsdosHeader({
 					typeString: type,
@@ -207,7 +208,7 @@ export class FileHandler {
 			break;
 
 		default:
-			UiUtils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
+			Utils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
 			header = DiskImage.createAmsdosHeader({
 				typeString: "B",
 				length: data.length
@@ -218,15 +219,15 @@ export class FileHandler {
 		if (header) { // do we have a header? (means we should store it as a file in storage...)
 			const storageName = FileHandler.fnLocalStorageName(this.options.adaptFilename(name, "FILE")),
 				meta = FileHandler.joinMeta(header),
-				dataAsString = data instanceof Uint8Array ? UiUtils.uint8Array2string(data) : data;
+				dataAsString = data instanceof Uint8Array ? Utils.uint8Array2string(data) : data;
 
 			try {
-				(Polyfills.localStorage || window.localStorage).setItem(storageName, meta + "," + dataAsString);
+				this.options.storage.setItem(storageName, meta + "," + dataAsString);
 				this.options.updateStorageDatabase("set", storageName);
-				UiUtils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+				Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
 				imported.push(name);
 			} catch (e) { // maybe quota exceeded
-				UiUtils.console.error(e);
+				Utils.console.error(e);
 				if (e instanceof Error) {
 					if (e.name === "QuotaExceededError") {
 						(e as CustomError).shortMessage = storageName + ": Quota exceeded";
