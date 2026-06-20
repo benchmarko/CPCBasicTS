@@ -1,4 +1,5 @@
-import { ModelPropID, ViewID } from "./Constants";
+import { ModelPropID } from "../Constants";
+import { ViewID } from "./UiConstants";
 import type { IModel } from "../Interfaces";
 import type { IController } from "./UiInterfaces";
 import { View } from "./View";

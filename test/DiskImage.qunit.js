@@ -14,7 +14,7 @@ QUnit.dump.maxDepth = 10;
 // key:  compressed part of disk image file; Controller.exportAsBase64("cpcdata.zip.xxx")
 // noDiskInfo: will just show a warning: "DiskImage: name: Disk ident not found at pos 0-9: XXsk-Info"
 // noTrackInfo: will just show a warning: "DiskImage: name: Track ident not found at pos 256-266: XXack-Info"
-var allTests = {
+const allTests = {
     dataEmpty: {
         "CPCBasic;B;0;245;;base64,UEsDBBQAAAAIAMiAj1IH4jtleQAAAAAUAAANAAAAZGF0YUVtcHR5LmRza/MNU9BVcA5wdvUNVXDJLM7WdcvMSeXlAjM989LyeblSgMxMIEsBDDQYGYQZhhEIKUpMhvkUJsbE6feUgeEgE4R3CEofhtJHoPRRKH0MSh+H0ieg9EkoPbjB01EwCkbBKBgFo2AUjIJRMApGwSgYBaNgFIyCUTCsAQBQSwECFAAUAAAACADIgI9SB+I7ZXkAAAAAFAAADQAAAAAAAAAAACAAAAAAAAAAZGF0YUVtcHR5LmRza1BLBQYAAAAAAQABADsAAACkAAAAAAA=": ""
     },
@@ -42,12 +42,12 @@ function createMinimalAmsdosHeader(type, start, length) {
     };
 }
 function readFilesFromDiskImage(disk) {
-    var result = [], dir = disk.readDirectory(), entries = Object.keys(dir);
-    for (var i = 0; i < entries.length; i += 1) {
-        var name_1 = entries[i];
-        var data = disk.readFile(dir[name_1]);
+    const result = [], dir = disk.readDirectory(), entries = Object.keys(dir);
+    for (let i = 0; i < entries.length; i += 1) {
+        const name = entries[i];
+        let data = disk.readFile(dir[name]);
         if (data) {
-            var headerEntry = DiskImage.parseAmsdosHeader(data);
+            let headerEntry = DiskImage.parseAmsdosHeader(data);
             if (headerEntry) {
                 data = data.substring(0x80); // remove header
                 if (headerEntry.typeString === "P") { // protected BASIC?
@@ -61,14 +61,14 @@ function readFilesFromDiskImage(disk) {
             else {
                 headerEntry = createMinimalAmsdosHeader("A", 0, data.length);
             }
-            var headerString = JSON.stringify(headerEntry);
-            result.push(name_1 + " -- " + headerString + " -- " + data);
+            const headerString = JSON.stringify(headerEntry);
+            result.push(name + " -- " + headerString + " -- " + data);
         }
     }
     return result.join(" --- ");
 }
 function extractFirstFileFromZip(key) {
-    var parts = Utils.split2(key, ","), atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob, compressed = atobFn(parts[1]), // decode base64
+    const parts = Utils.split2(key, ","), atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob, compressed = atobFn(parts[1]), // decode base64
     zip = new ZipFile({
         data: Utils.string2Uint8Array(compressed),
         zipName: "name"
@@ -77,14 +77,14 @@ function extractFirstFileFromZip(key) {
 }
 QUnit.module("DiskImage: Read files tests", function (hooks) {
     function runTestsFor(category, tests, assert, results) {
-        for (var key in tests) {
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
-                var uncompressed = extractFirstFileFromZip(key), disk = new DiskImage({
+                const uncompressed = extractFirstFileFromZip(key), disk = new DiskImage({
                     data: uncompressed,
                     diskName: "name",
                     quiet: true
                 }), expected = tests[key];
-                var result = void 0;
+                let result;
                 try {
                     result = readFilesFromDiskImage(disk);
                 }
@@ -98,7 +98,7 @@ QUnit.module("DiskImage: Read files tests", function (hooks) {
                     results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
                 }
                 if (assert) {
-                    var message = "uncompressed DSK: " + uncompressed.length;
+                    const message = "uncompressed DSK: " + uncompressed.length;
                     assert.strictEqual(result, expected, message);
                 }
             }
@@ -107,7 +107,7 @@ QUnit.module("DiskImage: Read files tests", function (hooks) {
     TestHelper.generateAllTests(allTests, runTestsFor, hooks);
 });
 function createCodeGeneratorToken() {
-    var basicParser = new BasicParser({
+    const basicParser = new BasicParser({
         quiet: true,
         keepTokens: true,
         keepBrackets: true,
@@ -128,13 +128,13 @@ function createCodeGeneratorToken() {
 // https://gist.github.com/taniarascia/7ff2e83577d83b85a421ab36ab2ced84
 // https://gist.github.com/igorgatis/d294fe714a4f523ac3a3
 function fnBin2Hex(bin) {
-    var hexList = [], asciiList = [], lineList = [];
-    for (var i = 0; i < bin.length; i += 1) {
-        var charCode = bin.charCodeAt(i);
+    const hexList = [], asciiList = [], lineList = [];
+    for (let i = 0; i < bin.length; i += 1) {
+        const charCode = bin.charCodeAt(i);
         hexList.push(charCode.toString(16).toUpperCase().padStart(2, "0"));
         asciiList.push(charCode >= 0x20 ? bin.charAt(i) : ".");
         if (i % 16 === 15) {
-            var addr = (i - 15).toString(16).toUpperCase().padStart(4, "0");
+            const addr = (i - 15).toString(16).toUpperCase().padStart(4, "0");
             lineList.push(addr + "  " + hexList.join(" ") + "  " + asciiList.join(""));
             hexList.length = 0;
             asciiList.length = 0;
@@ -147,10 +147,10 @@ function fnBin2Hex(bin) {
 }
 QUnit.module("DiskImage: Write files tests", function (hooks) {
     function runTestsFor(category, tests, assert, results) {
-        for (var key in tests) {
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
                 if (category === "data" || category === "system") {
-                    var input = tests[key], fileInfos = input.split(" --- "), diskImage = new DiskImage({
+                    const input = tests[key], fileInfos = input.split(" --- "), diskImage = new DiskImage({
                         quiet: true,
                         data: ""
                     });
@@ -158,19 +158,19 @@ QUnit.module("DiskImage: Write files tests", function (hooks) {
                         diskName: "test",
                         data: diskImage.formatImage(category)
                     });
-                    var codeGeneratorToken = createCodeGeneratorToken();
-                    for (var i = 0; i < fileInfos.length; i += 1) {
-                        var fileInfo = fileInfos[i], _a = fileInfo.split(" -- "), name_2 = _a[0], metaJson = _a[1], data1 = _a[2], // eslint-disable-line array-element-newline
+                    const codeGeneratorToken = createCodeGeneratorToken();
+                    for (let i = 0; i < fileInfos.length; i += 1) {
+                        const fileInfo = fileInfos[i], [name, metaJson, data1] = fileInfo.split(" -- "), // eslint-disable-line array-element-newline
                         headerEntry = JSON.parse(metaJson);
-                        var data = data1;
+                        let data = data1;
                         // eslint-disable-next-line max-depth
                         if (headerEntry.typeString === "P") { // protected BASIC?
-                            var output = codeGeneratorToken.generate(data);
+                            const output = codeGeneratorToken.generate(data);
                             data = output.error ? String(output.error) : output.text;
                             data = DiskImage.unOrProtectData(data);
                         }
                         else if (headerEntry.typeString === "T") { // tokenized BASIC?
-                            var output2 = codeGeneratorToken.generate(data);
+                            const output2 = codeGeneratorToken.generate(data);
                             data = output2.error ? String(output2.error) : output2.text;
                         }
                         else if (headerEntry.typeString === "B") { // Binary
@@ -184,21 +184,21 @@ QUnit.module("DiskImage: Write files tests", function (hooks) {
                         }
                         if (headerEntry.typeString !== "A") {
                             if (data.length !== headerEntry.length) {
-                                Utils.console.warn("runTestsFor: " + name_2 + ": Need to adapt length:", data.length);
+                                Utils.console.warn("runTestsFor: " + name + ": Need to adapt length:", data.length);
                                 headerEntry.length = data.length;
                                 headerEntry.pseudoLen = data.length;
                             }
-                            var header = DiskImage.createAmsdosHeader(headerEntry), headerString = DiskImage.combineAmsdosHeader(header);
+                            const header = DiskImage.createAmsdosHeader(headerEntry), headerString = DiskImage.combineAmsdosHeader(header);
                             data = headerString + data;
                         }
-                        diskImage.writeFile(name_2, data);
+                        diskImage.writeFile(name, data);
                     }
-                    var result = diskImage.stripEmptyTracks(), uncompressed = extractFirstFileFromZip(key), expected = uncompressed;
+                    const result = diskImage.stripEmptyTracks(), uncompressed = extractFirstFileFromZip(key), expected = uncompressed;
                     if (results) {
                         results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
                     }
                     if (assert) {
-                        var message = category + " DSK";
+                        const message = category + " DSK";
                         if (Utils.debug > 5) {
                             Utils.console.debug(message + ": result: ", fnBin2Hex(result));
                             Utils.console.debug(message + ": expected: ", fnBin2Hex(expected));
@@ -206,8 +206,8 @@ QUnit.module("DiskImage: Write files tests", function (hooks) {
                         // compare disk images
                         assert.strictEqual(fnBin2Hex(result), fnBin2Hex(expected), message);
                         // read back files anf compare
-                        var expected2 = input;
-                        var result2 = "";
+                        const expected2 = input;
+                        let result2 = "";
                         try {
                             result2 = readFilesFromDiskImage(diskImage);
                         }

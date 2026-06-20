@@ -4,8 +4,8 @@
 //
 import { UiUtils } from "./UiUtils";
 import { View } from "./View";
-var FileSelect = /** @class */ (function () {
-    function FileSelect(options) {
+export class FileSelect {
+    constructor(options) {
         this.fileIndex = 0;
         this.imported = []; // imported file names
         this.fnOnLoadHandler = this.fnOnLoad.bind(this);
@@ -14,17 +14,17 @@ var FileSelect = /** @class */ (function () {
         this.options = {};
         this.setOptions(options);
     }
-    FileSelect.prototype.getOptions = function () {
+    getOptions() {
         return this.options;
-    };
-    FileSelect.prototype.setOptions = function (options) {
+    }
+    setOptions(options) {
         Object.assign(this.options, options);
-    };
-    FileSelect.prototype.fnReadNextFile = function (reader) {
+    }
+    fnReadNextFile(reader) {
         if (this.files && this.fileIndex < this.files.length) {
-            var file = this.files[this.fileIndex];
+            const file = this.files[this.fileIndex];
             this.fileIndex += 1;
-            var lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, // lastModifiedDate deprecated, but for old IE
+            const lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, // lastModifiedDate deprecated, but for old IE
             text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
             UiUtils.console.log(text);
             if (file.type === "text/plain") {
@@ -41,14 +41,14 @@ var FileSelect = /** @class */ (function () {
         else {
             this.options.fnEndOfImport(this.imported);
         }
-    };
-    FileSelect.prototype.fnOnLoad = function (event) {
+    }
+    fnOnLoad(event) {
         if (!this.file) {
             UiUtils.console.error("fnOnLoad: Programming error: No file");
             return;
         }
-        var file = this.file, name = file.name, reader = event.target;
-        var data = (reader && reader.result) || null, type = file.type;
+        const file = this.file, name = file.name, reader = event.target;
+        let data = (reader && reader.result) || null, type = file.type;
         if ((type === "application/x-zip-compressed" || type === "application/zip") && data instanceof ArrayBuffer) { // on Mac OS it is "application/zip"
             type = "Z";
             this.options.fnLoad2(new Uint8Array(data), name, type, this.imported);
@@ -59,9 +59,9 @@ var FileSelect = /** @class */ (function () {
             }
             else if (data.indexOf("data:") === 0) {
                 // check for meta info in data: data:application/octet-stream;base64, or: data:text/javascript;base64,
-                var index = data.indexOf(",");
+                const index = data.indexOf(",");
                 if (index >= 0) {
-                    var info1 = data.substring(0, index);
+                    const info1 = data.substring(0, index);
                     // remove meta prefix
                     data = data.substring(index + 1);
                     if (info1.indexOf("base64") >= 0) {
@@ -80,10 +80,10 @@ var FileSelect = /** @class */ (function () {
         if (reader) {
             this.fnReadNextFile(reader);
         }
-    };
-    FileSelect.prototype.fnOnError = function (event) {
-        var reader = event.target, filename = (this.file && this.file.name) || "unknown";
-        var msg = "fnOnError: " + filename;
+    }
+    fnOnError(event) {
+        const reader = event.target, filename = (this.file && this.file.name) || "unknown";
+        let msg = "fnOnError: " + filename;
         if (reader && reader.error) {
             msg += ": " + String(reader.error);
         }
@@ -91,13 +91,13 @@ var FileSelect = /** @class */ (function () {
         if (reader) {
             this.fnReadNextFile(reader);
         }
-    };
+    }
     // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
     // https://www.w3.org/TR/file-upload/#dfn-filereader
-    FileSelect.prototype.fnOnFileSelect = function (event) {
+    fnOnFileSelect(event) {
         event.stopPropagation();
         event.preventDefault();
-        var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : View.getEventTarget(event).files; // dataTransfer for drag&drop, target.files for file input
+        const dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : View.getEventTarget(event).files; // dataTransfer for drag&drop, target.files for file input
         if (!files || !files.length) {
             UiUtils.console.error("fnHandleFileSelect: No files!");
             return;
@@ -106,7 +106,7 @@ var FileSelect = /** @class */ (function () {
         this.fileIndex = 0;
         this.imported.length = 0;
         if (window.FileReader) {
-            var reader = new window.FileReader();
+            const reader = new window.FileReader();
             reader.onerror = this.fnOnErrorHandler;
             reader.onload = this.fnOnLoadHandler;
             this.fnReadNextFile(reader);
@@ -114,12 +114,10 @@ var FileSelect = /** @class */ (function () {
         else {
             UiUtils.console.warn("fnHandleFileSelect: FileReader API not supported.");
         }
-    };
+    }
     //TODO: can we use View.attachEventHandler() somehow?
-    FileSelect.prototype.addFileSelectHandler = function (element, type) {
+    addFileSelectHandler(element, type) {
         element.addEventListener(type, this.fnOnFileSelectHandler, false);
-    };
-    return FileSelect;
-}());
-export { FileSelect };
+    }
+}
 //# sourceMappingURL=FileSelect.js.map

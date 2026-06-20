@@ -3,28 +3,26 @@
 // https://github.com/Slava/diff.js
 //
 import { Utils } from "./Utils";
-var Diff = /** @class */ (function () {
-    function Diff() {
-    }
+export class Diff {
     // Refer to http://www.xmailserver.org/diff2.pdf
-    Diff.composeError = function (error, message, value, pos) {
+    static composeError(error, message, value, pos) {
         return Utils.composeError("Diff", error, message, value, pos, undefined, 0);
-    };
-    Diff.inRange = function (x, l, r) {
+    }
+    static inRange(x, l, r) {
         return (l <= x && x <= r) || (r <= x && x <= l);
-    };
-    Diff.fnEquals = function (a, b) {
+    }
+    static fnEquals(a, b) {
         return a === b;
-    };
+    }
     // Accepts custom comparator
-    Diff.customIndexOf = function (arr, item, start, fnEquals) {
-        for (var i2 = start; i2 < arr.length; i2 += 1) {
+    static customIndexOf(arr, item, start, fnEquals) {
+        for (let i2 = start; i2 < arr.length; i2 += 1) {
             if (fnEquals(item, arr[i2])) {
                 return i2;
             }
         }
         return -1;
-    };
+    }
     /* can we use it here? need to define aA, aB, lcsAtoms, findMidSnake():
     private static lcs(startA: number, endA: number, startB: number, endB: number) {
         const N = endA - startA + 1,
@@ -59,9 +57,9 @@ var Diff = /** @class */ (function () {
     // @param equals - optional comparator of atoms - returns true or false,
     //                 if not specified, triple equals operator is used
     // @returns Array - sequence of atoms, one of LCSs, edit script from A to B
-    Diff.fnLCS = function (aA, aB, equals) {
+    static fnLCS(aA, aB, equals) {
         // Helpers
-        var // Takes X-component as argument, diagonal as context, returns array-pair of form x, y
+        const // Takes X-component as argument, diagonal as context, returns array-pair of form x, y
         toPoint = function (x) {
             return [
                 x,
@@ -80,12 +78,12 @@ var Diff = /** @class */ (function () {
         //                    D,     - optimal edit distance
         //                    LCS ]  - length of LCS
         findMidSnake = function (startA, endA, startB, endB) {
-            var iN = endA - startA + 1, iM = endB - startB + 1, max = iN + iM, delta = iN - iM, hhalfMaxCeil = (max + 1) / 2 | 0, // eslint-disable-line no-bitwise
+            const iN = endA - startA + 1, iM = endB - startB + 1, max = iN + iM, delta = iN - iM, hhalfMaxCeil = (max + 1) / 2 | 0, // eslint-disable-line no-bitwise
             // Maps -Max .. 0 .. +Max, diagonal index to endpoints for furthest reaching D-path on current iteration.
             oV = {}, 
             // Same but for reversed paths.
             oU = {};
-            var overlap, iD;
+            let overlap, iD;
             // Special case for the base case, D = 0, k = 0, x = y = 0
             oV[1] = 0;
             // Special case for the base case reversed, D = 0, k = 0, x = N, y = M
@@ -93,8 +91,8 @@ var Diff = /** @class */ (function () {
             // Iterate over each possible length of edit script
             for (iD = 0; iD <= hhalfMaxCeil; iD += 1) {
                 // Iterate over each diagonal
-                for (var k = -iD; k <= iD && !overlap; k += 2) {
-                    var x = void 0;
+                for (let k = -iD; k <= iD && !overlap; k += 2) {
+                    let x;
                     // Positions in sequences A and B of furthest going D-path on diagonal k.
                     // Choose from each diagonal we extend
                     if (k === -iD || (k !== iD && oV[k - 1] < oV[k + 1])) {
@@ -107,11 +105,11 @@ var Diff = /** @class */ (function () {
                         x = oV[k - 1] + 1;
                     }
                     // We can calculate the y out of x and diagonal index.
-                    var y = x - k;
+                    let y = x - k;
                     if (isNaN(y) || x > iN || y > iM) {
                         continue;
                     }
-                    var xx = x;
+                    const xx = x;
                     // Try to extend the D-path with diagonal paths. Possible only if atoms
                     // A_x match B_y
                     while (x < iN && y < iM // if there are atoms to compare
@@ -135,26 +133,26 @@ var Diff = /** @class */ (function () {
                         }
                     }
                 }
-                var SES = void 0;
+                let SES;
                 if (overlap) {
                     SES = iD * 2 - 1;
                 }
                 // Iterate over each diagonal for reversed case
-                for (var k = -iD; k <= iD && !overlap; k += 2) {
+                for (let k = -iD; k <= iD && !overlap; k += 2) {
                     // The real diagonal we are looking for is k + Delta
-                    var K = k + delta;
-                    var x = void 0;
+                    const K = k + delta;
+                    let x;
                     if (k === iD || (k !== -iD && oU[K - 1] < oU[K + 1])) {
                         x = oU[K - 1];
                     }
                     else {
                         x = oU[K + 1] - 1;
                     }
-                    var y = x - K;
+                    let y = x - K;
                     if (isNaN(y) || x < 0 || y < 0) {
                         continue;
                     }
-                    var xx = x;
+                    const xx = x;
                     while (x > 0 && y > 0 && equals(aA[startA + x - 1], aB[startB + y - 1])) {
                         x -= 1;
                         y -= 1;
@@ -172,8 +170,8 @@ var Diff = /** @class */ (function () {
                 if (overlap) {
                     SES = SES || iD * 2;
                     // Remember we had offset of each sequence?
-                    for (var i = 0; i < 2; i += 1) {
-                        for (var j = 0; j < 2; j += 1) {
+                    for (let i = 0; i < 2; i += 1) {
+                        for (let j = 0; j < 2; j += 1) {
                             overlap[i][j] += [
                                 startA,
                                 startB
@@ -188,9 +186,9 @@ var Diff = /** @class */ (function () {
             }
             throw Diff.composeError(Error(), "Programming error in findMidSnake", "", 0); // should not occur
         }, lcsAtoms = [], lcs = function (startA, endA, startB, endB) {
-            var N = endA - startA + 1, M = endB - startB + 1;
+            const N = endA - startA + 1, M = endB - startB + 1;
             if (N > 0 && M > 0) {
-                var middleSnake = findMidSnake(startA, endA, startB, endB), 
+                const middleSnake = findMidSnake(startA, endA, startB, endB), 
                 // A[x;u] == B[y,v] and is part of LCS
                 x = middleSnake[0][0], y = middleSnake[0][1], u = middleSnake[1][0], v = middleSnake[1][1], D = middleSnake[2];
                 if (D > 1) {
@@ -210,7 +208,7 @@ var Diff = /** @class */ (function () {
         };
         lcs(0, aA.length - 1, 0, aB.length - 1);
         return lcsAtoms;
-    };
+    }
     // Diff sequence
     // @param A - sequence of atoms - Array
     // @param B - sequence of atoms - Array
@@ -220,9 +218,9 @@ var Diff = /** @class */ (function () {
     //   - operation: one of "none", "add", "delete"
     //   - atom: the atom found in either A or B
     // Applying operations from diff sequence you should be able to transform A to B
-    Diff.diff = function (aA, aB) {
-        var diff = [], fnEquals = Diff.fnEquals;
-        var i = 0, j = 0, iN = aA.length, iM = aB.length, iK = 0;
+    static diff(aA, aB) {
+        const diff = [], fnEquals = Diff.fnEquals;
+        let i = 0, j = 0, iN = aA.length, iM = aB.length, iK = 0;
         while (i < iN && j < iM && fnEquals(aA[i], aB[j])) {
             i += 1;
             j += 1;
@@ -238,9 +236,9 @@ var Diff = /** @class */ (function () {
                 atom: atom2
             };
         }));
-        var lcs = Diff.fnLCS(aA.slice(i, iN), aB.slice(j, iM), fnEquals);
-        for (var k = 0; k < lcs.length; k += 1) {
-            var atom = lcs[k], ni = Diff.customIndexOf(aA, atom, i, fnEquals), nj = Diff.customIndexOf(aB, atom, j, fnEquals);
+        const lcs = Diff.fnLCS(aA.slice(i, iN), aB.slice(j, iM), fnEquals);
+        for (let k = 0; k < lcs.length; k += 1) {
+            const atom = lcs[k], ni = Diff.customIndexOf(aA, atom, i, fnEquals), nj = Diff.customIndexOf(aB, atom, j, fnEquals);
             // XXX ES5 map
             // Delete unmatched atoms from A
             [].push.apply(diff, aA.slice(i, ni).map(function (atom2) {
@@ -284,11 +282,11 @@ var Diff = /** @class */ (function () {
             };
         }));
         return diff;
-    };
-    Diff.testDiff = function (text1, text2) {
-        var textParts1 = text1.split("\n"), textParts2 = text2.split("\n");
-        var diff = Diff.diff(textParts1, textParts2).map(function (o) {
-            var result = "";
+    }
+    static testDiff(text1, text2) {
+        const textParts1 = text1.split("\n"), textParts2 = text2.split("\n");
+        let diff = Diff.diff(textParts1, textParts2).map(function (o) {
+            let result = "";
             if (o.operation === "add") {
                 result = "+ " + o.atom;
             }
@@ -299,8 +297,6 @@ var Diff = /** @class */ (function () {
         }).join("\n");
         diff = diff.replace(/\n\n+/g, "\n");
         return diff;
-    };
-    return Diff;
-}());
-export { Diff };
+    }
+}
 //# sourceMappingURL=Diff.js.map

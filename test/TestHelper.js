@@ -1,11 +1,9 @@
 // TestHelper.ts - Tests Helper
 //
 import { Utils } from "../Utils";
-var TestHelper = /** @class */ (function () {
-    function TestHelper() {
-    }
-    TestHelper.init = function () {
-        var config = TestHelper.config;
+export class TestHelper {
+    static init() {
+        const config = TestHelper.config;
         if (typeof process !== "undefined") { // nodeJs
             TestHelper.fnParseArgs(process.argv.slice(2), config);
         }
@@ -16,16 +14,16 @@ var TestHelper = /** @class */ (function () {
             Utils.debug = config.debug;
             Utils.console.log("testParseExamples: Debug level:", config.debug);
         }
-    };
+    }
     // https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/node/process.d.ts
     // can be used for nodeJS
-    TestHelper.fnParseArgs = function (args, config) {
-        for (var i = 0; i < args.length; i += 1) {
-            var nameValue = args[i], nameValueList = Utils.split2(nameValue, "="), name_1 = nameValueList[0];
-            if (config.hasOwnProperty(name_1)) {
-                var value = nameValueList[1];
-                if (value !== undefined && config.hasOwnProperty(name_1)) {
-                    switch (typeof config[name_1]) {
+    static fnParseArgs(args, config) {
+        for (let i = 0; i < args.length; i += 1) {
+            const nameValue = args[i], nameValueList = Utils.split2(nameValue, "="), name = nameValueList[0];
+            if (config.hasOwnProperty(name)) {
+                let value = nameValueList[1];
+                if (value !== undefined && config.hasOwnProperty(name)) {
+                    switch (typeof config[name]) {
                         case "string":
                             break;
                         case "boolean":
@@ -40,25 +38,25 @@ var TestHelper = /** @class */ (function () {
                             break;
                     }
                 }
-                config[name_1] = value;
+                config[name] = value;
             }
         }
         return config;
-    };
-    TestHelper.fnParseUri = function (urlQuery, config) {
-        var rPlus = /\+/g, // Regex for replacing addition symbol with a space
+    }
+    static fnParseUri(urlQuery, config) {
+        const rPlus = /\+/g, // Regex for replacing addition symbol with a space
         fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); }, rSearch = /([^&=]+)=?([^&]*)/g, args = [];
-        var match;
+        let match;
         while ((match = rSearch.exec(urlQuery)) !== null) {
-            var name_2 = fnDecode(match[1]), value = fnDecode(match[2]);
-            if (value !== null && config.hasOwnProperty(name_2)) {
-                args.push(name_2 + "=" + value);
+            const name = fnDecode(match[1]), value = fnDecode(match[2]);
+            if (value !== null && config.hasOwnProperty(name)) {
+                args.push(name + "=" + value);
             }
         }
         TestHelper.fnParseArgs(args, config);
-    };
-    TestHelper.generateTests = function (allTests, runTestsFor, results) {
-        var _loop_1 = function (category) {
+    }
+    static generateTests(allTests, runTestsFor, results) {
+        for (const category in allTests) {
             if (allTests.hasOwnProperty(category)) {
                 if (results) {
                     results[category] = [];
@@ -67,46 +65,43 @@ var TestHelper = /** @class */ (function () {
                     runTestsFor(category, allTests[category], assert, results);
                 });
             }
-        };
-        for (var category in allTests) {
-            _loop_1(category);
         }
-    };
-    TestHelper.fnBinaryLiteralReplacer = function (bin) {
+    }
+    static fnBinaryLiteralReplacer(bin) {
         return "0x" + parseInt(bin.substring(2), 2).toString(16).toLowerCase();
-    };
-    TestHelper.handleBinaryLiterals = function (str) {
+    }
+    static handleBinaryLiterals(str) {
         if (!Utils.supportsBinaryLiterals) {
             str = str.replace(/(0b[01]+)/g, TestHelper.fnBinaryLiteralReplacer); // for old IE
         }
         return str;
-    };
-    TestHelper.hexInQuotes = function (s) {
-        var out = "";
-        for (var i = 0; i < s.length; i += 1) {
+    }
+    static hexInQuotes(s) {
+        let out = "";
+        for (let i = 0; i < s.length; i += 1) {
             out += "\\x" + ("00" + s.charCodeAt(i).toString(16)).slice(-2);
         }
         return '"' + out + '"';
-    };
-    TestHelper.stringInQuotes = function (s) {
+    }
+    static stringInQuotes(s) {
         s = s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
         // keep \n, \r
         s = s.replace(/[\x00-\x09\x0b\x0c\x0e-\x1f\x7f-\xff]/g, function (char) {
             return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
         });
-        var count1 = s.split('"').length - 1, count2 = s.split("'").length - 1;
+        const count1 = s.split('"').length - 1, count2 = s.split("'").length - 1;
         if (count1 > count2) { // more " than ' in the string
             return "'" + s.replace(/'/g, "\\'") + "'";
         }
         return '"' + s.replace(/"/g, '\\"') + '"';
-    };
-    TestHelper.createJsKeywordRegex = function () {
+    }
+    static createJsKeywordRegex() {
         return new RegExp("^(" + TestHelper.jsKeywords.join("|") + ")$");
-    };
-    TestHelper.listKeys = function (category, tests, assert, results) {
-        for (var key in tests) {
+    }
+    static listKeys(category, tests, assert, results) {
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
-                var result = "";
+                const result = "";
                 if (results) {
                     results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
                 }
@@ -115,13 +110,13 @@ var TestHelper = /** @class */ (function () {
                 }
             }
         }
-    };
-    TestHelper.printAllResults = function (allResults) {
-        var reJsKeywords = TestHelper.createJsKeywordRegex();
-        var result = "";
-        for (var category in allResults) {
+    }
+    static printAllResults(allResults) {
+        const reJsKeywords = TestHelper.createJsKeywordRegex();
+        let result = "";
+        for (const category in allResults) {
             if (allResults.hasOwnProperty(category)) {
-                var results = allResults[category], containsSpace = category.indexOf(" ") >= 0, isJsKeyword = reJsKeywords.test(category);
+                const results = allResults[category], containsSpace = category.indexOf(" ") >= 0, isJsKeyword = reJsKeywords.test(category);
                 if (results.length) {
                     result += containsSpace || isJsKeyword ? TestHelper.stringInQuotes(category) : category;
                     result += ": {\n";
@@ -133,9 +128,9 @@ var TestHelper = /** @class */ (function () {
         result = result.replace(/,\n$/, "\n"); // remove last comma
         Utils.console.log(result);
         return result;
-    };
-    TestHelper.generateAllTests = function (allTests, runTestsFor, hooks) {
-        var allResults;
+    }
+    static generateAllTests(allTests, runTestsFor, hooks) {
+        let allResults;
         if (TestHelper.config.generateAll || TestHelper.config.generateKeys) {
             allResults = {};
             hooks.after(function () {
@@ -145,10 +140,10 @@ var TestHelper = /** @class */ (function () {
             });
         }
         TestHelper.generateTests(allTests, TestHelper.config.generateKeys ? TestHelper.listKeys : runTestsFor, allResults);
-    };
-    TestHelper.compareKeys = function (keys1, keys2, type) {
-        var isEqual = true;
-        for (var i = 0; i < keys1.length; i += 1) {
+    }
+    static compareKeys(keys1, keys2, type) {
+        let isEqual = true;
+        for (let i = 0; i < keys1.length; i += 1) {
             if (keys1[i] !== keys2[i]) {
                 isEqual = false;
                 Utils.console.warn("compareKeys: " + type + ": " + keys1[i] + " <> " + keys2[i]);
@@ -159,90 +154,88 @@ var TestHelper = /** @class */ (function () {
             Utils.console.warn("compareKeys: " + type + ": different sizes: " + keys1.length + " <> " + keys2.length);
         }
         return isEqual;
-    };
-    TestHelper.compareAllTests = function (allTests1, allTests2) {
-        var categories1 = Object.keys(allTests1), categories2 = Object.keys(allTests2);
-        var isEqual = TestHelper.compareKeys(categories1, categories2, "categories");
+    }
+    static compareAllTests(allTests1, allTests2) {
+        const categories1 = Object.keys(allTests1), categories2 = Object.keys(allTests2);
+        let isEqual = TestHelper.compareKeys(categories1, categories2, "categories");
         if (isEqual) {
-            for (var i = 0; i < categories1.length; i += 1) {
-                var category = categories1[i], key1 = allTests1[category], key2 = allTests2[category], keys1 = Object.keys(key1), keys2 = Object.keys(key2);
+            for (let i = 0; i < categories1.length; i += 1) {
+                const category = categories1[i], key1 = allTests1[category], key2 = allTests2[category], keys1 = Object.keys(key1), keys2 = Object.keys(key2);
                 isEqual = TestHelper.compareKeys(keys1, keys2, "keys");
             }
         }
         return isEqual;
-    };
-    TestHelper.config = {
-        debug: 0,
-        generateAll: false,
-        generateKeys: false,
-        test: "", // a specific test
-        testAll: false // run all tests
-    };
-    // ECMA 3 JS Keywords which must be avoided in dot notation for properties when using IE8
-    TestHelper.jsKeywords = [
-        "do",
-        "if",
-        "in",
-        "for",
-        "int",
-        "new",
-        "try",
-        "var",
-        "byte",
-        "case",
-        "char",
-        "else",
-        "enum",
-        "goto",
-        "long",
-        "null",
-        "this",
-        "true",
-        "void",
-        "with",
-        "break",
-        "catch",
-        "class",
-        "const",
-        "false",
-        "final",
-        "float",
-        "short",
-        "super",
-        "throw",
-        "while",
-        "delete",
-        "double",
-        "export",
-        "import",
-        "native",
-        "public",
-        "return",
-        "static",
-        "switch",
-        "throws",
-        "typeof",
-        "boolean",
-        "default",
-        "extends",
-        "finally",
-        "package",
-        "private",
-        "abstract",
-        "continue",
-        "debugger",
-        "function",
-        "volatile",
-        "interface",
-        "protected",
-        "transient",
-        "implements",
-        "instanceof",
-        "synchronized"
-    ];
-    return TestHelper;
-}());
-export { TestHelper };
+    }
+}
+TestHelper.config = {
+    debug: 0,
+    generateAll: false,
+    generateKeys: false,
+    test: "", // a specific test
+    testAll: false // run all tests
+};
+// ECMA 3 JS Keywords which must be avoided in dot notation for properties when using IE8
+TestHelper.jsKeywords = [
+    "do",
+    "if",
+    "in",
+    "for",
+    "int",
+    "new",
+    "try",
+    "var",
+    "byte",
+    "case",
+    "char",
+    "else",
+    "enum",
+    "goto",
+    "long",
+    "null",
+    "this",
+    "true",
+    "void",
+    "with",
+    "break",
+    "catch",
+    "class",
+    "const",
+    "false",
+    "final",
+    "float",
+    "short",
+    "super",
+    "throw",
+    "while",
+    "delete",
+    "double",
+    "export",
+    "import",
+    "native",
+    "public",
+    "return",
+    "static",
+    "switch",
+    "throws",
+    "typeof",
+    "boolean",
+    "default",
+    "extends",
+    "finally",
+    "package",
+    "private",
+    "abstract",
+    "continue",
+    "debugger",
+    "function",
+    "volatile",
+    "interface",
+    "protected",
+    "transient",
+    "implements",
+    "instanceof",
+    "synchronized"
+];
 TestHelper.init();
 // end
 //# sourceMappingURL=TestHelper.js.map

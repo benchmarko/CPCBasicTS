@@ -6,7 +6,7 @@ import { CodeGeneratorToken } from "../CodeGeneratorToken";
 import { TestHelper } from "./TestHelper";
 import { TestInput } from "./TestInput";
 /* eslint-disable quote-props */
-var allTests = {
+const allTests = {
     numbers: {
         "a=1": "0D,00,00,E1,EF,0F",
         "a=1.2": "0D,00,00,E1,EF,1F,9A,99,99,19,81",
@@ -749,7 +749,7 @@ var allTests = {
     }
 };
 function createCodeGeneratorToken() {
-    var basicParser = new BasicParser({
+    const basicParser = new BasicParser({
         quiet: true,
         keepTokens: true,
         keepBrackets: true,
@@ -777,10 +777,10 @@ QUnit.module("CodeGeneratorToken: Tests", function (hooks) {
         }).join(",");
     }
     function runTestsFor(category, tests, assert, results) {
-        var codeGeneratorToken = hooks.codeGeneratorToken;
-        for (var key in tests) {
+        const codeGeneratorToken = hooks.codeGeneratorToken;
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
-                var expected = tests[key], output = codeGeneratorToken.generate(key), result = output.error ? String(output.error) : fnBin2Hex(output.text);
+                const expected = tests[key], output = codeGeneratorToken.generate(key), result = output.error ? String(output.error) : fnBin2Hex(output.text);
                 if (results) {
                     results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
                 }

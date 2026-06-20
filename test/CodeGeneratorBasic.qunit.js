@@ -7,7 +7,7 @@ import { CodeGeneratorBasic } from "../CodeGeneratorBasic";
 import { TestHelper } from "./TestHelper";
 import { TestInput } from "./TestInput";
 /* eslint-disable quote-props */
-var allTests = {
+const allTests = {
     numbers: {
         "a=1": "a=1",
         "a=1.2": "a=1.2",
@@ -750,7 +750,7 @@ var allTests = {
     }
 };
 function createCodeGeneratorBasic(keepWhiteSpace) {
-    var basicParser = new BasicParser({
+    const basicParser = new BasicParser({
         quiet: true,
         keepTokens: true,
         keepBrackets: true,
@@ -771,13 +771,13 @@ QUnit.module("CodeGeneratorBasic: Tests", function (hooks) {
         hooks.codeGeneratorBasic = createCodeGeneratorBasic(false);
     });
     function runTestsFor(category, tests, assert, results) {
-        var codeGeneratorBasic = hooks.codeGeneratorBasic;
+        const codeGeneratorBasic = hooks.codeGeneratorBasic;
         codeGeneratorBasic.getOptions().lexer.setOptions({
             keepWhiteSpace: category === "keepSpaces" // keepWhiteSpace active for category "keepSpaces"
         });
-        for (var key in tests) {
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
-                var expected = tests[key], output = codeGeneratorBasic.generate(key), result = output.error ? String(output.error) : output.text;
+                const expected = tests[key], output = codeGeneratorBasic.generate(key), result = output.error ? String(output.error) : output.text;
                 if (results) {
                     results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
                 }
@@ -795,8 +795,8 @@ QUnit.module("CodeGeneratorBasic: keepWhiteSpace", function (hooks) {
         hooks.codeGeneratorBasic = createCodeGeneratorBasic(true);
     });
     function runSingleTestForWhitespace(codeGeneratorBasic, key, expected) {
-        var result;
-        var output = codeGeneratorBasic.generate(key);
+        let result;
+        const output = codeGeneratorBasic.generate(key);
         result = output.error ? String(output.error) : output.text;
         if (output.error) {
             if (String(output.error).replace(/pos \d+-?\d*/g, "pos ") !== expected.replace(/pos \d+-?\d*/g, "pos ")) { // compare without positions
@@ -810,17 +810,17 @@ QUnit.module("CodeGeneratorBasic: keepWhiteSpace", function (hooks) {
         return result;
     }
     function runTestsForWhitespace(category, tests, assert, results) {
-        var codeGeneratorBasic = hooks.codeGeneratorBasic;
-        var spaceCount = 1;
-        var fnSpaceReplacer = function (value) {
+        const codeGeneratorBasic = hooks.codeGeneratorBasic;
+        let spaceCount = 1;
+        const fnSpaceReplacer = function (value) {
             spaceCount += 2;
             return " ".repeat(spaceCount) + value + " ".repeat(spaceCount + 1);
         };
-        for (var key in tests) {
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
                 spaceCount = 1;
-                var expected = TestHelper.handleBinaryLiterals(tests[key]);
-                var keyWithSpaces = key;
+                const expected = TestHelper.handleBinaryLiterals(tests[key]);
+                let keyWithSpaces = key;
                 keyWithSpaces = keyWithSpaces.replace(/(\w)#/g, "$1 #").replace(/:\s+(\w)/g, ":$1");
                 if (keyWithSpaces.startsWith("chain")) {
                     keyWithSpaces = keyWithSpaces.replace(/\s+,/g, ",").replace(/,\s+/g, ","); // fast hack: prepare
@@ -831,8 +831,8 @@ QUnit.module("CodeGeneratorBasic: keepWhiteSpace", function (hooks) {
                 keyWithSpaces = keyWithSpaces.replace(/(\d+)e(\d+)/, "$1e+$2"); // 1e9, 2.5e10 => 1e+9
                 keyWithSpaces = keyWithSpaces.replace(/([=?+\-*^/\\,;()#])/g, fnSpaceReplacer);
                 keyWithSpaces = keyWithSpaces.replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/e[ ]+\+[ ]+(\d+)/g, "e+$1"); // with fast hacks
-                var result = runSingleTestForWhitespace(codeGeneratorBasic, keyWithSpaces, expected);
-                var expectedWithSpaces = expected;
+                const result = runSingleTestForWhitespace(codeGeneratorBasic, keyWithSpaces, expected);
+                let expectedWithSpaces = expected;
                 if (expected !== result) { // fast hack: not for error messages
                     spaceCount = 1;
                     expectedWithSpaces = expectedWithSpaces.replace(/:\s+(\w)/g, ":$1");
@@ -853,21 +853,21 @@ QUnit.module("CodeGeneratorBasic: keepWhiteSpace", function (hooks) {
 });
 QUnit.module("CodeGeneratorBasic: Not keepColons", function (hooks) {
     hooks.before(function () {
-        var codeGeneratorBasic = createCodeGeneratorBasic(false);
+        const codeGeneratorBasic = createCodeGeneratorBasic(false);
         codeGeneratorBasic.getOptions().parser.setOptions({
             keepColons: false
         });
         hooks.codeGeneratorBasic = codeGeneratorBasic;
     });
     function runTestsFor(category, tests, assert, results) {
-        var codeGeneratorBasic = hooks.codeGeneratorBasic;
+        const codeGeneratorBasic = hooks.codeGeneratorBasic;
         codeGeneratorBasic.getOptions().lexer.setOptions({
             keepWhiteSpace: category === "keepSpaces" // keepWhiteSpace active for category "keepSpaces"
         });
-        for (var key in tests) {
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
-                var output = codeGeneratorBasic.generate(key), result = output.error ? String(output.error) : output.text;
-                var expected = tests[key];
+                const output = codeGeneratorBasic.generate(key), result = output.error ? String(output.error) : output.text;
+                let expected = tests[key];
                 if (!output.error) {
                     expected = expected.replace(":'", "'");
                     expected = expected.replace(/^:+/, "");
@@ -887,21 +887,21 @@ QUnit.module("CodeGeneratorBasic: Not keepColons", function (hooks) {
 });
 QUnit.module("CodeGeneratorBasic: Not keepBrackets", function (hooks) {
     hooks.before(function () {
-        var codeGeneratorBasic = createCodeGeneratorBasic(false);
+        const codeGeneratorBasic = createCodeGeneratorBasic(false);
         codeGeneratorBasic.getOptions().parser.setOptions({
             keepBrackets: false
         });
         hooks.codeGeneratorBasic = codeGeneratorBasic;
     });
     function runTestsFor(category, tests, assert, results) {
-        var codeGeneratorBasic = hooks.codeGeneratorBasic;
+        const codeGeneratorBasic = hooks.codeGeneratorBasic;
         codeGeneratorBasic.getOptions().lexer.setOptions({
             keepWhiteSpace: category === "keepSpaces" // keepWhiteSpace active for category "keepSpaces"
         });
-        for (var key in tests) {
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
-                var output = codeGeneratorBasic.generate(key), result = output.error ? String(output.error) : output.text;
-                var expected = tests[key];
+                const output = codeGeneratorBasic.generate(key), result = output.error ? String(output.error) : output.text;
+                let expected = tests[key];
                 if (!output.error) {
                     if (key === "a=(1=0)") { // test where brackets are not needed
                         expected = "a=1=0";

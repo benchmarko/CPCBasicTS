@@ -7,7 +7,7 @@ import { Variables } from "../Variables";
 import { TestHelper } from "./TestHelper";
 import { TestInput } from "./TestInput";
 /* eslint-disable quote-props */
-var allTests = {
+const allTests = {
     numbers: {
         "a=1": " v.aR = 1;",
         "a=1.2": " v.aR = 1.2;",
@@ -755,7 +755,7 @@ var allTests = {
     }
 };
 function createCodeGeneratorJs() {
-    var basicParser = new BasicParser({
+    const basicParser = new BasicParser({
         quiet: true
     });
     return new CodeGeneratorJs({
@@ -774,14 +774,14 @@ QUnit.module("CodeGeneratorJs: Tests", function (hooks) {
         hooks.codeGeneratorJs = createCodeGeneratorJs();
     });
     function runSingleTest(codeGeneratorJs, key) {
-        var allowDirect = true, variables = new Variables({}), output = codeGeneratorJs.generate(key, variables, allowDirect), result = output.error ? String(output.error) : output.text;
+        const allowDirect = true, variables = new Variables({}), output = codeGeneratorJs.generate(key, variables, allowDirect), result = output.error ? String(output.error) : output.text;
         return result;
     }
     function runTestsFor(category, tests, assert, results) {
-        var codeGeneratorJs = hooks.codeGeneratorJs;
-        for (var key in tests) {
+        const codeGeneratorJs = hooks.codeGeneratorJs;
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
-                var expected = TestHelper.handleBinaryLiterals(tests[key]), result = runSingleTest(codeGeneratorJs, key);
+                const expected = TestHelper.handleBinaryLiterals(tests[key]), result = runSingleTest(codeGeneratorJs, key);
                 if (results) {
                     results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
                 }

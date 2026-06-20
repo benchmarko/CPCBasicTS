@@ -6,7 +6,7 @@ import { BasicParser } from "../BasicParser";
 import { BasicFormatter } from "../BasicFormatter";
 import { TestHelper } from "./TestHelper";
 QUnit.dump.maxDepth = 10;
-var allTests = {
+const allTests = {
     "after gosub, auto": {
         "1 after 2 gosub 1": "10 after 2 gosub 10",
         "1 auto 100": "10 auto 100"
@@ -84,7 +84,7 @@ var allTests = {
     }
 };
 function createBasicFormatter() {
-    var basicParser = new BasicParser({
+    const basicParser = new BasicParser({
         quiet: true
     });
     return new BasicFormatter({
@@ -96,15 +96,15 @@ function createBasicFormatter() {
 }
 QUnit.module("BasicFormatter:renumber: Tests", function (hooks) {
     hooks.before(function () {
-        var thisHooks = hooks;
+        const thisHooks = hooks;
         thisHooks.basicFormatter = createBasicFormatter();
     });
     function runSingleTest(basicFormatter, key) {
-        var newLine = 10, oldLine = 1, step = 10, keep = 65535, output = basicFormatter.renumber(key, newLine, oldLine, step, keep), result = output.error ? String(output.error) : output.text;
+        const newLine = 10, oldLine = 1, step = 10, keep = 65535, output = basicFormatter.renumber(key, newLine, oldLine, step, keep), result = output.error ? String(output.error) : output.text;
         return result;
     }
     function runTestsFor(category, tests, assert, results) {
-        var basicParser = new BasicParser({
+        const basicParser = new BasicParser({
             quiet: true
         }), basicFormatter = new BasicFormatter({
             lexer: new BasicLexer({
@@ -112,9 +112,9 @@ QUnit.module("BasicFormatter:renumber: Tests", function (hooks) {
             }),
             parser: basicParser
         });
-        for (var key in tests) {
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
-                var expected = TestHelper.handleBinaryLiterals(tests[key]), result = runSingleTest(basicFormatter, key);
+                const expected = TestHelper.handleBinaryLiterals(tests[key]), result = runSingleTest(basicFormatter, key);
                 if (results) {
                     results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
                 }

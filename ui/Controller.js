@@ -15,7 +15,7 @@ import { cpcCharset } from "../cpcCharset";
 import { CpcVm } from "../CpcVm";
 import { Diff } from "../Diff";
 import { DiskImage } from "../DiskImage";
-import { FileHandler } from "./FileHandler";
+import { FileHandler } from "../FileHandler";
 import { FileSelect } from "./FileSelect";
 import { InputStack } from "../InputStack";
 import { Keyboard } from "./Keyboard";
@@ -32,9 +32,8 @@ import { RsxAmsdos } from "../RsxAmsdos";
 import { RsxCpcBasic } from "../RsxCpcBasic";
 import { UiController } from "./UiController";
 import { Z80Disass } from "../Z80Disass"; // test
-var Controller = /** @class */ (function () {
-    function Controller(core, view, options) {
-        if (options === void 0) { options = {}; }
+export class Controller {
+    constructor(core, view, options = {}) {
         this.fnScript = undefined; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
         this.timeoutHandlerActive = false;
         this.nextLoopTimeOut = 0; // next timeout for the main loop
@@ -149,7 +148,7 @@ var Controller = /** @class */ (function () {
         this.fnWaitForContinueHandler = this.fnWaitForContinue.bind(this);
         this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
         this.core = core;
-        var model = this.core.getModel();
+        const model = this.core.getModel();
         this.model = model;
         this.view = view;
         this.options = options;
@@ -167,7 +166,7 @@ var Controller = /** @class */ (function () {
             this.getVirtualKeyboard();
         }
         // check first user action, also if sound is not yet on
-        var random = new Random(model.getProperty("random" /* ModelPropID.random */) === "cpc");
+        const random = new Random(model.getProperty("random" /* ModelPropID.random */) === "cpc");
         this.vm = new CpcVm({
             canvas: this.canvas,
             keyboard: this.keyboard,
@@ -176,8 +175,15 @@ var Controller = /** @class */ (function () {
             variables: this.variables,
             onClickKey: this.fnPutKeyInBufferHandler
         });
+        const onCanvasClick = (event, x, y, xTxt, yTxt) => {
+            const handler = this.vm.getOnCanvasClickHandler();
+            handler(x, y, xTxt, yTxt, event.detail === 2);
+        };
+        this.vmOnCanvasClickHandler = onCanvasClick;
+        this.vm.getOnCanvasClickHandler();
         this.canvas.setOptions({
-            onCanvasClick: this.vm.getOnCanvasClickHandler()
+            //onCanvasClick: this.vm.getOnCanvasClickHandler()
+            onCanvasClick
         });
         this.vm.setCanvas(this.canvas);
         this.vm.vmReset();
@@ -213,7 +219,7 @@ var Controller = /** @class */ (function () {
             this.setSoundActive(); // activate in waiting state
         }
         this.initDropZone();
-        var example = model.getProperty("example" /* ModelPropID.example */);
+        const example = model.getProperty("example" /* ModelPropID.example */);
         view.setSelectValue("exampleSelect" /* ViewID.exampleSelect */, example);
         //this.hasStorageDatabase = this.initDatabases();
         this.setDatabaseSelectOptions();
@@ -225,9 +231,12 @@ var Controller = /** @class */ (function () {
             this.fnDragElementsActive(true);
         }
     }
-    Controller.getLocalStorage = function () {
+    static getLocalStorage() {
         return Polyfills.localStorage || window.localStorage;
-    };
+    }
+    getCanvas() {
+        return this.canvas;
+    }
     //TODO
     /*
     private static getUniqueDbKey(name: string, databases: DatabasesType) {
@@ -272,10 +281,10 @@ var Controller = /** @class */ (function () {
         return hasStorageDatabase;
     }
     */
-    Controller.prototype.getHasStorageDatabase = function () {
-        var databases = this.model.getAllDatabases();
-        var hasStorageDatabase = false;
-        for (var value in databases) {
+    getHasStorageDatabase() {
+        const databases = this.model.getAllDatabases();
+        let hasStorageDatabase = false;
+        for (const value in databases) {
             if (databases.hasOwnProperty(value)) {
                 if (value === "storage") {
                     hasStorageDatabase = true;
@@ -283,22 +292,22 @@ var Controller = /** @class */ (function () {
             }
         }
         return hasStorageDatabase;
-    };
+    }
     /*
     private initDatabases() {
         return getHasStorageDatabase
     }
     ∂*/
-    Controller.prototype.onUserAction = function ( /* event, id */) {
+    onUserAction( /* event, id */) {
         this.uiController.deactivateUserAction(); // deactivate user action
         this.sound.setActivatedByUser();
         this.setSoundActive();
-    };
-    Controller.prototype.setDatabaseSelectOptions = function () {
-        var items = [], databases = this.model.getAllDatabases(), database = this.model.getProperty("database" /* ModelPropID.database */);
-        for (var value in databases) {
+    }
+    setDatabaseSelectOptions() {
+        const items = [], databases = this.model.getAllDatabases(), database = this.model.getProperty("database" /* ModelPropID.database */);
+        for (const value in databases) {
             if (databases.hasOwnProperty(value)) {
-                var db = databases[value], item = {
+                const db = databases[value], item = {
                     value: value,
                     text: db.text,
                     title: db.title,
@@ -308,30 +317,30 @@ var Controller = /** @class */ (function () {
             }
         }
         this.view.setSelectOptions("databaseSelect" /* ViewID.databaseSelect */, items);
-    };
-    Controller.getPathFromExample = function (example) {
-        var index = example.lastIndexOf("/");
-        var path = "";
+    }
+    static getPathFromExample(example) {
+        const index = example.lastIndexOf("/");
+        let path = "";
         if (index >= 0) {
             path = example.substring(0, index);
         }
         return path;
-    };
-    Controller.getNameFromExample = function (example) {
-        var index = example.lastIndexOf("/");
-        var name = example;
+    }
+    static getNameFromExample(example) {
+        const index = example.lastIndexOf("/");
+        let name = example;
         if (index >= 0) {
             name = example.substring(index + 1);
         }
         return name;
-    };
-    Controller.prototype.setDirectorySelectOptions = function () {
-        var items = [], allExamples = this.model.getAllExamples(), examplePath = Controller.getPathFromExample(this.model.getProperty("example" /* ModelPropID.example */)), directorySeen = {};
-        for (var key in allExamples) {
+    }
+    setDirectorySelectOptions() {
+        const items = [], allExamples = this.model.getAllExamples(), examplePath = Controller.getPathFromExample(this.model.getProperty("example" /* ModelPropID.example */)), directorySeen = {};
+        for (const key in allExamples) {
             if (allExamples.hasOwnProperty(key)) {
-                var exampleEntry = allExamples[key], value = Controller.getPathFromExample(exampleEntry.key);
+                const exampleEntry = allExamples[key], value = Controller.getPathFromExample(exampleEntry.key);
                 if (!directorySeen[value]) {
-                    var item = {
+                    const item = {
                         value: value,
                         text: value,
                         title: value,
@@ -343,16 +352,16 @@ var Controller = /** @class */ (function () {
             }
         }
         this.view.setSelectOptions("directorySelect" /* ViewID.directorySelect */, items);
-    };
-    Controller.prototype.setExampleSelectOptions = function () {
-        var maxTitleLength = 160, maxTextLength = 60, // (32 visible?)
+    }
+    setExampleSelectOptions() {
+        const maxTitleLength = 160, maxTextLength = 60, // (32 visible?)
         items = [], exampleName = Controller.getNameFromExample(this.model.getProperty("example" /* ModelPropID.example */)), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue("directorySelect" /* ViewID.directorySelect */), selectDataFiles = this.model.getProperty("selectDataFiles" /* ModelPropID.selectDataFiles */);
-        var exampleSelected = false;
-        for (var key in allExamples) {
+        let exampleSelected = false;
+        for (const key in allExamples) {
             if (allExamples.hasOwnProperty(key) && (Controller.getPathFromExample(key) === directoryName)) {
-                var exampleEntry = allExamples[key], exampleName2 = Controller.getNameFromExample(exampleEntry.key);
+                const exampleEntry = allExamples[key], exampleName2 = Controller.getNameFromExample(exampleEntry.key);
                 if (selectDataFiles || (exampleEntry.meta !== "D")) { // skip data files
-                    var title = (exampleName2 + ": " + exampleEntry.title).substring(0, maxTitleLength), item = {
+                    const title = (exampleName2 + ": " + exampleEntry.title).substring(0, maxTitleLength), item = {
                         value: exampleName2,
                         title: title,
                         text: title.substring(0, maxTextLength),
@@ -369,11 +378,11 @@ var Controller = /** @class */ (function () {
             items[0].selected = true; // if example is not found, select first element
         }
         this.view.setSelectOptions("exampleSelect" /* ViewID.exampleSelect */, items);
-    };
-    Controller.prototype.setGalleryAreaInputs = function () {
-        var database = this.model.getDatabase(), directory = this.view.getSelectValue("directorySelect" /* ViewID.directorySelect */), options = this.view.getSelectOptions("exampleSelect" /* ViewID.exampleSelect */), inputs = [];
-        for (var i = 0; i < options.length; i += 1) {
-            var item = options[i], input = {
+    }
+    setGalleryAreaInputs() {
+        const database = this.model.getDatabase(), directory = this.view.getSelectValue("directorySelect" /* ViewID.directorySelect */), options = this.view.getSelectOptions("exampleSelect" /* ViewID.exampleSelect */), inputs = [];
+        for (let i = 0; i < options.length; i += 1) {
+            const item = options[i], input = {
                 value: item.value,
                 title: item.title,
                 checked: item.selected,
@@ -382,9 +391,9 @@ var Controller = /** @class */ (function () {
             inputs.push(input);
         }
         this.view.setAreaInputList("galleryAreaItems" /* ViewID.galleryAreaItems */, inputs);
-    };
-    Controller.fnSortByStringProperties = function (a, b) {
-        var x = a.value, y = b.value;
+    }
+    static fnSortByStringProperties(a, b) {
+        const x = a.value, y = b.value;
         if (x < y) {
             return -1;
         }
@@ -392,16 +401,16 @@ var Controller = /** @class */ (function () {
             return 1;
         }
         return 0;
-    };
-    Controller.prototype.setVarSelectOptions = function (select, variables) {
-        var maxVarLength = 35, varNames = variables.getAllVariableNames(), items = [];
-        for (var i = 0; i < varNames.length; i += 1) {
-            var key = varNames[i], value = variables.getVariable(key), title = key + "=" + value;
-            var strippedTitle = title.substring(0, maxVarLength); // limit length
+    }
+    setVarSelectOptions(select, variables) {
+        const maxVarLength = 35, varNames = variables.getAllVariableNames(), items = [];
+        for (let i = 0; i < varNames.length; i += 1) {
+            const key = varNames[i], value = variables.getVariable(key), title = key + "=" + value;
+            let strippedTitle = title.substring(0, maxVarLength); // limit length
             if (title !== strippedTitle) {
                 strippedTitle += " ...";
             }
-            var item = {
+            const item = {
                 value: key,
                 text: strippedTitle,
                 title: strippedTitle,
@@ -411,13 +420,13 @@ var Controller = /** @class */ (function () {
         }
         items.sort(Controller.fnSortByStringProperties);
         this.view.setSelectOptions(select, items);
-    };
-    Controller.prototype.setExportSelectOptions = function (select) {
-        var dirList = Controller.fnGetStorageDirectoryEntries(), items = [], editorText = Controller.exportEditorText;
+    }
+    setExportSelectOptions(select) {
+        const dirList = Controller.fnGetStorageDirectoryEntries(), items = [], editorText = Controller.exportEditorText;
         dirList.sort(); // we sort keys without editorText
         dirList.unshift(editorText);
-        for (var i = 0; i < dirList.length; i += 1) {
-            var key = dirList[i], title = key, item = {
+        for (let i = 0; i < dirList.length; i += 1) {
+            const key = dirList[i], title = key, item = {
                 value: key,
                 text: title,
                 title: title,
@@ -427,20 +436,20 @@ var Controller = /** @class */ (function () {
         }
         // sort already done
         this.view.setSelectOptions(select, items);
-    };
-    Controller.prototype.updateStorageDatabase = function (action, key) {
+    }
+    updateStorageDatabase(action, key) {
         if (!this.hasStorageDatabase) {
             return;
         }
-        var database = this.model.getProperty("database" /* ModelPropID.database */), storage = Controller.getLocalStorage();
-        var selectedExample = "", exampleChanged = false;
+        const database = this.model.getProperty("database" /* ModelPropID.database */), storage = Controller.getLocalStorage();
+        let selectedExample = "", exampleChanged = false;
         if (database !== "storage") {
             this.model.setProperty("database" /* ModelPropID.database */, "storage"); // switch to storage database
         }
         else {
             selectedExample = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */);
         }
-        var dir;
+        let dir;
         if (!key) { // no key => get all
             dir = Controller.fnGetStorageDirectoryEntries();
             dir.sort();
@@ -448,18 +457,18 @@ var Controller = /** @class */ (function () {
         else {
             dir = [key];
         }
-        for (var i = 0; i < dir.length; i += 1) {
+        for (let i = 0; i < dir.length; i += 1) {
             key = dir[i];
             if (action === "remove") {
                 this.model.removeExample(key);
             }
             else if (action === "set") {
-                var example = this.model.getExample(key);
+                let example = this.model.getExample(key);
                 if (selectedExample === "" || (selectedExample === key)) {
                     exampleChanged = true;
                 }
                 if (!example) {
-                    var dataString = storage.getItem(key) || "", data = Controller.splitMeta(dataString);
+                    const dataString = storage.getItem(key) || "", data = Controller.splitMeta(dataString);
                     example = {
                         key: key,
                         title: "", // or set key?
@@ -484,13 +493,13 @@ var Controller = /** @class */ (function () {
         else {
             this.model.setProperty("database" /* ModelPropID.database */, database); // restore database
         }
-    };
-    Controller.prototype.removeKeyBoardHandler = function () {
+    }
+    removeKeyBoardHandler() {
         this.keyboard.setOptions({
             fnOnKeyDown: undefined
         });
-    };
-    Controller.prototype.setInputText = function (input, keepStack) {
+    }
+    setInputText(input, keepStack) {
         this.view.setAreaValue("inputText" /* ViewID.inputText */, input);
         if (!keepStack) {
             this.fnInitUndoRedoButtons();
@@ -498,26 +507,26 @@ var Controller = /** @class */ (function () {
         else {
             this.fnUpdateUndoRedoButtons();
         }
-    };
-    Controller.prototype.invalidateScript = function () {
+    }
+    invalidateScript() {
         this.fnScript = undefined;
-    };
-    Controller.prototype.fnWaitForContinue = function () {
-        var stream = 0, key = this.keyboard.getKeyFromBuffer();
+    }
+    fnWaitForContinue() {
+        const stream = 0, key = this.keyboard.getKeyFromBuffer();
         if (key !== "") {
             this.vm.cursor(stream, 0);
             this.removeKeyBoardHandler();
             this.startContinue();
         }
-    };
-    Controller.prototype.fnOnEscape = function () {
-        var stop = this.vm.vmGetStopObject(), stream = 0;
+    }
+    fnOnEscape() {
+        const stop = this.vm.vmGetStopObject(), stream = 0;
         if (this.vm.vmOnBreakContSet()) {
             // ignore break
         }
         else if (stop.reason === "direct" || this.vm.vmOnBreakHandlerActive()) {
             stop.paras.input = "";
-            var msg = "*Break*\r\n";
+            const msg = "*Break*\r\n";
             this.vm.print(stream, msg);
         }
         else if (stop.reason !== "escape") { // first escape?
@@ -538,7 +547,7 @@ var Controller = /** @class */ (function () {
         else { // second escape
             this.removeKeyBoardHandler();
             this.vm.cursor(stream, 0);
-            var savedStop = this.getStopObject();
+            const savedStop = this.getStopObject();
             if (savedStop.reason === "waitInput") { // sepcial handling: set line to repeat input
                 this.vm.vmGoto(savedStop.paras.line);
             }
@@ -548,19 +557,19 @@ var Controller = /** @class */ (function () {
             }
             else {
                 this.vm.vmStop("stop", 0, true); // stop
-                var msg = "Break in " + this.vm.line + "\r\n";
+                const msg = "Break in " + this.vm.line + "\r\n";
                 this.vm.print(stream, msg);
             }
         }
         this.startMainLoop();
-    };
-    Controller.prototype.fnWaitSound = function () {
-        var stop = this.vm.vmGetStopObject();
+    }
+    fnWaitSound() {
+        const stop = this.vm.vmGetStopObject();
         this.vm.vmLoopCondition(); // update nextFrameTime, timers, inks; schedule sound: free queue
         if (this.sound.isActivatedByUser()) { // only if activated
-            var soundDataList = this.vm.vmGetSoundData();
+            const soundDataList = this.vm.vmGetSoundData();
             while (soundDataList.length && this.sound.testCanQueue(soundDataList[0].state)) {
-                var soundData = soundDataList.shift();
+                const soundData = soundDataList.shift();
                 this.sound.sound(soundData);
             }
             if (!soundDataList.length) {
@@ -570,9 +579,9 @@ var Controller = /** @class */ (function () {
             }
         }
         this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
-    };
-    Controller.prototype.fnWaitKey = function () {
-        var key = this.keyboard.getKeyFromBuffer();
+    }
+    fnWaitKey() {
+        const key = this.keyboard.getKeyFromBuffer();
         if (key !== "") { // do we have a key from the buffer already?
             UiUtils.console.log("Wait for key:", key);
             this.vm.vmStop("", 0, true);
@@ -586,10 +595,10 @@ var Controller = /** @class */ (function () {
             });
         }
         return key;
-    };
-    Controller.prototype.fnWaitInput = function () {
-        var stop = this.vm.vmGetStopObject(), inputParas = stop.paras, stream = inputParas.stream;
-        var input = inputParas.input, key;
+    }
+    fnWaitInput() {
+        const stop = this.vm.vmGetStopObject(), inputParas = stop.paras, stream = inputParas.stream;
+        let input = inputParas.input, key;
         if (input === undefined || stream === undefined) {
             this.outputError(this.vm.vmComposeError(Error(), 32, "Programming Error: fnWaitInput"), true);
             return;
@@ -692,7 +701,7 @@ var Controller = /** @class */ (function () {
             }
         } while (key !== "" && key !== "\r"); // get all keys until CR or no more key
         inputParas.input = input;
-        var inputOk = false;
+        let inputOk = false;
         if (key === "\r") {
             UiUtils.console.log("fnWaitInput:", input, "reason", stop.reason);
             if (!inputParas.noCRLF) {
@@ -723,15 +732,15 @@ var Controller = /** @class */ (function () {
                 fnOnKeyDown: this.fnWaitInputHandler
             });
         }
-    };
-    Controller.parseLineNumber = function (line) {
+    }
+    static parseLineNumber(line) {
         return parseInt(line, 10); // we do not check for linenumber in range 0...65535
-    };
-    Controller.addLineNumbers = function (input) {
-        var lineParts = input.split("\n");
-        var lastLine = 0;
-        for (var i = 0; i < lineParts.length; i += 1) {
-            var lineNum = parseInt(lineParts[i], 10);
+    }
+    static addLineNumbers(input) {
+        const lineParts = input.split("\n");
+        let lastLine = 0;
+        for (let i = 0; i < lineParts.length; i += 1) {
+            let lineNum = parseInt(lineParts[i], 10);
             if (isNaN(lineNum)) {
                 lineNum = lastLine + 1;
                 lineParts[i] = String(lastLine + 1) + " " + lineParts[i];
@@ -739,36 +748,36 @@ var Controller = /** @class */ (function () {
             lastLine = lineNum;
         }
         return lineParts.join("\n");
-    };
-    Controller.prototype.splitLines = function (input) {
+    }
+    splitLines(input) {
         if (this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */)) {
             input = Controller.addLineNumbers(input);
         }
         // get numbers starting at the beginning of a line (allows some simple multi line strings)
-        var lineParts = input.split(/^(\s*\d+)/m), lines = [];
+        const lineParts = input.split(/^(\s*\d+)/m), lines = [];
         if (lineParts[0] === "") {
             lineParts.shift(); // remove first empty item
         }
         if (lineParts.length % 2 !== 0) {
             UiUtils.console.warn("splitLines: No line numbers?");
-            var error = this.vm.vmComposeError(Error(), 21, "split"); // "Direct command found"
+            const error = this.vm.vmComposeError(Error(), 21, "split"); // "Direct command found"
             this.outputError(error, true);
             return lines;
         }
-        for (var i = 0; i < lineParts.length; i += 2) {
-            var number = lineParts[i];
-            var content = lineParts[i + 1];
+        for (let i = 0; i < lineParts.length; i += 2) {
+            const number = lineParts[i];
+            let content = lineParts[i + 1];
             if (content.endsWith("\n")) {
                 content = content.substring(0, content.length - 1);
             }
             lines.push(number + content);
         }
         return lines;
-    };
+    }
     // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
-    Controller.prototype.mergeScripts = function (script1, script2) {
-        var lines1 = this.splitLines(UiUtils.stringTrimEnd(script1)), lines2 = this.splitLines(UiUtils.stringTrimEnd(script2));
-        var result = [], lineNumber1, lineNumber2;
+    mergeScripts(script1, script2) {
+        const lines1 = this.splitLines(UiUtils.stringTrimEnd(script1)), lines2 = this.splitLines(UiUtils.stringTrimEnd(script2));
+        let result = [], lineNumber1, lineNumber2;
         while (lines1.length && lines2.length) {
             lineNumber1 = lineNumber1 || Controller.parseLineNumber(lines1[0]);
             lineNumber2 = lineNumber2 || Controller.parseLineNumber(lines2[0]);
@@ -777,7 +786,7 @@ var Controller = /** @class */ (function () {
                 lineNumber1 = 0;
             }
             else { // use line from script2
-                var line2 = lines2.shift();
+                const line2 = lines2.shift();
                 if (String(lineNumber2) !== line2) { // line not empty?
                     result.push(line2);
                 }
@@ -795,10 +804,10 @@ var Controller = /** @class */ (function () {
             }
         }
         return result.join("\n");
-    };
+    }
     // get line range from a script with sorted line numbers
-    Controller.prototype.fnGetLinesInRange = function (script, firstLine, lastLine) {
-        var lines = script ? this.splitLines(script) : [];
+    fnGetLinesInRange(script, firstLine, lastLine) {
+        const lines = script ? this.splitLines(script) : [];
         while (lines.length && Controller.parseLineNumber(lines[0]) < firstLine) {
             lines.shift();
         }
@@ -809,84 +818,84 @@ var Controller = /** @class */ (function () {
             lines.pop();
         }
         return lines;
-    };
-    Controller.fnPrepareMaskRegExp = function (mask) {
+    }
+    static fnPrepareMaskRegExp(mask) {
         mask = mask.replace(/([.+^$[\]\\(){}|-])/g, "\\$1");
         mask = mask.replace(/\?/g, ".");
         mask = mask.replace(/\*/g, ".*");
         return new RegExp("^" + mask + "$");
-    };
-    Controller.prototype.fnGetExampleDirectoryEntries = function (mask) {
-        var dir = [], allExamples = this.model.getAllExamples();
-        var regExp;
+    }
+    fnGetExampleDirectoryEntries(mask) {
+        const dir = [], allExamples = this.model.getAllExamples();
+        let regExp;
         if (mask) {
             regExp = Controller.fnPrepareMaskRegExp(mask);
         }
-        for (var key in allExamples) {
+        for (const key in allExamples) {
             if (allExamples.hasOwnProperty(key)) {
-                var example = allExamples[key], key2 = example.key, matchKey2 = key2 + ((key2.indexOf(".") < 0) ? "." : "");
+                const example = allExamples[key], key2 = example.key, matchKey2 = key2 + ((key2.indexOf(".") < 0) ? "." : "");
                 if (!regExp || regExp.test(matchKey2)) {
                     dir.push(key2);
                 }
             }
         }
         return dir;
-    };
-    Controller.fnGetStorageDirectoryEntries = function (mask) {
-        var storage = Controller.getLocalStorage(), metaIdent = FileHandler.getMetaIdent(), dir = [];
-        var regExp;
+    }
+    static fnGetStorageDirectoryEntries(mask) {
+        const storage = Controller.getLocalStorage(), metaIdent = FileHandler.getMetaIdent(), dir = [];
+        let regExp;
         if (mask) {
             regExp = Controller.fnPrepareMaskRegExp(mask);
         }
-        for (var i = 0; i < storage.length; i += 1) {
-            var key = storage.key(i);
+        for (let i = 0; i < storage.length; i += 1) {
+            const key = storage.key(i);
             if (key !== null && storage[key].startsWith(metaIdent)) { // take only cpcBasic files
-                var keywithOutNl = key.replace(/[\n\r]/g, ""); // support also strange names; (newer browsers support also "s" regex modifier)
+                const keywithOutNl = key.replace(/[\n\r]/g, ""); // support also strange names; (newer browsers support also "s" regex modifier)
                 if (!regExp || regExp.test(keywithOutNl)) {
                     dir.push(key);
                 }
             }
         }
         return dir;
-    };
-    Controller.prototype.fnPrintDirectoryEntries = function (stream, dir, sort) {
+    }
+    fnPrintDirectoryEntries(stream, dir, sort) {
         // first, format names
-        for (var i = 0; i < dir.length; i += 1) {
-            var parts = dir[i].split(".");
+        for (let i = 0; i < dir.length; i += 1) {
+            const parts = dir[i].split(".");
             dir[i] = parts[0].padEnd(8, " ") + "." + (parts.length >= 2 ? parts[1] : "").padEnd(3, " ");
         }
         if (sort) {
             dir.sort();
         }
         this.vm.print(stream, "\r\nDrive A: user  0\r\n\r\n");
-        for (var i = 0; i < dir.length; i += 1) {
-            var key = dir[i] + "  ";
+        for (let i = 0; i < dir.length; i += 1) {
+            const key = dir[i] + "  ";
             this.vm.print(stream, key);
         }
         this.vm.print(stream, "\r\n\r\n999K free\r\n\r\n");
-    };
-    Controller.prototype.fnFileCat = function (paras) {
-        var stream = paras.stream, dirList = Controller.fnGetStorageDirectoryEntries();
+    }
+    fnFileCat(paras) {
+        const stream = paras.stream, dirList = Controller.fnGetStorageDirectoryEntries();
         this.fnPrintDirectoryEntries(stream, dirList, true);
         // currently only from localstorage
         this.vm.vmStop("", 0, true);
-    };
-    Controller.prototype.fnFileDir = function (paras) {
-        var stream = paras.stream, example = this.model.getProperty("example" /* ModelPropID.example */), lastSlash = example.lastIndexOf("/");
-        var fileMask = paras.fileMask ? Controller.fnLocalStorageName(paras.fileMask) : "";
-        var dirList = Controller.fnGetStorageDirectoryEntries(fileMask);
-        var path = "";
+    }
+    fnFileDir(paras) {
+        const stream = paras.stream, example = this.model.getProperty("example" /* ModelPropID.example */), lastSlash = example.lastIndexOf("/");
+        let fileMask = paras.fileMask ? Controller.fnLocalStorageName(paras.fileMask) : "";
+        const dirList = Controller.fnGetStorageDirectoryEntries(fileMask);
+        let path = "";
         if (lastSlash >= 0) {
             path = example.substring(0, lastSlash) + "/";
             fileMask = path + (fileMask ? fileMask : "*.*"); // only in same directory
         }
-        var fileExists = {};
-        for (var i = 0; i < dirList.length; i += 1) {
+        const fileExists = {};
+        for (let i = 0; i < dirList.length; i += 1) {
             fileExists[dirList[i]] = true;
         }
-        var dirListEx = this.fnGetExampleDirectoryEntries(fileMask); // also from examples
-        for (var i = 0; i < dirListEx.length; i += 1) {
-            var file = dirListEx[i].substring(path.length); // remove preceding path including "/"
+        const dirListEx = this.fnGetExampleDirectoryEntries(fileMask); // also from examples
+        for (let i = 0; i < dirListEx.length; i += 1) {
+            const file = dirListEx[i].substring(path.length); // remove preceding path including "/"
             if (!fileExists[file]) { // ignore duplicates
                 fileExists[file] = true;
                 dirList.push(file);
@@ -894,30 +903,30 @@ var Controller = /** @class */ (function () {
         }
         this.fnPrintDirectoryEntries(stream, dirList, false);
         this.vm.vmStop("", 0, true);
-    };
-    Controller.prototype.fnFileEra = function (paras) {
-        var stream = paras.stream, storage = Controller.getLocalStorage(), fileMask = Controller.fnLocalStorageName(paras.fileMask || ""), dir = Controller.fnGetStorageDirectoryEntries(fileMask);
+    }
+    fnFileEra(paras) {
+        const stream = paras.stream, storage = Controller.getLocalStorage(), fileMask = Controller.fnLocalStorageName(paras.fileMask || ""), dir = Controller.fnGetStorageDirectoryEntries(fileMask);
         if (!dir.length) {
             this.vm.print(stream, fileMask + " not found\r\n");
         }
-        for (var i = 0; i < dir.length; i += 1) {
-            var name_1 = dir[i];
-            if (storage.getItem(name_1) !== null) {
-                storage.removeItem(name_1);
-                this.updateStorageDatabase("remove", name_1);
+        for (let i = 0; i < dir.length; i += 1) {
+            const name = dir[i];
+            if (storage.getItem(name) !== null) {
+                storage.removeItem(name);
+                this.updateStorageDatabase("remove", name);
                 if (UiUtils.debug > 0) {
-                    UiUtils.console.debug("fnEraseFile: name=" + name_1 + ": removed from localStorage");
+                    UiUtils.console.debug("fnEraseFile: name=" + name + ": removed from localStorage");
                 }
             }
             else {
-                this.vm.print(stream, name_1 + " not found\r\n");
-                UiUtils.console.warn("fnEraseFile: file not found in localStorage:", name_1);
+                this.vm.print(stream, name + " not found\r\n");
+                UiUtils.console.warn("fnEraseFile: file not found in localStorage:", name);
             }
         }
         this.vm.vmStop("", 0, true);
-    };
-    Controller.prototype.fnFileRen = function (paras) {
-        var stream = paras.stream, storage = Controller.getLocalStorage(), newName = Controller.fnLocalStorageName(paras.newName), oldName = Controller.fnLocalStorageName(paras.oldName), item = storage.getItem(oldName);
+    }
+    fnFileRen(paras) {
+        const stream = paras.stream, storage = Controller.getLocalStorage(), newName = Controller.fnLocalStorageName(paras.newName), oldName = Controller.fnLocalStorageName(paras.oldName), item = storage.getItem(oldName);
         if (item !== null) {
             if (!storage.getItem(newName)) {
                 storage.setItem(newName, item);
@@ -933,22 +942,22 @@ var Controller = /** @class */ (function () {
             this.vm.print(stream, oldName + " not found\r\n");
         }
         this.vm.vmStop("", 0, true);
-    };
+    }
     // Hisoft Devpac GENA3 Z80 Assember (http://www.cpcwiki.eu/index.php/Hisoft_Devpac)
-    Controller.asmGena3Convert = function (data) {
-        var fnUInt16 = function (pos2) {
+    static asmGena3Convert(data) {
+        const fnUInt16 = function (pos2) {
             return data.charCodeAt(pos2) + data.charCodeAt(pos2 + 1) * 256;
         }, length = data.length;
-        var pos = 0, out = "";
+        let pos = 0, out = "";
         pos += 4; // what is the meaning of these bytes?
         while (pos < length) {
-            var lineNum = fnUInt16(pos);
+            const lineNum = fnUInt16(pos);
             pos += 2;
-            var index1 = data.indexOf("\r", pos); // EOL marker 0x0d
+            let index1 = data.indexOf("\r", pos); // EOL marker 0x0d
             if (index1 < 0) {
                 index1 = length;
             }
-            var index2 = data.indexOf("\x1c", pos); // EOL marker 0x1c
+            let index2 = data.indexOf("\x1c", pos); // EOL marker 0x1c
             if (index2 < 0) {
                 index2 = length;
             }
@@ -957,8 +966,8 @@ var Controller = /** @class */ (function () {
             pos = index1 + 1;
         }
         return out;
-    };
-    Controller.prototype.getBasicFormatter = function () {
+    }
+    getBasicFormatter() {
         if (!this.basicFormatter) {
             this.basicFormatter = new BasicFormatter({
                 lexer: this.basicLexer,
@@ -966,14 +975,14 @@ var Controller = /** @class */ (function () {
             });
         }
         return this.basicFormatter;
-    };
-    Controller.prototype.getBasicTokenizer = function () {
+    }
+    getBasicTokenizer() {
         if (!this.basicTokenizer) {
             this.basicTokenizer = new BasicTokenizer();
         }
         return this.basicTokenizer;
-    };
-    Controller.prototype.getCodeGeneratorBasic = function () {
+    }
+    getCodeGeneratorBasic() {
         if (!this.codeGeneratorBasic) {
             this.codeGeneratorBasic = new CodeGeneratorBasic({
                 lexer: this.basicLexer,
@@ -982,8 +991,8 @@ var Controller = /** @class */ (function () {
             });
         }
         return this.codeGeneratorBasic;
-    };
-    Controller.prototype.getCodeGeneratorToken = function () {
+    }
+    getCodeGeneratorToken() {
         if (!this.codeGeneratorToken) {
             this.codeGeneratorToken = new CodeGeneratorToken({
                 lexer: this.basicLexer,
@@ -992,33 +1001,32 @@ var Controller = /** @class */ (function () {
             });
         }
         return this.codeGeneratorToken;
-    };
-    Controller.prototype.decodeTokenizedBasic = function (input) {
-        var basicTokenizer = this.getBasicTokenizer();
+    }
+    decodeTokenizedBasic(input) {
+        const basicTokenizer = this.getBasicTokenizer();
         return basicTokenizer.decode(input);
-    };
-    Controller.prototype.encodeTokenizedBasic = function (input, name) {
-        if (name === void 0) { name = "test"; }
-        var codeGeneratorToken = this.getCodeGeneratorToken();
+    }
+    encodeTokenizedBasic(input, name = "test") {
+        const codeGeneratorToken = this.getCodeGeneratorToken();
         this.basicLexer.setOptions({
             keepWhiteSpace: true
         });
         this.basicParser.setOptions(Controller.codeGenTokenBasicParserOptions);
-        var output = codeGeneratorToken.generate(input);
+        const output = codeGeneratorToken.generate(input);
         if (output.error) {
             this.outputError(output.error);
         }
         else if (UiUtils.debug > 1) {
-            var outputText = output.text, hex = outputText.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","), decoded = this.decodeTokenizedBasic(outputText), diff = Diff.testDiff(input.toUpperCase(), decoded.toUpperCase()); // for testing
+            const outputText = output.text, hex = outputText.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","), decoded = this.decodeTokenizedBasic(outputText), diff = Diff.testDiff(input.toUpperCase(), decoded.toUpperCase()); // for testing
             UiUtils.console.debug("TokenizerInput (" + name + ") [len=" + input.length + "]:\n" + input);
             UiUtils.console.debug("TokenizerOutputHex (" + name + ") [len=" + outputText.length + "]:\n" + hex);
             UiUtils.console.debug("TokenizerOutputDecoded (" + name + ") [len=" + decoded.length + "]:\n" + decoded);
             UiUtils.console.debug("TokenizerDiff (" + name + ") [len=" + diff.length + "]:\n" + diff);
         }
         return output.text;
-    };
-    Controller.prototype.prettyPrintBasic = function (input, keepWhiteSpace, keepBrackets, keepColons) {
-        var codeGeneratorBasic = this.getCodeGeneratorBasic(), keepDataComma = true;
+    }
+    prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons) {
+        const codeGeneratorBasic = this.getCodeGeneratorBasic(), keepDataComma = true;
         this.basicLexer.setOptions({
             keepWhiteSpace: keepWhiteSpace
         });
@@ -1028,25 +1036,25 @@ var Controller = /** @class */ (function () {
             keepColons: keepColons,
             keepDataComma: keepDataComma
         });
-        var output = codeGeneratorBasic.generate(input);
+        const output = codeGeneratorBasic.generate(input);
         if (output.error) {
             this.outputError(output.error);
         }
         return output.text;
-    };
-    Controller.prototype.applyGaInks = function (inkval) {
-        for (var i = 0; i < inkval.length - 1; i += 1) {
+    }
+    applyGaInks(inkval) {
+        for (let i = 0; i < inkval.length - 1; i += 1) {
             this.vm.ink(i, Controller.gaInk2Ink[inkval[i]]);
         }
         this.vm.border(Controller.gaInk2Ink[inkval[inkval.length - 1]]);
-    };
-    Controller.prototype.applyCrtcRegs = function (reg) {
-        for (var i = 0; i < reg.length; i += 1) {
+    }
+    applyCrtcRegs(reg) {
+        for (let i = 0; i < reg.length; i += 1) {
             this.vm.vmSetCrtcData(i, reg[i]);
         }
-    };
-    Controller.prototype.applySnapshot = function (input) {
-        var snapshot = new Snapshot({
+    }
+    applySnapshot(input) {
+        const snapshot = new Snapshot({
             name: "",
             data: input
         }), info = snapshot.getSnapshotInfo(), mode = info.ga.multi & 0x03, // eslint-disable-line no-bitwise
@@ -1056,17 +1064,17 @@ var Controller = /** @class */ (function () {
         this.vm.vmSetRamSelect(info.ramconf);
         this.applyCrtcRegs(info.crtc.reg);
         return mem;
-    };
-    Controller.prototype.loadFileContinue = function (input) {
-        var inFile = this.vm.vmGetInFileObject();
-        var data;
+    }
+    loadFileContinue(input) {
+        const inFile = this.vm.vmGetInFileObject();
+        let data;
         if (input !== null && input !== undefined) {
             data = Controller.splitMeta(input);
             input = data.data; // maybe changed
             if (data.meta.encoding === "base64") {
                 input = window.atob(input); // decode base64
             }
-            var type = data.meta.typeString;
+            const type = data.meta.typeString;
             if (type === "T") { // tokenized basic?
                 input = this.decodeTokenizedBasic(input);
             }
@@ -1087,19 +1095,19 @@ var Controller = /** @class */ (function () {
                 input = this.applySnapshot(input);
             }
             else if (type === "X") { // (Extended) Disk image file
-                var fileHandler = this.getFileHandler(), imported = [];
+                const fileHandler = this.getFileHandler(), imported = [];
                 fileHandler.fnLoad2(input, inFile.name, type, imported); // no meta in data
                 input = "1 ' " + imported.join(", "); // imported files
             }
             else if (type === "Z") { // ZIP file
-                var fileHandler = this.getFileHandler(), imported = [];
+                const fileHandler = this.getFileHandler(), imported = [];
                 fileHandler.fnLoad2(input, inFile.name, type, imported);
                 input = "1 ' " + imported.join(", "); // imported files
             }
         }
-        var command = inFile.command, // create copy of data
+        const command = inFile.command, // create copy of data
         inFileLine = inFile.line || 0;
-        var putInMemory = false, startLine = 0;
+        let putInMemory = false, startLine = 0;
         if (inFile.fnFileCallback) {
             try {
                 // the callback could close inFile, so do not use it any more
@@ -1178,52 +1186,49 @@ var Controller = /** @class */ (function () {
         }
         this.vm.vmSetStartLine(startLine);
         this.startMainLoop();
-    };
-    Controller.prototype.createFnExampleLoaded = function (example, url, inFile) {
-        var _this = this;
-        return function (_sFullUrl, key, suppressLog) {
+    }
+    createFnExampleLoaded(example, url, inFile) {
+        return (_sFullUrl, key, suppressLog) => {
             if (key !== example) {
                 UiUtils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
             }
-            var exampleEntry = _this.model.getExample(example);
+            const exampleEntry = this.model.getExample(example);
             if (!suppressLog) {
                 UiUtils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + "loaded");
             }
-            _this.model.setProperty("example" /* ModelPropID.example */, inFile.memorizedExample);
-            _this.vm.vmStop("", 0, true);
+            this.model.setProperty("example" /* ModelPropID.example */, inFile.memorizedExample);
+            this.vm.vmStop("", 0, true);
             if (exampleEntry.rsx) {
-                _this.vm.vmRegisterRsx(exampleEntry.rsx, false);
+                this.vm.vmRegisterRsx(exampleEntry.rsx, false);
             }
-            var input = exampleEntry.script;
-            _this.loadFileContinue(input);
+            const input = exampleEntry.script;
+            this.loadFileContinue(input);
         };
-    };
-    Controller.prototype.createFnExampleError = function (example, url, inFile) {
-        var _this = this;
-        return function () {
+    }
+    createFnExampleError(example, url, inFile) {
+        return () => {
             UiUtils.console.log("Example", url, "error");
-            _this.model.setProperty("example" /* ModelPropID.example */, inFile.memorizedExample);
-            _this.vm.vmStop("", 0, true);
-            var error = _this.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
+            this.model.setProperty("example" /* ModelPropID.example */, inFile.memorizedExample);
+            this.vm.vmStop("", 0, true);
+            const error = this.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
             // error or onError set
             if (error.hidden) {
-                _this.vm.vmStop("", 0, true); // clear onError
+                this.vm.vmStop("", 0, true); // clear onError
             }
-            _this.outputError(error, true);
-            _this.loadFileContinue(null);
+            this.outputError(error, true);
+            this.loadFileContinue(null);
         };
-    };
-    Controller.prototype.getLoadScript = function () {
+    }
+    getLoadScript() {
         return this.options.loadScript || UiUtils.loadScript;
-    };
-    Controller.prototype.setOutputText = function (text) {
+    }
+    setOutputText(text) {
         this.view.setAreaValue("outputText" /* ViewID.outputText */, text);
         if (this.options.onOutputText) {
             this.options.onOutputText(text);
         }
-    };
-    Controller.prototype.setResultText = function (text, scroll) {
-        if (scroll === void 0) { scroll = false; }
+    }
+    setResultText(text, scroll = false) {
         this.view.setAreaValue("resultText" /* ViewID.resultText */, text);
         if (this.options.onResultText) {
             this.options.onResultText(text);
@@ -1231,38 +1236,38 @@ var Controller = /** @class */ (function () {
         if (scroll) {
             this.view.setAreaScrollTop("resultText" /* ViewID.resultText */); // scroll to bottom
         }
-    };
-    Controller.prototype.loadExample = function () {
-        var inFile = this.vm.vmGetInFileObject(), key = this.model.getProperty("example" /* ModelPropID.example */);
-        var name = inFile.name;
+    }
+    loadExample() {
+        const inFile = this.vm.vmGetInFileObject(), key = this.model.getProperty("example" /* ModelPropID.example */);
+        let name = inFile.name;
         if (name.charAt(0) === "/") { // absolute path?
             name = name.substring(1); // remove "/"
             inFile.memorizedExample = name; // change!
         }
         else {
             inFile.memorizedExample = key;
-            var lastSlash = key.lastIndexOf("/");
+            const lastSlash = key.lastIndexOf("/");
             if (lastSlash >= 0) {
-                var path = key.substring(0, lastSlash); // take path from selected example
+                const path = key.substring(0, lastSlash); // take path from selected example
                 name = path + "/" + name;
                 name = name.replace(/\w+\/\.\.\//, ""); // simplify 2 dots (go back) in path: "dir/.."" => ""
             }
         }
-        var example = name;
+        const example = name;
         if (UiUtils.debug > 0) {
             UiUtils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
         }
-        var exampleEntry = this.model.getExample(example); // already loaded
-        var url;
+        const exampleEntry = this.model.getExample(example); // already loaded
+        let url;
         if (exampleEntry && exampleEntry.loaded) {
             this.model.setProperty("example" /* ModelPropID.example */, example);
             url = example;
-            var fnExampleLoaded = this.createFnExampleLoaded(example, url, inFile);
+            const fnExampleLoaded = this.createFnExampleLoaded(example, url, inFile);
             fnExampleLoaded("", example, true);
         }
         else if (example && exampleEntry) { // need to load
             this.model.setProperty("example" /* ModelPropID.example */, example);
-            var databaseDir = this.model.getDatabase().src;
+            const databaseDir = this.model.getDatabase().src;
             url = databaseDir + "/" + example + ".js";
             this.getLoadScript()(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
         }
@@ -1270,7 +1275,7 @@ var Controller = /** @class */ (function () {
             url = example;
             if (example !== "") { // only if not empty
                 UiUtils.console.warn("loadExample: Unknown file:", example);
-                var fnExampleError = this.createFnExampleError(example, url, inFile);
+                const fnExampleError = this.createFnExampleError(example, url, inFile);
                 fnExampleError();
             }
             else {
@@ -1279,23 +1284,23 @@ var Controller = /** @class */ (function () {
                 this.loadFileContinue(""); // empty input?
             }
         }
-    };
-    Controller.fnLocalStorageName = function (name, defaultExtension) {
+    }
+    static fnLocalStorageName(name, defaultExtension) {
         // modify name so we do not clash with localstorage methods/properites
         if (name.indexOf(".") < 0) { // no dot inside name?
             name += "." + (defaultExtension || ""); // append dot or default extension
         }
         return name;
-    };
-    Controller.tryLoadingFromLocalStorage = function (name) {
-        var storage = Controller.getLocalStorage();
-        var input = null;
+    }
+    static tryLoadingFromLocalStorage(name) {
+        const storage = Controller.getLocalStorage();
+        let input = null;
         if (name.indexOf(".") >= 0) { // extension specified?
             input = storage.getItem(name);
         }
         else {
-            for (var i = 0; i < Controller.defaultExtensions.length; i += 1) {
-                var storageName = Controller.fnLocalStorageName(name, Controller.defaultExtensions[i]);
+            for (let i = 0; i < Controller.defaultExtensions.length; i += 1) {
+                const storageName = Controller.fnLocalStorageName(name, Controller.defaultExtensions[i]);
                 input = storage.getItem(storageName);
                 if (input !== null) {
                     break; // found
@@ -1303,9 +1308,9 @@ var Controller = /** @class */ (function () {
             }
         }
         return input; // null=not found
-    };
-    Controller.prototype.fnFileLoad = function () {
-        var inFile = this.vm.vmGetInFileObject();
+    }
+    fnFileLoad() {
+        const inFile = this.vm.vmGetInFileObject();
         if (inFile.open) {
             if (inFile.command === "chainMerge" && inFile.first && inFile.last) { // special handling to delete line numbers first
                 this.fnDeleteLines({
@@ -1317,14 +1322,14 @@ var Controller = /** @class */ (function () {
                 });
                 this.vm.vmStop("fileLoad", 90); // restore
             }
-            var name_2 = inFile.name;
+            const name = inFile.name;
             if (UiUtils.debug > 1) {
-                UiUtils.console.debug("fnFileLoad:", inFile.command, name_2, "details:", inFile);
+                UiUtils.console.debug("fnFileLoad:", inFile.command, name, "details:", inFile);
             }
-            var input = Controller.tryLoadingFromLocalStorage(name_2);
+            const input = Controller.tryLoadingFromLocalStorage(name);
             if (input !== null) {
                 if (UiUtils.debug > 0) {
-                    UiUtils.console.debug("fnFileLoad:", inFile.command, name_2, "from localStorage");
+                    UiUtils.console.debug("fnFileLoad:", inFile.command, name, "from localStorage");
                 }
                 this.vm.vmStop("", 0, true);
                 this.loadFileContinue(input);
@@ -1337,15 +1342,15 @@ var Controller = /** @class */ (function () {
             UiUtils.console.error("fnFileLoad:", inFile.name, "File not open!"); // hopefully isName is defined
         }
         this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
-    };
-    Controller.splitMeta = function (input) {
-        var fileMeta;
+    }
+    static splitMeta(input) {
+        let fileMeta;
         if (input.indexOf(FileHandler.getMetaIdent()) === 0) { // starts with metaIdent?
-            var index = input.indexOf(","); // metadata separator
+            const index = input.indexOf(","); // metadata separator
             if (index >= 0) {
-                var metaString = input.substring(0, index);
+                const metaString = input.substring(0, index);
                 input = input.substring(index + 1);
-                var meta = metaString.split(";");
+                const meta = metaString.split(";");
                 fileMeta = {
                     typeString: meta[1],
                     start: Number(meta[2]),
@@ -1360,25 +1365,25 @@ var Controller = /** @class */ (function () {
                 typeString: ""
             };
         }
-        var metaAndData = {
+        const metaAndData = {
             meta: fileMeta,
             data: input
         };
         return metaAndData;
-    };
-    Controller.prototype.fnFileSave = function () {
-        var outFile = this.vm.vmGetOutFileObject(), storage = Controller.getLocalStorage();
-        var defaultExtension = "";
+    }
+    fnFileSave() {
+        const outFile = this.vm.vmGetOutFileObject(), storage = Controller.getLocalStorage();
+        let defaultExtension = "";
         if (outFile.open) {
-            var type = outFile.typeString, name_3 = outFile.name;
+            const type = outFile.typeString, name = outFile.name;
             if (type === "P" || type === "T") {
                 defaultExtension = "bas";
             }
             else if (type === "B") {
                 defaultExtension = "bin";
             }
-            var storageName = Controller.fnLocalStorageName(name_3, defaultExtension);
-            var fileData = void 0;
+            const storageName = Controller.fnLocalStorageName(name, defaultExtension);
+            let fileData;
             if (outFile.fileData.length || (type === "B") || (outFile.command === "openout")) { // type A(for openout) or B
                 fileData = outFile.fileData.join("");
                 if (!outFile.length) { // not yet set, e.g. for ASCII? (or can we set it always?)
@@ -1399,9 +1404,9 @@ var Controller = /** @class */ (function () {
                 outFile.length = fileData.length; // set length
             }
             if (UiUtils.debug > 0) {
-                UiUtils.console.debug("fnFileSave: name=" + name_3 + ": put into localStorage");
+                UiUtils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
             }
-            var meta = FileHandler.joinMeta(outFile);
+            const meta = FileHandler.joinMeta(outFile);
             storage.setItem(storageName, meta + "," + fileData);
             this.updateStorageDatabase("set", storageName);
             if (outFile.fnFileCallback) {
@@ -1418,13 +1423,13 @@ var Controller = /** @class */ (function () {
             UiUtils.console.error("fnFileSave: file not open!");
         }
         this.vm.vmStop("", 0, true); // continue
-    };
-    Controller.prototype.fnDeleteLines = function (paras) {
-        var inputText = this.view.getAreaValue("inputText" /* ViewID.inputText */), lines = this.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
-        var error;
+    }
+    fnDeleteLines(paras) {
+        const inputText = this.view.getAreaValue("inputText" /* ViewID.inputText */), lines = this.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
+        let error;
         if (lines.length) {
-            for (var i = 0; i < lines.length; i += 1) {
-                var line = Controller.parseLineNumber(lines[i]);
+            for (let i = 0; i < lines.length; i += 1) {
+                const line = Controller.parseLineNumber(lines[i]);
                 if (isNaN(line)) {
                     error = this.vm.vmComposeError(Error(), 21, paras.command); // "Direct command found"
                     this.outputError(error, true);
@@ -1433,26 +1438,26 @@ var Controller = /** @class */ (function () {
                 lines[i] = String(line); // keep just the line numbers
             }
             if (!error) {
-                var input = lines.join("\n");
+                let input = lines.join("\n");
                 input = this.mergeScripts(inputText, input); // delete input lines
                 this.setInputText(input);
             }
         }
         this.vm.vmGoto(0); // reset current line
         this.vm.vmStop("end", 0, true);
-    };
-    Controller.prototype.fnNew = function () {
-        var input = "";
+    }
+    fnNew() {
+        const input = "";
         this.setInputText(input);
         this.fnRemoveAllVariables();
         this.vm.vmGoto(0); // reset current line
         this.vm.vmStop("end", 0, true);
         this.invalidateScript();
-    };
-    Controller.prototype.fnList = function (paras) {
-        var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), stream = paras.stream, lines = this.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535), regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
-        for (var i = 0; i < lines.length; i += 1) {
-            var line = lines[i];
+    }
+    fnList(paras) {
+        const input = this.view.getAreaValue("inputText" /* ViewID.inputText */), stream = paras.stream, lines = this.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535), regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
+        for (let i = 0; i < lines.length; i += 1) {
+            let line = lines[i];
             if (stream !== 9) {
                 line = line.replace(regExp, "\x01$1"); // escape control characters to print them directly
             }
@@ -1460,9 +1465,9 @@ var Controller = /** @class */ (function () {
         }
         this.vm.vmGoto(0); // reset current line
         this.vm.vmStop("end", 0, true);
-    };
-    Controller.prototype.fnReset = function () {
-        var vm = this.vm;
+    }
+    fnReset() {
+        const vm = this.vm;
         this.fnRemoveAllVariables();
         vm.vmReset();
         if (this.virtualKeyboard) {
@@ -1471,31 +1476,31 @@ var Controller = /** @class */ (function () {
         vm.vmStop("end", 0, true); // set "end" with priority 0, so that "compile only" still works
         this.setOutputText("");
         this.invalidateScript();
-    };
-    Controller.prototype.outputError = function (error, noSelection) {
-        var stream = 0;
-        var shortError;
+    }
+    outputError(error, noSelection) {
+        const stream = 0;
+        let shortError;
         if (UiUtils.isCustomError(error)) {
             shortError = error.shortMessage || error.message;
             if (!noSelection) {
-                var startPos = error.pos || 0, len = error.len || ((error.value !== undefined) ? String(error.value).length : 0), endPos = startPos + len;
+                const startPos = error.pos || 0, len = error.len || ((error.value !== undefined) ? String(error.value).length : 0), endPos = startPos + len;
                 this.view.setAreaSelection("inputText" /* ViewID.inputText */, error.pos, endPos);
             }
         }
         else {
             shortError = error.message;
         }
-        var escapedShortError = shortError.replace(/([\x00-\x1f])/g, "\x01$1"); // eslint-disable-line no-control-regex
+        const escapedShortError = shortError.replace(/([\x00-\x1f])/g, "\x01$1"); // eslint-disable-line no-control-regex
         this.vm.print(stream, escapedShortError + "\r\n");
         return shortError;
-    };
-    Controller.prototype.fnRenumLines = function (paras) {
-        var vm = this.vm, input = this.view.getAreaValue("inputText" /* ViewID.inputText */), basicFormatter = this.getBasicFormatter();
+    }
+    fnRenumLines(paras) {
+        const vm = this.vm, input = this.view.getAreaValue("inputText" /* ViewID.inputText */), basicFormatter = this.getBasicFormatter();
         this.basicLexer.setOptions({
             keepWhiteSpace: false
         });
         this.basicParser.setOptions(Controller.formatterBasicParserOptions);
-        var output = basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
+        const output = basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
         if (output.error) {
             UiUtils.console.warn(output.error);
             this.outputError(output.error);
@@ -1507,10 +1512,10 @@ var Controller = /** @class */ (function () {
         }
         this.vm.vmGoto(0); // reset current line
         vm.vmStop("end", 0, true);
-    };
-    Controller.prototype.fnEditLineCallback = function () {
-        var inputParas = this.vm.vmGetStopObject().paras, inputText = this.view.getAreaValue("inputText" /* ViewID.inputText */);
-        var input = inputParas.input;
+    }
+    fnEditLineCallback() {
+        const inputParas = this.vm.vmGetStopObject().paras, inputText = this.view.getAreaValue("inputText" /* ViewID.inputText */);
+        let input = inputParas.input;
         input = this.mergeScripts(inputText, input);
         this.setInputText(input);
         this.vm.vmSetStartLine(0);
@@ -1519,14 +1524,14 @@ var Controller = /** @class */ (function () {
         this.vm.cursor(inputParas.stream, 0);
         this.vm.vmStop("end", 90);
         return true;
-    };
-    Controller.prototype.fnEditLine = function (paras) {
-        var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), stream = paras.stream, lineNumber = paras.first || 0, lines = this.fnGetLinesInRange(input, lineNumber, lineNumber);
+    }
+    fnEditLine(paras) {
+        const input = this.view.getAreaValue("inputText" /* ViewID.inputText */), stream = paras.stream, lineNumber = paras.first || 0, lines = this.fnGetLinesInRange(input, lineNumber, lineNumber);
         if (lines.length) {
-            var lineString = lines[0];
+            const lineString = lines[0];
             this.vm.print(stream, lineString);
             this.vm.cursor(stream, 1);
-            var inputParas = {
+            const inputParas = {
                 command: paras.command,
                 line: paras.line,
                 stream: stream,
@@ -1538,15 +1543,15 @@ var Controller = /** @class */ (function () {
             this.fnWaitInput();
         }
         else {
-            var error = this.vm.vmComposeError(Error(), 8, String(lineNumber)); // "Line does not exist"
+            const error = this.vm.vmComposeError(Error(), 8, String(lineNumber)); // "Line does not exist"
             this.outputError(error);
             this.vm.vmStop("stop", 60, true);
         }
-    };
-    Controller.prototype.fnParseBench = function (input, bench) {
-        var output;
-        for (var i = 0; i < bench; i += 1) {
-            var time = Date.now();
+    }
+    fnParseBench(input, bench) {
+        let output;
+        for (let i = 0; i < bench; i += 1) {
+            let time = Date.now();
             output = this.codeGeneratorJs.generate(input, this.variables);
             time = Date.now() - time;
             UiUtils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
@@ -1555,11 +1560,11 @@ var Controller = /** @class */ (function () {
             }
         }
         return output;
-    };
-    Controller.prototype.fnParse = function () {
-        var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), bench = this.model.getProperty("bench" /* ModelPropID.bench */);
+    }
+    fnParse() {
+        const input = this.view.getAreaValue("inputText" /* ViewID.inputText */), bench = this.model.getProperty("bench" /* ModelPropID.bench */);
         // keep variables; this.variables.removeAllVariables();
-        var output;
+        let output;
         this.basicLexer.setOptions({
             keepWhiteSpace: false
         });
@@ -1570,7 +1575,7 @@ var Controller = /** @class */ (function () {
         else {
             output = this.fnParseBench(input, bench);
         }
-        var outputString;
+        let outputString;
         if (output.error) {
             outputString = this.outputError(output.error);
         }
@@ -1578,7 +1583,7 @@ var Controller = /** @class */ (function () {
             outputString = output.text;
             this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
             // optional: tokenize to put tokens into memory...
-            var tokens = this.encodeTokenizedBasic(input);
+            const tokens = this.encodeTokenizedBasic(input);
             if (UiUtils.debug) {
                 UiUtils.console.debug("parse: input length:", input.length, ", tokenized length:", tokens.length);
             }
@@ -1597,33 +1602,33 @@ var Controller = /** @class */ (function () {
         this.setVarSelectOptions("varSelect" /* ViewID.varSelect */, this.variables);
         this.uiController.onVarSelectChange();
         return output;
-    };
-    Controller.prototype.fnPretty = function () {
-        var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), keepWhiteSpace = this.view.getInputChecked("prettySpaceInput" /* ViewID.prettySpaceInput */), keepBrackets = this.view.getInputChecked("prettyBracketsInput" /* ViewID.prettyBracketsInput */), keepColons = this.view.getInputChecked("prettyColonsInput" /* ViewID.prettyColonsInput */), output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons);
+    }
+    fnPretty() {
+        const input = this.view.getAreaValue("inputText" /* ViewID.inputText */), keepWhiteSpace = this.view.getInputChecked("prettySpaceInput" /* ViewID.prettySpaceInput */), keepBrackets = this.view.getInputChecked("prettyBracketsInput" /* ViewID.prettyBracketsInput */), keepColons = this.view.getInputChecked("prettyColonsInput" /* ViewID.prettyColonsInput */), output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons);
         if (output) {
             this.fnPutChangedInputOnStack();
             this.setInputText(output, true);
             this.fnPutChangedInputOnStack();
             // for testing:
-            var diff = Diff.testDiff(input.toUpperCase(), output.toUpperCase());
+            const diff = Diff.testDiff(input.toUpperCase(), output.toUpperCase());
             this.setOutputText(diff);
         }
-    };
-    Controller.prototype.fnAddLines = function () {
-        var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), output = Controller.addLineNumbers(input);
+    }
+    fnAddLines() {
+        const input = this.view.getAreaValue("inputText" /* ViewID.inputText */), output = Controller.addLineNumbers(input);
         if (output) {
             this.fnPutChangedInputOnStack();
             this.setInputText(output, true);
             this.fnPutChangedInputOnStack();
         }
-    };
-    Controller.prototype.fnRemoveLines = function () {
-        var basicFormatter = this.getBasicFormatter();
+    }
+    fnRemoveLines() {
+        const basicFormatter = this.getBasicFormatter();
         this.basicLexer.setOptions({
             keepWhiteSpace: false
         });
         this.basicParser.setOptions(Controller.formatterBasicParserOptions);
-        var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), output = basicFormatter.removeUnusedLines(input);
+        const input = this.view.getAreaValue("inputText" /* ViewID.inputText */), output = basicFormatter.removeUnusedLines(input);
         if (output.error) {
             this.outputError(output.error);
         }
@@ -1632,15 +1637,15 @@ var Controller = /** @class */ (function () {
             this.setInputText(output.text, true);
             this.fnPutChangedInputOnStack();
         }
-    };
-    Controller.prototype.fnGetFilename = function (input) {
-        var name = "file";
-        var reRemMatcher = /^\d* ?(?:REM|rem) ([\w.]+)+/, matches = input.match(reRemMatcher);
+    }
+    fnGetFilename(input) {
+        let name = "file";
+        const reRemMatcher = /^\d* ?(?:REM|rem) ([\w.]+)+/, matches = input.match(reRemMatcher);
         if (matches !== null) {
             name = matches[1];
         }
         else {
-            var example = this.model.getProperty("example" /* ModelPropID.example */);
+            const example = this.model.getProperty("example" /* ModelPropID.example */);
             if (example !== "") {
                 if (example.indexOf("/") >= 0) {
                     name = example.substring(example.lastIndexOf("/") + 1);
@@ -1651,19 +1656,19 @@ var Controller = /** @class */ (function () {
             name += ".bas";
         }
         return name;
-    };
+    }
     // eslint-disable-next-line complexity
-    Controller.prototype.fnDownload = function () {
-        var options = this.view.getSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), format = this.view.getSelectValue("exportDSKFormatSelect" /* ViewID.exportDSKFormatSelect */), stripEmpty = this.view.getInputChecked("exportDSKStripEmptyInput" /* ViewID.exportDSKStripEmptyInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), editorText = Controller.exportEditorText, meta = {
+    fnDownload() {
+        const options = this.view.getSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), format = this.view.getSelectValue("exportDSKFormatSelect" /* ViewID.exportDSKFormatSelect */), stripEmpty = this.view.getInputChecked("exportDSKStripEmptyInput" /* ViewID.exportDSKStripEmptyInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), editorText = Controller.exportEditorText, meta = {
             typeString: "A", // ASCII
             start: 0x170,
             length: 0,
             entry: 0
         };
-        var diskImage, name = "", data = "";
-        var fnExportBase64 = function () {
+        let diskImage, name = "", data = "";
+        const fnExportBase64 = function () {
             meta.encoding = "base64";
-            var metaString = FileHandler.joinMeta(meta);
+            const metaString = FileHandler.joinMeta(meta);
             data = metaString + "," + window.btoa(data);
             name += ".b64.txt";
         };
@@ -1674,13 +1679,13 @@ var Controller = /** @class */ (function () {
                 data: diskImage.formatImage(format) // data or system
             });
         }
-        for (var i = 0; i < options.length; i += 1) {
-            var item = options[i];
+        for (let i = 0; i < options.length; i += 1) {
+            const item = options[i];
             if (item.selected) {
                 if (item.value === editorText) {
                     data = this.view.getAreaValue("inputText" /* ViewID.inputText */);
                     name = this.fnGetFilename(data);
-                    var eolStr = data.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
+                    const eolStr = data.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
                     if (eolStr === "\n") {
                         data = data.replace(/\n/g, "\r\n"); // replace LF by CRLF (not really needed if tokenized is used)
                     }
@@ -1692,12 +1697,12 @@ var Controller = /** @class */ (function () {
                 else {
                     name = item.value;
                     data = Controller.tryLoadingFromLocalStorage(name) || "";
-                    var metaAndData = Controller.splitMeta(data);
+                    const metaAndData = Controller.splitMeta(data);
                     Object.assign(meta, metaAndData.meta); // copy meta info
                     data = metaAndData.data;
                 }
                 if (exportTokenized && meta.typeString === "A") { // do we need to tokenize it?
-                    var tokens = this.encodeTokenizedBasic(data);
+                    const tokens = this.encodeTokenizedBasic(data);
                     if (tokens) { // successful?
                         data = tokens;
                         meta.typeString = "T";
@@ -1710,7 +1715,7 @@ var Controller = /** @class */ (function () {
                     }
                 }
                 if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
-                    var _a = DiskImage.getFilenameAndExtension(name), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline
+                    const [name1, ext1] = DiskImage.getFilenameAndExtension(name), // eslint-disable-line array-element-newline
                     header = DiskImage.createAmsdosHeader({
                         name: name1,
                         ext: ext1,
@@ -1723,7 +1728,7 @@ var Controller = /** @class */ (function () {
                 }
                 if (diskImage) {
                     diskImage.writeFile(name, data);
-                    var diskOptions = diskImage.getOptions();
+                    const diskOptions = diskImage.getOptions();
                     data = diskOptions.data; // we need the modified disk image with the file(s) inside
                     name = name.substring(0, name.indexOf(".") + 1) + "dsk";
                     meta.length = data.length;
@@ -1750,13 +1755,13 @@ var Controller = /** @class */ (function () {
                 this.view.fnDownloadBlob(data, name);
             }
         }
-    };
-    Controller.prototype.selectJsError = function (script, e) {
-        var lineNumber = e.lineNumber, // only on FireFox
+    }
+    selectJsError(script, e) {
+        const lineNumber = e.lineNumber, // only on FireFox
         columnNumber = e.columnNumber;
         if (lineNumber || columnNumber) { // only available on Firefox
-            var errLine = lineNumber - 3; // for some reason line 0 is 3
-            var pos = 0, line = 0;
+            const errLine = lineNumber - 3; // for some reason line 0 is 3
+            let pos = 0, line = 0;
             while (pos < script.length && line < errLine) {
                 pos = script.indexOf("\n", pos) + 1;
                 line += 1;
@@ -1765,10 +1770,10 @@ var Controller = /** @class */ (function () {
             UiUtils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
             this.view.setAreaSelection("outputText" /* ViewID.outputText */, pos, pos + 1);
         }
-    };
-    Controller.prototype.fnChain = function (paras) {
-        var script = this.view.getAreaValue("outputText" /* ViewID.outputText */), vm = this.vm;
-        var line = paras && paras.first || 0;
+    }
+    fnChain(paras) {
+        const script = this.view.getAreaValue("outputText" /* ViewID.outputText */), vm = this.vm;
+        let line = paras && paras.first || 0;
         line = line || 0;
         if (line === 0) {
             vm.vmResetData(); // start from the beginning => also reset data! (or put it in line 0 in the script)
@@ -1801,45 +1806,45 @@ var Controller = /** @class */ (function () {
         }
         if (!this.inputSet) {
             this.inputSet = true;
-            var input = this.model.getProperty("input" /* ModelPropID.input */);
+            const input = this.model.getProperty("input" /* ModelPropID.input */);
             if (input !== "") {
                 this.view.setAreaValue("inp2Text" /* ViewID.inp2Text */, input);
-                var that_1 = this, timeout = 1;
+                const that = this, timeout = 1;
                 setTimeout(function () {
-                    that_1.startEnter();
-                    that_1.view.setAreaValue("inp2Text" /* ViewID.inp2Text */, ""); // delete input
+                    that.startEnter();
+                    that.view.setAreaValue("inp2Text" /* ViewID.inp2Text */, ""); // delete input
                 }, timeout);
             }
         }
         if (UiUtils.debug > 1) {
             UiUtils.console.debug("End of fnRun");
         }
-    };
-    Controller.prototype.fnRun = function (paras) {
+    }
+    fnRun(paras) {
         this.vm.clear(); // init variables
         this.fnChain(paras);
-    };
-    Controller.prototype.fnParseRun = function () {
+    }
+    fnParseRun() {
         this.fnRemoveAllVariables();
-        var output = this.fnParse();
+        const output = this.fnParse();
         if (!output.error) {
             this.fnRun();
         }
-    };
-    Controller.prototype.fnParseChain = function () {
-        var output = this.fnParse();
+    }
+    fnParseChain() {
+        const output = this.fnParse();
         if (!output.error) {
             this.fnChain();
         }
-    };
-    Controller.prototype.fnRunPart1 = function (fnScript) {
+    }
+    fnRunPart1(fnScript) {
         try {
             fnScript(this.vm);
         }
         catch (e) {
             if (e instanceof Error) {
                 if (e.name === "CpcVm" || e.name === "Variables") {
-                    var customError = e;
+                    let customError = e;
                     if (customError.errCode !== undefined) {
                         customError = this.vm.vmComposeError(customError, customError.errCode, customError.value);
                     }
@@ -1862,15 +1867,15 @@ var Controller = /** @class */ (function () {
                 UiUtils.console.error(e);
             }
         }
-    };
-    Controller.prototype.fnDirectInput = function () {
-        var inputParas = this.vm.vmGetStopObject().paras, stream = inputParas.stream;
-        var input = inputParas.input;
+    }
+    fnDirectInput() {
+        const inputParas = this.vm.vmGetStopObject().paras, stream = inputParas.stream;
+        let input = inputParas.input;
         input = input.trim();
         inputParas.input = "";
         if (input !== "") { // direct input
             this.vm.cursor(stream, 0);
-            var inputText = this.view.getAreaValue("inputText" /* ViewID.inputText */);
+            const inputText = this.view.getAreaValue("inputText" /* ViewID.inputText */);
             if (!isNaN(Controller.parseLineNumber(input))) { // start with number?
                 if (UiUtils.debug > 0) {
                     UiUtils.console.debug("fnDirectInput: insert line=" + input);
@@ -1885,14 +1890,14 @@ var Controller = /** @class */ (function () {
                 return false; // continue direct input
             }
             UiUtils.console.log("fnDirectInput: execute:", input);
-            var codeGeneratorJs = this.codeGeneratorJs;
-            var output = void 0, outputString = void 0;
+            const codeGeneratorJs = this.codeGeneratorJs;
+            let output, outputString;
             if (inputText && (!isNaN(Controller.parseLineNumber(inputText)) || this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */))) { // do we have a program starting with a line number?
-                var separator = inputText.endsWith("\n") ? "" : "\n";
+                const separator = inputText.endsWith("\n") ? "" : "\n";
                 this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);
                 output = codeGeneratorJs.generate(inputText + separator + input, this.variables, true); // compile both; allow direct command
                 if (output.error) {
-                    var error = output.error;
+                    const error = output.error;
                     if (error.pos < inputText.length + 1) { // error not in direct?
                         error.message = "[prg] " + error.message;
                         output = undefined;
@@ -1917,7 +1922,7 @@ var Controller = /** @class */ (function () {
                 this.vm.vmSetStartLine(this.vm.line); // fast hack
                 this.vm.vmGoto("direct");
                 try {
-                    var fnScript = new Function("o", outputString); // eslint-disable-line no-new-func
+                    const fnScript = new Function("o", outputString); // eslint-disable-line no-new-func
                     this.fnScript = fnScript;
                     this.vm.vmSetSourceMap(codeGeneratorJs.getSourceMap());
                 }
@@ -1932,14 +1937,14 @@ var Controller = /** @class */ (function () {
                 this.updateResultText();
                 return true;
             }
-            var msg = inputParas.message;
+            const msg = inputParas.message;
             this.vm.print(stream, msg);
             this.vm.cursor(stream, 1);
         }
         this.updateResultText();
         return false;
-    };
-    Controller.prototype.startWithDirectInput = function () {
+    }
+    startWithDirectInput() {
         if (this.options.isHeadlessDirectInput) {
             this.stopUpdateCanvas();
             UiUtils.console.log("We are ready.");
@@ -1948,7 +1953,7 @@ var Controller = /** @class */ (function () {
             }
             return;
         }
-        var vm = this.vm, stream = 0, msg = "Ready\r\n";
+        const vm = this.vm, stream = 0, msg = "Ready\r\n";
         this.vm.tagoff(stream);
         this.vm.vmResetControlBuffer();
         if (this.vm.pos(stream) > 1) {
@@ -1966,13 +1971,13 @@ var Controller = /** @class */ (function () {
             line: this.vm.line
         });
         this.fnWaitInput();
-    };
-    Controller.prototype.updateResultText = function () {
-        var outText = this.vm.vmGetOutBuffer();
+    }
+    updateResultText() {
+        const outText = this.vm.vmGetOutBuffer();
         this.setResultText(outText, true);
-    };
-    Controller.prototype.exitLoop = function () {
-        var stop = this.vm.vmGetStopObject(), reason = stop.reason;
+    }
+    exitLoop() {
+        const stop = this.vm.vmGetStopObject(), reason = stop.reason;
         this.updateResultText();
         this.view.setDisabled("runButton" /* ViewID.runButton */, reason === "reset");
         this.view.setDisabled("stopButton" /* ViewID.stopButton */, reason !== "fileLoad" && reason !== "fileSave");
@@ -1982,22 +1987,22 @@ var Controller = /** @class */ (function () {
         if (reason === "stop" || reason === "end" || reason === "error" || reason === "parse" || reason === "parseRun") {
             this.startWithDirectInput();
         }
-    };
-    Controller.prototype.fnWaitFrame = function () {
+    }
+    fnWaitFrame() {
         this.vm.vmStop("", 0, true);
         this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
-    };
-    Controller.prototype.fnOnError = function () {
+    }
+    fnOnError() {
         this.vm.vmStop("", 0, true); // continue
-    };
-    Controller.fnDummy = function () {
+    }
+    static fnDummy() {
         // empty
-    };
-    Controller.prototype.fnTimer = function () {
+    }
+    fnTimer() {
         this.vm.vmStop("", 0, true); // continue
-    };
-    Controller.prototype.fnRunLoop = function () {
-        var stop = this.vm.vmGetStopObject();
+    }
+    fnRunLoop() {
+        const stop = this.vm.vmGetStopObject();
         this.nextLoopTimeOut = this.initialLoopTimeout;
         if (!stop.reason && this.fnScript) {
             this.fnRunPart1(this.fnScript); // could change reason
@@ -2016,26 +2021,26 @@ var Controller = /** @class */ (function () {
         else {
             setTimeout(this.fnRunLoopHandler, this.nextLoopTimeOut);
         }
-    };
-    Controller.prototype.startMainLoop = function () {
+    }
+    startMainLoop() {
         if (!this.timeoutHandlerActive) {
             this.timeoutHandlerActive = true;
             setTimeout(this.fnRunLoopHandler, 0);
         }
-    };
-    Controller.prototype.setStopObject = function (stop) {
+    }
+    setStopObject(stop) {
         Object.assign(this.savedStop, stop);
-    };
-    Controller.prototype.getStopObject = function () {
+    }
+    getStopObject() {
         return this.savedStop;
-    };
-    Controller.prototype.startParse = function () {
+    }
+    startParse() {
         this.removeKeyBoardHandler();
         this.vm.vmStop("parse", 95);
         this.startMainLoop();
-    };
-    Controller.prototype.startRenum = function () {
-        var stream = 0;
+    }
+    startRenum() {
+        const stream = 0;
         this.vm.vmStop("renumLines", 85, false, {
             command: "renum",
             stream: 0, // unused
@@ -2050,28 +2055,28 @@ var Controller = /** @class */ (function () {
         }
         this.vm.print(stream, "renum\r\n");
         this.startMainLoop();
-    };
-    Controller.prototype.startRun = function () {
+    }
+    startRun() {
         this.setStopObject(this.noStop);
         this.removeKeyBoardHandler();
         this.vm.vmStop("run", 95);
         this.startMainLoop();
-    };
-    Controller.prototype.startParseRun = function () {
+    }
+    startParseRun() {
         this.setStopObject(this.noStop);
         this.removeKeyBoardHandler();
         this.vm.vmStop("parseRun", 95);
         this.startMainLoop();
-    };
-    Controller.prototype.startBreak = function () {
-        var vm = this.vm, stop = vm.vmGetStopObject();
+    }
+    startBreak() {
+        const vm = this.vm, stop = vm.vmGetStopObject();
         this.setStopObject(stop);
         this.removeKeyBoardHandler();
         this.vm.vmStop("break", 80);
         this.startMainLoop();
-    };
-    Controller.prototype.startContinue = function () {
-        var vm = this.vm, stop = vm.vmGetStopObject(), savedStop = this.getStopObject();
+    }
+    startContinue() {
+        const vm = this.vm, stop = vm.vmGetStopObject(), savedStop = this.getStopObject();
         this.view.setDisabled("runButton" /* ViewID.runButton */, true);
         this.view.setDisabled("stopButton" /* ViewID.stopButton */, false);
         this.view.setDisabled("continueButton" /* ViewID.continueButton */, true);
@@ -2086,33 +2091,33 @@ var Controller = /** @class */ (function () {
             this.setStopObject(this.noStop);
         }
         this.startMainLoop();
-    };
-    Controller.prototype.startReset = function () {
+    }
+    startReset() {
         this.setStopObject(this.noStop);
         this.removeKeyBoardHandler();
         this.vm.vmStop("reset", 99);
         this.startMainLoop();
-    };
-    Controller.prototype.startScreenshot = function () {
+    }
+    startScreenshot() {
         return this.canvas.takeScreenShot();
-    };
-    Controller.prototype.fnPutKeysInBuffer = function (keys) {
-        for (var i = 0; i < keys.length; i += 1) {
+    }
+    fnPutKeysInBuffer(keys) {
+        for (let i = 0; i < keys.length; i += 1) {
             this.keyboard.putKeyInBuffer(keys.charAt(i));
         }
-        var options = this.keyboard.getOptions(), keyDownHandler = options.fnOnKeyDown;
+        const options = this.keyboard.getOptions(), keyDownHandler = options.fnOnKeyDown;
         if (keyDownHandler) {
             keyDownHandler();
         }
-    };
-    Controller.prototype.startEnter = function () {
-        var input = this.view.getAreaValue("inp2Text" /* ViewID.inp2Text */);
+    }
+    startEnter() {
+        let input = this.view.getAreaValue("inp2Text" /* ViewID.inp2Text */);
         input = input.replace(/\n/g, "\r"); // LF => CR
         this.fnPutKeysInBuffer(input);
-    };
-    Controller.generateFunction = function (par, functionString) {
+    }
+    static generateFunction(par, functionString) {
         if (functionString.startsWith("function anonymous(")) { // already a modified function (inside an anonymous function)?
-            var firstIndex = functionString.indexOf("{"), lastIndex = functionString.lastIndexOf("}");
+            const firstIndex = functionString.indexOf("{"), lastIndex = functionString.lastIndexOf("}");
             if (firstIndex >= 0 && lastIndex >= 0) {
                 functionString = functionString.substring(firstIndex + 1, lastIndex - 1); // remove anonymous function
             }
@@ -2121,19 +2126,19 @@ var Controller = /** @class */ (function () {
         else {
             functionString = "var o=cpcBasic.controller.vm, v=o.vmGetAllVariables(); v." + par + " = " + functionString;
         }
-        var match = (/function \(([^)]*)/).exec(functionString), args = match ? match[1].split(",") : [], fnFunction = new Function(args[0], args[1], args[2], args[3], args[4], functionString); // eslint-disable-line no-new-func
+        const match = (/function \(([^)]*)/).exec(functionString), args = match ? match[1].split(",") : [], fnFunction = new Function(args[0], args[1], args[2], args[3], args[4], functionString); // eslint-disable-line no-new-func
         // we support at most 5 arguments
         return fnFunction;
-    };
-    Controller.prototype.changeVariable = function () {
-        var par = this.view.getSelectValue("varSelect" /* ViewID.varSelect */), valueString = this.view.getSelectValue("varText" /* ViewID.varText */), variables = this.variables;
-        var value = variables.getVariable(par);
+    }
+    changeVariable() {
+        const par = this.view.getSelectValue("varSelect" /* ViewID.varSelect */), valueString = this.view.getSelectValue("varText" /* ViewID.varText */), variables = this.variables;
+        let value = variables.getVariable(par);
         if (typeof value === "function") {
             value = Controller.generateFunction(par, valueString);
             variables.setVariable(par, value);
         }
         else {
-            var varType = this.variables.determineStaticVarType(par), type = this.vm.vmDetermineVarType(varType); // do we know dynamic type?
+            const varType = this.variables.determineStaticVarType(par), type = this.vm.vmDetermineVarType(varType); // do we know dynamic type?
             if (type !== "$") { // not string? => convert to number
                 value = parseFloat(valueString);
             }
@@ -2141,7 +2146,7 @@ var Controller = /** @class */ (function () {
                 value = valueString;
             }
             try {
-                var value2 = this.vm.vmAssign(varType, value);
+                const value2 = this.vm.vmAssign(varType, value);
                 variables.setVariable(par, value2);
                 UiUtils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
             }
@@ -2151,8 +2156,8 @@ var Controller = /** @class */ (function () {
         }
         this.setVarSelectOptions("varSelect" /* ViewID.varSelect */, variables);
         this.uiController.onVarSelectChange(); // title change?
-    };
-    Controller.prototype.setBasicVersion = function (basicVersion) {
+    }
+    setBasicVersion(basicVersion) {
         this.basicParser.setOptions({
             basicVersion: basicVersion
         });
@@ -2160,32 +2165,32 @@ var Controller = /** @class */ (function () {
             keywords: this.basicParser.getKeywords()
         });
         this.invalidateScript();
-    };
-    Controller.prototype.setPalette = function (palette) {
-        var validPalette = palette === "green" || palette === "grey" ? palette : "color";
+    }
+    setPalette(palette) {
+        const validPalette = palette === "green" || palette === "grey" ? palette : "color";
         this.canvas.setOptions({
             palette: validPalette
         });
-    };
-    Controller.prototype.setCanvasType = function (canvasType) {
-        var canvas = this.canvas;
+    }
+    setCanvasType(canvasType) {
+        let canvas = this.canvas;
         if (canvas) {
             canvas.stopUpdateCanvas(); // stop updates on current canvas
-            var canvasID = canvas.getOptions().canvasID;
+            const canvasID = canvas.getOptions().canvasID;
             this.view.setHidden(canvasID, true);
         }
         else if (canvasType !== "graphics") {
             // initially graphics canvas is not hidden, but we must hide it, if other canvas should be shown
             this.view.setHidden("cpcCanvas" /* ViewID.cpcCanvas */, true);
         }
-        var palette = this.model.getProperty("palette" /* ModelPropID.palette */);
+        const palette = this.model.getProperty("palette" /* ModelPropID.palette */);
         if (this.canvases[canvasType]) {
             canvas = this.canvases[canvasType];
             this.canvas = canvas;
             this.setPalette(palette);
         }
         else {
-            var validPalette = palette === "green" || palette === "grey" ? palette : "color";
+            const validPalette = palette === "green" || palette === "grey" ? palette : "color";
             if (canvasType === "text") {
                 canvas = new TextCanvas({
                     canvasID: "textText" /* ViewID.textText */,
@@ -2201,7 +2206,7 @@ var Controller = /** @class */ (function () {
                 });
             }
             else { // "graphics"
-                var isAreaHidden = this.view.getHidden("cpcArea" /* ViewID.cpcArea */);
+                const isAreaHidden = this.view.getHidden("cpcArea" /* ViewID.cpcArea */);
                 // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
                 if (isAreaHidden) {
                     this.uiController.toggleAreaHiddenById("change", "showCpcInput" /* ViewID.showCpcInput */); // show: ViewID.cpcArea
@@ -2220,51 +2225,51 @@ var Controller = /** @class */ (function () {
             this.canvas = canvas;
         }
         if (this.vm) {
-            var handler = this.vm.getOnCanvasClickHandler();
+            //const handler = this.vm.getOnCanvasClickHandler();
             this.canvas.setOptions({
-                onCanvasClick: handler
+                onCanvasClick: this.vmOnCanvasClickHandler
             });
             this.vm.setCanvas(canvas);
         }
-        var canvasId = canvas.getOptions().canvasID;
+        const canvasId = canvas.getOptions().canvasID;
         this.view.setHidden(canvasId, false);
         if (this.model.getProperty("showCpc" /* ModelPropID.showCpc */)) {
             this.canvas.startUpdateCanvas();
         }
         return canvas;
-    };
-    Controller.prototype.setSoundActive = function () {
-        var sound = this.sound, active = this.model.getProperty("sound" /* ModelPropID.sound */);
+    }
+    setSoundActive() {
+        const sound = this.sound, active = this.model.getProperty("sound" /* ModelPropID.sound */);
         if (active) {
             sound.soundOn();
         }
         else {
             sound.soundOff();
-            var stop_1 = this.vm && this.vm.vmGetStopObject();
-            if (stop_1 && stop_1.reason === "waitSound") {
+            const stop = this.vm && this.vm.vmGetStopObject();
+            if (stop && stop.reason === "waitSound") {
                 this.vm.vmStop("", 0, true); // do not wait
             }
         }
-    };
-    Controller.prototype.getZ80Disass = function () {
+    }
+    getZ80Disass() {
         if (!this.z80Disass) {
-            var dataArr = this.vm.vmGetMem(), data = dataArr; // fast hack: we take number array as Uint8Array
+            const dataArr = this.vm.vmGetMem(), data = dataArr; // fast hack: we take number array as Uint8Array
             this.z80Disass = new Z80Disass({
                 data: data,
                 addr: 0
             });
         }
         return this.z80Disass;
-    };
-    Controller.prototype.setDisassAddr = function (addr, endAddr) {
-        var z80Disass = this.getZ80Disass();
+    }
+    setDisassAddr(addr, endAddr) {
+        const z80Disass = this.getZ80Disass();
         if (endAddr === undefined) {
             endAddr = addr + 0x100;
         }
         z80Disass.setOptions({
             addr: addr
         });
-        var opts = z80Disass.getOptions(), lines = [];
+        const opts = z80Disass.getOptions(), lines = [];
         while (addr < endAddr) { // currently not limited to < 0x10000
             lines.push(z80Disass.disassLine());
             if (opts.addr > addr) {
@@ -2275,39 +2280,40 @@ var Controller = /** @class */ (function () {
                 break;
             }
         }
-        var out = lines.join("\n") + "\n";
+        const out = lines.join("\n") + "\n";
         this.view.setAreaValue("disassText" /* ViewID.disassText */, out);
-    };
-    Controller.prototype.fnEndOfImport = function (imported) {
-        var stream = 0, vm = this.vm;
-        for (var i = 0; i < imported.length; i += 1) {
+    }
+    fnEndOfImport(imported) {
+        const stream = 0, vm = this.vm;
+        for (let i = 0; i < imported.length; i += 1) {
             vm.print(stream, imported[i], " ");
         }
         vm.print(stream, "\r\n", imported.length + " file" + (imported.length !== 1 ? "s" : "") + " imported.\r\n");
         this.updateResultText();
-    };
-    Controller.fnOnDragover = function (evt) {
+    }
+    static fnOnDragover(evt) {
         evt.stopPropagation();
         evt.preventDefault();
         if (evt.dataTransfer !== null) {
             evt.dataTransfer.dropEffect = "copy"; // explicitly show this is a copy
         }
-    };
-    Controller.prototype.adaptFilename = function (name, err) {
+    }
+    adaptFilename(name, err) {
         return this.vm.vmAdaptFilename(name, err);
-    };
-    Controller.prototype.getFileHandler = function () {
+    }
+    getFileHandler() {
         if (!this.fileHandler) {
             this.fileHandler = new FileHandler({
                 adaptFilename: this.adaptFilename.bind(this),
                 updateStorageDatabase: this.updateStorageDatabase.bind(this),
                 outputError: this.outputError.bind(this),
-                processFileImports: this.model.getProperty("processFileImports" /* ModelPropID.processFileImports */)
+                processFileImports: this.model.getProperty("processFileImports" /* ModelPropID.processFileImports */),
+                storage: Polyfills.localStorage || window.localStorage
             });
         }
         return this.fileHandler;
-    };
-    Controller.prototype.getFileSelect = function (fileHandler) {
+    }
+    getFileSelect(fileHandler) {
         if (!this.fileSelect) {
             this.fileSelect = new FileSelect({
                 fnEndOfImport: this.fnEndOfImport.bind(this),
@@ -2315,41 +2321,41 @@ var Controller = /** @class */ (function () {
             });
         }
         return this.fileSelect;
-    };
-    Controller.prototype.initDropZone = function () {
-        var fileHandler = this.getFileHandler(), fileSelect = this.getFileSelect(fileHandler), dropZone = View.getElementById1("dropZone" /* ViewID.dropZone */);
+    }
+    initDropZone() {
+        const fileHandler = this.getFileHandler(), fileSelect = this.getFileSelect(fileHandler), dropZone = View.getElementById1("dropZone" /* ViewID.dropZone */);
         dropZone.addEventListener("dragover", this.fnOnDragoverHandler, false);
         fileSelect.addFileSelectHandler(dropZone, "drop");
-        var canvasID = this.canvas.getOptions().canvasID, canvasElement = View.getElementById1(canvasID);
+        const canvasID = this.canvas.getOptions().canvasID, canvasElement = View.getElementById1(canvasID);
         canvasElement.addEventListener("dragover", this.fnOnDragoverHandler, false);
         fileSelect.addFileSelectHandler(canvasElement, "drop");
-        var fileInput = View.getElementById1("fileInput" /* ViewID.fileInput */);
+        const fileInput = View.getElementById1("fileInput" /* ViewID.fileInput */);
         fileSelect.addFileSelectHandler(fileInput, "change");
-    };
-    Controller.prototype.fnUpdateUndoRedoButtons = function () {
+    }
+    fnUpdateUndoRedoButtons() {
         this.view.setDisabled("undoButton" /* ViewID.undoButton */, !this.inputStack.canUndoKeepOne());
         this.view.setDisabled("undoButton2" /* ViewID.undoButton2 */, !this.inputStack.canUndoKeepOne());
         this.view.setDisabled("redoButton" /* ViewID.redoButton */, !this.inputStack.canRedo());
         this.view.setDisabled("redoButton2" /* ViewID.redoButton2 */, !this.inputStack.canRedo());
-    };
-    Controller.prototype.fnInitUndoRedoButtons = function () {
+    }
+    fnInitUndoRedoButtons() {
         this.inputStack.reset();
         this.fnUpdateUndoRedoButtons();
-    };
-    Controller.prototype.fnPutChangedInputOnStack = function () {
-        var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), stackInput = this.inputStack.getInput();
+    }
+    fnPutChangedInputOnStack() {
+        const input = this.view.getAreaValue("inputText" /* ViewID.inputText */), stackInput = this.inputStack.getInput();
         if (stackInput !== input) {
             this.inputStack.save(input);
             this.fnUpdateUndoRedoButtons();
         }
-    };
-    Controller.prototype.startUpdateCanvas = function () {
+    }
+    startUpdateCanvas() {
         this.canvas.startUpdateCanvas();
-    };
-    Controller.prototype.stopUpdateCanvas = function () {
+    }
+    stopUpdateCanvas() {
         this.canvas.stopUpdateCanvas();
-    };
-    Controller.prototype.getDragElement = function () {
+    }
+    getDragElement() {
         if (!this.dragElement) {
             this.dragElement = new DragElement({
                 view: this.view,
@@ -2357,8 +2363,8 @@ var Controller = /** @class */ (function () {
             });
         }
         return this.dragElement;
-    };
-    Controller.prototype.getVirtualKeyboard = function () {
+    }
+    getVirtualKeyboard() {
         if (!this.virtualKeyboard) {
             this.virtualKeyboard = new VirtualKeyboard({
                 view: this.view,
@@ -2367,61 +2373,59 @@ var Controller = /** @class */ (function () {
             });
         }
         return this.virtualKeyboard;
-    };
-    Controller.prototype.fnDragElementsActive = function (enabled) {
-        var dragElement = this.getDragElement(), dragElementsData = this.dragElementsData;
-        for (var entry in dragElementsData.entries) {
+    }
+    fnDragElementsActive(enabled) {
+        const dragElement = this.getDragElement(), dragElementsData = this.dragElementsData;
+        for (const entry in dragElementsData.entries) {
             if (dragElementsData.entries.hasOwnProperty(entry)) {
                 dragElementsData.entries[entry].enabled = enabled;
             }
         }
         dragElement.setOptions(this.dragElementsData);
-    };
-    Controller.prototype.getVariable = function (par) {
+    }
+    getVariable(par) {
         return this.variables.getVariable(par);
-    };
-    Controller.prototype.undoStackElement = function () {
+    }
+    undoStackElement() {
         return this.inputStack.undo();
-    };
-    Controller.prototype.redoStackElement = function () {
+    }
+    redoStackElement() {
         return this.inputStack.redo();
-    };
-    Controller.prototype.createFnDatabaseLoaded = function (url) {
-        var _this = this;
-        return function (_sFullUrl, key) {
-            var selectedName = _this.model.getProperty("database" /* ModelPropID.database */);
+    }
+    createFnDatabaseLoaded(url) {
+        return (_sFullUrl, key) => {
+            const selectedName = this.model.getProperty("database" /* ModelPropID.database */);
             if (selectedName === key) {
-                _this.model.getDatabase().loaded = true;
+                this.model.getDatabase().loaded = true;
             }
             else { // should not occur
                 UiUtils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
-                _this.model.setProperty("database" /* ModelPropID.database */, key);
-                var database = _this.model.getDatabase();
+                this.model.setProperty("database" /* ModelPropID.database */, key);
+                const database = this.model.getDatabase();
                 if (database) {
                     database.loaded = true;
                 }
-                _this.model.setProperty("database" /* ModelPropID.database */, selectedName);
+                this.model.setProperty("database" /* ModelPropID.database */, selectedName);
             }
             UiUtils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
-            _this.setDirectorySelectOptions();
-            _this.onDirectorySelectChange();
+            this.setDirectorySelectOptions();
+            this.onDirectorySelectChange();
         };
-    };
-    Controller.prototype.createFnDatabaseError = function (url) {
-        var _this = this;
-        return function (_sFullUrl, key) {
+    }
+    createFnDatabaseError(url) {
+        return (_sFullUrl, key) => {
             UiUtils.console.error("fnDatabaseError: database error: " + key + ": " + url);
-            _this.setDirectorySelectOptions();
-            _this.onDirectorySelectChange();
-            _this.setInputText("");
-            _this.setResultText("Cannot load database: " + key);
+            this.setDirectorySelectOptions();
+            this.onDirectorySelectChange();
+            this.setInputText("");
+            this.setResultText("Cannot load database: " + key);
         };
-    };
-    Controller.prototype.onDatabaseSelectChange = function () {
-        var databaseName = this.view.getSelectValue("databaseSelect" /* ViewID.databaseSelect */);
+    }
+    onDatabaseSelectChange() {
+        const databaseName = this.view.getSelectValue("databaseSelect" /* ViewID.databaseSelect */);
         this.model.setProperty("database" /* ModelPropID.database */, databaseName);
         this.view.setSelectTitleFromSelectedOption("databaseSelect" /* ViewID.databaseSelect */);
-        var database = this.model.getDatabase();
+        const database = this.model.getDatabase();
         if (!database) {
             UiUtils.console.error("onDatabaseSelectChange: database not available:", databaseName);
             return;
@@ -2436,27 +2440,27 @@ var Controller = /** @class */ (function () {
         }
         else {
             this.setInputText("#loading database " + databaseName + "...");
-            var exampleIndex = this.model.getProperty("exampleIndex" /* ModelPropID.exampleIndex */), url = database.src + "/" + exampleIndex;
+            const exampleIndex = this.model.getProperty("exampleIndex" /* ModelPropID.exampleIndex */), url = database.src + "/" + exampleIndex;
             this.getLoadScript()(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
         }
-    };
-    Controller.prototype.onDirectorySelectChange = function () {
+    }
+    onDirectorySelectChange() {
         this.setExampleSelectOptions();
         this.onExampleSelectChange();
-    };
-    Controller.prototype.onExampleSelectChange = function () {
-        var vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getProperty("database" /* ModelPropID.database */), directoryName = this.view.getSelectValue("directorySelect" /* ViewID.directorySelect */);
+    }
+    onExampleSelectChange() {
+        const vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getProperty("database" /* ModelPropID.database */), directoryName = this.view.getSelectValue("directorySelect" /* ViewID.directorySelect */);
         vm.closein();
         this.uiController.setPopoversHiddenExcept(); // hide all popovers, especially the gallery
         inFile.open = true;
-        var exampleName = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */);
+        let exampleName = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */);
         if (directoryName) {
             exampleName = directoryName + "/" + exampleName;
         }
-        var exampleEntry = this.model.getExample(exampleName);
-        var autorun = this.model.getProperty("autorun" /* ModelPropID.autorun */);
+        const exampleEntry = this.model.getExample(exampleName);
+        let autorun = this.model.getProperty("autorun" /* ModelPropID.autorun */);
         if (exampleEntry && exampleEntry.meta) { // TTT TODO: this is just a workaround, meta is in input now; should change command after loading!
-            var type = exampleEntry.meta.charAt(0);
+            const type = exampleEntry.meta.charAt(0);
             if (type === "B" || type === "D" || type === "G") { // binary, data only, Gena Assembler?
                 autorun = false;
             }
@@ -2473,15 +2477,15 @@ var Controller = /** @class */ (function () {
         inFile.fnFileCallback = vm.vmGetLoadHandler();
         vm.vmStop("fileLoad", 90);
         this.startMainLoop();
-    };
+    }
     // currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
-    Controller.prototype.exportAsBase64 = function (storageName) {
-        var storage = Controller.getLocalStorage();
-        var data = storage.getItem(storageName), out = "";
+    exportAsBase64(storageName) {
+        const storage = Controller.getLocalStorage();
+        let data = storage.getItem(storageName), out = "";
         if (data !== null) {
-            var index = data.indexOf(","); // metadata separator
+            const index = data.indexOf(","); // metadata separator
             if (index >= 0) {
-                var meta = data.substring(0, index);
+                const meta = data.substring(0, index);
                 data = data.substring(index + 1);
                 data = window.btoa(data);
                 out = meta + ";base64," + data;
@@ -2493,27 +2497,27 @@ var Controller = /** @class */ (function () {
         }
         UiUtils.console.log(out);
         return out;
-    };
-    Controller.prototype.onCpcCanvasClick = function (event) {
+    }
+    onCpcCanvasClick(event) {
         this.uiController.setPopoversHiddenExcept(); // hide all popovers
         this.canvas.onCanvasClick(event);
         this.keyboard.setActive(true);
-    };
-    Controller.prototype.onWindowClick = function (event) {
+    }
+    onWindowClick(event) {
         this.canvas.onWindowClick(event);
         this.keyboard.setActive(false);
-    };
-    Controller.prototype.fnArrayBounds = function () {
-        var arrayBounds = this.model.getProperty("arrayBounds" /* ModelPropID.arrayBounds */);
+    }
+    fnArrayBounds() {
+        const arrayBounds = this.model.getProperty("arrayBounds" /* ModelPropID.arrayBounds */);
         this.variables.setOptions({
             arrayBounds: arrayBounds
         });
         this.vm.vmGoto(0); // reset current line
         this.vm.vmStop("end", 0, true);
         this.fnRemoveAllVariables();
-    };
-    Controller.prototype.fnImplicitLines = function () {
-        var implicitLines = this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */);
+    }
+    fnImplicitLines() {
+        const implicitLines = this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */);
         this.codeGeneratorJs.setOptions({
             implicitLines: implicitLines
         });
@@ -2522,95 +2526,93 @@ var Controller = /** @class */ (function () {
                 implicitLines: implicitLines
             });
         }
-    };
-    Controller.prototype.fnRemoveAllVariables = function () {
+    }
+    fnRemoveAllVariables() {
         if (Object.keys(this.variables.getAllVariables()).length) {
             this.variables.removeAllVariables();
             this.setVarSelectOptions("varSelect" /* ViewID.varSelect */, this.variables);
         }
-    };
-    Controller.prototype.fnPrettyLowercaseVars = function () {
-        var prettyLowercaseVars = this.model.getProperty("prettyLowercaseVars" /* ModelPropID.prettyLowercaseVars */);
+    }
+    fnPrettyLowercaseVars() {
+        const prettyLowercaseVars = this.model.getProperty("prettyLowercaseVars" /* ModelPropID.prettyLowercaseVars */);
         this.getCodeGeneratorBasic().setOptions({
             lowercaseVars: prettyLowercaseVars
         });
-    };
-    Controller.prototype.fnIntegerOverflow = function () {
-        var integerOverflow = this.model.getProperty("integerOverflow" /* ModelPropID.integerOverflow */);
+    }
+    fnIntegerOverflow() {
+        const integerOverflow = this.model.getProperty("integerOverflow" /* ModelPropID.integerOverflow */);
         this.codeGeneratorJs.setOptions({
             integerOverflow: integerOverflow
         });
-    };
-    Controller.prototype.fnTrace = function () {
-        var trace = this.model.getProperty("trace" /* ModelPropID.trace */);
+    }
+    fnTrace() {
+        const trace = this.model.getProperty("trace" /* ModelPropID.trace */);
         this.codeGeneratorJs.setOptions({
             trace: trace
         });
-    };
-    Controller.prototype.fnSpeed = function () {
-        var speed = this.model.getProperty("speed" /* ModelPropID.speed */);
+    }
+    fnSpeed() {
+        const speed = this.model.getProperty("speed" /* ModelPropID.speed */);
         this.initialLoopTimeout = 1000 - speed * 10;
-    };
-    Controller.codeGenJsBasicParserOptions = {
-        keepBrackets: false,
-        keepColons: false,
-        keepDataComma: false,
-        keepTokens: false
-    };
-    Controller.codeGenTokenBasicParserOptions = {
-        keepTokens: true,
-        keepBrackets: true,
-        keepColons: true,
-        keepDataComma: true
-    };
-    Controller.formatterBasicParserOptions = {
-        keepBrackets: false,
-        keepColons: false,
-        keepDataComma: false,
-        keepTokens: false
-    };
-    Controller.exportEditorText = "<editor>";
-    // gate array ink to basic ink
-    Controller.gaInk2Ink = [
-        13,
-        27,
-        19,
-        25,
-        1,
-        7,
-        10,
-        16,
-        28,
-        29,
-        24,
-        26,
-        6,
-        8,
-        15,
-        17,
-        30,
-        31,
-        18,
-        20,
-        0,
-        2,
-        9,
-        11,
-        4,
-        22,
-        21,
-        23,
-        3,
-        5,
-        12,
-        14
-    ];
-    Controller.defaultExtensions = [
-        "",
-        "bas",
-        "bin"
-    ];
-    return Controller;
-}());
-export { Controller };
+    }
+}
+Controller.codeGenJsBasicParserOptions = {
+    keepBrackets: false,
+    keepColons: false,
+    keepDataComma: false,
+    keepTokens: false
+};
+Controller.codeGenTokenBasicParserOptions = {
+    keepTokens: true,
+    keepBrackets: true,
+    keepColons: true,
+    keepDataComma: true
+};
+Controller.formatterBasicParserOptions = {
+    keepBrackets: false,
+    keepColons: false,
+    keepDataComma: false,
+    keepTokens: false
+};
+Controller.exportEditorText = "<editor>";
+// gate array ink to basic ink
+Controller.gaInk2Ink = [
+    13,
+    27,
+    19,
+    25,
+    1,
+    7,
+    10,
+    16,
+    28,
+    29,
+    24,
+    26,
+    6,
+    8,
+    15,
+    17,
+    30,
+    31,
+    18,
+    20,
+    0,
+    2,
+    9,
+    11,
+    4,
+    22,
+    21,
+    23,
+    3,
+    5,
+    12,
+    14
+];
+Controller.defaultExtensions = [
+    "",
+    "bas",
+    "bin"
+];
 //# sourceMappingURL=Controller.js.map

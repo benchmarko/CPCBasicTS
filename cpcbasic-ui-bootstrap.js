@@ -751,6 +751,7 @@
 	  ModelPropID2["trace"] = "trace";
 	  return ModelPropID2;
 	})(ModelPropID || {});
+
 	var ViewID = /* @__PURE__ */ ((ViewID2) => {
 	  ViewID2["arrayBoundsInput"] = "arrayBoundsInput";
 	  ViewID2["autorunInput"] = "autorunInput";
@@ -867,6 +868,7 @@
 	})(ViewID || {});
 
 	const _Utils = class _Utils {
+	  //typeof globalThis !== "undefined" ? globalThis.console : undefined;
 	  static setDebug(debug) {
 	    _Utils.debug = debug;
 	  }
@@ -4143,7 +4145,7 @@
 	    this.canvas = canvas;
 	    this.cpcAreaBox = View.getElementById1(ViewID.cpcArea);
 	    if (canvas.offsetParent === null) {
-	      Utils.console.error("Error: canvas is not visible!");
+	      UiUtils.console.error("Error: canvas is not visible!");
 	    }
 	    const width = canvas.width, height = canvas.height;
 	    this.width = width;
@@ -4159,15 +4161,15 @@
 	        this.pen2Color32 = new Uint32Array(new ArrayBuffer(_Canvas.modeData[3].pens * 4));
 	        this.data32 = new Uint32Array(this.imageData.data.buffer);
 	        this.use32BitCopy = true;
-	        Utils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
+	        UiUtils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
 	      } else {
 	        this.setAlpha(255);
 	        this.use32BitCopy = false;
-	        Utils.console.log("Canvas: using copy2Canvas8bit");
+	        UiUtils.console.log("Canvas: using copy2Canvas8bit");
 	      }
 	      this.fnCopy2Canvas = this.getCopy2CanvasFunction(this.offset);
 	    } else {
-	      Utils.console.warn("Error: canvas.getContext is not supported.");
+	      UiUtils.console.warn("Error: canvas.getContext is not supported.");
 	      this.fnCopy2Canvas = () => {
 	      };
 	      this.ctx = {};
@@ -4540,7 +4542,7 @@
 	            this.dataset8[i] |= gPen;
 	            break;
 	          default:
-	            Utils.console.warn("setSubPixels: Unknown colMode:", gColMode);
+	            UiUtils.console.warn("setSubPixels: Unknown colMode:", gColMode);
 	            break;
 	        }
 	        i += 1;
@@ -4755,7 +4757,7 @@
 	  printGChar(char) {
 	    const charWidth = this.modeData.pixelWidth * 8;
 	    if (char >= this.options.charset.length) {
-	      Utils.console.warn("printGChar: Ignoring char with code", char);
+	      UiUtils.console.warn("printGChar: Ignoring char with code", char);
 	      return;
 	    }
 	    this.setChar(char, this.xPos, this.yPos, this.gPen, this.gPaper, this.gTransparent, this.gColMode, true);
@@ -4765,7 +4767,7 @@
 	  printChar(char, x, y, pen, paper, transparent) {
 	    const charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, pens = this.modeData.pens;
 	    if (char >= this.options.charset.length) {
-	      Utils.console.warn("printChar: Ignoring char with code", char);
+	      UiUtils.console.warn("printChar: Ignoring char with code", char);
 	      return;
 	    }
 	    pen %= pens;
@@ -4995,7 +4997,7 @@
 	    if (this.canvas.toDataURL) {
 	      return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
 	    }
-	    Utils.console.warn("Screenshot not available");
+	    UiUtils.console.warn("Screenshot not available");
 	    return "";
 	  }
 	};
@@ -8634,7 +8636,7 @@
 	  vmGetMem() {
 	    return this.mem;
 	  }
-	  onCanvasClickCallback(event, x, y, xTxt, yTxt) {
+	  onCanvasClickCallback(x, y, xTxt, yTxt, doubleClick) {
 	    const height = 400;
 	    let char = -1;
 	    x -= this.canvas.getXOrigin();
@@ -8650,7 +8652,7 @@
 	          break;
 	        }
 	      }
-	      if ((char < 0 || char === 32 || char === 143) && event.detail === 2) {
+	      if ((char < 0 || char === 32 || char === 143) && doubleClick) {
 	        char = 13;
 	      }
 	      if (char >= 0) {
@@ -13511,14 +13513,14 @@
 	          data = dsk.readFile(dir[fileName]);
 	          this.fnLoad2(data, fileName, "", imported);
 	        } catch (e) {
-	          UiUtils.console.error(e);
+	          Utils.console.error(e);
 	          if (e instanceof Error) {
 	            this.options.outputError(e, true);
 	          }
 	        }
 	      }
 	    } catch (e) {
-	      UiUtils.console.error(e);
+	      Utils.console.error(e);
 	      if (e instanceof Error) {
 	        this.options.outputError(e, true);
 	      }
@@ -13533,7 +13535,7 @@
 	        zipName: name
 	      });
 	    } catch (e) {
-	      UiUtils.console.error(e);
+	      Utils.console.error(e);
 	      if (e instanceof Error) {
 	        this.options.outputError(e, true);
 	      }
@@ -13543,13 +13545,13 @@
 	      for (let i = 0; i < entries.length; i += 1) {
 	        const name2 = entries[i];
 	        if (name2.startsWith("__MACOSX/")) {
-	          UiUtils.console.log("processZipFile: Ignoring file:", name2);
+	          Utils.console.log("processZipFile: Ignoring file:", name2);
 	        } else {
 	          let data2;
 	          try {
 	            data2 = zip.readData(name2);
 	          } catch (e) {
-	            UiUtils.console.error(e);
+	            Utils.console.error(e);
 	            if (e instanceof Error) {
 	              this.options.outputError(e, true);
 	            }
@@ -13605,7 +13607,7 @@
 	        break;
 	      case "Z":
 	        if (this.processFileImports) {
-	          this.processZipFile(data instanceof Uint8Array ? data : UiUtils.string2Uint8Array(data), name, imported);
+	          this.processZipFile(data instanceof Uint8Array ? data : Utils.string2Uint8Array(data), name, imported);
 	        } else {
 	          header = DiskImage.createAmsdosHeader({
 	            typeString: type,
@@ -13614,7 +13616,7 @@
 	        }
 	        break;
 	      default:
-	        UiUtils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
+	        Utils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
 	        header = DiskImage.createAmsdosHeader({
 	          typeString: "B",
 	          length: data.length
@@ -13622,14 +13624,14 @@
 	        break;
 	    }
 	    if (header) {
-	      const storageName = _FileHandler.fnLocalStorageName(this.options.adaptFilename(name, "FILE")), meta = _FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? UiUtils.uint8Array2string(data) : data;
+	      const storageName = _FileHandler.fnLocalStorageName(this.options.adaptFilename(name, "FILE")), meta = _FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? Utils.uint8Array2string(data) : data;
 	      try {
-	        (Polyfills.localStorage || window.localStorage).setItem(storageName, meta + "," + dataAsString);
+	        this.options.storage.setItem(storageName, meta + "," + dataAsString);
 	        this.options.updateStorageDatabase("set", storageName);
-	        UiUtils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+	        Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
 	        imported.push(name);
 	      } catch (e) {
-	        UiUtils.console.error(e);
+	        Utils.console.error(e);
 	        if (e instanceof Error) {
 	          if (e.name === "QuotaExceededError") {
 	            e.shortMessage = storageName + ": Quota exceeded";
@@ -17999,8 +18001,15 @@
 	      variables: this.variables,
 	      onClickKey: this.fnPutKeyInBufferHandler
 	    });
+	    const onCanvasClick = (event, x, y, xTxt, yTxt) => {
+	      const handler = this.vm.getOnCanvasClickHandler();
+	      handler(x, y, xTxt, yTxt, event.detail === 2);
+	    };
+	    this.vmOnCanvasClickHandler = onCanvasClick;
+	    this.vm.getOnCanvasClickHandler();
 	    this.canvas.setOptions({
-	      onCanvasClick: this.vm.getOnCanvasClickHandler()
+	      //onCanvasClick: this.vm.getOnCanvasClickHandler()
+	      onCanvasClick
 	    });
 	    this.vm.setCanvas(this.canvas);
 	    this.vm.vmReset();
@@ -18051,6 +18060,9 @@
 	  }
 	  static getLocalStorage() {
 	    return Polyfills.localStorage || window.localStorage;
+	  }
+	  getCanvas() {
+	    return this.canvas;
 	  }
 	  //TODO
 	  /*
@@ -19955,9 +19967,8 @@
 	      this.canvas = canvas;
 	    }
 	    if (this.vm) {
-	      const handler = this.vm.getOnCanvasClickHandler();
 	      this.canvas.setOptions({
-	        onCanvasClick: handler
+	        onCanvasClick: this.vmOnCanvasClickHandler
 	      });
 	      this.vm.setCanvas(canvas);
 	    }
@@ -20035,7 +20046,8 @@
 	        adaptFilename: this.adaptFilename.bind(this),
 	        updateStorageDatabase: this.updateStorageDatabase.bind(this),
 	        outputError: this.outputError.bind(this),
-	        processFileImports: this.model.getProperty(ModelPropID.processFileImports)
+	        processFileImports: this.model.getProperty(ModelPropID.processFileImports),
+	        storage: Polyfills.localStorage || window.localStorage
 	      });
 	    }
 	    return this.fileHandler;
@@ -20344,7 +20356,9 @@
 	class UI {
 	  constructor() {
 	    this.view = new View();
+	    this.controller = {};
 	  }
+	  //private core = {} as ICore;
 	  /*
 	  	private static fnMapObjectProperties(arg: any) {
 	  		if (typeof arg === "object") {
@@ -20436,11 +20450,13 @@
 	  		};
 	  	}
 	  	*/
+	  getCanvasVm() {
+	    return this.controller?.getCanvas();
+	  }
 	  getCurrentDataKey() {
 	    return document.currentScript && document.currentScript.getAttribute("data-key") || "";
 	  }
 	  onWindowLoadContinue(core) {
-	    this.core = core;
 	    const model = core.getModel();
 	    const config = model.getAllProperties();
 	    const args = UI.parseUri(config);
@@ -20456,6 +20472,2404 @@
 	    this.controller.onDatabaseSelectChange();
 	  }
 	}
+
+	const _Controller0 = class _Controller0 {
+	  //private z80Disass?: Z80Disass;
+	  constructor(core, options) {
+	    this.inScript = "";
+	    this.outScript = "";
+	    this.fnScript = void 0;
+	    // eslint-disable-line @typescript-eslint/no-unsafe-function-type
+	    this.timeoutHandlerActive = false;
+	    this.nextLoopTimeOut = 0;
+	    // next timeout for the main loop
+	    this.initialLoopTimeout = 0;
+	    /* eslint-disable no-invalid-this */
+	    this.handlers = {
+	      timer: this.fnTimer,
+	      waitKey: this.fnWaitKey,
+	      waitFrame: this.fnWaitFrame,
+	      waitSound: this.fnWaitSound,
+	      waitInput: this.fnWaitInput,
+	      fileCat: this.fnFileCat,
+	      fileDir: this.fnFileDir,
+	      fileEra: this.fnFileEra,
+	      fileRen: this.fnFileRen,
+	      error: _Controller0.fnDummy,
+	      onError: this.fnOnError,
+	      stop: _Controller0.fnDummy,
+	      "break": _Controller0.fnDummy,
+	      escape: _Controller0.fnDummy,
+	      renumLines: this.fnRenumLines,
+	      deleteLines: this.fnDeleteLines,
+	      end: _Controller0.fnDummy,
+	      editLine: this.fnEditLine,
+	      list: this.fnList,
+	      fileLoad: this.fnFileLoad,
+	      fileSave: this.fnFileSave,
+	      "new": this.fnNew,
+	      run: this.fnRun,
+	      parse: this.fnParse,
+	      parseRun: this.fnParseRun,
+	      reset: this.fnReset
+	    };
+	    this.fnRunLoopHandler = this.fnRunLoop.bind(this);
+	    this.fnDirectInputHandler = this.fnDirectInput.bind(this);
+	    this.fnPutKeyInBufferHandler = this.fnPutKeysInBuffer.bind(this);
+	    this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
+	    this.core = core;
+	    const model = this.core.getModel();
+	    this.options = options;
+	    this.variables = new Variables({
+	      arrayBounds: model.getProperty(ModelPropID.arrayBounds)
+	    });
+	    this.fnSpeed();
+	    const random = new Random(model.getProperty(ModelPropID.random) === "cpc");
+	    this.vm = new CpcVm({
+	      canvas: this.options.canvas,
+	      keyboard: this.options.keyboard,
+	      random,
+	      sound: this.options.sound,
+	      variables: this.variables,
+	      onClickKey: this.fnPutKeyInBufferHandler
+	    });
+	    this.vm.setCanvas(this.options.canvas);
+	    this.vm.vmReset();
+	    this.vm.vmRegisterRsx(new RsxAmsdos(), true);
+	    this.vm.vmRegisterRsx(new RsxCpcBasic(), true);
+	    this.noStop = Object.assign({}, this.vm.vmGetStopObject());
+	    this.savedStop = {
+	      reason: "",
+	      priority: 0,
+	      paras: {
+	        command: "",
+	        stream: 0,
+	        line: 0,
+	        first: 0,
+	        // unused
+	        last: 0
+	        // unused
+	      }
+	    };
+	    this.setStopObject(this.noStop);
+	    this.basicParser = new BasicParser({
+	      basicVersion: model.getProperty(ModelPropID.basicVersion)
+	    });
+	    this.basicLexer = new BasicLexer({
+	      keywords: this.basicParser.getKeywords()
+	    });
+	    this.codeGeneratorJs = new CodeGeneratorJs({
+	      lexer: this.basicLexer,
+	      parser: this.basicParser,
+	      trace: model.getProperty(ModelPropID.trace),
+	      implicitLines: model.getProperty(ModelPropID.implicitLines),
+	      integerOverflow: model.getProperty(ModelPropID.integerOverflow)
+	    });
+	    this.hasStorageDatabase = this.getHasStorageDatabase();
+	    this.storage = this.options.storage;
+	  }
+	  getStorage() {
+	    return this.storage;
+	  }
+	  getHasStorageDatabase() {
+	    const databases = this.core.getModel().getAllDatabases();
+	    let hasStorageDatabase = false;
+	    for (const value in databases) {
+	      if (databases.hasOwnProperty(value)) {
+	        if (value === "storage") {
+	          hasStorageDatabase = true;
+	        }
+	      }
+	    }
+	    return hasStorageDatabase;
+	  }
+	  /*
+	  private initDatabases() {
+	  	return getHasStorageDatabase
+	  }
+	  */
+	  // private onUserAction(/* event, id */) {
+	  // 	this.uiController.deactivateUserAction(); // deactivate user action
+	  // 	this.sound.setActivatedByUser();
+	  // 	this.setSoundActive();
+	  // }
+	  // private setDatabaseSelectOptions() {
+	  // 	const items: SelectOptionElement[] = [],
+	  // 		databases = this.core.getModel().getAllDatabases(),
+	  // 		database = this.core.getModel().getProperty<string>(ModelPropID.database);
+	  // 	for (const value in databases) {
+	  // 		if (databases.hasOwnProperty(value)) {
+	  // 			const db = databases[value],
+	  // 				item: SelectOptionElement = {
+	  // 					value: value,
+	  // 					text: db.text,
+	  // 					title: db.title,
+	  // 					selected: value === database
+	  // 				};
+	  // 			items.push(item);
+	  // 		}
+	  // 	}
+	  // 	this.view.setSelectOptions(ViewID.databaseSelect, items);
+	  // }
+	  // private static getPathFromExample(example: string) {
+	  // 	const index = example.lastIndexOf("/");
+	  // 	let path = "";
+	  // 	if (index >= 0) {
+	  // 		path = example.substring(0, index);
+	  // 	}
+	  // 	return path;
+	  // }
+	  // private static getNameFromExample(example: string) {
+	  // 	const index = example.lastIndexOf("/");
+	  // 	let name = example;
+	  // 	if (index >= 0) {
+	  // 		name = example.substring(index + 1);
+	  // 	}
+	  // 	return name;
+	  // }
+	  // private setDirectorySelectOptions() {
+	  // 	const items: SelectOptionElement[] = [],
+	  // 		allExamples = this.core.getModel().getAllExamples(),
+	  // 		examplePath = Controller0.getPathFromExample(this.core.getModel().getProperty<string>(ModelPropID.example)),
+	  // 		directorySeen: Record<string, boolean> = {};
+	  // 	for (const key in allExamples) {
+	  // 		if (allExamples.hasOwnProperty(key)) {
+	  // 			const exampleEntry = allExamples[key],
+	  // 				value = Controller0.getPathFromExample(exampleEntry.key);
+	  // 			if (!directorySeen[value]) {
+	  // 				const item: SelectOptionElement = {
+	  // 					value: value,
+	  // 					text: value,
+	  // 					title: value,
+	  // 					selected: value === examplePath
+	  // 				};
+	  // 				items.push(item);
+	  // 				directorySeen[value] = true;
+	  // 			}
+	  // 		}
+	  // 	}
+	  // 	this.view.setSelectOptions(ViewID.directorySelect, items);
+	  // }
+	  // setExampleSelectOptions(): void {
+	  // 	const maxTitleLength = 160,
+	  // 		maxTextLength = 60, // (32 visible?)
+	  // 		items: SelectOptionElement[] = [],
+	  // 		exampleName = Controller0.getNameFromExample(this.core.getModel().getProperty<string>(ModelPropID.example)),
+	  // 		allExamples = this.core.getModel().getAllExamples(),
+	  // 		directoryName = this.view.getSelectValue(ViewID.directorySelect),
+	  // 		selectDataFiles = this.core.getModel().getProperty<boolean>(ModelPropID.selectDataFiles);
+	  // 	let exampleSelected = false;
+	  // 	for (const key in allExamples) {
+	  // 		if (allExamples.hasOwnProperty(key) && (Controller0.getPathFromExample(key) === directoryName)) {
+	  // 			const exampleEntry = allExamples[key],
+	  // 				exampleName2 = Controller0.getNameFromExample(exampleEntry.key);
+	  // 			if (selectDataFiles || (exampleEntry.meta !== "D")) { // skip data files
+	  // 				const title = (exampleName2 + ": " + exampleEntry.title).substring(0, maxTitleLength),
+	  // 					item: SelectOptionElement = {
+	  // 						value: exampleName2,
+	  // 						title: title,
+	  // 						text: title.substring(0, maxTextLength),
+	  // 						selected: exampleName2 === exampleName
+	  // 					};
+	  // 				if (item.selected) {
+	  // 					exampleSelected = true;
+	  // 				}
+	  // 				items.push(item);
+	  // 			}
+	  // 		}
+	  // 	}
+	  // 	if (!exampleSelected && items.length) {
+	  // 		items[0].selected = true; // if example is not found, select first element
+	  // 	}
+	  // 	this.view.setSelectOptions(ViewID.exampleSelect, items);
+	  // }
+	  // setGalleryAreaInputs(): void {
+	  // 	const database = this.core.getModel().getDatabase(),
+	  // 		directory = this.view.getSelectValue(ViewID.directorySelect),
+	  // 		options = this.view.getSelectOptions(ViewID.exampleSelect),
+	  // 		inputs: AreaInputElement[] = [];
+	  // 	for (let i = 0; i < options.length; i += 1) {
+	  // 		const item = options[i],
+	  // 			input: AreaInputElement = {
+	  // 				value: item.value,
+	  // 				title: item.title,
+	  // 				checked: item.selected,
+	  // 				imgUrl: database.src + "/" + directory + "/img/" + item.value + ".png"
+	  // 			};
+	  // 		inputs.push(input);
+	  // 	}
+	  // 	this.view.setAreaInputList(ViewID.galleryAreaItems, inputs);
+	  // }
+	  // private static fnSortByStringProperties(a: SelectOptionElement, b: SelectOptionElement) {
+	  // 	const x = a.value,
+	  // 		y = b.value;
+	  // 	if (x < y) {
+	  // 		return -1;
+	  // 	} else if (x > y) {
+	  // 		return 1;
+	  // 	}
+	  // 	return 0;
+	  // }
+	  // private setVarSelectOptions(select: ViewID, variables: Variables) {
+	  // 	const maxVarLength = 35,
+	  // 		varNames = variables.getAllVariableNames(),
+	  // 		items: SelectOptionElement[] = [];
+	  // 	for (let i = 0; i < varNames.length; i += 1) {
+	  // 		const key = varNames[i],
+	  // 			value = variables.getVariable(key),
+	  // 			title = key + "=" + value;
+	  // 		let strippedTitle = title.substring(0, maxVarLength); // limit length
+	  // 		if (title !== strippedTitle) {
+	  // 			strippedTitle += " ...";
+	  // 		}
+	  // 		const item: SelectOptionElement = {
+	  // 			value: key,
+	  // 			text: strippedTitle,
+	  // 			title: strippedTitle,
+	  // 			selected: false
+	  // 		};
+	  // 		items.push(item);
+	  // 	}
+	  // 	items.sort(Controller0.fnSortByStringProperties);
+	  // 	this.view.setSelectOptions(select, items);
+	  // }
+	  // private static readonly exportEditorText = "<editor>";
+	  // setExportSelectOptions(select: ViewID): void {
+	  // 	const dirList = this.fnGetStorageDirectoryEntries(),
+	  // 		items: SelectOptionElement[] = [],
+	  // 		editorText = Controller0.exportEditorText;
+	  // 	dirList.sort(); // we sort keys without editorText
+	  // 	dirList.unshift(editorText);
+	  // 	for (let i = 0; i < dirList.length; i += 1) {
+	  // 		const key = dirList[i],
+	  // 			title = key,
+	  // 			item: SelectOptionElement = {
+	  // 				value: key,
+	  // 				text: title,
+	  // 				title: title,
+	  // 				selected: title === editorText
+	  // 			};
+	  // 		items.push(item);
+	  // 	}
+	  // 	// sort already done
+	  // 	this.view.setSelectOptions(select, items);
+	  // }
+	  updateStorageDatabase(action, key) {
+	    if (!this.hasStorageDatabase) {
+	      return;
+	    }
+	    const database = this.core.getModel().getProperty(ModelPropID.database), storage = this.getStorage();
+	    let selectedExample = "", exampleChanged = false;
+	    if (database !== "storage") {
+	      this.core.getModel().setProperty(ModelPropID.database, "storage");
+	    } else {
+	      selectedExample = this.core.getModel().getProperty(ModelPropID.example);
+	    }
+	    let dir;
+	    if (!key) {
+	      dir = this.fnGetStorageDirectoryEntries();
+	      dir.sort();
+	    } else {
+	      dir = [key];
+	    }
+	    for (let i = 0; i < dir.length; i += 1) {
+	      key = dir[i];
+	      if (action === "remove") {
+	        this.core.getModel().removeExample(key);
+	      } else if (action === "set") {
+	        let example = this.core.getModel().getExample(key);
+	        if (selectedExample === "" || selectedExample === key) {
+	          exampleChanged = true;
+	        }
+	        if (!example) {
+	          const dataString = storage.getItem(key) || "", data = _Controller0.splitMeta(dataString);
+	          example = {
+	            key,
+	            title: "",
+	            // or set key?
+	            meta: data.meta.typeString
+	            // currently we take only the type
+	          };
+	          this.core.getModel().setExample(example);
+	        }
+	      } else {
+	        Utils.console.error("updateStorageDatabase: unknown action", action);
+	      }
+	    }
+	    if (database === "storage") {
+	      if (exampleChanged) {
+	        this.onDirectorySelectChange();
+	      }
+	    } else {
+	      this.core.getModel().setProperty(ModelPropID.database, database);
+	    }
+	  }
+	  // private removeKeyBoardHandler() {
+	  // 	this.keyboard.setOptions({
+	  // 		fnOnKeyDown: undefined
+	  // 	});
+	  // }
+	  getInputText() {
+	    const example = this.core.getModel().getProperty(ModelPropID.example);
+	    const exampleEntry = this.core.getModel().getExample(example);
+	    return String(exampleEntry.script);
+	  }
+	  setInputText(input, _keepStack) {
+	    this.inScript = input;
+	    if (Utils.debug > 0) {
+	      Utils.console.debug("inScript.length=", this.inScript.length);
+	    }
+	  }
+	  // setInputText(input: string, keepStack?: boolean): void {
+	  // 	this.view.setAreaValue(ViewID.inputText, input);
+	  // 	if (!keepStack) {
+	  // 		this.fnInitUndoRedoButtons();
+	  // 	} else {
+	  // 		this.fnUpdateUndoRedoButtons();
+	  // 	}
+	  // }
+	  invalidateScript() {
+	    this.fnScript = void 0;
+	  }
+	  // private fnWaitForContinue() {
+	  // 	const stream = 0,
+	  // 		key = this.keyboard.getKeyFromBuffer();
+	  // 	if (key !== "") {
+	  // 		this.vm.cursor(stream, 0);
+	  // 		this.removeKeyBoardHandler();
+	  // 		this.startContinue();
+	  // 	}
+	  // }
+	  // private fnOnEscape() {
+	  // 	const stop = this.vm.vmGetStopObject(),
+	  // 		stream = 0;
+	  // 	if (this.vm.vmOnBreakContSet()) {
+	  // 		// ignore break
+	  // 	} else if (stop.reason === "direct" || this.vm.vmOnBreakHandlerActive()) {
+	  // 		(stop.paras as VmInputParas).input = "";
+	  // 		const msg = "*Break*\r\n";
+	  // 		this.vm.print(stream, msg);
+	  // 	} else if (stop.reason !== "escape") { // first escape?
+	  // 		this.vm.cursor(stream, 1);
+	  // 		this.keyboard.clearInput();
+	  // 		this.keyboard.setOptions({
+	  // 			fnOnKeyDown: this.fnWaitForContinueHandler
+	  // 		});
+	  // 		this.setStopObject(stop);
+	  // 		this.vm.vmStop("escape", 85, false, {
+	  // 			command: "escape",
+	  // 			stream: stream,
+	  // 			first: 0, // unused
+	  // 			last: 0, // unused
+	  // 			line: this.vm.line
+	  // 		});
+	  // 	} else { // second escape
+	  // 		this.removeKeyBoardHandler();
+	  // 		this.vm.cursor(stream, 0);
+	  // 		const savedStop = this.getStopObject();
+	  // 		if (savedStop.reason === "waitInput") { // sepcial handling: set line to repeat input
+	  // 			this.vm.vmGoto((savedStop.paras as VmInputParas).line);
+	  // 		}
+	  // 		if (!this.vm.vmEscape()) {
+	  // 			this.vm.vmStop("", 0, true); // continue program, in break handler?
+	  // 			this.setStopObject(this.noStop);
+	  // 		} else {
+	  // 			this.vm.vmStop("stop", 0, true); // stop
+	  // 			const msg = "Break in " + this.vm.line + "\r\n";
+	  // 			this.vm.print(stream, msg);
+	  // 		}
+	  // 	}
+	  // 	this.startMainLoop();
+	  // }
+	  fnWaitSound() {
+	    const stop = this.vm.vmGetStopObject();
+	    this.vm.vmLoopCondition();
+	    const soundDataList = this.vm.vmGetSoundData();
+	    while (soundDataList.length && this.options.sound.testCanQueue(soundDataList[0].state)) {
+	      const soundData = soundDataList.shift();
+	      this.options.sound.sound(soundData);
+	    }
+	    if (!soundDataList.length) {
+	      if (stop.reason === "waitSound") {
+	        this.vm.vmStop("", 0, true);
+	      }
+	    }
+	    this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame();
+	  }
+	  // private fnWaitSound() { // rather fnEvent
+	  // 	const stop = this.vm.vmGetStopObject();
+	  // 	this.vm.vmLoopCondition(); // update nextFrameTime, timers, inks; schedule sound: free queue
+	  // 	if (this.sound.isActivatedByUser()) { // only if activated
+	  // 		const soundDataList = this.vm.vmGetSoundData();
+	  // 		while (soundDataList.length && this.sound.testCanQueue(soundDataList[0].state)) {
+	  // 			const soundData = soundDataList.shift() as SoundData;
+	  // 			this.sound.sound(soundData);
+	  // 		}
+	  // 		if (!soundDataList.length) {
+	  // 			if (stop.reason === "waitSound") { // only for this reason
+	  // 				this.vm.vmStop("", 0, true); // no more wait
+	  // 			}
+	  // 		}
+	  // 	}
+	  // 	this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
+	  // }
+	  fnWaitKey() {
+	    return "";
+	  }
+	  // private fnWaitKey() {
+	  // 	const key = this.keyboard.getKeyFromBuffer();
+	  // 	if (key !== "") { // do we have a key from the buffer already?
+	  // 		Utils.console.log("Wait for key:", key);
+	  // 		this.vm.vmStop("", 0, true);
+	  // 		this.removeKeyBoardHandler();
+	  // 	} else {
+	  // 		this.fnWaitSound(); // sound and blinking events
+	  // 		// wait until keypress handler (for call &bb18)
+	  // 		this.keyboard.setOptions({
+	  // 			fnOnKeyDown: this.fnWaitKeyHandler
+	  // 		});
+	  // 	}
+	  // 	return key;
+	  // }
+	  fnWaitInput() {
+	    const stop = this.vm.vmGetStopObject(), inputParas = stop.paras, stream = inputParas.stream;
+	    let input = inputParas.input, key = "";
+	    if (input === void 0 || stream === void 0) {
+	      this.outputError(this.vm.vmComposeError(Error(), 32, "Programming Error: fnWaitInput"), true);
+	      return;
+	    }
+	    input += "abc";
+	    inputParas.input = input;
+	    let inputOk = false;
+	    key += "\r";
+	    if (key === "\r") {
+	      Utils.console.log("fnWaitInput:", input, "reason", stop.reason);
+	      if (!inputParas.noCRLF) {
+	        this.vm.print(stream, "\r\n");
+	      }
+	      if (inputParas.fnInputCallback) {
+	        inputOk = inputParas.fnInputCallback();
+	      } else {
+	        inputOk = true;
+	      }
+	      if (inputOk) {
+	        if (stop.reason === "waitInput") {
+	          this.vm.vmStop("", 0, true);
+	        } else {
+	          this.startContinue();
+	        }
+	      }
+	    }
+	    if (!inputOk) {
+	      if (stop.reason === "waitInput") {
+	        this.fnWaitSound();
+	      }
+	    }
+	  }
+	  // private fnWaitInput() { // eslint-disable-line complexity
+	  // 	const stop = this.vm.vmGetStopObject(),
+	  // 		inputParas = stop.paras as VmInputParas,
+	  // 		stream = inputParas.stream;
+	  // 	let input = inputParas.input,
+	  // 		key: string;
+	  // 	if (input === undefined || stream === undefined) {
+	  // 		this.outputError(this.vm.vmComposeError(Error(), 32, "Programming Error: fnWaitInput"), true);
+	  // 		return;
+	  // 	}
+	  // 	do {
+	  // 		key = this.keyboard.getKeyFromBuffer(); // (inkey$ could insert frame if checked too often)
+	  // 		// chr13 shows as empty string!
+	  // 		switch (key) {
+	  // 		case "": // no key?
+	  // 			break;
+	  // 		case "\r": // cr (\x0d)
+	  // 			break;
+	  // 		case "\x10": // DLE (clear character under cursor)
+	  // 			key = "\x07"; // currently ignore (BEL)
+	  // 			break;
+	  // 		case "\x7f": // del
+	  // 			if (input.length) {
+	  // 				input = input.slice(0, -1);
+	  // 				key = "\x08\x10"; // use BS and DLE
+	  // 			} else {
+	  // 				key = "\x07"; // ignore BS, use BEL
+	  // 			}
+	  // 			break;
+	  // 		case "\xe0": // copy
+	  // 			key = this.vm.copychr$(stream);
+	  // 			if (key.length) {
+	  // 				input += key;
+	  // 				key = "\x09"; // TAB
+	  // 			} else {
+	  // 				key = "\x07"; // ignore (BEL)
+	  // 			}
+	  // 			break;
+	  // 		case "\xf0": // cursor up
+	  // 			if (!input.length) {
+	  // 				key = "\x0b"; // VT
+	  // 			} else {
+	  // 				key = "\x07"; // ignore (BEL)
+	  // 			}
+	  // 			break;
+	  // 		case "\xf1": // cursor down
+	  // 			if (!input.length) {
+	  // 				key = "\x0a"; // LF
+	  // 			} else {
+	  // 				key = "\x07"; // ignore (BEL)
+	  // 			}
+	  // 			break;
+	  // 		case "\xf2": // cursor left
+	  // 			if (!input.length) {
+	  // 				key = "\x08"; // BS
+	  // 			} else {
+	  // 				key = "\x07"; // ignore (BEL) TODO
+	  // 			}
+	  // 			break;
+	  // 		case "\xf3": // cursor right
+	  // 			if (!input.length) {
+	  // 				key = "\x09"; // TAB
+	  // 			} else {
+	  // 				key = "\x07"; // ignore (BEL) TODO
+	  // 			}
+	  // 			break;
+	  // 		case "\xf4": // shift+cursor up
+	  // 			key = ""; // currently ignore
+	  // 			break;
+	  // 		case "\xf5": // shift+cursor down
+	  // 			key = ""; // currently ignore
+	  // 			break;
+	  // 		case "\xf6": // shift+cursor left
+	  // 			key = ""; // currently ignore
+	  // 			break;
+	  // 		case "\xf7": // shift+cursor right
+	  // 			key = ""; // currently ignore
+	  // 			break;
+	  // 		case "\xf8": // ctrl+cursor up
+	  // 			key = ""; // currently ignore
+	  // 			break;
+	  // 		case "\xf9": // ctrl+cursor down
+	  // 			key = ""; // currently ignore
+	  // 			break;
+	  // 		case "\xfa": // ctrl+cursor left
+	  // 			key = ""; // currently ignore
+	  // 			break;
+	  // 		case "\xfb": // ctrl+cursor right
+	  // 			key = ""; // currently ignore
+	  // 			break;
+	  // 		default:
+	  // 			input += key;
+	  // 			if (key < "\x20") { // control code
+	  // 				key = "\x01" + key; // print control code (do not execute)
+	  // 			}
+	  // 			break;
+	  // 		}
+	  // 		if (key && key !== "\r") {
+	  // 			this.vm.print(stream, key);
+	  // 		}
+	  // 	} while (key !== "" && key !== "\r"); // get all keys until CR or no more key
+	  // 	inputParas.input = input;
+	  // 	let inputOk = false;
+	  // 	if (key === "\r") {
+	  // 		Utils.console.log("fnWaitInput:", input, "reason", stop.reason);
+	  // 		if (!inputParas.noCRLF) {
+	  // 			this.vm.print(stream, "\r\n");
+	  // 		}
+	  // 		if (inputParas.fnInputCallback) {
+	  // 			inputOk = inputParas.fnInputCallback();
+	  // 		} else {
+	  // 			inputOk = true;
+	  // 		}
+	  // 		if (inputOk) {
+	  // 			this.removeKeyBoardHandler();
+	  // 			if (stop.reason === "waitInput") { // only for this reason
+	  // 				this.vm.vmStop("", 0, true); // no more wait
+	  // 			} else {
+	  // 				this.startContinue();
+	  // 			}
+	  // 		}
+	  // 	}
+	  // 	if (!inputOk) {
+	  // 		if (stop.reason === "waitInput") { // only for this reason
+	  // 			this.fnWaitSound(); // sound and blinking events
+	  // 		}
+	  // 		// make sure the handler is set
+	  // 		this.keyboard.setOptions({
+	  // 			fnOnKeyDown: this.fnWaitInputHandler
+	  // 		});
+	  // 	}
+	  // }
+	  static parseLineNumber(line) {
+	    return parseInt(line, 10);
+	  }
+	  static addLineNumbers(input) {
+	    const lineParts = input.split("\n");
+	    let lastLine = 0;
+	    for (let i = 0; i < lineParts.length; i += 1) {
+	      let lineNum = parseInt(lineParts[i], 10);
+	      if (isNaN(lineNum)) {
+	        lineNum = lastLine + 1;
+	        lineParts[i] = String(lastLine + 1) + " " + lineParts[i];
+	      }
+	      lastLine = lineNum;
+	    }
+	    return lineParts.join("\n");
+	  }
+	  splitLines(input) {
+	    if (this.core.getModel().getProperty(ModelPropID.implicitLines)) {
+	      input = _Controller0.addLineNumbers(input);
+	    }
+	    const lineParts = input.split(/^(\s*\d+)/m), lines = [];
+	    if (lineParts[0] === "") {
+	      lineParts.shift();
+	    }
+	    if (lineParts.length % 2 !== 0) {
+	      Utils.console.warn("splitLines: No line numbers?");
+	      const error = this.vm.vmComposeError(Error(), 21, "split");
+	      this.outputError(error, true);
+	      return lines;
+	    }
+	    for (let i = 0; i < lineParts.length; i += 2) {
+	      const number = lineParts[i];
+	      let content = lineParts[i + 1];
+	      if (content.endsWith("\n")) {
+	        content = content.substring(0, content.length - 1);
+	      }
+	      lines.push(number + content);
+	    }
+	    return lines;
+	  }
+	  // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
+	  mergeScripts(script1, script2) {
+	    const lines1 = this.splitLines(Utils.stringTrimEnd(script1)), lines2 = this.splitLines(Utils.stringTrimEnd(script2));
+	    let result = [], lineNumber1, lineNumber2;
+	    while (lines1.length && lines2.length) {
+	      lineNumber1 = lineNumber1 || _Controller0.parseLineNumber(lines1[0]);
+	      lineNumber2 = lineNumber2 || _Controller0.parseLineNumber(lines2[0]);
+	      if (lineNumber1 < lineNumber2) {
+	        result.push(lines1.shift());
+	        lineNumber1 = 0;
+	      } else {
+	        const line2 = lines2.shift();
+	        if (String(lineNumber2) !== line2) {
+	          result.push(line2);
+	        }
+	        if (lineNumber1 === lineNumber2) {
+	          lines1.shift();
+	          lineNumber1 = 0;
+	        }
+	        lineNumber2 = 0;
+	      }
+	    }
+	    result = result.concat(lines1, lines2);
+	    if (result.length >= 2) {
+	      if (result[result.length - 2] === "" && result[result.length - 1] === "") {
+	        result.pop();
+	      }
+	    }
+	    return result.join("\n");
+	  }
+	  // get line range from a script with sorted line numbers
+	  fnGetLinesInRange(script, firstLine, lastLine) {
+	    const lines = script ? this.splitLines(script) : [];
+	    while (lines.length && _Controller0.parseLineNumber(lines[0]) < firstLine) {
+	      lines.shift();
+	    }
+	    if (lines.length && lines[lines.length - 1] === "") {
+	      lines.pop();
+	    }
+	    while (lines.length && _Controller0.parseLineNumber(lines[lines.length - 1]) > lastLine) {
+	      lines.pop();
+	    }
+	    return lines;
+	  }
+	  static fnPrepareMaskRegExp(mask) {
+	    mask = mask.replace(/([.+^$[\]\\(){}|-])/g, "\\$1");
+	    mask = mask.replace(/\?/g, ".");
+	    mask = mask.replace(/\*/g, ".*");
+	    return new RegExp("^" + mask + "$");
+	  }
+	  fnGetExampleDirectoryEntries(mask) {
+	    const dir = [], allExamples = this.core.getModel().getAllExamples();
+	    let regExp;
+	    if (mask) {
+	      regExp = _Controller0.fnPrepareMaskRegExp(mask);
+	    }
+	    for (const key in allExamples) {
+	      if (allExamples.hasOwnProperty(key)) {
+	        const example = allExamples[key], key2 = example.key, matchKey2 = key2 + (key2.indexOf(".") < 0 ? "." : "");
+	        if (!regExp || regExp.test(matchKey2)) {
+	          dir.push(key2);
+	        }
+	      }
+	    }
+	    return dir;
+	  }
+	  fnGetStorageDirectoryEntries(mask) {
+	    const storage = this.getStorage(), metaIdent = FileHandler.getMetaIdent(), dir = [];
+	    let regExp;
+	    if (mask) {
+	      regExp = _Controller0.fnPrepareMaskRegExp(mask);
+	    }
+	    for (let i = 0; i < storage.length; i += 1) {
+	      const key = storage.key(i);
+	      if (key !== null && storage[key].startsWith(metaIdent)) {
+	        const keywithOutNl = key.replace(/[\n\r]/g, "");
+	        if (!regExp || regExp.test(keywithOutNl)) {
+	          dir.push(key);
+	        }
+	      }
+	    }
+	    return dir;
+	  }
+	  fnPrintDirectoryEntries(stream, dir, sort) {
+	    for (let i = 0; i < dir.length; i += 1) {
+	      const parts = dir[i].split(".");
+	      dir[i] = parts[0].padEnd(8, " ") + "." + (parts.length >= 2 ? parts[1] : "").padEnd(3, " ");
+	    }
+	    if (sort) {
+	      dir.sort();
+	    }
+	    this.vm.print(stream, "\r\nDrive A: user  0\r\n\r\n");
+	    for (let i = 0; i < dir.length; i += 1) {
+	      const key = dir[i] + "  ";
+	      this.vm.print(stream, key);
+	    }
+	    this.vm.print(stream, "\r\n\r\n999K free\r\n\r\n");
+	  }
+	  fnFileCat(paras) {
+	    const stream = paras.stream, dirList = this.fnGetStorageDirectoryEntries();
+	    this.fnPrintDirectoryEntries(stream, dirList, true);
+	    this.vm.vmStop("", 0, true);
+	  }
+	  fnFileDir(paras) {
+	    const stream = paras.stream, example = this.core.getModel().getProperty(ModelPropID.example), lastSlash = example.lastIndexOf("/");
+	    let fileMask = paras.fileMask ? _Controller0.fnLocalStorageName(paras.fileMask) : "";
+	    const dirList = this.fnGetStorageDirectoryEntries(fileMask);
+	    let path = "";
+	    if (lastSlash >= 0) {
+	      path = example.substring(0, lastSlash) + "/";
+	      fileMask = path + (fileMask ? fileMask : "*.*");
+	    }
+	    const fileExists = {};
+	    for (let i = 0; i < dirList.length; i += 1) {
+	      fileExists[dirList[i]] = true;
+	    }
+	    const dirListEx = this.fnGetExampleDirectoryEntries(fileMask);
+	    for (let i = 0; i < dirListEx.length; i += 1) {
+	      const file = dirListEx[i].substring(path.length);
+	      if (!fileExists[file]) {
+	        fileExists[file] = true;
+	        dirList.push(file);
+	      }
+	    }
+	    this.fnPrintDirectoryEntries(stream, dirList, false);
+	    this.vm.vmStop("", 0, true);
+	  }
+	  fnFileEra(paras) {
+	    const stream = paras.stream, storage = this.getStorage(), fileMask = _Controller0.fnLocalStorageName(paras.fileMask || ""), dir = this.fnGetStorageDirectoryEntries(fileMask);
+	    if (!dir.length) {
+	      this.vm.print(stream, fileMask + " not found\r\n");
+	    }
+	    for (let i = 0; i < dir.length; i += 1) {
+	      const name = dir[i];
+	      if (storage.getItem(name) !== null) {
+	        storage.removeItem(name);
+	        this.updateStorageDatabase("remove", name);
+	        if (Utils.debug > 0) {
+	          Utils.console.debug("fnEraseFile: name=" + name + ": removed from localStorage");
+	        }
+	      } else {
+	        this.vm.print(stream, name + " not found\r\n");
+	        Utils.console.warn("fnEraseFile: file not found in localStorage:", name);
+	      }
+	    }
+	    this.vm.vmStop("", 0, true);
+	  }
+	  fnFileRen(paras) {
+	    const stream = paras.stream, storage = this.getStorage(), newName = _Controller0.fnLocalStorageName(paras.newName), oldName = _Controller0.fnLocalStorageName(paras.oldName), item = storage.getItem(oldName);
+	    if (item !== null) {
+	      if (!storage.getItem(newName)) {
+	        storage.setItem(newName, item);
+	        this.updateStorageDatabase("set", newName);
+	        storage.removeItem(oldName);
+	        this.updateStorageDatabase("remove", oldName);
+	      } else {
+	        this.vm.print(stream, oldName + " already exists\r\n");
+	      }
+	    } else {
+	      this.vm.print(stream, oldName + " not found\r\n");
+	    }
+	    this.vm.vmStop("", 0, true);
+	  }
+	  // Hisoft Devpac GENA3 Z80 Assember (http://www.cpcwiki.eu/index.php/Hisoft_Devpac)
+	  static asmGena3Convert(data) {
+	    const fnUInt16 = function(pos2) {
+	      return data.charCodeAt(pos2) + data.charCodeAt(pos2 + 1) * 256;
+	    }, length = data.length;
+	    let pos = 0, out = "";
+	    pos += 4;
+	    while (pos < length) {
+	      const lineNum = fnUInt16(pos);
+	      pos += 2;
+	      let index1 = data.indexOf("\r", pos);
+	      if (index1 < 0) {
+	        index1 = length;
+	      }
+	      let index2 = data.indexOf("", pos);
+	      if (index2 < 0) {
+	        index2 = length;
+	      }
+	      index1 = Math.min(index1, index2);
+	      out += lineNum + " " + data.substring(pos, index1) + "\n";
+	      pos = index1 + 1;
+	    }
+	    return out;
+	  }
+	  getBasicFormatter() {
+	    if (!this.basicFormatter) {
+	      this.basicFormatter = new BasicFormatter({
+	        lexer: this.basicLexer,
+	        parser: this.basicParser
+	      });
+	    }
+	    return this.basicFormatter;
+	  }
+	  getBasicTokenizer() {
+	    if (!this.basicTokenizer) {
+	      this.basicTokenizer = new BasicTokenizer();
+	    }
+	    return this.basicTokenizer;
+	  }
+	  getCodeGeneratorBasic() {
+	    if (!this.codeGeneratorBasic) {
+	      this.codeGeneratorBasic = new CodeGeneratorBasic({
+	        lexer: this.basicLexer,
+	        parser: this.basicParser,
+	        lowercaseVars: this.core.getModel().getProperty(ModelPropID.prettyLowercaseVars)
+	      });
+	    }
+	    return this.codeGeneratorBasic;
+	  }
+	  getCodeGeneratorToken() {
+	    if (!this.codeGeneratorToken) {
+	      this.codeGeneratorToken = new CodeGeneratorToken({
+	        lexer: this.basicLexer,
+	        parser: this.basicParser,
+	        implicitLines: this.core.getModel().getProperty(ModelPropID.implicitLines)
+	      });
+	    }
+	    return this.codeGeneratorToken;
+	  }
+	  decodeTokenizedBasic(input) {
+	    const basicTokenizer = this.getBasicTokenizer();
+	    return basicTokenizer.decode(input);
+	  }
+	  encodeTokenizedBasic(input, name = "test") {
+	    const codeGeneratorToken = this.getCodeGeneratorToken();
+	    this.basicLexer.setOptions({
+	      keepWhiteSpace: true
+	    });
+	    this.basicParser.setOptions(_Controller0.codeGenTokenBasicParserOptions);
+	    const output = codeGeneratorToken.generate(input);
+	    if (output.error) {
+	      this.outputError(output.error);
+	    } else if (Utils.debug > 1) {
+	      const outputText = output.text, hex = outputText.split("").map(function(s) {
+	        return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
+	      }).join(","), decoded = this.decodeTokenizedBasic(outputText), diff = Diff.testDiff(input.toUpperCase(), decoded.toUpperCase());
+	      Utils.console.debug("TokenizerInput (" + name + ") [len=" + input.length + "]:\n" + input);
+	      Utils.console.debug("TokenizerOutputHex (" + name + ") [len=" + outputText.length + "]:\n" + hex);
+	      Utils.console.debug("TokenizerOutputDecoded (" + name + ") [len=" + decoded.length + "]:\n" + decoded);
+	      Utils.console.debug("TokenizerDiff (" + name + ") [len=" + diff.length + "]:\n" + diff);
+	    }
+	    return output.text;
+	  }
+	  prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons) {
+	    const codeGeneratorBasic = this.getCodeGeneratorBasic(), keepDataComma = true;
+	    this.basicLexer.setOptions({
+	      keepWhiteSpace
+	    });
+	    this.basicParser.setOptions({
+	      keepTokens: true,
+	      keepBrackets,
+	      keepColons,
+	      keepDataComma
+	    });
+	    const output = codeGeneratorBasic.generate(input);
+	    if (output.error) {
+	      this.outputError(output.error);
+	    }
+	    return output.text;
+	  }
+	  applyGaInks(inkval) {
+	    for (let i = 0; i < inkval.length - 1; i += 1) {
+	      this.vm.ink(i, _Controller0.gaInk2Ink[inkval[i]]);
+	    }
+	    this.vm.border(_Controller0.gaInk2Ink[inkval[inkval.length - 1]]);
+	  }
+	  applyCrtcRegs(reg) {
+	    for (let i = 0; i < reg.length; i += 1) {
+	      this.vm.vmSetCrtcData(i, reg[i]);
+	    }
+	  }
+	  applySnapshot(input) {
+	    const snapshot = new Snapshot({
+	      name: "",
+	      data: input
+	    }), info = snapshot.getSnapshotInfo(), mode = info.ga.multi & 3, mem = snapshot.getMemory();
+	    this.vm.vmChangeMode(mode);
+	    this.applyGaInks(info.ga.inkval);
+	    this.vm.vmSetRamSelect(info.ramconf);
+	    this.applyCrtcRegs(info.crtc.reg);
+	    return mem;
+	  }
+	  loadFileContinue(input) {
+	    const inFile = this.vm.vmGetInFileObject();
+	    let data;
+	    if (input !== null && input !== void 0) {
+	      data = _Controller0.splitMeta(input);
+	      input = data.data;
+	      if (data.meta.encoding === "base64") {
+	        input = this.options.atobFn(input);
+	      }
+	      const type = data.meta.typeString;
+	      if (type === "T") {
+	        input = this.decodeTokenizedBasic(input);
+	      } else if (type === "P") {
+	        input = DiskImage.unOrProtectData(input);
+	        input = this.decodeTokenizedBasic(input);
+	      } else if (type === "B") ; else if (type === "A") {
+	        input = input.replace(/\x1a+$/, "");
+	      } else if (type === "G") {
+	        input = _Controller0.asmGena3Convert(input);
+	      } else if (type === "S") {
+	        input = this.applySnapshot(input);
+	      } else if (type === "X") {
+	        const fileHandler = this.getFileHandler(), imported = [];
+	        fileHandler.fnLoad2(input, inFile.name, type, imported);
+	        input = "1 ' " + imported.join(", ");
+	      } else if (type === "Z") {
+	        const fileHandler = this.getFileHandler(), imported = [];
+	        fileHandler.fnLoad2(input, inFile.name, type, imported);
+	        input = "1 ' " + imported.join(", ");
+	      }
+	    }
+	    const command = inFile.command, inFileLine = inFile.line || 0;
+	    let putInMemory = false, startLine = 0;
+	    if (inFile.fnFileCallback) {
+	      try {
+	        putInMemory = inFile.fnFileCallback(input, data && data.meta);
+	      } catch (e) {
+	        Utils.console.warn(e);
+	      }
+	    }
+	    if (input === void 0) {
+	      Utils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
+	      this.vm.vmStop("stop", 60, true);
+	      this.startMainLoop();
+	      return;
+	    }
+	    if (input === null) {
+	      this.startMainLoop();
+	      return;
+	    }
+	    if (data && data.meta.typeString === "S" && putInMemory) {
+	      input = this.decodeTokenizedBasic(input.substring(368));
+	      putInMemory = false;
+	    }
+	    switch (command) {
+	      case "openin":
+	        break;
+	      case "chainMerge":
+	        input = this.mergeScripts(this.getInputText(), input);
+	        this.setInputText(input);
+	        this.setResultText("");
+	        startLine = inFileLine;
+	        this.invalidateScript();
+	        this.fnParseChain();
+	        break;
+	      case "load":
+	        if (!putInMemory) {
+	          this.setInputText(input);
+	          this.setResultText("");
+	          this.invalidateScript();
+	          this.vm.vmStop("end", 90);
+	        }
+	        break;
+	      case "merge":
+	        input = this.mergeScripts(this.getInputText(), input);
+	        this.setInputText(input);
+	        this.setResultText("");
+	        this.invalidateScript();
+	        this.fnRemoveAllVariables();
+	        this.vm.vmStop("end", 90);
+	        break;
+	      case "chain":
+	        this.setInputText(input);
+	        this.setResultText("");
+	        startLine = inFileLine;
+	        this.invalidateScript();
+	        this.fnParseChain();
+	        break;
+	      case "run":
+	        if (!putInMemory) {
+	          this.setInputText(input);
+	          this.setResultText("");
+	          startLine = inFileLine;
+	          if (!data || data.meta.typeString !== "S") {
+	            this.fnReset();
+	          }
+	          this.fnParseRun();
+	        } else {
+	          this.fnReset();
+	          this.vm.clear();
+	        }
+	        break;
+	      default:
+	        Utils.console.error("loadExample: Unknown command:", command);
+	        break;
+	    }
+	    this.vm.vmSetStartLine(startLine);
+	    this.startMainLoop();
+	  }
+	  createFnExampleLoaded(example, url, inFile) {
+	    return (_sFullUrl, key, suppressLog) => {
+	      if (key !== example) {
+	        Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
+	      }
+	      const exampleEntry = this.core.getModel().getExample(example);
+	      if (!suppressLog) {
+	        Utils.console.log("Example loaded:", url, exampleEntry.meta);
+	      }
+	      this.core.getModel().setProperty(ModelPropID.example, inFile.memorizedExample);
+	      this.vm.vmStop("", 0, true);
+	      if (exampleEntry.rsx) {
+	        this.vm.vmRegisterRsx(exampleEntry.rsx, false);
+	      }
+	      const input = exampleEntry.script;
+	      this.loadFileContinue(input);
+	    };
+	  }
+	  createFnExampleError(example, url, inFile) {
+	    return () => {
+	      Utils.console.log("Example", url, "error");
+	      this.core.getModel().setProperty(ModelPropID.example, inFile.memorizedExample);
+	      this.vm.vmStop("", 0, true);
+	      const error = this.vm.vmComposeError(Error(), 32, example + " not found");
+	      if (error.hidden) {
+	        this.vm.vmStop("", 0, true);
+	      }
+	      this.outputError(error, true);
+	      this.loadFileContinue(null);
+	    };
+	  }
+	  getLoadScript() {
+	    return this.options.loadScript;
+	  }
+	  setOutputText(text) {
+	    this.outScript = text;
+	  }
+	  setResultText(text, _scroll = false) {
+	    this.options.onResultText(text);
+	  }
+	  loadExample() {
+	    const inFile = this.vm.vmGetInFileObject(), key = this.core.getModel().getProperty(ModelPropID.example);
+	    let name = inFile.name;
+	    if (name.charAt(0) === "/") {
+	      name = name.substring(1);
+	      inFile.memorizedExample = name;
+	    } else {
+	      inFile.memorizedExample = key;
+	      const lastSlash = key.lastIndexOf("/");
+	      if (lastSlash >= 0) {
+	        const path = key.substring(0, lastSlash);
+	        name = path + "/" + name;
+	        name = name.replace(/\w+\/\.\.\//, "");
+	      }
+	    }
+	    const example = name;
+	    if (Utils.debug > 0) {
+	      Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
+	    }
+	    const exampleEntry = this.core.getModel().getExample(example);
+	    let url;
+	    if (exampleEntry && exampleEntry.loaded) {
+	      this.core.getModel().setProperty(ModelPropID.example, example);
+	      url = example;
+	      const fnExampleLoaded = this.createFnExampleLoaded(example, url, inFile);
+	      fnExampleLoaded("", example, true);
+	    } else if (example && exampleEntry) {
+	      this.core.getModel().setProperty(ModelPropID.example, example);
+	      const databaseDir = this.core.getModel().getDatabase().src;
+	      url = databaseDir + "/" + example + ".js";
+	      this.getLoadScript()(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
+	    } else {
+	      url = example;
+	      if (example !== "") {
+	        Utils.console.warn("loadExample: Unknown file:", example);
+	        const fnExampleError = this.createFnExampleError(example, url, inFile);
+	        fnExampleError();
+	      } else {
+	        this.core.getModel().setProperty(ModelPropID.example, example);
+	        this.vm.vmStop("", 0, true);
+	        this.loadFileContinue("");
+	      }
+	    }
+	  }
+	  static fnLocalStorageName(name, defaultExtension) {
+	    if (name.indexOf(".") < 0) {
+	      name += "." + (defaultExtension || "");
+	    }
+	    return name;
+	  }
+	  tryLoadingFromLocalStorage(name) {
+	    const storage = this.getStorage();
+	    let input = null;
+	    if (name.indexOf(".") >= 0) {
+	      input = storage.getItem(name);
+	    } else {
+	      for (let i = 0; i < _Controller0.defaultExtensions.length; i += 1) {
+	        const storageName = _Controller0.fnLocalStorageName(name, _Controller0.defaultExtensions[i]);
+	        input = storage.getItem(storageName);
+	        if (input !== null) {
+	          break;
+	        }
+	      }
+	    }
+	    return input;
+	  }
+	  fnFileLoad() {
+	    const inFile = this.vm.vmGetInFileObject();
+	    if (inFile.open) {
+	      if (inFile.command === "chainMerge" && inFile.first && inFile.last) {
+	        this.fnDeleteLines({
+	          first: inFile.first,
+	          last: inFile.last,
+	          command: "CHAIN MERGE",
+	          stream: 0,
+	          // unused
+	          line: this.vm.line
+	        });
+	        this.vm.vmStop("fileLoad", 90);
+	      }
+	      const name = inFile.name;
+	      if (Utils.debug > 1) {
+	        Utils.console.debug("fnFileLoad:", inFile.command, name, "details:", inFile);
+	      }
+	      const input = this.tryLoadingFromLocalStorage(name);
+	      if (input !== null) {
+	        if (Utils.debug > 0) {
+	          Utils.console.debug("fnFileLoad:", inFile.command, name, "from localStorage");
+	        }
+	        this.vm.vmStop("", 0, true);
+	        this.loadFileContinue(input);
+	      } else {
+	        this.loadExample(
+	          /* name */
+	        );
+	      }
+	    } else {
+	      Utils.console.error("fnFileLoad:", inFile.name, "File not open!");
+	    }
+	    this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame();
+	  }
+	  static splitMeta(input) {
+	    let fileMeta;
+	    if (input.indexOf(FileHandler.getMetaIdent()) === 0) {
+	      const index = input.indexOf(",");
+	      if (index >= 0) {
+	        const metaString = input.substring(0, index);
+	        input = input.substring(index + 1);
+	        const meta = metaString.split(";");
+	        fileMeta = {
+	          typeString: meta[1],
+	          start: Number(meta[2]),
+	          length: Number(meta[3]),
+	          entry: Number(meta[4]),
+	          encoding: meta[5]
+	        };
+	      }
+	    }
+	    if (!fileMeta) {
+	      fileMeta = {
+	        typeString: ""
+	      };
+	    }
+	    const metaAndData = {
+	      meta: fileMeta,
+	      data: input
+	    };
+	    return metaAndData;
+	  }
+	  fnFileSave() {
+	    const outFile = this.vm.vmGetOutFileObject(), storage = this.getStorage();
+	    let defaultExtension = "";
+	    if (outFile.open) {
+	      const type = outFile.typeString, name = outFile.name;
+	      if (type === "P" || type === "T") {
+	        defaultExtension = "bas";
+	      } else if (type === "B") {
+	        defaultExtension = "bin";
+	      }
+	      const storageName = _Controller0.fnLocalStorageName(name, defaultExtension);
+	      let fileData;
+	      if (outFile.fileData.length || type === "B" || outFile.command === "openout") {
+	        fileData = outFile.fileData.join("");
+	        if (!outFile.length) {
+	          outFile.length = fileData.length;
+	        }
+	      } else {
+	        fileData = this.getInputText();
+	        if (type === "T" || type === "P") {
+	          fileData = this.encodeTokenizedBasic(fileData, storageName);
+	          if (fileData === "") {
+	            outFile.typeString = "A";
+	          } else if (type === "P") {
+	            fileData = DiskImage.unOrProtectData(fileData);
+	          }
+	        }
+	        outFile.length = fileData.length;
+	      }
+	      if (Utils.debug > 0) {
+	        Utils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
+	      }
+	      const meta = FileHandler.joinMeta(outFile);
+	      storage.setItem(storageName, meta + "," + fileData);
+	      this.updateStorageDatabase("set", storageName);
+	      if (outFile.fnFileCallback) {
+	        try {
+	          outFile.fnFileCallback(fileData);
+	        } catch (e) {
+	          Utils.console.warn(e);
+	        }
+	      }
+	      this.vm.vmResetOutFileHandling();
+	    } else {
+	      Utils.console.error("fnFileSave: file not open!");
+	    }
+	    this.vm.vmStop("", 0, true);
+	  }
+	  fnDeleteLines(paras) {
+	    const inputText = this.getInputText(), lines = this.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
+	    let error;
+	    if (lines.length) {
+	      for (let i = 0; i < lines.length; i += 1) {
+	        const line = _Controller0.parseLineNumber(lines[i]);
+	        if (isNaN(line)) {
+	          error = this.vm.vmComposeError(Error(), 21, paras.command);
+	          this.outputError(error, true);
+	          break;
+	        }
+	        lines[i] = String(line);
+	      }
+	      if (!error) {
+	        let input = lines.join("\n");
+	        input = this.mergeScripts(inputText, input);
+	        this.setInputText(input);
+	      }
+	    }
+	    this.vm.vmGoto(0);
+	    this.vm.vmStop("end", 0, true);
+	  }
+	  fnNew() {
+	    const input = "";
+	    this.setInputText(input);
+	    this.fnRemoveAllVariables();
+	    this.vm.vmGoto(0);
+	    this.vm.vmStop("end", 0, true);
+	    this.invalidateScript();
+	  }
+	  fnList(paras) {
+	    const input = this.getInputText(), stream = paras.stream, lines = this.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535), regExp = new RegExp(/([\x00-\x1f])/g);
+	    for (let i = 0; i < lines.length; i += 1) {
+	      let line = lines[i];
+	      if (stream !== 9) {
+	        line = line.replace(regExp, "$1");
+	      }
+	      this.vm.print(stream, line, "\r\n");
+	    }
+	    this.vm.vmGoto(0);
+	    this.vm.vmStop("end", 0, true);
+	  }
+	  fnReset() {
+	    const vm = this.vm;
+	    this.fnRemoveAllVariables();
+	    vm.vmReset();
+	    vm.vmStop("end", 0, true);
+	    this.setOutputText("");
+	    this.invalidateScript();
+	  }
+	  outputError(error, _noSelection) {
+	    const stream = 0;
+	    let shortError;
+	    if (Utils.isCustomError(error)) {
+	      shortError = error.shortMessage || error.message;
+	    } else {
+	      shortError = error.message;
+	    }
+	    const escapedShortError = shortError.replace(/([\x00-\x1f])/g, "$1");
+	    this.vm.print(stream, escapedShortError + "\r\n");
+	    return shortError;
+	  }
+	  fnRenumLines(paras) {
+	    const vm = this.vm, input = this.getInputText(), basicFormatter = this.getBasicFormatter();
+	    this.basicLexer.setOptions({
+	      keepWhiteSpace: false
+	    });
+	    this.basicParser.setOptions(_Controller0.formatterBasicParserOptions);
+	    const output = basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
+	    if (output.error) {
+	      Utils.console.warn(output.error);
+	      this.outputError(output.error);
+	    } else {
+	      this.setInputText(output.text, true);
+	    }
+	    this.vm.vmGoto(0);
+	    vm.vmStop("end", 0, true);
+	  }
+	  fnEditLineCallback() {
+	    const inputParas = this.vm.vmGetStopObject().paras, inputText = this.getInputText();
+	    let input = inputParas.input;
+	    input = this.mergeScripts(inputText, input);
+	    this.setInputText(input);
+	    this.vm.vmSetStartLine(0);
+	    this.vm.vmGoto(0);
+	    this.vm.cursor(inputParas.stream, 0);
+	    this.vm.vmStop("end", 90);
+	    return true;
+	  }
+	  fnEditLine(paras) {
+	    const input = this.getInputText(), stream = paras.stream, lineNumber = paras.first || 0, lines = this.fnGetLinesInRange(input, lineNumber, lineNumber);
+	    if (lines.length) {
+	      const lineString = lines[0];
+	      this.vm.print(stream, lineString);
+	      this.vm.cursor(stream, 1);
+	      const inputParas = {
+	        command: paras.command,
+	        line: paras.line,
+	        stream,
+	        message: "",
+	        fnInputCallback: this.fnEditLineCallbackHandler,
+	        input: lineString
+	      };
+	      this.vm.vmStop("waitInput", 45, true, inputParas);
+	      this.fnWaitInput();
+	    } else {
+	      const error = this.vm.vmComposeError(Error(), 8, String(lineNumber));
+	      this.outputError(error);
+	      this.vm.vmStop("stop", 60, true);
+	    }
+	  }
+	  fnParseBench(input, bench) {
+	    let output;
+	    for (let i = 0; i < bench; i += 1) {
+	      let time = Date.now();
+	      output = this.codeGeneratorJs.generate(input, this.variables);
+	      time = Date.now() - time;
+	      Utils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
+	      if (output.error) {
+	        break;
+	      }
+	    }
+	    return output;
+	  }
+	  fnParse() {
+	    const input = this.getInputText(), bench = this.core.getModel().getProperty(ModelPropID.bench);
+	    let output;
+	    this.basicLexer.setOptions({
+	      keepWhiteSpace: false
+	    });
+	    this.basicParser.setOptions(_Controller0.codeGenJsBasicParserOptions);
+	    if (!bench) {
+	      output = this.codeGeneratorJs.generate(input, this.variables);
+	    } else {
+	      output = this.fnParseBench(input, bench);
+	    }
+	    let outputString;
+	    if (output.error) {
+	      outputString = this.outputError(output.error);
+	    } else {
+	      outputString = output.text;
+	      this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
+	      const tokens = this.encodeTokenizedBasic(input);
+	      if (Utils.debug) {
+	        Utils.console.debug("parse: input length:", input.length, ", tokenized length:", tokens.length);
+	      }
+	      try {
+	        this.vm.vmPutProgramInMem(tokens);
+	      } catch (e) {
+	        Utils.console.error("vmPutProgramInMem", e);
+	      }
+	    }
+	    if (outputString && outputString.length > 0) {
+	      outputString += "\n";
+	    }
+	    this.setOutputText(outputString);
+	    this.invalidateScript();
+	    return output;
+	  }
+	  fnPretty() {
+	    const model = this.core.getModel();
+	    const input = this.getInputText(), keepWhiteSpace = model.getProperty(ModelPropID.prettySpace), keepBrackets = model.getProperty(ModelPropID.prettyBrackets), keepColons = model.getProperty(ModelPropID.prettyColons), output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons);
+	    if (output) {
+	      this.setInputText(output, true);
+	      const diff = Diff.testDiff(input.toUpperCase(), output.toUpperCase());
+	      this.setOutputText(diff);
+	    }
+	  }
+	  fnAddLines() {
+	    const input = this.getInputText(), output = _Controller0.addLineNumbers(input);
+	    if (output) {
+	      this.setInputText(output, true);
+	    }
+	  }
+	  fnRemoveLines() {
+	    const basicFormatter = this.getBasicFormatter();
+	    this.basicLexer.setOptions({
+	      keepWhiteSpace: false
+	    });
+	    this.basicParser.setOptions(_Controller0.formatterBasicParserOptions);
+	    const input = this.getInputText(), output = basicFormatter.removeUnusedLines(input);
+	    if (output.error) {
+	      this.outputError(output.error);
+	    } else {
+	      this.setInputText(output.text, true);
+	    }
+	  }
+	  // private fnGetFilename(input: string) {
+	  // 	let name = "file";
+	  // 	const reRemMatcher = /^\d* ?(?:REM|rem) ([\w.]+)+/,
+	  // 		matches = input.match(reRemMatcher);
+	  // 	if (matches !== null) {
+	  // 		name = matches[1];
+	  // 	} else {
+	  // 		const example = this.core.getModel().getProperty<string>(ModelPropID.example);
+	  // 		if (example !== "") {
+	  // 			if (example.indexOf("/") >= 0) {
+	  // 				name = example.substring(example.lastIndexOf("/") + 1);
+	  // 			}
+	  // 		}
+	  // 	}
+	  // 	if (name.indexOf(".") < 0) {
+	  // 		name += ".bas";
+	  // 	}
+	  // 	return name;
+	  // }
+	  // eslint-disable-next-line complexity
+	  fnDownload() {
+	    const options = ["test1"], meta = {
+	      typeString: "A",
+	      // ASCII
+	      start: 368,
+	      length: 0,
+	      entry: 0
+	    };
+	    let name = "", data = "";
+	    this.options.btoaFn;
+	    for (let i = 0; i < options.length; i += 1) {
+	      const item = options[i];
+	      name = item;
+	      data = this.tryLoadingFromLocalStorage(name) || "";
+	      const metaAndData = _Controller0.splitMeta(data);
+	      Object.assign(meta, metaAndData.meta);
+	      data = metaAndData.data;
+	      if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
+	        const [name1, ext1] = DiskImage.getFilenameAndExtension(name), header = DiskImage.createAmsdosHeader({
+	          name: name1,
+	          ext: ext1,
+	          typeString: meta.typeString,
+	          start: meta.start,
+	          length: meta.length,
+	          entry: meta.entry
+	        }), headerString = DiskImage.combineAmsdosHeader(header);
+	        data = headerString + data;
+	      }
+	    }
+	  }
+	  // private selectJsError(script: string, e: Error) {
+	  // 	const lineNumber = (e as any).lineNumber, // only on FireFox
+	  // 		columnNumber = (e as any).columnNumber;
+	  // 	if (lineNumber || columnNumber) { // only available on Firefox
+	  // 		const errLine = lineNumber - 3; // for some reason line 0 is 3
+	  // 		let pos = 0,
+	  // 			line = 0;
+	  // 		while (pos < script.length && line < errLine) {
+	  // 			pos = script.indexOf("\n", pos) + 1;
+	  // 			line += 1;
+	  // 		}
+	  // 		pos += columnNumber;
+	  // 		Utils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
+	  // 		this.view.setAreaSelection(ViewID.outputText, pos, pos + 1);
+	  // 	}
+	  // }
+	  fnChain(paras) {
+	    const script = this.outScript, vm = this.vm;
+	    let line = paras && paras.first || 0;
+	    line = line || 0;
+	    if (line === 0) {
+	      vm.vmResetData();
+	    }
+	    if (this.vm.vmGetOutFileObject().open) {
+	      this.fnFileSave();
+	    }
+	    if (!this.fnScript) {
+	      try {
+	        this.fnScript = new Function("o", script);
+	      } catch (e) {
+	        Utils.console.error(e);
+	        if (e instanceof Error) {
+	          e.shortMessage = "JS " + String(e);
+	          this.outputError(e, true);
+	        }
+	        this.fnScript = void 0;
+	      }
+	    }
+	    vm.vmReset4Run();
+	    if (this.fnScript) {
+	      vm.vmStop("", 0, true);
+	      vm.vmGoto(0);
+	      this.vm.vmSetStartLine(line);
+	    }
+	    if (Utils.debug > 1) {
+	      Utils.console.debug("End of fnRun");
+	    }
+	  }
+	  fnRun(paras) {
+	    this.vm.clear();
+	    this.fnChain(paras);
+	  }
+	  fnParseRun() {
+	    this.fnRemoveAllVariables();
+	    const output = this.fnParse();
+	    if (!output.error) {
+	      this.fnRun();
+	    }
+	  }
+	  fnParseChain() {
+	    const output = this.fnParse();
+	    if (!output.error) {
+	      this.fnChain();
+	    }
+	  }
+	  fnRunPart1(fnScript) {
+	    try {
+	      fnScript(this.vm);
+	    } catch (e) {
+	      if (e instanceof Error) {
+	        if (e.name === "CpcVm" || e.name === "Variables") {
+	          let customError = e;
+	          if (customError.errCode !== void 0) {
+	            customError = this.vm.vmComposeError(customError, customError.errCode, customError.value);
+	          }
+	          if (!customError.hidden) {
+	            Utils.console.warn(customError);
+	            this.outputError(customError, !customError.pos);
+	          } else {
+	            Utils.console.log(customError.message);
+	          }
+	        } else {
+	          Utils.console.error(e);
+	          this.vm.vmComposeError(e, 2, "JS " + String(e));
+	          this.outputError(e, true);
+	        }
+	      } else {
+	        Utils.console.error(e);
+	      }
+	    }
+	  }
+	  fnDirectInput() {
+	    const inputParas = this.vm.vmGetStopObject().paras, stream = inputParas.stream;
+	    let input = inputParas.input;
+	    input = input.trim();
+	    inputParas.input = "";
+	    if (input !== "") {
+	      this.vm.cursor(stream, 0);
+	      const inputText = this.getInputText();
+	      if (!isNaN(_Controller0.parseLineNumber(input))) {
+	        if (Utils.debug > 0) {
+	          Utils.console.debug("fnDirectInput: insert line=" + input);
+	        }
+	        input = this.mergeScripts(inputText, input);
+	        this.setInputText(input, true);
+	        this.vm.vmSetStartLine(0);
+	        this.vm.vmGoto(0);
+	        this.vm.cursor(stream, 1);
+	        this.updateResultText();
+	        return false;
+	      }
+	      Utils.console.log("fnDirectInput: execute:", input);
+	      const codeGeneratorJs = this.codeGeneratorJs;
+	      let output, outputString;
+	      if (inputText && (!isNaN(_Controller0.parseLineNumber(inputText)) || this.core.getModel().getProperty(ModelPropID.implicitLines))) {
+	        const separator = inputText.endsWith("\n") ? "" : "\n";
+	        this.basicParser.setOptions(_Controller0.codeGenJsBasicParserOptions);
+	        output = codeGeneratorJs.generate(inputText + separator + input, this.variables, true);
+	        if (output.error) {
+	          const error = output.error;
+	          if (error.pos < inputText.length + 1) {
+	            error.message = "[prg] " + error.message;
+	            output = void 0;
+	          }
+	        }
+	      }
+	      if (!output) {
+	        this.basicParser.setOptions(_Controller0.codeGenJsBasicParserOptions);
+	        output = codeGeneratorJs.generate(input, this.variables, true);
+	      }
+	      if (output.error) {
+	        outputString = this.outputError(output.error, true);
+	      } else {
+	        outputString = output.text;
+	      }
+	      if (outputString && outputString.length > 0) {
+	        outputString += "\n";
+	      }
+	      this.setOutputText(outputString);
+	      if (!output.error) {
+	        this.vm.vmSetStartLine(this.vm.line);
+	        this.vm.vmGoto("direct");
+	        try {
+	          const fnScript = new Function("o", outputString);
+	          this.fnScript = fnScript;
+	          this.vm.vmSetSourceMap(codeGeneratorJs.getSourceMap());
+	        } catch (e) {
+	          Utils.console.error(e);
+	          if (e instanceof Error) {
+	            this.outputError(e, true);
+	          }
+	        }
+	      }
+	      if (!output.error) {
+	        this.updateResultText();
+	        return true;
+	      }
+	      const msg = inputParas.message;
+	      this.vm.print(stream, msg);
+	      this.vm.cursor(stream, 1);
+	    }
+	    this.updateResultText();
+	    return false;
+	  }
+	  startWithDirectInput() {
+	    if (this.options.isHeadlessDirectInput) {
+	      Utils.console.log("We are ready.");
+	      if (this.options.onProgramEnd) {
+	        this.options.onProgramEnd();
+	      }
+	      return;
+	    }
+	    const vm = this.vm, stream = 0, msg = "Ready\r\n";
+	    this.vm.tagoff(stream);
+	    this.vm.vmResetControlBuffer();
+	    if (this.vm.pos(stream) > 1) {
+	      this.vm.print(stream, "\r\n");
+	    }
+	    this.vm.print(stream, msg);
+	    this.vm.cursor(stream, 1, 1);
+	    vm.vmStop("direct", 0, true, {
+	      command: "direct",
+	      stream,
+	      message: msg,
+	      // noCRLF: true,
+	      fnInputCallback: this.fnDirectInputHandler,
+	      input: "",
+	      line: this.vm.line
+	    });
+	    this.fnWaitInput();
+	  }
+	  updateResultText() {
+	    const outText = this.vm.vmGetOutBuffer();
+	    this.setResultText(outText, true);
+	  }
+	  exitLoop() {
+	    const stop = this.vm.vmGetStopObject(), reason = stop.reason;
+	    this.updateResultText();
+	    if (reason === "stop" || reason === "end" || reason === "error" || reason === "parse" || reason === "parseRun") {
+	      this.startWithDirectInput();
+	    }
+	  }
+	  fnWaitFrame() {
+	    this.vm.vmStop("", 0, true);
+	    this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame();
+	  }
+	  fnOnError() {
+	    this.vm.vmStop("", 0, true);
+	  }
+	  static fnDummy() {
+	  }
+	  fnTimer() {
+	    this.vm.vmStop("", 0, true);
+	  }
+	  fnRunLoop() {
+	    const stop = this.vm.vmGetStopObject();
+	    this.nextLoopTimeOut = this.initialLoopTimeout;
+	    if (!stop.reason && this.fnScript) {
+	      this.fnRunPart1(this.fnScript);
+	    }
+	    if (stop.reason in this.handlers) {
+	      this.handlers[stop.reason].call(this, stop.paras);
+	    } else {
+	      Utils.console.warn("runLoop: Unknown run mode:", stop.reason);
+	      this.vm.vmStop("error", 50);
+	    }
+	    if (stop.reason && stop.reason !== "waitSound" && stop.reason !== "waitKey" && stop.reason !== "waitInput") {
+	      this.timeoutHandlerActive = false;
+	      this.exitLoop();
+	    } else {
+	      this.options.setTimeout(this.fnRunLoopHandler, this.nextLoopTimeOut);
+	    }
+	  }
+	  startMainLoop() {
+	    if (!this.timeoutHandlerActive) {
+	      this.timeoutHandlerActive = true;
+	      this.options.setTimeout(this.fnRunLoopHandler, 0);
+	    }
+	  }
+	  setStopObject(stop) {
+	    Object.assign(this.savedStop, stop);
+	  }
+	  getStopObject() {
+	    return this.savedStop;
+	  }
+	  startParse() {
+	    this.vm.vmStop("parse", 95);
+	    this.startMainLoop();
+	  }
+	  startRenum() {
+	    const stream = 0;
+	    this.vm.vmStop("renumLines", 85, false, {
+	      command: "renum",
+	      stream: 0,
+	      // unused
+	      newLine: 10,
+	      // Number(this.view.getInputValue(ViewID.renumNewInput)), // 10
+	      oldLine: 1,
+	      //Number(this.view.getInputValue(ViewID.renumStartInput)), // 1
+	      step: 10,
+	      //Number(this.view.getInputValue(ViewID.renumStepInput)), // 10
+	      keep: 65535,
+	      //Number(this.view.getInputValue(ViewID.renumKeepInput)), // 65535, keep lines
+	      // newLine: Number(this.view.getInputValue(ViewID.renumNewInput)), // 10
+	      // oldLine: Number(this.view.getInputValue(ViewID.renumStartInput)), // 1
+	      // step: Number(this.view.getInputValue(ViewID.renumStepInput)), // 10
+	      // keep: Number(this.view.getInputValue(ViewID.renumKeepInput)), // 65535, keep lines
+	      line: this.vm.line
+	    });
+	    if (this.vm.pos(stream) > 1) {
+	      this.vm.print(stream, "\r\n");
+	    }
+	    this.vm.print(stream, "renum\r\n");
+	    this.startMainLoop();
+	  }
+	  startRun() {
+	    this.setStopObject(this.noStop);
+	    this.vm.vmStop("run", 95);
+	    this.startMainLoop();
+	  }
+	  startParseRun() {
+	    this.setStopObject(this.noStop);
+	    this.vm.vmStop("parseRun", 95);
+	    this.startMainLoop();
+	  }
+	  startBreak() {
+	    const vm = this.vm, stop = vm.vmGetStopObject();
+	    this.setStopObject(stop);
+	    this.vm.vmStop("break", 80);
+	    this.startMainLoop();
+	  }
+	  startContinue() {
+	    const vm = this.vm, stop = vm.vmGetStopObject(), savedStop = this.getStopObject();
+	    if (stop.reason === "break" || stop.reason === "escape" || stop.reason === "stop" || stop.reason === "direct") {
+	      if (stop.reason === "direct" || stop.reason === "escape") {
+	        this.vm.cursor(stop.paras.stream, 0);
+	      }
+	      Object.assign(stop, savedStop);
+	      this.setStopObject(this.noStop);
+	    }
+	    this.startMainLoop();
+	  }
+	  startReset() {
+	    this.setStopObject(this.noStop);
+	    this.vm.vmStop("reset", 99);
+	    this.startMainLoop();
+	  }
+	  /*
+	  startScreenshot(): string {
+	  	return this.canvas.takeScreenShot();
+	  }
+	  */
+	  fnPutKeysInBuffer(keys) {
+	    for (let i = 0; i < keys.length; i += 1) {
+	      this.options.keyboard.putKeyInBuffer(keys.charAt(i), i === keys.length - 1);
+	    }
+	  }
+	  // startEnter(): void {
+	  // 	let input = this.view.getAreaValue(ViewID.inp2Text);
+	  // 	input = input.replace(/\n/g, "\r"); // LF => CR
+	  // 	this.fnPutKeysInBuffer(input);
+	  // }
+	  // private static generateFunction(par: string, functionString: string) {
+	  // 	if (functionString.startsWith("function anonymous(")) { // already a modified function (inside an anonymous function)?
+	  // 		const firstIndex = functionString.indexOf("{"),
+	  // 			lastIndex = functionString.lastIndexOf("}");
+	  // 		if (firstIndex >= 0 && lastIndex >= 0) {
+	  // 			functionString = functionString.substring(firstIndex + 1, lastIndex - 1); // remove anonymous function
+	  // 		}
+	  // 		functionString = functionString.trim();
+	  // 	} else {
+	  // 		functionString = "var o=cpcBasic.controller.vm, v=o.vmGetAllVariables(); v." + par + " = " + functionString;
+	  // 	}
+	  // 	const match = (/function \(([^)]*)/).exec(functionString),
+	  // 		args = match ? match[1].split(",") : [],
+	  // 		fnFunction = new Function(args[0], args[1], args[2], args[3], args[4], functionString); // eslint-disable-line no-new-func
+	  // 		// we support at most 5 arguments
+	  // 	return fnFunction;
+	  // }
+	  // changeVariable(): void {
+	  // 	const par = this.view.getSelectValue(ViewID.varSelect),
+	  // 		valueString = this.view.getSelectValue(ViewID.varText),
+	  // 		variables = this.variables;
+	  // 	let value = variables.getVariable(par);
+	  // 	if (typeof value === "function") {
+	  // 		value = Controller0.generateFunction(par, valueString);
+	  // 		variables.setVariable(par, value);
+	  // 	} else {
+	  // 		const varType = this.variables.determineStaticVarType(par),
+	  // 			type = this.vm.vmDetermineVarType(varType); // do we know dynamic type?
+	  // 		if (type !== "$") { // not string? => convert to number
+	  // 			value = parseFloat(valueString);
+	  // 		} else {
+	  // 			value = valueString;
+	  // 		}
+	  // 		try {
+	  // 			const value2 = this.vm.vmAssign(varType, value);
+	  // 			variables.setVariable(par, value2);
+	  // 			Utils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
+	  // 		} catch (e) {
+	  // 			Utils.console.warn(e);
+	  // 		}
+	  // 	}
+	  // 	this.setVarSelectOptions(ViewID.varSelect, variables);
+	  // 	this.uiController.onVarSelectChange(); // title change?
+	  // }
+	  // setBasicVersion(basicVersion: string): void {
+	  // 	this.basicParser.setOptions({
+	  // 		basicVersion: basicVersion
+	  // 	});
+	  // 	this.basicLexer.setOptions({
+	  // 		keywords: this.basicParser.getKeywords()
+	  // 	});
+	  // 	this.invalidateScript();
+	  // }
+	  // setPalette(palette: string): void {
+	  // 	const validPalette = palette === "green" || palette === "grey" ? palette : "color";
+	  // 	this.canvas.setOptions({
+	  // 		palette: validPalette
+	  // 	});
+	  // }
+	  // setCanvasType(canvasType: string): ICanvas {
+	  // 	let canvas = this.canvas;
+	  // 	if (canvas) {
+	  // 		canvas.stopUpdateCanvas(); // stop updates on current canvas
+	  // 		const canvasID = canvas.getOptions().canvasID;
+	  // 		this.view.setHidden(canvasID, true);
+	  // 	} else if (canvasType !== "graphics") {
+	  // 		// initially graphics canvas is not hidden, but we must hide it, if other canvas should be shown
+	  // 		this.view.setHidden(ViewID.cpcCanvas, true);
+	  // 	}
+	  // 	const palette = this.core.getModel().getProperty<string>(ModelPropID.palette);
+	  // 	if (this.canvases[canvasType]) {
+	  // 		canvas = this.canvases[canvasType];
+	  // 		this.canvas = canvas;
+	  // 		this.setPalette(palette);
+	  // 	} else {
+	  // 		const validPalette = palette === "green" || palette === "grey" ? palette : "color";
+	  // 		if (canvasType === "text") {
+	  // 			canvas = new TextCanvas({
+	  // 				canvasID: ViewID.textText,
+	  // 				charset: cpcCharset,
+	  // 				palette: validPalette
+	  // 			});
+	  // 		} else if (canvasType === "none") {
+	  // 			canvas = new NoCanvas({
+	  // 				canvasID: ViewID.noCanvas,
+	  // 				charset: cpcCharset,
+	  // 				palette: validPalette
+	  // 			});
+	  // 		} else { // "graphics"
+	  // 			const isAreaHidden = this.view.getHidden(ViewID.cpcArea);
+	  // 			// make sure canvas area is not hidden when creating canvas object (allows to get width, height)
+	  // 			if (isAreaHidden) {
+	  // 				this.uiController.toggleAreaHiddenById("change", ViewID.showCpcInput); // show: ViewID.cpcArea
+	  // 			}
+	  // 			this.view.setHidden(ViewID.cpcCanvas, false);
+	  // 			canvas = new Canvas({
+	  // 				canvasID: ViewID.cpcCanvas,
+	  // 				charset: cpcCharset,
+	  // 				palette: validPalette
+	  // 			});
+	  // 			if (isAreaHidden) {
+	  // 				this.uiController.toggleAreaHiddenById("change", ViewID.showCpcInput); // hide again: ViewID.cpcArea
+	  // 			}
+	  // 		}
+	  // 		this.canvases[canvasType] = canvas;
+	  // 		this.canvas = canvas;
+	  // 	}
+	  // 	if (this.vm) {
+	  // 		const handler = this.vm.getOnCanvasClickHandler();
+	  // 		this.canvas.setOptions({
+	  // 			onCanvasClick: handler
+	  // 		});
+	  // 		this.vm.setCanvas(canvas);
+	  // 	}
+	  // 	const canvasId = canvas.getOptions().canvasID;
+	  // 	this.view.setHidden(canvasId, false);
+	  // 	if (this.core.getModel().getProperty<boolean>(ModelPropID.showCpc)) {
+	  // 		this.canvas.startUpdateCanvas();
+	  // 	}
+	  // 	return canvas;
+	  // }
+	  // setSoundActive(): void {
+	  // 	const sound = this.sound,
+	  // 		active = this.core.getModel().getProperty<boolean>(ModelPropID.sound);
+	  // 	if (active) {
+	  // 		sound.soundOn();
+	  // 	} else {
+	  // 		sound.soundOff();
+	  // 		const stop = this.vm && this.vm.vmGetStopObject();
+	  // 		if (stop && stop.reason === "waitSound") {
+	  // 			this.vm.vmStop("", 0, true); // do not wait
+	  // 		}
+	  // 	}
+	  // }
+	  // private getZ80Disass() {
+	  // 	if (!this.z80Disass) {
+	  // 		const dataArr = this.vm.vmGetMem(),
+	  // 			data = dataArr as unknown as Uint8Array; // fast hack: we take number array as Uint8Array
+	  // 		this.z80Disass = new Z80Disass({
+	  // 			data: data,
+	  // 			addr: 0
+	  // 		});
+	  // 	}
+	  // 	return this.z80Disass;
+	  // }
+	  // setDisassAddr(addr: number, endAddr?: number): void {
+	  // 	const z80Disass = this.getZ80Disass();
+	  // 	if (endAddr === undefined) {
+	  // 		endAddr = addr + 0x100;
+	  // 	}
+	  // 	z80Disass.setOptions({
+	  // 		addr: addr
+	  // 	});
+	  // 	const opts = z80Disass.getOptions(),
+	  // 		lines = [];
+	  // 	while (addr < endAddr) { // currently not limited to < 0x10000
+	  // 		lines.push(z80Disass.disassLine());
+	  // 		if (opts.addr > addr) {
+	  // 			addr = opts.addr;
+	  // 		} else {
+	  // 			Utils.console.error("setDisassAddr: Not increasing:", addr, opts.addr);
+	  // 			break;
+	  // 		}
+	  // 	}
+	  // 	const out = lines.join("\n") + "\n";
+	  // 	this.view.setAreaValue(ViewID.disassText, out);
+	  // }
+	  // private fnEndOfImport(imported: string[]) {
+	  // 	const stream = 0,
+	  // 		vm = this.vm;
+	  // 	for (let i = 0; i < imported.length; i += 1) {
+	  // 		vm.print(stream, imported[i], " ");
+	  // 	}
+	  // 	vm.print(stream, "\r\n", imported.length + " file" + (imported.length !== 1 ? "s" : "") + " imported.\r\n");
+	  // 	this.updateResultText();
+	  // }
+	  // private static fnOnDragover(evt: DragEvent) {
+	  // 	evt.stopPropagation();
+	  // 	evt.preventDefault();
+	  // 	if (evt.dataTransfer !== null) {
+	  // 		evt.dataTransfer.dropEffect = "copy"; // explicitly show this is a copy
+	  // 	}
+	  // }
+	  adaptFilename(name, err) {
+	    return this.vm.vmAdaptFilename(name, err);
+	  }
+	  getFileHandler() {
+	    if (!this.fileHandler) {
+	      this.fileHandler = new FileHandler({
+	        adaptFilename: this.adaptFilename.bind(this),
+	        updateStorageDatabase: this.updateStorageDatabase.bind(this),
+	        outputError: this.outputError.bind(this),
+	        processFileImports: this.core.getModel().getProperty(ModelPropID.processFileImports),
+	        storage: this.storage
+	      });
+	    }
+	    return this.fileHandler;
+	  }
+	  // private getFileSelect(fileHandler: FileHandler) {
+	  // 	if (!this.fileSelect) {
+	  // 		this.fileSelect = new FileSelect({
+	  // 			fnEndOfImport: this.fnEndOfImport.bind(this),
+	  // 			fnLoad2: fileHandler.fnLoad2.bind(fileHandler)
+	  // 		});
+	  // 	}
+	  // 	return this.fileSelect;
+	  // }
+	  // private initDropZone() {
+	  // 	const fileHandler = this.getFileHandler(),
+	  // 		fileSelect = this.getFileSelect(fileHandler),
+	  // 		dropZone = View.getElementById1(ViewID.dropZone);
+	  // 	dropZone.addEventListener("dragover", this.fnOnDragoverHandler, false);
+	  // 	fileSelect.addFileSelectHandler(dropZone, "drop");
+	  // 	const canvasID = this.canvas.getOptions().canvasID,
+	  // 		canvasElement = View.getElementById1(canvasID);
+	  // 	canvasElement.addEventListener("dragover", this.fnOnDragoverHandler, false);
+	  // 	fileSelect.addFileSelectHandler(canvasElement, "drop");
+	  // 	const fileInput = View.getElementById1(ViewID.fileInput);
+	  // 	fileSelect.addFileSelectHandler(fileInput, "change");
+	  // }
+	  // private fnUpdateUndoRedoButtons() {
+	  // 	this.view.setDisabled(ViewID.undoButton, !this.inputStack.canUndoKeepOne());
+	  // 	this.view.setDisabled(ViewID.undoButton2, !this.inputStack.canUndoKeepOne());
+	  // 	this.view.setDisabled(ViewID.redoButton, !this.inputStack.canRedo());
+	  // 	this.view.setDisabled(ViewID.redoButton2, !this.inputStack.canRedo());
+	  // }
+	  // private fnInitUndoRedoButtons() {
+	  // 	this.inputStack.reset();
+	  // 	this.fnUpdateUndoRedoButtons();
+	  // }
+	  // private fnPutChangedInputOnStack() {
+	  // 	const input = this.getInputText(),
+	  // 		stackInput = this.inputStack.getInput();
+	  // 	if (stackInput !== input) {
+	  // 		this.inputStack.save(input);
+	  // 		this.fnUpdateUndoRedoButtons();
+	  // 	}
+	  // }
+	  // startUpdateCanvas(): void {
+	  // 	this.canvas.startUpdateCanvas();
+	  // }
+	  // stopUpdateCanvas(): void {
+	  // 	this.canvas.stopUpdateCanvas();
+	  // }
+	  // private getDragElement(): DragElement {
+	  // 	if (!this.dragElement) {
+	  // 		this.dragElement = new DragElement({
+	  // 			view: this.view,
+	  // 			entries: {}
+	  // 		});
+	  // 	}
+	  // 	return this.dragElement;
+	  // }
+	  // getVirtualKeyboard(): VirtualKeyboard {
+	  // 	if (!this.virtualKeyboard) {
+	  // 		this.virtualKeyboard = new VirtualKeyboard({
+	  // 			view: this.view,
+	  // 			fnPressCpcKey: this.keyboard.fnPressCpcKey.bind(this.keyboard),
+	  // 			fnReleaseCpcKey: this.keyboard.fnReleaseCpcKey.bind(this.keyboard)
+	  // 		});
+	  // 	}
+	  // 	return this.virtualKeyboard;
+	  // }
+	  // private dragElementsData: Partial<DragElementOptions> = {
+	  // 	entries: {
+	  // 		consoleLogArea: {
+	  // 			itemId: ViewID.consoleLogArea,
+	  // 			xOffset: 0,
+	  // 			yOffset: 0,
+	  // 			enabled: false
+	  // 		},
+	  // 		cpcArea: {
+	  // 			itemId: ViewID.cpcArea,
+	  // 			xOffset: 0,
+	  // 			yOffset: 0,
+	  // 			enabled: false
+	  // 		},
+	  // 		disassArea: {
+	  // 			itemId: ViewID.disassArea,
+	  // 			xOffset: 0,
+	  // 			yOffset: 0,
+	  // 			enabled: false
+	  // 		},
+	  // 		inp2Area: {
+	  // 			itemId: ViewID.inp2Area,
+	  // 			xOffset: 0,
+	  // 			yOffset: 0,
+	  // 			enabled: false
+	  // 		},
+	  // 		inputArea: {
+	  // 			itemId: ViewID.inputArea,
+	  // 			xOffset: 0,
+	  // 			yOffset: 0,
+	  // 			enabled: false
+	  // 		},
+	  // 		kbdArea: {
+	  // 			itemId: ViewID.kbdArea,
+	  // 			xOffset: 0,
+	  // 			yOffset: 0,
+	  // 			enabled: false
+	  // 		},
+	  // 		mainArea: {
+	  // 			itemId: ViewID.mainArea,
+	  // 			xOffset: 0,
+	  // 			yOffset: 0,
+	  // 			enabled: false
+	  // 		},
+	  // 		outputArea: {
+	  // 			itemId: ViewID.outputArea,
+	  // 			xOffset: 0,
+	  // 			yOffset: 0,
+	  // 			enabled: false
+	  // 		},
+	  // 		resultArea: {
+	  // 			itemId: ViewID.resultArea,
+	  // 			xOffset: 0,
+	  // 			yOffset: 0,
+	  // 			enabled: false
+	  // 		},
+	  // 		variableArea: {
+	  // 			itemId: ViewID.variableArea,
+	  // 			xOffset: 0,
+	  // 			yOffset: 0,
+	  // 			enabled: false
+	  // 		}
+	  // 	}
+	  // };
+	  // fnDragElementsActive(enabled: boolean): void {
+	  // 	const dragElement = this.getDragElement(),
+	  // 		dragElementsData = this.dragElementsData;
+	  // 	for (const entry in dragElementsData.entries) {
+	  // 		if (dragElementsData.entries.hasOwnProperty(entry)) {
+	  // 			dragElementsData.entries[entry].enabled = enabled;
+	  // 		}
+	  // 	}
+	  // 	dragElement.setOptions(this.dragElementsData);
+	  // }
+	  /*
+	  getVariable(par: string): VariableValue {
+	  	return this.variables.getVariable(par);
+	  }
+	  */
+	  // undoStackElement(): string {
+	  // 	return this.inputStack.undo();
+	  // }
+	  // redoStackElement(): string {
+	  // 	return this.inputStack.redo();
+	  // }
+	  createFnDatabaseLoaded(url) {
+	    return (_sFullUrl, key) => {
+	      const selectedName = this.core.getModel().getProperty(ModelPropID.database);
+	      if (selectedName === key) {
+	        this.core.getModel().getDatabase().loaded = true;
+	      } else {
+	        Utils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
+	        this.core.getModel().setProperty(ModelPropID.database, key);
+	        const database = this.core.getModel().getDatabase();
+	        if (database) {
+	          database.loaded = true;
+	        }
+	        this.core.getModel().setProperty(ModelPropID.database, selectedName);
+	      }
+	      Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
+	      this.onDirectorySelectChange();
+	    };
+	  }
+	  createFnDatabaseError(url) {
+	    return (_sFullUrl, key) => {
+	      Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
+	      this.onDirectorySelectChange();
+	      this.setInputText("");
+	      this.setResultText("Cannot load database: " + key);
+	    };
+	  }
+	  onDatabaseSelectChange() {
+	    const model = this.core.getModel();
+	    const databaseName = model.getProperty(ModelPropID.database);
+	    const database = model.getDatabase();
+	    if (!database) {
+	      Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
+	      return;
+	    }
+	    if (database.text === "storage") {
+	      this.updateStorageDatabase("set", "");
+	      database.loaded = true;
+	    }
+	    if (database.loaded) {
+	      this.onDirectorySelectChange();
+	    } else {
+	      this.setInputText("#loading database " + databaseName + "...");
+	      const exampleIndex = this.core.getModel().getProperty(ModelPropID.exampleIndex);
+	      const url = database.src + "/" + exampleIndex;
+	      const loadScriptFn = this.getLoadScript();
+	      loadScriptFn(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
+	    }
+	  }
+	  onDirectorySelectChange() {
+	    this.onExampleSelectChange();
+	  }
+	  onExampleSelectChange() {
+	    const model = this.core.getModel();
+	    const vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.core.getModel().getProperty(ModelPropID.database);
+	    vm.closein();
+	    inFile.open = true;
+	    let exampleName = model.getProperty(ModelPropID.example);
+	    const exampleEntry = this.core.getModel().getExample(exampleName);
+	    let autorun = this.core.getModel().getProperty(ModelPropID.autorun);
+	    if (exampleEntry && exampleEntry.meta) {
+	      const type = exampleEntry.meta.charAt(0);
+	      if (type === "B" || type === "D" || type === "G") {
+	        autorun = false;
+	      }
+	    }
+	    inFile.command = autorun ? "run" : "load";
+	    if (dataBaseName !== "storage") {
+	      exampleName = "/" + exampleName;
+	    } else {
+	      this.core.getModel().setProperty(ModelPropID.example, exampleName);
+	    }
+	    inFile.name = exampleName;
+	    inFile.start = void 0;
+	    inFile.fnFileCallback = vm.vmGetLoadHandler();
+	    vm.vmStop("fileLoad", 90);
+	    this.startMainLoop();
+	  }
+	  // currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
+	  // exportAsBase64(storageName: string): string { // eslint-disable-line class-methods-use-this
+	  // 	const storage = this.getStorage();
+	  // 	let data = storage.getItem(storageName),
+	  // 		out = "";
+	  // 	if (data !== null) {
+	  // 		const index = data.indexOf(","); // metadata separator
+	  // 		if (index >= 0) {
+	  // 			const meta = data.substring(0, index);
+	  // 			data = data.substring(index + 1);
+	  // 			data = window.btoa(data);
+	  // 			out = meta + ";base64," + data;
+	  // 		} else { // hmm, no meta info
+	  // 			data = window.btoa(data);
+	  // 			out = "base64," + data;
+	  // 		}
+	  // 	}
+	  // 	Utils.console.log(out);
+	  // 	return out;
+	  // }
+	  // onCpcCanvasClick(event: MouseEvent): void {
+	  // 	this.uiController.setPopoversHiddenExcept(); // hide all popovers
+	  // 	this.canvas.onCanvasClick(event);
+	  // 	this.keyboard.setActive(true);
+	  // }
+	  // onWindowClick(event: Event): void {
+	  // 	this.canvas.onWindowClick(event);
+	  // 	this.keyboard.setActive(false);
+	  // }
+	  // fnArrayBounds(): void {
+	  // 	const arrayBounds = this.core.getModel().getProperty<boolean>(ModelPropID.arrayBounds);
+	  // 	this.variables.setOptions({
+	  // 		arrayBounds: arrayBounds
+	  // 	});
+	  // 	this.vm.vmGoto(0); // reset current line
+	  // 	this.vm.vmStop("end", 0, true);
+	  // 	this.fnRemoveAllVariables();
+	  // }
+	  // fnImplicitLines(): void {
+	  // 	const implicitLines = this.core.getModel().getProperty<boolean>(ModelPropID.implicitLines);
+	  // 	this.codeGeneratorJs.setOptions({
+	  // 		implicitLines: implicitLines
+	  // 	});
+	  // 	if (this.codeGeneratorToken) {
+	  // 		this.codeGeneratorToken.setOptions({
+	  // 			implicitLines: implicitLines
+	  // 		});
+	  // 	}
+	  // }
+	  fnRemoveAllVariables() {
+	    if (Object.keys(this.variables.getAllVariables()).length) {
+	      this.variables.removeAllVariables();
+	    }
+	  }
+	  // fnPrettyLowercaseVars(): void {
+	  // 	const prettyLowercaseVars = this.core.getModel().getProperty<boolean>(ModelPropID.prettyLowercaseVars);
+	  // 	this.getCodeGeneratorBasic().setOptions({
+	  // 		lowercaseVars: prettyLowercaseVars
+	  // 	});
+	  // }
+	  // fnIntegerOverflow(): void {
+	  // 	const integerOverflow = this.core.getModel().getProperty<boolean>(ModelPropID.integerOverflow);
+	  // 	this.codeGeneratorJs.setOptions({
+	  // 		integerOverflow: integerOverflow
+	  // 	});
+	  // }
+	  // fnTrace(): void {
+	  // 	const trace = this.core.getModel().getProperty<boolean>(ModelPropID.trace);
+	  // 	this.codeGeneratorJs.setOptions({
+	  // 		trace: trace
+	  // 	});
+	  // }
+	  fnSpeed() {
+	    const speed = this.core.getModel().getProperty(ModelPropID.speed);
+	    this.initialLoopTimeout = 1e3 - speed * 10;
+	  }
+	  /* eslint-enable no-invalid-this */
+	};
+	_Controller0.codeGenJsBasicParserOptions = {
+	  keepBrackets: false,
+	  keepColons: false,
+	  keepDataComma: false,
+	  keepTokens: false
+	};
+	_Controller0.codeGenTokenBasicParserOptions = {
+	  keepTokens: true,
+	  keepBrackets: true,
+	  keepColons: true,
+	  keepDataComma: true
+	};
+	_Controller0.formatterBasicParserOptions = {
+	  keepBrackets: false,
+	  keepColons: false,
+	  keepDataComma: false,
+	  keepTokens: false
+	};
+	// gate array ink to basic ink
+	_Controller0.gaInk2Ink = [
+	  13,
+	  27,
+	  19,
+	  25,
+	  1,
+	  7,
+	  10,
+	  16,
+	  28,
+	  29,
+	  24,
+	  26,
+	  6,
+	  8,
+	  15,
+	  17,
+	  30,
+	  31,
+	  18,
+	  20,
+	  0,
+	  2,
+	  9,
+	  11,
+	  4,
+	  22,
+	  21,
+	  23,
+	  3,
+	  5,
+	  12,
+	  14
+	];
+	_Controller0.defaultExtensions = [
+	  "",
+	  "bas",
+	  "bin"
+	];
+	let Controller0 = _Controller0;
 
 	const ModelPropIDdatabase$1 = "database";
 	class Model {
@@ -20553,8 +22967,13 @@
 	      let inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
 	      inputString = inputString.replace(/^\n/, "").replace(/\n$/, "");
 	      if (!key) {
-	        console.warn("addItem: no key!");
+	        Utils.console.warn("addItem: no key!");
 	        key = "unknown";
+	      }
+	      const implicitLines = this.model.getProperty(ModelPropID.implicitLines);
+	      const linesOnLoad = this.model.getProperty(ModelPropID.linesOnLoad);
+	      if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
+	        inputString = Controller0.addLineNumbers(inputString);
 	      }
 	      const example = this.model.getExample(key);
 	      if (example) {
@@ -20562,14 +22981,11 @@
 	      }
 	    };
 	    this.addRsx = (key, RsxConstructor) => {
-	      if (!key) {
-	        key = document.currentScript && document.currentScript.getAttribute("data-key") || this.model.getProperty(ModelPropIDexample);
-	      }
 	      const example = this.model.getExample(key);
 	      example.key = key;
 	      example.rsx = new RsxConstructor();
 	      example.loaded = true;
-	      console.log("addItem:", key);
+	      Utils.console.log("addItem:", key);
 	      return key;
 	    };
 	    this.model = new Model(defaultConfig);
@@ -20717,7 +23133,7 @@
 	};
 	class cpcBasic {
 	  static start(startupAdapter) {
-	    console.log("CPCBasicTS started at", Utils.dateFormat(/* @__PURE__ */ new Date()));
+	    Utils.console.log("CPCBasicTS started at", Utils.dateFormat(/* @__PURE__ */ new Date()));
 	    const adapterConfig = startupAdapter.getConfigOverrides() || {};
 	    Object.assign(startConfig, cpcconfig, adapterConfig);
 	    const redirectExamples = startConfig.redirectExamples;
@@ -20744,7 +23160,12 @@
 	            }
 	            core.addItem(key, input);
 	          },
-	          addRsx: (key, RsxConstructor) => core.addRsx(key, RsxConstructor)
+	          addRsx: (key, RsxConstructor) => {
+	            if (!key) {
+	              key = ui.getCurrentDataKey();
+	            }
+	            core.addRsx(key, RsxConstructor);
+	          }
 	        };
 	        ui.onWindowLoadContinue(core);
 	      };

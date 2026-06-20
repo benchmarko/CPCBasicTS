@@ -3,15 +3,15 @@
 import { Utils } from "../Utils";
 import { Sound } from "../ui/Sound";
 import { TestHelper } from "./TestHelper";
-var lastTestFunctions = [];
+const lastTestFunctions = [];
 function clearLastTestFunctions() {
     lastTestFunctions.length = 0;
 }
 function combineLastTestFunctions() {
-    return lastTestFunctions.map(function (lastTestFunction) { return Object.keys(lastTestFunction)[0] + ":" + Object.values(lastTestFunction)[0]; }).join(" , ") || undefined;
+    return lastTestFunctions.map((lastTestFunction) => Object.keys(lastTestFunction)[0] + ":" + Object.values(lastTestFunction)[0]).join(" , ") || undefined;
 }
 function combineResult(result) {
-    var combinedTestFunctions = combineLastTestFunctions(), combinedResult = [];
+    const combinedTestFunctions = combineLastTestFunctions(), combinedResult = [];
     if (combinedTestFunctions !== undefined) {
         combinedResult.push(combinedTestFunctions);
     }
@@ -21,35 +21,23 @@ function combineResult(result) {
     return combinedResult.join(" -- ");
 }
 /* eslint-disable class-methods-use-this */ /* eslint-disable class-methods-use-this */
-var AudioContextMock = /** @class */ (function () {
-    function AudioContextMock() {
+class AudioContextMock {
+    constructor() {
         this.sampleRate = 24000; // 48000;
         this.currentTime = 0;
     }
-    AudioContextMock.prototype.createChannelMerger = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    createChannelMerger(...args) {
         lastTestFunctions.push({
             createChannelMerger: args
         });
         return {
-            connect: function () {
-                var args2 = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args2[_i] = arguments[_i];
-                }
+            connect: function (...args2) {
                 lastTestFunctions.push({
                     "channelMerger:connect": args2
                 });
                 return this;
             },
-            disconnect: function () {
-                var args2 = []; /* destinationNode: AudioNode */
-                for (var _i = 0 /* destinationNode: AudioNode */; _i < arguments.length /* destinationNode: AudioNode */; _i++ /* destinationNode: AudioNode */) {
-                    args2[_i] = arguments[_i]; /* destinationNode: AudioNode */
-                }
+            disconnect: function (...args2 /* destinationNode: AudioNode */) {
                 lastTestFunctions.push({
                     "channelMerger:disconnect": args2
                 });
@@ -58,36 +46,24 @@ var AudioContextMock = /** @class */ (function () {
                 return "[obj channelMerger]";
             }
         };
-    };
-    AudioContextMock.prototype.createGain = function () {
+    }
+    createGain() {
         lastTestFunctions.push({
             createGain: []
         });
         return {
-            connect: function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
+            connect: function (...args) {
                 lastTestFunctions.push({
                     "gain:connect": args
                 });
             },
             gain: {
-                setValueAtTime: function () {
-                    var args = [];
-                    for (var _i = 0; _i < arguments.length; _i++) {
-                        args[_i] = arguments[_i];
-                    }
+                setValueAtTime: function (...args) {
                     lastTestFunctions.push({
                         "gain:gain.setValueAtTime": args
                     });
                 },
-                linearRampToValueAtTime: function () {
-                    var args = [];
-                    for (var _i = 0; _i < arguments.length; _i++) {
-                        args[_i] = arguments[_i];
-                    }
+                linearRampToValueAtTime: function (...args) {
                     lastTestFunctions.push({
                         "gain:gain.linearRampToValueAtTime": args
                     });
@@ -97,65 +73,45 @@ var AudioContextMock = /** @class */ (function () {
                 return "[obj gain]";
             }
         };
-    };
-    AudioContextMock.prototype.createBuffer = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    }
+    createBuffer(...args) {
         lastTestFunctions.push({
             createBuffer: args
         });
-        var length = args[1], buffer = new Float32Array(length);
+        const length = args[1], buffer = new Float32Array(length);
         return {
-            getChannelData: function () {
-                var args2 = []; /* channel: number */
-                for (var _i = 0 /* channel: number */; _i < arguments.length /* channel: number */; _i++ /* channel: number */) {
-                    args2[_i] = arguments[_i]; /* channel: number */
-                }
+            getChannelData: function (...args2 /* channel: number */) {
                 lastTestFunctions.push({
                     "createBuffer:getChannelData": args2
                 });
                 return buffer; // TODO: new Float32Array()
             }
         };
-    };
-    AudioContextMock.prototype.createBufferSource = function () {
+    }
+    createBufferSource() {
         lastTestFunctions.push({
             createBufferSource: []
         });
         return {
-            start: function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
+            start: function (...args) {
                 lastTestFunctions.push({
                     "bufferSource:start": args
                 });
             },
-            stop: function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
+            stop: function (...args) {
                 lastTestFunctions.push({
                     "bufferSource:stop": args
                 });
             },
-            connect: function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
+            connect: function (...args) {
                 lastTestFunctions.push({
                     "bufferSource.connect": args
                 });
                 return this;
             }
         };
-    };
-    AudioContextMock.prototype.createBiquadFilter = function () {
+    }
+    createBiquadFilter() {
         lastTestFunctions.push({
             createBiquadFilter: []
         });
@@ -167,67 +123,46 @@ var AudioContextMock = /** @class */ (function () {
                 return "[obj BiquadFilterNode]";
             }
         };
-    };
-    AudioContextMock.prototype.createOscillator = function () {
+    }
+    createOscillator() {
         lastTestFunctions.push({
             createOscillator: []
         });
         return {
             frequency: {
                 value: 0,
-                setValueAtTime: function () {
-                    var args = [];
-                    for (var _i = 0; _i < arguments.length; _i++) {
-                        args[_i] = arguments[_i];
-                    }
+                setValueAtTime: function (...args) {
                     lastTestFunctions.push({
                         "oscillator.frequency.setValueAtTime": args
                     });
                 }
             },
-            connect: function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
+            connect: function (...args) {
                 lastTestFunctions.push({
                     "oscillator.connect": args
                 });
             },
-            start: function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
+            start: function (...args) {
                 lastTestFunctions.push({
                     "oscillator.start": args
                 });
             },
-            stop: function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
+            stop: function (...args) {
                 lastTestFunctions.push({
                     "oscillator.stop": args
                 });
             },
-            disconnect: function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
+            disconnect: function (...args) {
                 lastTestFunctions.push({
                     "oscillator.disconnect": args
                 });
             }
         };
-    };
-    return AudioContextMock;
-}());
+    }
+}
 /* eslint-enable class-methods-use-this */
 QUnit.module("Sound: Tests1", function (hooks) {
-    var that = {}; // eslint-disable-line consistent-this
+    const that = {}; // eslint-disable-line consistent-this
     hooks.beforeEach(function () {
         that.sound = new Sound({
             AudioContextConstructor: AudioContextMock
@@ -237,12 +172,12 @@ QUnit.module("Sound: Tests1", function (hooks) {
         assert.ok(that.sound, "defined");
     });
     QUnit.test("reset", function (assert) {
-        var sound = that.sound;
+        const sound = that.sound;
         sound.reset();
         assert.strictEqual(sound.testCanQueue(0), true, "testCanQueue(0): true");
     });
     QUnit.test("soundOn", function (assert) {
-        var sound = that.sound;
+        const sound = that.sound;
         assert.strictEqual(sound.isActivatedByUser(), false, "isActivatedByUser: false");
         sound.soundOn();
         assert.strictEqual(sound.testCanQueue(0), false, "testCanQueue(0): false");
@@ -254,7 +189,7 @@ QUnit.module("Sound: Tests1", function (hooks) {
     });
 });
 QUnit.module("Sound: Tests", function (hooks) {
-    var allTests = {
+    const allTests = {
         sound: {
             "1,100,3,12": "createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.6400000000000001,0 , oscillator.start:0 , oscillator.stop:0.03 -- undefined",
             "1,100,20,10,0,0,5": "oscillator.stop: , oscillator.disconnect: , createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.4444444444444444,0 , oscillator.start:0 , oscillator.stop:0.2 , createBuffer:1,4800,24000 , createBuffer:getChannelData:0 , createBufferSource: , createBiquadFilter: , bufferSource.connect:[obj BiquadFilterNode] , bufferSource.connect:[obj gain] , bufferSource:start:0 , bufferSource:stop:0.2 -- undefined",
@@ -268,7 +203,7 @@ QUnit.module("Sound: Tests", function (hooks) {
         }
     }, allTestFunctions = {
         sound: function (sound, input) {
-            var soundData = {
+            const soundData = {
                 state: input[0],
                 period: input[1],
                 duration: input[2],
@@ -280,9 +215,9 @@ QUnit.module("Sound: Tests", function (hooks) {
             return String(sound.sound(soundData));
         },
         setToneEnv: function (sound, input) {
-            var toneEnv = input[0], toneEnvList = [];
-            for (var i = 1; i < input.length - 1; i += 3) {
-                var toneEnvData = void 0;
+            const toneEnv = input[0], toneEnvList = [];
+            for (let i = 1; i < input.length - 1; i += 3) {
+                let toneEnvData;
                 if (input[i] !== "=") {
                     toneEnvData = {
                         steps: input[i],
@@ -302,9 +237,9 @@ QUnit.module("Sound: Tests", function (hooks) {
             return String(sound.setToneEnv(toneEnv, toneEnvList));
         },
         setVolEnv: function (sound, input) {
-            var volEnv = input[0], volEnvList = [];
-            for (var i = 1; i < input.length - 1; i += 3) {
-                var volEnvData = void 0;
+            const volEnv = input[0], volEnvList = [];
+            for (let i = 1; i < input.length - 1; i += 3) {
+                let volEnvData;
                 if (input[i] !== "=") {
                     volEnvData = {
                         steps: input[i],
@@ -324,8 +259,8 @@ QUnit.module("Sound: Tests", function (hooks) {
         }
     };
     function adaptParameters(a) {
-        var b = [];
-        for (var i = 0; i < a.length; i += 1) {
+        const b = [];
+        for (let i = 0; i < a.length; i += 1) {
             if (a[i].startsWith('"') && a[i].endsWith('"')) { // string in quotes?
                 b.push(a[i].substring(1, 1 + a[i].length - 2)); // remove quotes
             }
@@ -341,13 +276,13 @@ QUnit.module("Sound: Tests", function (hooks) {
     function runSingleTest(testFunction, sound, key, expected, category) {
         clearLastTestFunctions();
         sound.reset();
-        var input = key === "" ? [] : adaptParameters(key.split(","));
-        var result;
+        const input = key === "" ? [] : adaptParameters(key.split(","));
+        let result;
         try {
             if (!testFunction) {
                 throw new Error("Undefined testFunction: " + category);
             }
-            var result0 = testFunction(sound, input);
+            const result0 = testFunction(sound, input);
             result = combineResult(result0);
         }
         catch (e) {
@@ -360,14 +295,14 @@ QUnit.module("Sound: Tests", function (hooks) {
         return result;
     }
     function runTestsFor(category, tests, assert, results) {
-        var sound = new Sound({
+        const sound = new Sound({
             AudioContextConstructor: AudioContextMock
         }), testFunction = allTestFunctions[category];
         sound.soundOn();
         sound.setActivatedByUser();
-        for (var key in tests) {
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
-                var expected = tests[key], result = runSingleTest(testFunction, sound, key, expected, category);
+                const expected = tests[key], result = runSingleTest(testFunction, sound, key, expected, category);
                 if (results) {
                     results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
                 }

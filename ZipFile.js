@@ -6,64 +6,64 @@
 // (and Cpcemu: zip.cpp)
 // https://en.wikipedia.org/wiki/Zip_(file_format)
 import { Utils } from "./Utils";
-var ZipFile = /** @class */ (function () {
-    function ZipFile(options) {
+export class ZipFile {
+    constructor(options) {
         this.entryTable = {};
         this.options = {};
         this.setOptions(options, true);
     }
-    ZipFile.prototype.getOptions = function () {
+    getOptions() {
         return this.options;
-    };
-    ZipFile.prototype.setOptions = function (options, force) {
-        var currentData = this.options.data;
+    }
+    setOptions(options, force) {
+        const currentData = this.options.data;
         Object.assign(this.options, options);
         if (force || (this.options.data !== currentData)) {
             this.data = this.options.data;
             this.entryTable = this.readZipDirectory();
         }
-    };
-    ZipFile.prototype.getZipDirectory = function () {
+    }
+    getZipDirectory() {
         return this.entryTable;
-    };
-    ZipFile.prototype.composeError = function (error, message, value, pos) {
+    }
+    composeError(error, message, value, pos) {
         message = this.options.zipName + ": " + message; // put zipname in message
         return Utils.composeError("ZipFile", error, message, value, pos);
-    };
-    ZipFile.prototype.subArr = function (begin, length) {
-        var data = this.data, end = begin + length;
+    }
+    subArr(begin, length) {
+        const data = this.data, end = begin + length;
         return data.slice ? data.slice(begin, end) : data.subarray(begin, end); // array.slice on Uint8Array not for IE11
-    };
-    ZipFile.prototype.readUTF = function (offset, len) {
-        var callSize = 25000; // use call window to avoid "maximum call stack error" for e.g. size 336461
-        var out = "";
+    }
+    readUTF(offset, len) {
+        const callSize = 25000; // use call window to avoid "maximum call stack error" for e.g. size 336461
+        let out = "";
         while (len) {
-            var chunkLen = Math.min(len, callSize), nums = this.subArr(offset, chunkLen);
+            const chunkLen = Math.min(len, callSize), nums = this.subArr(offset, chunkLen);
             out += String.fromCharCode.apply(null, nums); // on Chrome this is faster than single character processing
             offset += chunkLen;
             len -= chunkLen;
         }
         return out;
-    };
-    ZipFile.prototype.readUInt = function (i) {
-        var data = this.data;
+    }
+    readUInt(i) {
+        const data = this.data;
         return (data[i + 3] << 24) | (data[i + 2] << 16) | (data[i + 1] << 8) | data[i]; // eslint-disable-line no-bitwise
-    };
-    ZipFile.prototype.readUShort = function (i) {
-        var data = this.data;
+    }
+    readUShort(i) {
+        const data = this.data;
         return ((data[i + 1]) << 8) | data[i]; // eslint-disable-line no-bitwise
-    };
-    ZipFile.prototype.readEocd = function (eocdPos) {
-        var eocd = {
+    }
+    readEocd(eocdPos) {
+        const eocd = {
             signature: this.readUInt(eocdPos),
             entries: this.readUShort(eocdPos + 10), // total number of central directory records
             cdfhOffset: this.readUInt(eocdPos + 16), // offset of start of central directory, relative to start of archive
             cdSize: this.readUInt(eocdPos + 20) // size of central directory (just for information)
         };
         return eocd;
-    };
-    ZipFile.prototype.readCdfh = function (pos) {
-        var cdfh = {
+    }
+    readCdfh(pos) {
+        const cdfh = {
             signature: this.readUInt(pos),
             version: this.readUShort(pos + 6), // version needed to extract (minimum)
             flag: this.readUShort(pos + 8), // General purpose bit flag
@@ -85,9 +85,9 @@ var ZipFile = /** @class */ (function () {
             dataStart: 0
         };
         return cdfh;
-    };
-    ZipFile.prototype.readZipDirectory = function () {
-        var eocdLen = 22, // End of central directory (EOCD)
+    }
+    readZipDirectory() {
+        const eocdLen = 22, // End of central directory (EOCD)
         maxEocdCommentLen = 0xffff, eocdSignature = 0x06054B50, // EOCD signature: "PK\x05\x06"
         cdfhSignature = 0x02014B50, // Central directory file header signature: PK\x01\x02"
         cdfhLen = 46, // Central directory file header length
@@ -95,9 +95,9 @@ var ZipFile = /** @class */ (function () {
         lfhLen = 30, // Local file header length
         data = this.data, entryTable = {};
         // find End of central directory (EOCD) record
-        var i = data.length - eocdLen + 1, // +1 because of loop
+        let i = data.length - eocdLen + 1, // +1 because of loop
         eocd;
-        var n = Math.max(0, i - maxEocdCommentLen);
+        const n = Math.max(0, i - maxEocdCommentLen);
         while (i >= n) {
             i -= 1;
             if (this.readUInt(i) === eocdSignature) {
@@ -110,10 +110,10 @@ var ZipFile = /** @class */ (function () {
         if (!eocd) {
             throw this.composeError(Error(), "Zip: File ended abruptly: EOCD not found", "", (i >= 0) ? i : 0);
         }
-        var entries = eocd.entries;
-        var offset = eocd.cdfhOffset;
+        const entries = eocd.entries;
+        let offset = eocd.cdfhOffset;
         for (i = 0; i < entries; i += 1) {
-            var cdfh = this.readCdfh(offset);
+            const cdfh = this.readCdfh(offset);
             if (cdfh.signature !== cdfhSignature) {
                 throw this.composeError(Error(), "Zip: Bad CDFH signature", "", offset);
             }
@@ -131,21 +131,21 @@ var ZipFile = /** @class */ (function () {
             if ((cdfh.flag & 1) === 1) { // eslint-disable-line no-bitwise
                 throw this.composeError(Error(), "Zip encrypted entries not supported", "", i);
             }
-            var dostime = cdfh.modificationTime;
+            const dostime = cdfh.modificationTime;
             // year, month, day, hour, minute, second
             cdfh.timestamp = new Date(((dostime >> 25) & 0x7F) + 1980, ((dostime >> 21) & 0x0F) - 1, (dostime >> 16) & 0x1F, (dostime >> 11) & 0x1F, (dostime >> 5) & 0x3F, (dostime & 0x1F) << 1).getTime(); // eslint-disable-line no-bitwise
             // local file header... much more info
             if (this.readUInt(cdfh.localOffset) !== lfhSignature) {
                 Utils.console.error("Zip: readZipDirectory: LFH signature not found at offset", cdfh.localOffset);
             }
-            var lfhExtrafieldLength = this.readUShort(cdfh.localOffset + 28); // extra field length
+            const lfhExtrafieldLength = this.readUShort(cdfh.localOffset + 28); // extra field length
             cdfh.dataStart = cdfh.localOffset + lfhLen + cdfh.name.length + lfhExtrafieldLength;
             entryTable[cdfh.name] = cdfh;
         }
         return entryTable;
-    };
-    ZipFile.fnInflateConstruct = function (codes, lens2, n) {
-        var i;
+    }
+    static fnInflateConstruct(codes, lens2, n) {
+        let i;
         for (i = 0; i <= 0xF; i += 1) {
             codes.count[i] = 0;
         }
@@ -155,13 +155,13 @@ var ZipFile = /** @class */ (function () {
         if (codes.count[0] === n) {
             return 0;
         }
-        var left = 1;
+        let left = 1;
         for (i = 1; i <= 0xF; i += 1) {
             if ((left = (left << 1) - codes.count[i]) < 0) { // eslint-disable-line no-bitwise
                 return left;
             }
         }
-        var offs = [
+        const offs = [
             undefined,
             0
         ];
@@ -175,9 +175,9 @@ var ZipFile = /** @class */ (function () {
             }
         }
         return left;
-    };
-    ZipFile.fnConstructFixedHuffman = function (lens, lenCode, distCode) {
-        var symbol;
+    }
+    static fnConstructFixedHuffman(lens, lenCode, distCode) {
+        let symbol;
         for (symbol = 0; symbol < 0x90; symbol += 1) {
             lens[symbol] = 8;
         }
@@ -195,19 +195,19 @@ var ZipFile = /** @class */ (function () {
             lens[symbol] = 5;
         }
         ZipFile.fnInflateConstruct(distCode, lens, 0x1E);
-    };
-    ZipFile.prototype.inflate = function (offset, compressedSize, finalSize) {
+    }
+    inflate(offset, compressedSize, finalSize) {
         /* eslint-disable array-element-newline */
-        var startLens = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258], lExt = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0], dists = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577], dExt = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13], dynamicTableOrder = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15], 
+        const startLens = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258], lExt = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0], dists = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577], dExt = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13], dynamicTableOrder = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15], 
         /* eslint-enable array-element-newline */
         that = this, // eslint-disable-line @typescript-eslint/no-this-alias
         data = this.data, bufEnd = offset + compressedSize, outBuf = new Uint8Array(finalSize);
-        var inCnt = offset, // read position
+        let inCnt = offset, // read position
         outCnt = 0, // bytes written to outbuf
         bitCnt = 0, // helper to keep track of where we are in #bits
         bitBuf = 0, distCode, lenCode, lens;
-        var fnBits = function (need) {
-            var out = bitBuf;
+        const fnBits = function (need) {
+            let out = bitBuf;
             while (bitCnt < need) {
                 if (inCnt === bufEnd) {
                     throw that.composeError(Error(), "Zip: inflate: Data overflow", that.options.zipName, -1);
@@ -220,10 +220,10 @@ var ZipFile = /** @class */ (function () {
             bitCnt -= need;
             return out & ((1 << need) - 1); // eslint-disable-line no-bitwise
         }, fnDecode = function (codes) {
-            var code = 0, first = 0, i = 0;
-            for (var j = 1; j <= 0xF; j += 1) {
+            let code = 0, first = 0, i = 0;
+            for (let j = 1; j <= 0xF; j += 1) {
                 code |= fnBits(1); // eslint-disable-line no-bitwise
-                var count = codes.count[j];
+                const count = codes.count[j];
                 if (code < first + count) {
                     return codes.symbol[i + (code - first)];
                 }
@@ -239,7 +239,7 @@ var ZipFile = /** @class */ (function () {
             if (inCnt + 4 > bufEnd) {
                 throw that.composeError(Error(), "Zip: inflate: Data overflow", "", inCnt);
             }
-            var len = that.readUShort(inCnt);
+            let len = that.readUShort(inCnt);
             inCnt += 2;
             if (data[inCnt] !== (~len & 0xFF) || data[inCnt + 1] !== ((~len >> 8) & 0xFF)) { // eslint-disable-line no-bitwise
                 throw that.composeError(Error(), "Zip: inflate: Bad length", "", inCnt);
@@ -256,11 +256,11 @@ var ZipFile = /** @class */ (function () {
                 len -= 1;
             }
         }, fnConstructDynamicHuffman = function () {
-            var nLen = fnBits(5) + 257, nDist = fnBits(5) + 1, nCode = fnBits(4) + 4;
+            const nLen = fnBits(5) + 257, nDist = fnBits(5) + 1, nCode = fnBits(4) + 4;
             if (nLen > 0x11E || nDist > 0x1E) {
                 throw that.composeError(Error(), "Zip: inflate: length/distance code overflow", "", 0);
             }
-            var i;
+            let i;
             for (i = 0; i < nCode; i += 1) {
                 lens[dynamicTableOrder[i]] = fnBits(3);
             }
@@ -271,14 +271,14 @@ var ZipFile = /** @class */ (function () {
                 throw that.composeError(Error(), "Zip: inflate: length codes incomplete", "", 0);
             }
             for (i = 0; i < nLen + nDist;) {
-                var symbol = fnDecode(lenCode); // TTT
+                let symbol = fnDecode(lenCode); // TTT
                 /* eslint-disable max-depth */
                 if (symbol < 16) {
                     lens[i] = symbol;
                     i += 1;
                 }
                 else {
-                    var len = 0;
+                    let len = 0;
                     if (symbol === 16) {
                         if (i === 0) {
                             throw that.composeError(Error(), "Zip: inflate: repeat lengths with no first length", "", 0);
@@ -303,13 +303,13 @@ var ZipFile = /** @class */ (function () {
                 }
                 /* eslint-enable max-depth */
             }
-            var err1 = ZipFile.fnInflateConstruct(lenCode, lens, nLen), err2 = ZipFile.fnInflateConstruct(distCode, lens.slice(nLen), nDist);
+            const err1 = ZipFile.fnInflateConstruct(lenCode, lens, nLen), err2 = ZipFile.fnInflateConstruct(distCode, lens.slice(nLen), nDist);
             if ((err1 < 0 || (err1 > 0 && nLen - lenCode.count[0] !== 1))
                 || (err2 < 0 || (err2 > 0 && nDist - distCode.count[0] !== 1))) {
                 throw that.composeError(Error(), "Zip: inflate: bad literal or length codes", "", 0);
             }
         }, fnInflateHuffmann = function () {
-            var symbol;
+            let symbol;
             do { // decode deflated data
                 symbol = fnDecode(lenCode); // TTT
                 if (symbol < 256) {
@@ -321,9 +321,9 @@ var ZipFile = /** @class */ (function () {
                     if (symbol > 28) {
                         throw that.composeError(Error(), "Zip: inflate: Invalid length/distance", "", 0);
                     }
-                    var len = startLens[symbol] + fnBits(lExt[symbol]);
+                    let len = startLens[symbol] + fnBits(lExt[symbol]);
                     symbol = fnDecode(distCode); // TTT
-                    var dist = dists[symbol] + fnBits(dExt[symbol]);
+                    const dist = dists[symbol] + fnBits(dExt[symbol]);
                     if (dist > outCnt) {
                         throw that.composeError(Error(), "Zip: inflate: distance out of range", "", 0);
                     }
@@ -336,10 +336,10 @@ var ZipFile = /** @class */ (function () {
                 }
             } while (symbol !== 256);
         };
-        var last;
+        let last;
         do { // The actual inflation
             last = fnBits(1);
-            var type = fnBits(2);
+            const type = fnBits(2);
             switch (type) {
                 case 0: // STORED
                     fnInflateStored();
@@ -368,18 +368,18 @@ var ZipFile = /** @class */ (function () {
             }
         } while (!last);
         return outBuf;
-    };
-    ZipFile.prototype.readData = function (name) {
-        var cdfh = this.entryTable[name];
+    }
+    readData(name) {
+        const cdfh = this.entryTable[name];
         if (!cdfh) {
             throw this.composeError(Error(), "Zip: readData: file does not exist:" + name, "", 0);
         }
-        var dataUTF8 = "";
+        let dataUTF8 = "";
         if (cdfh.compressionMethod === 0) { // stored
             dataUTF8 = this.readUTF(cdfh.dataStart, cdfh.size);
         }
         else if (cdfh.compressionMethod === 8) { // deflated
-            var fileData = this.inflate(cdfh.dataStart, cdfh.compressedSize, cdfh.size), savedData = this.data;
+            const fileData = this.inflate(cdfh.dataStart, cdfh.compressedSize, cdfh.size), savedData = this.data;
             this.data = fileData; // we need to switch this.data
             dataUTF8 = this.readUTF(0, fileData.length);
             this.data = savedData; // restore
@@ -391,8 +391,6 @@ var ZipFile = /** @class */ (function () {
             Utils.console.error("Zip: readData: different length 2!");
         }
         return dataUTF8;
-    };
-    return ZipFile;
-}());
-export { ZipFile };
+    }
+}
 //# sourceMappingURL=ZipFile.js.map

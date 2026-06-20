@@ -5,56 +5,56 @@
 // https://www.cpcwiki.eu/index.php/Format:SNA_snapshot_file_format
 // https://cpctech.cpcwiki.de/docs/snapshot.html
 import { Utils } from "./Utils";
-var Snapshot = /** @class */ (function () {
-    function Snapshot(options) {
+export class Snapshot {
+    constructor(options) {
         this.pos = 0;
         this.options = {
             quiet: false
         };
         this.setOptions(options);
     }
-    Snapshot.prototype.getOptions = function () {
+    getOptions() {
         return this.options;
-    };
-    Snapshot.prototype.setOptions = function (options) {
+    }
+    setOptions(options) {
         Object.assign(this.options, options);
-    };
-    Snapshot.prototype.composeError = function (error, message, value, pos) {
-        var len = 0;
+    }
+    composeError(error, message, value, pos) {
+        const len = 0;
         return Utils.composeError("DiskImage", error, this.options.name + ": " + message, value, pos || 0, len);
-    };
-    Snapshot.testSnapIdent = function (ident) {
+    }
+    static testSnapIdent(ident) {
         return ident === "MV - SNA";
-    };
-    Snapshot.prototype.readUInt8 = function () {
-        var num = this.options.data.charCodeAt(this.pos);
+    }
+    readUInt8() {
+        const num = this.options.data.charCodeAt(this.pos);
         if (isNaN(num)) {
             throw this.composeError(new Error(), "End of File", String(num), this.pos);
         }
         this.pos += 1;
         return num;
-    };
-    Snapshot.prototype.readUInt16 = function () {
+    }
+    readUInt16() {
         return this.readUInt8() + this.readUInt8() * 256;
-    };
-    Snapshot.prototype.readUInt8Array = function (len) {
-        var arr = [];
-        for (var i = 0; i < len; i += 1) {
+    }
+    readUInt8Array(len) {
+        const arr = [];
+        for (let i = 0; i < len; i += 1) {
             arr.push(this.readUInt8());
         }
         return arr;
-    };
-    Snapshot.prototype.readUtf = function (len) {
-        var out = this.options.data.substring(this.pos, this.pos + len);
+    }
+    readUtf(len) {
+        const out = this.options.data.substring(this.pos, this.pos + len);
         if (out.length !== len) {
             throw this.composeError(new Error(), "End of File", "", this.pos);
         }
         this.pos += len;
         return out;
-    };
-    Snapshot.prototype.getSnapshotInfo = function () {
+    }
+    getSnapshotInfo() {
         this.pos = 0;
-        var info = {
+        const info = {
             ident: this.readUtf(8),
             unused1: this.readUtf(8),
             version: this.readUInt8(),
@@ -99,11 +99,9 @@ var Snapshot = /** @class */ (function () {
             memsize: this.readUInt8()
         };
         return info;
-    };
-    Snapshot.prototype.getMemory = function () {
+    }
+    getMemory() {
         return this.options.data.substring(0x100); // memory dump without snapshot header
-    };
-    return Snapshot;
-}());
-export { Snapshot };
+    }
+}
 //# sourceMappingURL=Snapshot.js.map

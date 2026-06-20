@@ -4,8 +4,8 @@
 //
 //
 import { Utils } from "./Utils";
-var CodeGeneratorBasic = /** @class */ (function () {
-    function CodeGeneratorBasic(options) {
+export class CodeGeneratorBasic {
+    constructor(options) {
         this.hasColons = false;
         this.keepWhiteSpace = false;
         this.line = 0; // current line (label)
@@ -53,32 +53,32 @@ var CodeGeneratorBasic = /** @class */ (function () {
         this.setOptions(options);
         this.keywords = options.parser.getKeywords();
     }
-    CodeGeneratorBasic.prototype.getOptions = function () {
+    getOptions() {
         return this.options;
-    };
-    CodeGeneratorBasic.prototype.setOptions = function (options) {
+    }
+    setOptions(options) {
         Object.assign(this.options, options);
-    };
-    CodeGeneratorBasic.prototype.composeError = function (error, message, value, pos) {
+    }
+    composeError(error, message, value, pos) {
         return Utils.composeError("CodeGeneratorBasic", error, message, value, pos, undefined, this.line);
-    };
-    CodeGeneratorBasic.fnWs = function (node) {
+    }
+    static fnWs(node) {
         return node.ws || "";
-    };
-    CodeGeneratorBasic.fnSpace1 = function (value) {
+    }
+    static fnSpace1(value) {
         return (!value.length || value.startsWith(" ") ? "" : " ") + value;
-    };
-    CodeGeneratorBasic.getUcKeyword = function (node) {
-        var type = node.type;
+    }
+    static getUcKeyword(node) {
+        const type = node.type;
         return CodeGeneratorBasic.combinedKeywords[type] || type.toUpperCase();
-    };
-    CodeGeneratorBasic.prototype.fnParseArgs = function (args) {
-        var nodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
+    }
+    fnParseArgs(args) {
+        const nodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
         if (!args) {
             throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
         }
-        for (var i = 0; i < args.length; i += 1) {
-            var value = this.parseNode(args[i]);
+        for (let i = 0; i < args.length; i += 1) {
+            let value = this.parseNode(args[i]);
             if (args[i].type === "'" || args[i].type === "else" || args[i].type === "elseComment") { // fast hack to put a space before "'", "else" or "elseComment", if there is no space previously
                 if (i > 0 && !nodeArgs[i - 1].endsWith(" ") && !nodeArgs[i - 1].endsWith(":")) {
                     value = CodeGeneratorBasic.fnSpace1(value);
@@ -87,91 +87,91 @@ var CodeGeneratorBasic = /** @class */ (function () {
             nodeArgs.push(value);
         }
         return nodeArgs;
-    };
-    CodeGeneratorBasic.prototype.combineArgsWithColon = function (args) {
+    }
+    combineArgsWithColon(args) {
         if (!this.hasColons) {
-            for (var i = 1; i < args.length; i += 1) { // start with 1
-                var arg = args[i].trim();
+            for (let i = 1; i < args.length; i += 1) { // start with 1
+                const arg = args[i].trim();
                 if (!arg.startsWith("ELSE") && !arg.startsWith("'") && arg !== "") {
                     args[i] = ":" + args[i];
                 }
             }
         }
         return args.join("");
-    };
-    CodeGeneratorBasic.prototype.fnParenthesisOpen = function (node) {
+    }
+    fnParenthesisOpen(node) {
         return CodeGeneratorBasic.fnWs(node) + node.value + (node.args ? this.fnParseArgs(node.args).join("") : "");
-    };
-    CodeGeneratorBasic.string = function (node) {
+    }
+    static string(node) {
         return CodeGeneratorBasic.fnWs(node) + '"' + node.value + '"';
-    };
-    CodeGeneratorBasic.ustring = function (node) {
+    }
+    static ustring(node) {
         return CodeGeneratorBasic.fnWs(node) + '"' + node.value;
-    };
-    CodeGeneratorBasic.prototype.assign = function (node) {
+    }
+    assign(node) {
         // see also "let"
         if (node.left.type !== "identifier") {
             throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
         }
         // no spaces needed around "="
         return this.parseNode(node.left) + CodeGeneratorBasic.fnWs(node) + node.value + this.parseNode(node.right);
-    };
-    CodeGeneratorBasic.expnumber = function (node) {
+    }
+    static expnumber(node) {
         return CodeGeneratorBasic.fnWs(node) + Number(node.value).toExponential().toUpperCase().replace(/(\d+)$/, function (x) {
             return x.length >= 2 ? x : x.padStart(2, "0"); // format with 2 exponential digits
         });
-    };
-    CodeGeneratorBasic.binHexNumber = function (node) {
+    }
+    static binHexNumber(node) {
         return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase(); // binnumber: maybe "&x", hexnumber: mayby "&h"
-    };
-    CodeGeneratorBasic.prototype.label = function (node) {
+    }
+    label(node) {
         this.line = Number(node.value); // set line before parsing args
-        var value = this.combineArgsWithColon(this.fnParseArgs(node.args));
+        const value = this.combineArgsWithColon(this.fnParseArgs(node.args));
         return CodeGeneratorBasic.fnWs(node) + node.value + (node.value !== "" ? CodeGeneratorBasic.fnSpace1(value) : value);
-    };
+    }
     // special keyword functions
-    CodeGeneratorBasic.prototype.vertical = function (node) {
+    vertical(node) {
         return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + this.fnParseArgs(node.args).join("");
-    };
-    CodeGeneratorBasic.prototype.afterEveryGosub = function (node) {
-        var nodeArgs = this.fnParseArgs(node.args);
+    }
+    afterEveryGosub(node) {
+        const nodeArgs = this.fnParseArgs(node.args);
         nodeArgs[0] = CodeGeneratorBasic.fnSpace1(nodeArgs[0]); // first argument
         nodeArgs[nodeArgs.length - 2] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]); // "gosub"
         nodeArgs[nodeArgs.length - 1] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]); // line number
         return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + nodeArgs.join("");
-    };
-    CodeGeneratorBasic.prototype.chainOrChainMerge = function (node) {
-        var nodeArgs = this.fnParseArgs(node.args);
+    }
+    chainOrChainMerge(node) {
+        const nodeArgs = this.fnParseArgs(node.args);
         if (nodeArgs.length > 2) { // with delete?
             if (nodeArgs[nodeArgs.length - 2] === "DELETE") {
                 nodeArgs[nodeArgs.length - 1] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]);
             }
         }
         return CodeGeneratorBasic.fnWs(node) + CodeGeneratorBasic.getUcKeyword(node) + (node.right ? CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) : "") + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-    };
-    CodeGeneratorBasic.prototype.data = function (node) {
-        var nodeArgs = this.fnParseArgs(node.args);
-        for (var i = 0; i < nodeArgs.length; i += 1) {
-            var value2 = nodeArgs[i];
+    }
+    data(node) {
+        const nodeArgs = this.fnParseArgs(node.args);
+        for (let i = 0; i < nodeArgs.length; i += 1) {
+            const value2 = nodeArgs[i];
             nodeArgs[i] = value2;
         }
-        var args = nodeArgs.join("");
+        let args = nodeArgs.join("");
         if (!this.keepWhiteSpace) {
             args = Utils.stringTrimEnd(args); // remove trailing spaces
         }
         return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(args);
-    };
-    CodeGeneratorBasic.prototype.def = function (node) {
+    }
+    def(node) {
         return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + (node.right ? CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + this.fnParseArgs(node.args).join("") : "");
-    };
-    CodeGeneratorBasic.prototype.elseComment = function (node) {
+    }
+    elseComment(node) {
         if (!node.args) {
             throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
         }
-        var args = node.args;
-        var value = "";
-        for (var i = 0; i < args.length; i += 1) {
-            var token = args[i];
+        const args = node.args;
+        let value = "";
+        for (let i = 0; i < args.length; i += 1) {
+            const token = args[i];
             if (token.value) {
                 if (this.keepWhiteSpace) {
                     value += CodeGeneratorBasic.fnWs(token) + token.value;
@@ -182,42 +182,42 @@ var CodeGeneratorBasic = /** @class */ (function () {
             }
         }
         return CodeGeneratorBasic.fnWs(node) + "else".toUpperCase() + value;
-    };
-    CodeGeneratorBasic.prototype.fn = function (node) {
+    }
+    fn(node) {
         if (!node.right) {
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // only fn
         }
-        var nodeArgs = node.args ? this.fnParseArgs(node.args) : [];
-        var right = this.parseNode(node.right);
+        const nodeArgs = node.args ? this.fnParseArgs(node.args) : [];
+        let right = this.parseNode(node.right);
         if ((node.right.pos - node.pos) > 2) { // space between fn and identifier?
             right = CodeGeneratorBasic.fnSpace1(right); // keep it
         }
         return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + right + nodeArgs.join("");
-    };
-    CodeGeneratorBasic.prototype.fnFor = function (node) {
-        var nodeArgs = this.fnParseArgs(node.args);
-        for (var i = 0; i < nodeArgs.length; i += 1) {
+    }
+    fnFor(node) {
+        const nodeArgs = this.fnParseArgs(node.args);
+        for (let i = 0; i < nodeArgs.length; i += 1) {
             if (i !== 1 && i !== 2) { // not for "=" and startValue
                 nodeArgs[i] = CodeGeneratorBasic.fnSpace1(nodeArgs[i]); // set minimal spaces in case we do not keep whitespace
             }
         }
         return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + nodeArgs.join("");
-    };
-    CodeGeneratorBasic.prototype.fnElse = function (node) {
+    }
+    fnElse(node) {
         return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(this.fnParseArgs(node.args)));
-    };
-    CodeGeneratorBasic.prototype.fnIf = function (node) {
-        var nodeArgs = this.fnParseArgs(node.args), partName = nodeArgs.shift(); // "then"/"goto"
+    }
+    fnIf(node) {
+        const nodeArgs = this.fnParseArgs(node.args), partName = nodeArgs.shift(); // "then"/"goto"
         return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.parseNode(node.right))
             + CodeGeneratorBasic.fnSpace1(partName) + CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(nodeArgs));
-    };
-    CodeGeneratorBasic.prototype.inputLineInput = function (node) {
-        var nodeArgs = node.args ? this.fnParseArgs(node.args) : [], // also for clear input, which has no args
+    }
+    inputLineInput(node) {
+        const nodeArgs = node.args ? this.fnParseArgs(node.args) : [], // also for clear input, which has no args
         name = node.right ? this.parseNode(node.right) : ""; // line input?
         return CodeGeneratorBasic.fnWs(node) + CodeGeneratorBasic.getUcKeyword(node) + CodeGeneratorBasic.fnSpace1(name) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-    };
-    CodeGeneratorBasic.prototype.list = function (node) {
-        var nodeArgs = this.fnParseArgs(node.args);
+    }
+    list(node) {
+        const nodeArgs = this.fnParseArgs(node.args);
         if (nodeArgs.length && nodeArgs[0] === "") { // empty range?
             nodeArgs.shift(); // remove
         }
@@ -225,75 +225,75 @@ var CodeGeneratorBasic = /** @class */ (function () {
             nodeArgs.pop(); // remove
         }
         return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-    };
-    CodeGeneratorBasic.prototype.mid$Assign = function (node) {
+    }
+    mid$Assign(node) {
         return CodeGeneratorBasic.fnWs(node) + CodeGeneratorBasic.getUcKeyword(node) + this.fnParseArgs(node.args).join("");
-    };
-    CodeGeneratorBasic.prototype.onBreakOrError = function (node) {
+    }
+    onBreakOrError(node) {
         return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join(""));
-    };
-    CodeGeneratorBasic.prototype.onGotoGosub = function (node) {
-        var nodeArgs = this.fnParseArgs(node.args), expression = nodeArgs.shift(), instruction = nodeArgs.shift(); // "goto" or "gosub"
+    }
+    onGotoGosub(node) {
+        const nodeArgs = this.fnParseArgs(node.args), expression = nodeArgs.shift(), instruction = nodeArgs.shift(); // "goto" or "gosub"
         return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(expression) + CodeGeneratorBasic.fnSpace1(instruction) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-    };
-    CodeGeneratorBasic.prototype.onSqGosub = function (node) {
-        var nodeArgs = this.fnParseArgs(node.args);
+    }
+    onSqGosub(node) {
+        const nodeArgs = this.fnParseArgs(node.args);
         nodeArgs[nodeArgs.length - 2] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]); // "gosub" with space (optional)
         nodeArgs[nodeArgs.length - 1] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]); // line number with space
         return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + nodeArgs.join("");
-    };
-    CodeGeneratorBasic.prototype.print = function (node) {
-        var nodeArgs = this.fnParseArgs(node.args);
-        var value = "";
-        for (var i = 0; i < nodeArgs.length; i += 1) {
+    }
+    print(node) {
+        const nodeArgs = this.fnParseArgs(node.args);
+        let value = "";
+        for (let i = 0; i < nodeArgs.length; i += 1) {
             value += nodeArgs[i];
         }
         if (node.value !== "?") { // for "print"
             value = CodeGeneratorBasic.fnSpace1(value);
         }
         return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + value; // we use value to get PRINT or ?
-    };
-    CodeGeneratorBasic.prototype.rem = function (node) {
+    }
+    rem(node) {
         return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + this.fnParseArgs(node.args).join("");
-    };
-    CodeGeneratorBasic.prototype.using = function (node) {
-        var nodeArgs = this.fnParseArgs(node.args), template = nodeArgs.length ? nodeArgs.shift() || "" : "";
+    }
+    using(node) {
+        const nodeArgs = this.fnParseArgs(node.args), template = nodeArgs.length ? nodeArgs.shift() || "" : "";
         return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(template) + nodeArgs.join("");
-    };
-    CodeGeneratorBasic.prototype.write = function (node) {
+    }
+    write(node) {
         return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + (node.args ? CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join("")) : ""); // separators already there
-    };
+    }
     /* eslint-enable no-invalid-this */
-    CodeGeneratorBasic.prototype.fnParseOther = function (node) {
-        var type = node.type;
-        var value = ""; // CodeGeneratorBasic.fnGetWs(node);
+    fnParseOther(node) {
+        const type = node.type;
+        let value = ""; // CodeGeneratorBasic.fnGetWs(node);
         if (node.left) {
             value += this.parseNode(node.left);
         }
         value += CodeGeneratorBasic.fnWs(node);
-        var keyType = this.keywords[type];
+        const keyType = this.keywords[type];
         if (keyType) {
             value += CodeGeneratorBasic.getUcKeyword(node);
         }
         else if (node.value) { // e.g. string,...
             value += node.value;
         }
-        var right = "";
+        let right = "";
         if (node.right) {
             right = this.parseNode(node.right);
-            var needSpace1 = this.keywords[right.toLowerCase()] || keyType;
+            const needSpace1 = this.keywords[right.toLowerCase()] || keyType;
             value += needSpace1 ? CodeGeneratorBasic.fnSpace1(right) : right;
         }
         if (node.args) {
-            var nodeArgs = this.fnParseArgs(node.args).join(""), needSpace2 = keyType && keyType.charAt(0) !== "f" && node.type !== "'";
+            const nodeArgs = this.fnParseArgs(node.args).join(""), needSpace2 = keyType && keyType.charAt(0) !== "f" && node.type !== "'";
             // special handling for combined keywords with 2 tokens (for 3 tokens, we need a specific function)
             value += needSpace2 ? CodeGeneratorBasic.fnSpace1(nodeArgs) : nodeArgs;
         }
         return value;
-    };
-    CodeGeneratorBasic.getLeftOrRightOperatorPrecedence = function (node) {
-        var precedence = CodeGeneratorBasic.operatorPrecedence, operators = CodeGeneratorBasic.operators;
-        var pr;
+    }
+    static getLeftOrRightOperatorPrecedence(node) {
+        const precedence = CodeGeneratorBasic.operatorPrecedence, operators = CodeGeneratorBasic.operators;
+        let pr;
         if (operators[node.type] && (node.left || node.right)) { // binary operator (or unary operator, e.g. not)
             if (node.left) { // right is binary
                 pr = precedence[node.type] || 0;
@@ -303,19 +303,19 @@ var CodeGeneratorBasic = /** @class */ (function () {
             }
         }
         return pr;
-    };
-    CodeGeneratorBasic.prototype.parseOperator = function (node) {
-        var precedence = CodeGeneratorBasic.operatorPrecedence, operators = CodeGeneratorBasic.operators;
-        var value;
+    }
+    parseOperator(node) {
+        const precedence = CodeGeneratorBasic.operatorPrecedence, operators = CodeGeneratorBasic.operators;
+        let value;
         if (node.left) {
             value = this.parseNode(node.left);
-            var p = precedence[node.type], pl = CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(node.left);
+            const p = precedence[node.type], pl = CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(node.left);
             if (pl !== undefined && pl < p) {
                 value = "(" + value + ")";
             }
-            var right = node.right;
-            var value2 = this.parseNode(right);
-            var pr = CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(right);
+            const right = node.right;
+            let value2 = this.parseNode(right);
+            const pr = CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(right);
             if (pr !== undefined) {
                 if (pr < p) {
                     // Lower precedence on right: always needs parentheses
@@ -323,7 +323,7 @@ var CodeGeneratorBasic = /** @class */ (function () {
                 }
                 else if (pr === p) {
                     // Equal precedence: check associativity
-                    var assoc = CodeGeneratorBasic.operatorAssociativity[node.type];
+                    const assoc = CodeGeneratorBasic.operatorAssociativity[node.type];
                     if (assoc === "right") {
                         // Right-associative: no parentheses needed for equal precedence
                         // e.g., 2^3^4 = 2^(3^4)
@@ -343,7 +343,7 @@ var CodeGeneratorBasic = /** @class */ (function () {
                     }
                 }
             }
-            var operator = CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
+            const operator = CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
             if ((/^(and|or|xor|mod)$/).test(node.type)) {
                 value += CodeGeneratorBasic.fnSpace1(operator) + CodeGeneratorBasic.fnSpace1(value2);
             }
@@ -356,16 +356,16 @@ var CodeGeneratorBasic = /** @class */ (function () {
                 value = ""; // ignore dummy token, e.g. '#'
             }
             else {
-                var right = node.right;
+                const right = node.right;
                 value = this.parseNode(right);
-                var pr = void 0;
+                let pr;
                 if (right.left) { // was binary op?
                     pr = precedence[right.type] || 0; // no special prio
                 }
                 else {
                     pr = precedence["p" + right.type] || precedence[right.type] || 0; // check unary operator first
                 }
-                var p = precedence["p" + node.type] || precedence[node.type] || 0; // check unary operator first
+                const p = precedence["p" + node.type] || precedence[node.type] || 0; // check unary operator first
                 if (p && pr && (pr < p)) {
                     value = "(" + value + ")";
                 }
@@ -376,13 +376,13 @@ var CodeGeneratorBasic = /** @class */ (function () {
             value = this.fnParseOther(node);
         }
         return value;
-    };
-    CodeGeneratorBasic.prototype.parseNode = function (node) {
-        var type = node.type;
+    }
+    parseNode(node) {
+        const type = node.type;
         if (Utils.debug > 3) {
             Utils.console.debug("evaluate: parseNode node=%o type=" + type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
         }
-        var value;
+        let value;
         if (CodeGeneratorBasic.operators[type]) {
             value = this.parseOperator(node);
         }
@@ -396,14 +396,14 @@ var CodeGeneratorBasic = /** @class */ (function () {
             value = this.fnParseOther(node);
         }
         return value;
-    };
-    CodeGeneratorBasic.prototype.evaluate = function (parseTree) {
-        var output = "";
-        for (var i = 0; i < parseTree.length; i += 1) {
+    }
+    evaluate(parseTree) {
+        let output = "";
+        for (let i = 0; i < parseTree.length; i += 1) {
             if (Utils.debug > 2) {
                 Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
             }
-            var line = this.parseNode(parseTree[i]);
+            const line = this.parseNode(parseTree[i]);
             if ((line !== undefined) && (line !== "")) {
                 if (line !== null) {
                     if (output.length === 0) {
@@ -419,9 +419,9 @@ var CodeGeneratorBasic = /** @class */ (function () {
             }
         }
         return output;
-    };
-    CodeGeneratorBasic.prototype.generate = function (input) {
-        var out = {
+    }
+    generate(input) {
+        const out = {
             text: ""
         };
         this.hasColons = Boolean(this.options.parser.getOptions().keepColons);
@@ -429,7 +429,7 @@ var CodeGeneratorBasic = /** @class */ (function () {
         this.keywords = this.options.parser.getKeywords();
         this.line = 0;
         try {
-            var tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);
+            const tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);
             out.text = output;
         }
         catch (e) {
@@ -445,89 +445,87 @@ var CodeGeneratorBasic = /** @class */ (function () {
             }
         }
         return out;
-    };
-    CodeGeneratorBasic.combinedKeywords = {
-        chainMerge: "CHAIN", // "CHAIN MERGE"
-        clearInput: "CLEAR", // "CLEAR INPUT"
-        graphicsPaper: "GRAPHICS", // "GRAPHICS PAPER"
-        graphicsPen: "GRAPHICS", // "GRAPHICS PEN"
-        keyDef: "KEY", // "KEY DEF"
-        lineInput: "LINE", // "LINE INPUT"
-        mid$Assign: "MID$",
-        onBreakCont: "ON", // ""ON BREAK CONT"
-        onBreakGosub: "ON", // ""ON BREAK GOSUB"
-        onBreakStop: "ON", // ""ON BREAK STOP"
-        onErrorGoto: "ON", // "ON ERROR GOTO"
-        resumeNext: "RESUME", // "RESUME NEXT"
-        speedInk: "SPEED", // "SPEED INK"
-        speedKey: "SPEED", // "SPEED KEY"
-        speedWrite: "SPEED", // "SPEED WRITE"
-        symbolAfter: "SYMBOL", // "SYMBOL AFTER"
-        windowSwap: "WINDOW" // "WINDOW SWAP"
-    };
-    CodeGeneratorBasic.operators = {
-        "+": "+",
-        "-": "-",
-        "*": "*",
-        "/": "/",
-        "\\": "\\",
-        "^": "^",
-        and: "AND",
-        or: "OR",
-        xor: "XOR",
-        not: "NOT",
-        mod: "MOD",
-        ">": ">",
-        "<": "<",
-        ">=": ">=",
-        "<=": "<=",
-        "=": "=",
-        "<>": "<>",
-        "@": "@",
-        "#": "#"
-    };
-    CodeGeneratorBasic.operatorPrecedence = {
-        "@": 95, // prefix
-        "^": 90,
-        "p-": 80, // prefix - (fast hack)
-        "p+": 80, // prefix + (fast hack)
-        "*": 70,
-        "/": 70,
-        "\\": 60,
-        mod: 50,
-        "+": 40,
-        "-": 40,
-        "=": 30,
-        "<>": 30,
-        "<": 30,
-        "<=": 30,
-        ">": 30,
-        ">=": 30,
-        not: 23, // prefix
-        and: 22,
-        or: 21,
-        xor: 20,
-        "#": 10 // priority?
-    };
-    CodeGeneratorBasic.operatorAssociativity = {
-        "^": "right", // right-associative
-        "*": "left", // left-associative (commutative, so parens not needed for equal precedence)
-        "+": "left", // left-associative (commutative, so parens not needed for equal precedence)
-        "/": "left", // left-associative (non-commutative, so parens ARE needed for equal precedence)
-        "\\": "left", // left-associative (non-commutative, so parens ARE needed)
-        mod: "left", // left-associative (non-commutative)
-        "-": "left", // left-associative (non-commutative, so parens ARE needed for equal precedence)
-        "=": "none", // comparison operators are non-associative
-        "<>": "none",
-        "<": "none",
-        "<=": "none",
-        ">": "none",
-        ">=": "none",
-        and: "left",
-        or: "left",
-        xor: "left"
-    };
-    return CodeGeneratorBasic;
-}());
-export { CodeGeneratorBasic };
+    }
+}
+CodeGeneratorBasic.combinedKeywords = {
+    chainMerge: "CHAIN", // "CHAIN MERGE"
+    clearInput: "CLEAR", // "CLEAR INPUT"
+    graphicsPaper: "GRAPHICS", // "GRAPHICS PAPER"
+    graphicsPen: "GRAPHICS", // "GRAPHICS PEN"
+    keyDef: "KEY", // "KEY DEF"
+    lineInput: "LINE", // "LINE INPUT"
+    mid$Assign: "MID$",
+    onBreakCont: "ON", // ""ON BREAK CONT"
+    onBreakGosub: "ON", // ""ON BREAK GOSUB"
+    onBreakStop: "ON", // ""ON BREAK STOP"
+    onErrorGoto: "ON", // "ON ERROR GOTO"
+    resumeNext: "RESUME", // "RESUME NEXT"
+    speedInk: "SPEED", // "SPEED INK"
+    speedKey: "SPEED", // "SPEED KEY"
+    speedWrite: "SPEED", // "SPEED WRITE"
+    symbolAfter: "SYMBOL", // "SYMBOL AFTER"
+    windowSwap: "WINDOW" // "WINDOW SWAP"
+};
+CodeGeneratorBasic.operators = {
+    "+": "+",
+    "-": "-",
+    "*": "*",
+    "/": "/",
+    "\\": "\\",
+    "^": "^",
+    and: "AND",
+    or: "OR",
+    xor: "XOR",
+    not: "NOT",
+    mod: "MOD",
+    ">": ">",
+    "<": "<",
+    ">=": ">=",
+    "<=": "<=",
+    "=": "=",
+    "<>": "<>",
+    "@": "@",
+    "#": "#"
+};
+CodeGeneratorBasic.operatorPrecedence = {
+    "@": 95, // prefix
+    "^": 90,
+    "p-": 80, // prefix - (fast hack)
+    "p+": 80, // prefix + (fast hack)
+    "*": 70,
+    "/": 70,
+    "\\": 60,
+    mod: 50,
+    "+": 40,
+    "-": 40,
+    "=": 30,
+    "<>": 30,
+    "<": 30,
+    "<=": 30,
+    ">": 30,
+    ">=": 30,
+    not: 23, // prefix
+    and: 22,
+    or: 21,
+    xor: 20,
+    "#": 10 // priority?
+};
+CodeGeneratorBasic.operatorAssociativity = {
+    "^": "right", // right-associative
+    "*": "left", // left-associative (commutative, so parens not needed for equal precedence)
+    "+": "left", // left-associative (commutative, so parens not needed for equal precedence)
+    "/": "left", // left-associative (non-commutative, so parens ARE needed for equal precedence)
+    "\\": "left", // left-associative (non-commutative, so parens ARE needed)
+    mod: "left", // left-associative (non-commutative)
+    "-": "left", // left-associative (non-commutative, so parens ARE needed for equal precedence)
+    "=": "none", // comparison operators are non-associative
+    "<>": "none",
+    "<": "none",
+    "<=": "none",
+    ">": "none",
+    ">=": "none",
+    and: "left",
+    or: "left",
+    xor: "left"
+};
 //# sourceMappingURL=CodeGeneratorBasic.js.map

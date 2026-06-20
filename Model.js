@@ -2,79 +2,77 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 import { Utils } from "./Utils";
-var ModelPropIDdatabase = "database"; //TODO
-var Model = /** @class */ (function () {
-    function Model(config) {
+const ModelPropIDdatabase = "database"; //TODO
+export class Model {
+    constructor(config) {
         this.config = config || {}; // store only a reference
         this.initialConfig = Object.assign({}, this.config); // save initial config
         this.databases = {};
         this.examples = {}; // loaded examples per database
     }
     // {
-    Model.prototype.getProperty = function (property) {
+    getProperty(property) {
         return this.config[property]; // keyof ConfigType?
-    };
-    Model.prototype.setProperty = function (property, value) {
+    }
+    setProperty(property, value) {
         this.config[property] = value;
-    };
-    Model.prototype.getAllProperties = function () {
+    }
+    getAllProperties() {
         return this.config;
-    };
-    Model.prototype.getAllInitialProperties = function () {
+    }
+    getAllInitialProperties() {
         return this.initialConfig;
-    };
-    Model.prototype.getChangedProperties = function () {
-        var current = this.config, initial = this.initialConfig, changed = {};
-        for (var name_1 in current) {
-            if (current.hasOwnProperty(name_1)) {
-                if (current[name_1] !== initial[name_1]) {
-                    changed[name_1] = current[name_1];
+    }
+    getChangedProperties() {
+        const current = this.config, initial = this.initialConfig, changed = {};
+        for (const name in current) {
+            if (current.hasOwnProperty(name)) {
+                if (current[name] !== initial[name]) {
+                    changed[name] = current[name];
                 }
             }
         }
         return changed;
-    };
-    Model.prototype.addDatabases = function (db) {
-        for (var par in db) {
+    }
+    addDatabases(db) {
+        for (const par in db) {
             if (db.hasOwnProperty(par)) {
-                var entry = db[par];
+                const entry = db[par];
                 this.databases[par] = entry;
                 this.examples[par] = {};
             }
         }
-    };
-    Model.prototype.getAllDatabases = function () {
+    }
+    getAllDatabases() {
         return this.databases;
-    };
-    Model.prototype.getDatabase = function () {
-        var database = this.getProperty(ModelPropIDdatabase);
+    }
+    getDatabase() {
+        const database = this.getProperty(ModelPropIDdatabase);
         return this.databases[database];
-    };
-    Model.prototype.getAllExamples = function () {
-        var database = this.getProperty(ModelPropIDdatabase);
+    }
+    getAllExamples() {
+        const database = this.getProperty(ModelPropIDdatabase);
         return this.examples[database];
-    };
-    Model.prototype.getExample = function (key) {
-        var database = this.getProperty(ModelPropIDdatabase);
+    }
+    getExample(key) {
+        const database = this.getProperty(ModelPropIDdatabase);
         return this.examples[database][key];
-    };
-    Model.prototype.setExample = function (example) {
-        var database = this.getProperty(ModelPropIDdatabase), key = example.key;
+    }
+    setExample(example) {
+        const database = this.getProperty(ModelPropIDdatabase), key = example.key;
         if (!this.examples[database][key]) {
             if (Utils.debug > 1) {
                 Utils.console.debug("setExample: creating new example:", key);
             }
         }
         this.examples[database][key] = example;
-    };
-    Model.prototype.removeExample = function (key) {
-        var database = this.getProperty(ModelPropIDdatabase);
+    }
+    removeExample(key) {
+        const database = this.getProperty(ModelPropIDdatabase);
         if (!this.examples[database][key]) {
             Utils.console.warn("removeExample: example does not exist: " + key);
         }
         delete this.examples[database][key];
-    };
-    return Model;
-}());
-export { Model };
+    }
+}
 //# sourceMappingURL=Model.js.map

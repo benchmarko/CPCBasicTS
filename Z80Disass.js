@@ -5,8 +5,8 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 /* eslint-disable no-bitwise */
-var Z80Disass = /** @class */ (function () {
-    function Z80Disass(options) {
+export class Z80Disass {
+    constructor(options) {
         this.dissOp = 0; // actual op-code
         this.prefix = 0; // actual prefix: 0=none, 1=0xDD, 2=0xFD, 4=0xED
         this.options = {
@@ -14,77 +14,77 @@ var Z80Disass = /** @class */ (function () {
         };
         this.setOptions(options);
     }
-    Z80Disass.prototype.getOptions = function () {
+    getOptions() {
         return this.options;
-    };
-    Z80Disass.prototype.setOptions = function (options) {
+    }
+    setOptions(options) {
         Object.assign(this.options, options);
-    };
-    Z80Disass.prototype.readByte = function (i) {
-        var data = this.options.data;
+    }
+    readByte(i) {
+        const data = this.options.data;
         return data[i] | 0;
-    };
-    Z80Disass.prototype.readWord = function (i) {
-        var data = this.options.data;
+    }
+    readWord(i) {
+        const data = this.options.data;
         return data[i] | ((data[i + 1]) << 8);
-    };
-    Z80Disass.prototype.bget = function () {
-        var by = this.readByte(this.options.addr);
+    }
+    bget() {
+        const by = this.readByte(this.options.addr);
         this.options.addr += 1;
         return by;
-    };
+    }
     // byte-out: returns byte xx at PC; PC++
-    Z80Disass.prototype.bout = function () {
-        var by = this.bget();
+    bout() {
+        const by = this.bget();
         return Z80Disass.hexMark + by.toString(16).toUpperCase().padStart(2, "0");
-    };
+    }
     // word-out: returns word xxyy from PC, PC+=2
-    Z80Disass.prototype.wout = function () {
-        var wo = this.readWord(this.options.addr);
+    wout() {
+        const wo = this.readWord(this.options.addr);
         this.options.addr += 2;
         return Z80Disass.hexMark + wo.toString(16).toUpperCase().padStart(4, "0");
-    };
+    }
     // relative-address-out : gets it from PC and returns PC+(signed)tt ; PC++
-    Z80Disass.prototype.radrout = function () {
-        var dis = this.bget(); // displacement, signed! (0= next instruction)
+    radrout() {
+        let dis = this.bget(); // displacement, signed! (0= next instruction)
         dis = dis << 24 >> 24; // convert to signed
         // https://stackoverflow.com/questions/56577958/how-to-convert-one-byte-8-bit-to-signed-integer-in-javascript
-        var addr = this.options.addr + dis;
+        let addr = this.options.addr + dis;
         if (addr < 0) {
             addr += 65536;
         }
         return Z80Disass.hexMark + addr.toString(16).toUpperCase().padStart(4, "0");
-    };
+    }
     /* eslint-enable array-element-newline */
     // byte-register-out : returns string to an 8-bit register
     // handles prefix, special op-codes with IX,IY and h,l
-    Z80Disass.prototype.bregout = function (nr) {
-        var dissOp = this.dissOp;
+    bregout(nr) {
+        const dissOp = this.dissOp;
         nr &= 0x07; // only 3 bit
-        var prefix = this.prefix;
+        let prefix = this.prefix;
         // special cases of op-codes with h,l and (ix) or (iy)
         if (prefix === 4 || (this.prefix === 1 || this.prefix === 2) && (dissOp === 0x66 || dissOp === 0x6e || dissOp === 0x74 || dissOp === 0x75) && (nr !== 6)) {
             prefix = 0;
         }
         return Z80Disass.bregtab[prefix][nr] + (prefix && (nr === 6) ? this.bout() + ")" : ""); // only 3 bit
-    };
+    }
     /* eslint-enable array-element-newline */
     // word-register-out : returns string to a 16-bit-register
     // handles prefix
-    Z80Disass.prototype.wregout = function (nr) {
-        var prefix = (this.prefix === 1 || this.prefix === 2) ? this.prefix : 0;
+    wregout(nr) {
+        const prefix = (this.prefix === 1 || this.prefix === 2) ? this.prefix : 0;
         return Z80Disass.wregtab[prefix][nr & 0x03]; // only 2 bit
-    };
+    }
     // push-pop-register-out: like wregout, only SP substituted by AF
-    Z80Disass.prototype.pupoRegout = function (nr) {
+    pupoRegout(nr) {
         nr &= 0x03; // only 2 bit
         if (nr === 3) {
             return "AF"; // replace SP by AF
         }
         return this.wregout(nr);
-    };
-    Z80Disass.prototype.onlyPrefix = function () {
-        var out = "";
+    }
+    onlyPrefix() {
+        let out = "";
         if (this.prefix === 1) {
             out = "[DD]-prefix";
         }
@@ -96,18 +96,18 @@ var Z80Disass = /** @class */ (function () {
         }
         this.options.addr -= 1;
         return out;
-    };
-    Z80Disass.prototype.operdisCB = function () {
+    }
+    operdisCB() {
         // rlc,rrc,rl,rr,sla,sra,sls*,srl rrr [rrr=b,c,d,e,h,l,(hl),a]
         // bit bbb,rrr; res bbb,rrr; set bbb,rrr [rrr=b,c,d,e,h,l,(hl),a]
-        var out = "", newop; // new op
+        let out = "", newop; // new op
         if (this.prefix === 1 || this.prefix === 2) { // ix/iy-flag (ix or iy !)
             newop = ((this.readByte(this.options.addr + 1) & 0xfe) | 0x06); // transform code x0..x7=>x6 , x8..xf=>xe  (always ix.., iy.. )
         }
         else {
             newop = this.readByte(this.options.addr);
         }
-        var b6b7 = newop >> 6, // test b6,7
+        const b6b7 = newop >> 6, // test b6,7
         b3b4b5 = (newop >> 3) & 0x07;
         if (b6b7 === 0) { // 00-3f (rlc,rrc,rl,rr,sla,sra,sls*,srl rrr)
             out = Z80Disass.rlcTable[b3b4b5] + " " + this.bregout(newop); // b3b4b5
@@ -117,7 +117,7 @@ var Z80Disass = /** @class */ (function () {
         }
         if (this.prefix === 1 || this.prefix === 2) { // ix/iy-flag (ix or iy !)
             if ((newop !== this.readByte(this.options.addr)) && ((newop >> 6) !== 0x01)) { // there was a transform; not bit-instruction
-                var premem = this.prefix; // memorize prefix
+                const premem = this.prefix; // memorize prefix
                 this.prefix = 0; // only h or l
                 out += " & LD " + this.bregout(this.readByte(this.options.addr));
                 this.prefix = premem; // old prefix
@@ -125,9 +125,9 @@ var Z80Disass = /** @class */ (function () {
         }
         this.options.addr += 1;
         return out;
-    };
-    Z80Disass.prototype.operdisEDpart40To7F = function (dissOp) {
-        var out = "";
+    }
+    operdisEDpart40To7F(dissOp) {
+        let out = "";
         switch (dissOp & 0x07) { // test b0,b1,b2
             case 0: // in rrr,(c),
                 if (dissOp === 0x70) {
@@ -207,10 +207,10 @@ var Z80Disass = /** @class */ (function () {
                 break;
         }
         return out;
-    };
+    }
     /* eslint-enable array-element-newline */
-    Z80Disass.prototype.operdisED = function (dissOp) {
-        var out = "";
+    operdisED(dissOp) {
+        let out = "";
         switch (dissOp >> 6) { // test b6,7
             case 0: // 00-3f // missing
                 out = Z80Disass.unknownOp;
@@ -234,13 +234,13 @@ var Z80Disass = /** @class */ (function () {
                 break;
         }
         return out;
-    };
+    }
     //
     // Disassemble 00-3F
     //
-    Z80Disass.prototype.operdis00To3Fpart00 = function (b3b4b5) {
+    operdis00To3Fpart00(b3b4b5) {
         // nop; ex af,af'; djnz; jr; jr nz,z,nc,c
-        var out = "";
+        let out = "";
         switch (b3b4b5) { // test b3,b4,b5
             case 0: // nop
                 out = "NOP";
@@ -259,10 +259,10 @@ var Z80Disass = /** @class */ (function () {
                 break;
         }
         return out;
-    };
-    Z80Disass.prototype.operdis00To3Fpart01 = function (dissOp) {
+    }
+    operdis00To3Fpart01(dissOp) {
         // ld dd,xxyy; add hl,dd [dd=bc,de,hl,sp]
-        var out = "";
+        let out = "";
         if (dissOp & 0x08) { // b3=1  add hl,dd
             out = "ADD " + this.wregout(2) + "," + this.wregout(dissOp >> 4); // hl maybe ix,iy
         }
@@ -270,10 +270,10 @@ var Z80Disass = /** @class */ (function () {
             out = "LD " + this.wregout(dissOp >> 4) + "," + this.wout();
         }
         return out;
-    };
-    Z80Disass.prototype.operdis00To3Fpart02 = function (b3b4b5) {
+    }
+    operdis00To3Fpart02(b3b4b5) {
         // ld (xxyy),a!; ld (bc de),a!; ld (xxyy),hl!
-        var out = "";
+        let out = "";
         if (b3b4b5 & 0x04) { // b5=1  ld (xxyy),hl!; ld (xxyy),a!
             switch (b3b4b5 & 0x03) { // test b3,b4
                 case 0: // ld (xxyy),hl
@@ -311,9 +311,9 @@ var Z80Disass = /** @class */ (function () {
             }
         }
         return out;
-    };
-    Z80Disass.prototype.operdis00To3F = function (dissOp) {
-        var out = "";
+    }
+    operdis00To3F(dissOp) {
+        let out = "";
         switch (dissOp & 0x07) { // test b0,b1,b2
             case 0: // nop; ex af,af'; djnz; jr; jr nz,z,nc,c
                 out = this.operdis00To3Fpart00((dissOp >> 3) & 0x07); // test b3,b4,b5
@@ -343,14 +343,14 @@ var Z80Disass = /** @class */ (function () {
                 break;
         }
         return out;
-    };
+    }
     //
     // Disassemble C0-FF
     //
-    Z80Disass.prototype.operdisC0ToFFpart01 = function (dissOp) {
+    operdisC0ToFFpart01(dissOp) {
         // pop ee [ee=bc,de,hl,af]; ld sp,hl; jp (hl); ret; exx
-        var out = "";
-        var b4b5 = (dissOp >> 4) & 0x03; // test b4,b5
+        let out = "";
+        const b4b5 = (dissOp >> 4) & 0x03; // test b4,b5
         if (dissOp & 0x08) { // b3=1  ld sp,hl; jp (hl); ret; exx
             switch (b4b5) { // test b4,b5
                 case 0:
@@ -373,10 +373,10 @@ var Z80Disass = /** @class */ (function () {
             out = "POP " + this.pupoRegout(b4b5); // b4,b5
         }
         return out;
-    };
-    Z80Disass.prototype.operdisC0ToFFpart03 = function (b3b4b5) {
+    }
+    operdisC0ToFFpart03(b3b4b5) {
         // ex (sp),hl; out (xx),a; di,ei; jp xxyy; ex de,hl; CB
-        var out = "";
+        let out = "";
         switch (b3b4b5) { // test b3,b4,b5
             case 0: // jp xxyy
                 out = "JP " + this.wout();
@@ -406,11 +406,11 @@ var Z80Disass = /** @class */ (function () {
                 break;
         }
         return out;
-    };
-    Z80Disass.prototype.operdisC0ToFFpart05 = function (dissOp) {
+    }
+    operdisC0ToFFpart05(dissOp) {
         // push ee; call xxyy; ED; [IX IY]
-        var out = "";
-        var b4b5 = (dissOp >> 4) & 0x03; // test b4,b5
+        let out = "";
+        const b4b5 = (dissOp >> 4) & 0x03; // test b4,b5
         if (dissOp & 0x08) { // b3=1  call xxyy; ED; [IX IY]
             if (b4b5 === 0) { // test b4,b5
                 out = "CALL " + this.wout();
@@ -423,9 +423,9 @@ var Z80Disass = /** @class */ (function () {
             out = "PUSH " + this.pupoRegout(b4b5); // b4, b5
         }
         return out;
-    };
-    Z80Disass.prototype.operdisC0ToFF = function (dissOp) {
-        var out = "";
+    }
+    operdisC0ToFF(dissOp) {
+        let out = "";
         switch (dissOp & 0x07) { // test b0,b1,b2
             case 0: // ret ccc [ccc=nz,z,nc,c,po,pe,p,m]
                 out = "RET " + Z80Disass.conditionTable[(dissOp >> 3) & 0x07];
@@ -455,17 +455,17 @@ var Z80Disass = /** @class */ (function () {
                 break;
         }
         return out;
-    };
+    }
     // disassembles next instruction
-    Z80Disass.prototype.getNextLine = function () {
-        var dissOp = this.bget();
-        var prefix = Z80Disass.prefixMap[dissOp] || 0;
+    getNextLine() {
+        let dissOp = this.bget();
+        const prefix = Z80Disass.prefixMap[dissOp] || 0;
         if (prefix) { // DD, FD, ED?
             dissOp = this.bget();
         }
         this.prefix = prefix;
         this.dissOp = dissOp;
-        var out = "";
+        let out = "";
         if (prefix === 4) {
             out = this.operdisED(dissOp);
         }
@@ -488,21 +488,21 @@ var Z80Disass = /** @class */ (function () {
             }
         }
         return out;
-    };
-    Z80Disass.prototype.disassLine = function () {
+    }
+    disassLine() {
         var _a;
-        var format = (_a = this.options.format) !== null && _a !== void 0 ? _a : 7, startAddr = this.options.addr, line = this.getNextLine();
-        var out = "";
+        const format = (_a = this.options.format) !== null && _a !== void 0 ? _a : 7, startAddr = this.options.addr, line = this.getNextLine();
+        let out = "";
         if (format & 1) {
             out += startAddr.toString(16).toUpperCase().padStart(4, "0");
         }
         if (format & 2) {
-            var byteHex = [];
+            const byteHex = [];
             if (out.length) {
                 out += "  ";
             }
-            for (var i = startAddr; i < this.options.addr; i += 1) {
-                var byte = this.readByte(i) || 0;
+            for (let i = startAddr; i < this.options.addr; i += 1) {
+                const byte = this.readByte(i) || 0;
                 byteHex.push(byte.toString(16).toUpperCase().padStart(2, "0"));
             }
             while (byteHex.length < 4) {
@@ -517,51 +517,49 @@ var Z80Disass = /** @class */ (function () {
             out += line;
         }
         return out;
-    };
-    Z80Disass.hexMark = "&"; // hex-marker, "&" or "#" or ""
-    /* eslint-disable array-element-newline */
-    Z80Disass.bregtab = [
-        ["B", "C", "D", "E", "H", "L", "(HL)", "A"],
-        ["B", "C", "D", "E", "HX", "LX", "(IX+", "A"], // DD-Prefix
-        ["B", "C", "D", "E", "HY", "LY", "(IY+", "A"] // FD-Prefix
-    ];
-    /* eslint-disable array-element-newline */
-    Z80Disass.wregtab = [
-        ["BC", "DE", "HL", "SP"],
-        ["BC", "DE", "IX", "SP"], // DD-Prefix
-        ["BC", "DE", "IY", "SP"] // FD-Prefix
-    ];
-    Z80Disass.unknownOp = "unknown";
-    //
-    // Disassemble CB
-    //
-    Z80Disass.rlcTable = ["RLC", "RRC", "RL", "RR", "SLA", "SRA", "SLS*", "SRL"]; // eslint-disable-line array-element-newline
-    Z80Disass.bitResSetTable = ["BIT", "RES", "SET"]; // eslint-disable-line array-element-newline
-    //
-    // Disassemble ED
-    //
-    Z80Disass.ldIaTable = ["LD I,A", "LD R,A", "LD A,I", "LD A,R", "RRD", "RLD", Z80Disass.unknownOp, Z80Disass.unknownOp]; // eslint-disable-line array-element-newline
-    /* eslint-disable array-element-newline */
-    Z80Disass.repeatTable = [
-        ["LDI", "LDD", "LDIR", "LDDR"],
-        ["CPI", "CPD", "CPIR", "CPDR"],
-        ["INI", "IND", "INIR", "INDR"],
-        ["OUTI", "OUTD", "OTIR", "OTDR"]
-    ];
-    Z80Disass.conditionTable = ["NZ", "Z", "NC", "C", "PO", "PE", "P", "M"]; // eslint-disable-line array-element-newline
-    Z80Disass.rlcaTable = ["RLCA", "RRCA", "RLA", "RRA", "DAA", "CPL", "SCF", "CCF"]; // eslint-disable-line array-element-newline
-    Z80Disass.arithMTab = ["ADD A,", "ADC A,", "SUB ", "SBC A,", "AND ", "XOR ", "OR ", "CP "]; // eslint-disable-line array-element-newline
-    //
-    // Disassemble main
-    //
-    Z80Disass.prefixMap = {
-        0xDD: 1,
-        0xFD: 2,
-        0xED: 4
-    };
-    return Z80Disass;
-}());
-export { Z80Disass };
+    }
+}
+Z80Disass.hexMark = "&"; // hex-marker, "&" or "#" or ""
+/* eslint-disable array-element-newline */
+Z80Disass.bregtab = [
+    ["B", "C", "D", "E", "H", "L", "(HL)", "A"],
+    ["B", "C", "D", "E", "HX", "LX", "(IX+", "A"], // DD-Prefix
+    ["B", "C", "D", "E", "HY", "LY", "(IY+", "A"] // FD-Prefix
+];
+/* eslint-disable array-element-newline */
+Z80Disass.wregtab = [
+    ["BC", "DE", "HL", "SP"],
+    ["BC", "DE", "IX", "SP"], // DD-Prefix
+    ["BC", "DE", "IY", "SP"] // FD-Prefix
+];
+Z80Disass.unknownOp = "unknown";
+//
+// Disassemble CB
+//
+Z80Disass.rlcTable = ["RLC", "RRC", "RL", "RR", "SLA", "SRA", "SLS*", "SRL"]; // eslint-disable-line array-element-newline
+Z80Disass.bitResSetTable = ["BIT", "RES", "SET"]; // eslint-disable-line array-element-newline
+//
+// Disassemble ED
+//
+Z80Disass.ldIaTable = ["LD I,A", "LD R,A", "LD A,I", "LD A,R", "RRD", "RLD", Z80Disass.unknownOp, Z80Disass.unknownOp]; // eslint-disable-line array-element-newline
+/* eslint-disable array-element-newline */
+Z80Disass.repeatTable = [
+    ["LDI", "LDD", "LDIR", "LDDR"],
+    ["CPI", "CPD", "CPIR", "CPDR"],
+    ["INI", "IND", "INIR", "INDR"],
+    ["OUTI", "OUTD", "OTIR", "OTDR"]
+];
+Z80Disass.conditionTable = ["NZ", "Z", "NC", "C", "PO", "PE", "P", "M"]; // eslint-disable-line array-element-newline
+Z80Disass.rlcaTable = ["RLCA", "RRCA", "RLA", "RRA", "DAA", "CPL", "SCF", "CCF"]; // eslint-disable-line array-element-newline
+Z80Disass.arithMTab = ["ADD A,", "ADC A,", "SUB ", "SBC A,", "AND ", "XOR ", "OR ", "CP "]; // eslint-disable-line array-element-newline
+//
+// Disassemble main
+//
+Z80Disass.prefixMap = {
+    0xDD: 1,
+    0xFD: 2,
+    0xED: 4
+};
 /* eslint-enable no-bitwise */
 // end
 //# sourceMappingURL=Z80Disass.js.map

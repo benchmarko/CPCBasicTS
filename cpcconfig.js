@@ -1,5 +1,5 @@
 /* cpcconfig.ts - configuration file for CPCBasicTS */
-export var cpcconfig = {
+export const cpcconfig = {
     databaseDirs: "./examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/LocoBasic/examples=locobasic,https://benchmarko.github.io/CPCBasicApps/rosetta,storage",
     //databaseDirs: "./examples,../../CPCBasicApps/apps,../../LocoBasic/dist/examples=locobasic,../../CPCBasicApps/rosetta,storage", // local test
     // just an example, not the full list of moved examples...

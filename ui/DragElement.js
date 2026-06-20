@@ -4,8 +4,8 @@
 //
 import { UiUtils } from "./UiUtils";
 import { View } from "./View";
-var DragElement = /** @class */ (function () {
-    function DragElement(options) {
+export class DragElement {
+    constructor(options) {
         this.containerId = "window" /* ViewID.window */;
         this.initialX = 0;
         this.initialY = 0;
@@ -17,15 +17,15 @@ var DragElement = /** @class */ (function () {
         this.options = {};
         this.setOptions(options);
     }
-    DragElement.prototype.getOptions = function () {
+    getOptions() {
         return this.options;
-    };
-    DragElement.prototype.setOptions = function (options) {
+    }
+    setOptions(options) {
         Object.assign(this.options, options);
-        var entries = this.options.entries;
-        for (var key in entries) {
+        const entries = this.options.entries;
+        for (const key in entries) {
             if (entries.hasOwnProperty(key)) {
-                var item = entries[key];
+                const item = entries[key];
                 if (item.enabled) {
                     this.options.view.fnAttachPointerEvents(item.itemId, this.fnDragStartHandler);
                 }
@@ -34,12 +34,12 @@ var DragElement = /** @class */ (function () {
                 }
             }
         }
-    };
-    DragElement.prototype.dragStart = function (event) {
-        var node = View.getEventTarget(event), entries = this.options.entries;
-        var entry = entries[node.id];
+    }
+    dragStart(event) {
+        const node = View.getEventTarget(event), entries = this.options.entries;
+        let entry = entries[node.id];
         if (!entry) {
-            var parentElement = node.parentElement;
+            const parentElement = node.parentElement;
             if (parentElement && entries[parentElement.id]) {
                 entry = entries[parentElement.id];
                 this.dragItem = parentElement;
@@ -52,39 +52,37 @@ var DragElement = /** @class */ (function () {
             this.dragItem = node;
         }
         this.dragInfo = entry;
-        var dragInfo = this.dragInfo, clientObject = (event.type === "touchstart") ? event.touches[0] : event; // special handling for TouchEvent (otherwise MouseEvent or similar PointerEvent)
+        const dragInfo = this.dragInfo, clientObject = (event.type === "touchstart") ? event.touches[0] : event; // special handling for TouchEvent (otherwise MouseEvent or similar PointerEvent)
         this.initialX = clientObject.clientX - dragInfo.xOffset;
         this.initialY = clientObject.clientY - dragInfo.yOffset;
         this.options.view.fnAttachPointerEvents(this.containerId, undefined, this.fnDragMoveHandler, this.fnDragEndHandler);
         if (UiUtils.debug > 0) {
             UiUtils.console.debug("dragStart: " + dragInfo.itemId + ": x=" + this.initialX + ", y=" + this.initialY);
         }
-    };
-    DragElement.setDragTranslate = function (xPos, yPos, el) {
+    }
+    static setDragTranslate(xPos, yPos, el) {
         el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
-    };
-    DragElement.prototype.dragMove = function (event) {
-        var dragInfo = this.dragInfo;
+    }
+    dragMove(event) {
+        const dragInfo = this.dragInfo;
         if (dragInfo) {
             event.preventDefault();
-            var clientObject = (event.type === "touchstart") ? event.touches[0] : event;
+            const clientObject = (event.type === "touchstart") ? event.touches[0] : event;
             this.currentX = clientObject.clientX - this.initialX;
             this.currentY = clientObject.clientY - this.initialY;
             dragInfo.xOffset = this.currentX;
             dragInfo.yOffset = this.currentY;
             DragElement.setDragTranslate(this.currentX, this.currentY, this.dragItem);
         }
-    };
-    DragElement.prototype.dragEnd = function (_event) {
-        var dragInfo = this.dragInfo;
+    }
+    dragEnd(_event) {
+        const dragInfo = this.dragInfo;
         if (dragInfo) {
             this.options.view.fnDetachPointerEvents(this.containerId, undefined, this.fnDragMoveHandler, this.fnDragEndHandler);
             if (UiUtils.debug > 0) {
                 UiUtils.console.debug("dragEnd: " + dragInfo.itemId + ": x=" + this.currentX + ", y=" + this.currentY);
             }
         }
-    };
-    return DragElement;
-}());
-export { DragElement };
+    }
+}
 //# sourceMappingURL=DragElement.js.map

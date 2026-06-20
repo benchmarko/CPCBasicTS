@@ -7,7 +7,7 @@ import { TestHelper } from "./TestHelper";
 import { TestInput } from "./TestInput";
 QUnit.dump.maxDepth = 10;
 /* eslint-disable quote-props */
-var allTests = {
+const allTests = {
     numbers: {
         "a=1": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"number","value":"1","pos":2}}]}]',
         "a=1.2": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"number","value":"1.2","pos":2}}]}]',
@@ -763,14 +763,14 @@ QUnit.module("BasicParser: Tests", function (hooks) {
         });
     }
     hooks.before(function () {
-        var thisHooks = hooks;
+        const thisHooks = hooks;
         thisHooks.basicParser = createBasicParser1();
         thisHooks.basicLexer = createBasicLexer(thisHooks.basicParser.getKeywords(), false);
     });
     function runSingleTest(basicLexer, basicParser, key, expectedEntry) {
-        var result;
+        let result;
         try {
-            var tokens = basicLexer.lex(key), parseTree = basicParser.parse(tokens);
+            const tokens = basicLexer.lex(key), parseTree = basicParser.parse(tokens);
             result = JSON.stringify(parseTree);
         }
         catch (e) {
@@ -779,21 +779,18 @@ QUnit.module("BasicParser: Tests", function (hooks) {
             }
             // on IE we have additional properties description, number, stack in the object, so we use a positive list...
             // eslint-disable-next-line object-property-newline, object-curly-newline
-            var copiedError = (function (_a) {
-                var len = _a.len, line = _a.line, message = _a.message, name = _a.name, pos = _a.pos, shortMessage = _a.shortMessage, value = _a.value;
-                return ({ len: len, line: line, message: message, name: name, pos: pos, shortMessage: shortMessage, value: value });
-            })(e);
+            const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(e);
             // (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
             result = JSON.stringify(copiedError);
         }
         return result;
     }
     function runTestsFor(category, tests, assert, results) {
-        var thisHooks = hooks, basicLexer = thisHooks.basicLexer, basicParser = thisHooks.basicParser;
-        for (var key in tests) {
+        const thisHooks = hooks, basicLexer = thisHooks.basicLexer, basicParser = thisHooks.basicParser;
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
-                var expected = TestHelper.handleBinaryLiterals(tests[key]);
-                var expectedEntry = void 0;
+                const expected = TestHelper.handleBinaryLiterals(tests[key]);
+                let expectedEntry;
                 try {
                     expectedEntry = JSON.parse(expected); // test: { e: expected }
                 }
@@ -801,12 +798,12 @@ QUnit.module("BasicParser: Tests", function (hooks) {
                     Utils.console.error(e);
                     expectedEntry = {}; // continue
                 }
-                var result = runSingleTest(basicLexer, basicParser, key, expectedEntry);
+                const result = runSingleTest(basicLexer, basicParser, key, expectedEntry);
                 if (results) {
                     results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
                 }
                 if (assert) {
-                    var parseTree = JSON.parse(result);
+                    const parseTree = JSON.parse(result);
                     assert.deepEqual(parseTree, expectedEntry, key);
                 }
             }
@@ -826,20 +823,20 @@ QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
         });
     }
     hooks.before(function () {
-        var thisHooks = hooks;
+        const thisHooks = hooks;
         thisHooks.basicParser = createBasicParser2();
         thisHooks.basicLexer = createBasicLexer(thisHooks.basicParser.getKeywords(), true);
     });
     function fnCombineTreeNodes(node) {
         if (node instanceof Array) {
-            var nodeArgs = [];
-            for (var i = 0; i < node.length; i += 1) {
-                var value_1 = fnCombineTreeNodes(node[i]);
-                nodeArgs.push(value_1);
+            const nodeArgs = [];
+            for (let i = 0; i < node.length; i += 1) {
+                const value = fnCombineTreeNodes(node[i]);
+                nodeArgs.push(value);
             }
             return nodeArgs.join("");
         }
-        var value = "";
+        let value = "";
         if (node.left) {
             value += fnCombineTreeNodes(node.left);
         }
@@ -855,7 +852,7 @@ QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
         }
         else if (node.value) {
             if ((/[A-Z]/).test(node.type)) { // uppercase letter? => combined token  TODO: better do not combine tokens in value in BasicParser
-                var spacePos = node.value.indexOf(" ");
+                const spacePos = node.value.indexOf(" ");
                 if (spacePos > 0) {
                     value += node.value.substring(0, spacePos);
                 }
@@ -876,7 +873,7 @@ QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
         return value;
     }
     function runSingleTestForWhitespace(basicLexer, basicParser, key, expected) {
-        var result, expectedEntry;
+        let result, expectedEntry;
         try {
             expectedEntry = JSON.parse(expected); // test: { e: expected }
         }
@@ -885,11 +882,11 @@ QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
             expectedEntry = {}; // continue
         }
         try {
-            var tokens = basicLexer.lex(key), parseTree = basicParser.parse(tokens);
+            const tokens = basicLexer.lex(key), parseTree = basicParser.parse(tokens);
             result = fnCombineTreeNodes(parseTree);
         }
         catch (e) {
-            var epectedMessage = expectedEntry.message || "unknown";
+            const epectedMessage = expectedEntry.message || "unknown";
             if (e.message.replace(/\d+/g, "") !== epectedMessage.replace(/\d+/g, "")) { // compare without positions
                 Utils.console.error(e); // only if unexpected
                 result = String(e);
@@ -901,16 +898,16 @@ QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
         return result;
     }
     function runTestsForWhitespace(category, tests, assert, results) {
-        var basicLexer = hooks.basicLexer, basicParser = hooks.basicParser;
-        var spaceCount = 1;
-        var fnSpaceReplacer = function () {
+        const basicLexer = hooks.basicLexer, basicParser = hooks.basicParser;
+        let spaceCount = 1;
+        const fnSpaceReplacer = function () {
             spaceCount += 1;
             return " ".repeat(spaceCount);
         };
-        for (var key in tests) {
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
                 spaceCount = 1;
-                var expected = TestHelper.handleBinaryLiterals(tests[key]), keyWithSpaces = key.replace(/([=?+\-*^/\\,;()#])/g, " $1 ").replace(/ +/g, fnSpaceReplacer).replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/e[ ]+\+[ ]+(\d+)/g, "e+$1"), // with fast hacks
+                const expected = TestHelper.handleBinaryLiterals(tests[key]), keyWithSpaces = key.replace(/([=?+\-*^/\\,;()#])/g, " $1 ").replace(/ +/g, fnSpaceReplacer).replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/e[ ]+\+[ ]+(\d+)/g, "e+$1"), // with fast hacks
                 result = runSingleTestForWhitespace(basicLexer, basicParser, keyWithSpaces, expected);
                 if (results) {
                     results[category].push(TestHelper.stringInQuotes(keyWithSpaces) + ": " + TestHelper.stringInQuotes(result));

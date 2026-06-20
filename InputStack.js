@@ -1,41 +1,39 @@
 // InputStack.ts - InputStack...
 // see: https://github.com/jzaefferer/undo
 //
-var InputStack = /** @class */ (function () {
-    function InputStack() {
+export class InputStack {
+    constructor() {
         this.input = [];
         this.stackPosition = -1;
     }
-    InputStack.prototype.reset = function () {
+    reset() {
         this.input.length = 0;
         this.stackPosition = -1;
-    };
-    InputStack.prototype.getInput = function () {
+    }
+    getInput() {
         return this.input[this.stackPosition];
-    };
-    InputStack.prototype.clearRedo = function () {
+    }
+    clearRedo() {
         this.input = this.input.slice(0, this.stackPosition + 1);
-    };
-    InputStack.prototype.save = function (input) {
+    }
+    save(input) {
         this.clearRedo();
         this.input.push(input);
         this.stackPosition += 1;
-    };
-    InputStack.prototype.canUndoKeepOne = function () {
+    }
+    canUndoKeepOne() {
         return this.stackPosition > 0;
-    };
-    InputStack.prototype.undo = function () {
+    }
+    undo() {
         this.stackPosition -= 1;
         return this.getInput();
-    };
-    InputStack.prototype.canRedo = function () {
+    }
+    canRedo() {
         return this.stackPosition < this.input.length - 1;
-    };
-    InputStack.prototype.redo = function () {
+    }
+    redo() {
         this.stackPosition += 1;
         return this.getInput();
-    };
-    return InputStack;
-}());
-export { InputStack };
+    }
+}
 //# sourceMappingURL=InputStack.js.map

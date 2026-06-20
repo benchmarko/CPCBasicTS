@@ -2,34 +2,28 @@
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasicTS/
 //
-var CpcVmRsx = /** @class */ (function () {
-    function CpcVmRsx() {
+export class CpcVmRsx {
+    constructor() {
         this.rsxPermanent = {};
         this.rsxTemporary = {};
     }
-    CpcVmRsx.prototype.callRsx = function (vm, name) {
-        var args = [];
-        for (var _i = 2; _i < arguments.length; _i++) {
-            args[_i - 2] = arguments[_i];
-        }
-        var fn = this.rsxTemporary[name] || this.rsxPermanent[name];
+    callRsx(vm, name, ...args) {
+        const fn = this.rsxTemporary[name] || this.rsxPermanent[name];
         if (fn) {
             fn.apply(vm, args);
         }
         return Boolean(fn);
-    };
-    CpcVmRsx.prototype.registerRsx = function (rsxModule, permanent) {
-        var rsxRegister = permanent ? this.rsxPermanent : this.rsxTemporary, rsxCommands = rsxModule.getRsxCommands();
-        for (var command in rsxCommands) {
+    }
+    registerRsx(rsxModule, permanent) {
+        const rsxRegister = permanent ? this.rsxPermanent : this.rsxTemporary, rsxCommands = rsxModule.getRsxCommands();
+        for (const command in rsxCommands) {
             if (rsxCommands.hasOwnProperty(command)) {
                 rsxRegister[command] = rsxCommands[command];
             }
         }
-    };
-    CpcVmRsx.prototype.resetRsx = function () {
+    }
+    resetRsx() {
         this.rsxTemporary = {};
-    };
-    return CpcVmRsx;
-}());
-export { CpcVmRsx };
+    }
+}
 //# sourceMappingURL=CpcVmRsx.js.map

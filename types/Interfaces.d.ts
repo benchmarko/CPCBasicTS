@@ -14,6 +14,15 @@ export interface IOutput {
 }
 export type ConfigEntryType = string | number | boolean;
 export type ConfigType = Record<string, ConfigEntryType>;
+export interface IStorage {
+    readonly length: number;
+    clear(): void;
+    getItem(key: string): string | null;
+    key(index: number): string | null;
+    removeItem(key: string): void;
+    setItem(key: string, value: string): void;
+    [key: string]: any;
+}
 export interface DatabaseEntry {
     text: string;
     title: string;

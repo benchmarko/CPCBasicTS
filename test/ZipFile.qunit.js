@@ -9,7 +9,7 @@ QUnit.dump.maxDepth = 10;
 QUnit.module("ZipFile: Tests", function (hooks) {
     // examples store.zip and deflate.zip taken from https://github.com/bower/decompress-zip/tree/master/test/assets/file-mode-pack
     // deflate example created by: Controller.exportAsBase64("deflate.zip.xxx")
-    var allTests = {
+    const allTests = {
         store: {
             "CPCBasic;B;0;404;;base64,UEsDBAoAAAAAAGyFJkYAAAAAAAAAAAAAAAAFAAAAZGlyMS9QSwMECgAAAAAAbIUmRgAAAAAAAAAAAAAAAAUAAABkaXIyL1BLAwQUAAgAAABshSZGAAAAAAAAAAAAAAAABQAAAGZpbGUxYWJjUEsHCMJBJDUDAAAAAwAAAFBLAwQUAAgAAABshSZGAAAAAAAAAAAAAAAABQAAAGZpbGUyeHl6UEsHCGe6jusDAAAAAwAAAFBLAQItAwoAAAAAAGyFJkYAAAAAAAAAAAAAAAAFAAAAAAAAAAAAEADtAQAAAABkaXIxL1BLAQItAwoAAAAAAGyFJkYAAAAAAAAAAAAAAAAFAAAAAAAAAAAAEADJASMAAABkaXIyL1BLAQItAxQACAAAAGyFJkbCQSQ1AwAAAAMAAAAFAAAAAAAAAAAAIADtgUYAAABmaWxlMVBLAQItAxQACAAAAGyFJkZnuo7rAwAAAAMAAAAFAAAAAAAAAAAAIADJgXwAAABmaWxlMlBLBQYAAAAABAAEAMwAAACyAAAAAAA=": "file1=abc,file2=xyz"
         },
@@ -18,27 +18,27 @@ QUnit.module("ZipFile: Tests", function (hooks) {
         }
     };
     function fnExtractZipFiles(zip) {
-        var result = [];
+        const result = [];
         if (zip) {
-            var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
-            for (var i = 0; i < entries.length; i += 1) {
-                var name_1 = entries[i], data = zip.readData(name_1);
+            const zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
+            for (let i = 0; i < entries.length; i += 1) {
+                const name = entries[i], data = zip.readData(name);
                 if (data) {
-                    result.push(name_1 + "=" + data);
+                    result.push(name + "=" + data);
                 }
             }
         }
         return result.join(",");
     }
     function runTestsFor(category, tests, assert, results) {
-        for (var key in tests) {
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
-                var parts = Utils.split2(key, ","), meta = parts[0], atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob, data = atobFn(parts[1]), // decode base64
+                const parts = Utils.split2(key, ","), meta = parts[0], atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob, data = atobFn(parts[1]), // decode base64
                 zip = new ZipFile({
                     data: Utils.string2Uint8Array(data),
                     zipName: "name"
                 }), expected = tests[key];
-                var result = void 0;
+                let result;
                 try {
                     result = fnExtractZipFiles(zip);
                 }

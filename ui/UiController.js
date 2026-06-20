@@ -1,10 +1,10 @@
 import { CommonEventHandler } from "./CommonEventHandler";
-var UiController = /** @class */ (function () {
-    function UiController(core, view, controller, onUserAction) {
+export class UiController {
+    constructor(core, view, controller, onUserAction) {
         this.commonEventHandler = new CommonEventHandler({
             model: core.getModel(),
-            view: view,
-            controller: controller
+            view,
+            controller
         });
         view.addEventListener("click", this.commonEventHandler);
         view.addEventListener("change", this.commonEventHandler);
@@ -12,19 +12,17 @@ var UiController = /** @class */ (function () {
         this.commonEventHandler.onKbdLayoutSelectChange(this.commonEventHandler.getEventDefById("change", "kbdLayoutSelect" /* ViewID.kbdLayoutSelect */));
         this.commonEventHandler.fnSetUserAction(onUserAction);
     }
-    UiController.prototype.deactivateUserAction = function () {
+    deactivateUserAction() {
         this.commonEventHandler.fnSetUserAction(undefined);
-    };
-    UiController.prototype.onVarSelectChange = function () {
+    }
+    onVarSelectChange() {
         this.commonEventHandler.onVarSelectChange();
-    };
-    UiController.prototype.setPopoversHiddenExcept = function (exceptId) {
+    }
+    setPopoversHiddenExcept(exceptId) {
         this.commonEventHandler.setPopoversHiddenExcept(exceptId);
-    };
-    UiController.prototype.toggleAreaHiddenById = function (type, id) {
+    }
+    toggleAreaHiddenById(type, id) {
         return this.commonEventHandler.toggleAreaHiddenById(type, id);
-    };
-    return UiController;
-}());
-export { UiController };
+    }
+}
 //# sourceMappingURL=UiController.js.map

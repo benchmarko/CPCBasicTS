@@ -3,10 +3,10 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 /* globals ArrayBuffer, Uint8Array, Uint32Array */
-import { Utils } from "../Utils";
+import { UiUtils } from "./UiUtils";
 import { View } from "./View";
-var Canvas = /** @class */ (function () {
-    function Canvas(options) {
+export class Canvas {
+    constructor(options) {
         this.fps = 15; // FPS for canvas update
         this.isRunning = false;
         this.customCharset = {};
@@ -43,14 +43,14 @@ var Canvas = /** @class */ (function () {
         this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
         this.options = {};
         this.setOptions(options, true);
-        var canvas = View.getElementByIdAs(this.options.canvasID);
+        const canvas = View.getElementByIdAs(this.options.canvasID);
         this.canvas = canvas;
         this.cpcAreaBox = View.getElementById1("cpcArea" /* ViewID.cpcArea */);
         // make sure canvas is not hidden (allows to get width, height, set style)
         if (canvas.offsetParent === null) {
-            Utils.console.error("Error: canvas is not visible!");
+            UiUtils.console.error("Error: canvas is not visible!");
         }
-        var width = canvas.width, height = canvas.height;
+        const width = canvas.width, height = canvas.height;
         this.width = width;
         this.height = height;
         this.dataset8 = new Uint8Array(new ArrayBuffer(width * height)); // array with pen values
@@ -64,19 +64,19 @@ var Canvas = /** @class */ (function () {
                 this.pen2Color32 = new Uint32Array(new ArrayBuffer(Canvas.modeData[3].pens * 4));
                 this.data32 = new Uint32Array(this.imageData.data.buffer);
                 this.use32BitCopy = true;
-                Utils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
+                UiUtils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
             }
             else {
                 this.setAlpha(255);
                 this.use32BitCopy = false;
-                Utils.console.log("Canvas: using copy2Canvas8bit");
+                UiUtils.console.log("Canvas: using copy2Canvas8bit");
             }
             this.fnCopy2Canvas = this.getCopy2CanvasFunction(this.offset);
         }
         else {
-            Utils.console.warn("Error: canvas.getContext is not supported.");
+            UiUtils.console.warn("Error: canvas.getContext is not supported.");
             // not available on e.g. IE8, nodeJS
-            this.fnCopy2Canvas = function () {
+            this.fnCopy2Canvas = () => {
                 // nothing
             };
             this.ctx = {}; // not available
@@ -84,20 +84,20 @@ var Canvas = /** @class */ (function () {
         }
         this.reset();
     }
-    Canvas.prototype.getOptions = function () {
+    getOptions() {
         return this.options;
-    };
-    Canvas.prototype.setOptions = function (options, force) {
-        var currentPalette = this.options.palette;
+    }
+    setOptions(options, force) {
+        const currentPalette = this.options.palette;
         Object.assign(this.options, options);
         if (force || (this.options.palette !== currentPalette)) { // changed?
             this.applyPalette();
         }
-    };
-    Canvas.prototype.applyBorderColor = function () {
+    }
+    applyBorderColor() {
         this.canvas.style.borderColor = Canvas.palettes[this.options.palette][this.currentInks[this.inkSet][16]];
-    };
-    Canvas.prototype.reset = function () {
+    }
+    reset() {
         this.changeMode(1);
         this.inkSet = 0;
         this.setDefaultInks();
@@ -111,26 +111,26 @@ var Canvas = /** @class */ (function () {
         this.resetCustomChars();
         this.setMode(1);
         this.clearGraphicsWindow();
-    };
-    Canvas.prototype.resetCustomChars = function () {
+    }
+    resetCustomChars() {
         this.customCharset = {}; // symbol
-    };
-    Canvas.computePalette = function (palette) {
+    }
+    static computePalette(palette) {
         if (palette === "green" || palette === "grey") {
-            var colorPalette = Canvas.palettes.color, colorValues = [], monoPalette = [];
+            const colorPalette = Canvas.palettes.color, colorValues = [], monoPalette = [];
             Canvas.extractAllColorValues(colorPalette, colorValues);
-            for (var i = 0; i < colorPalette.length; i += 1) {
+            for (let i = 0; i < colorPalette.length; i += 1) {
                 // https://en.wikipedia.org/wiki/Luma_(video)
                 // (0.299 * R) + (0.587 * G) + (0.114 * B);
-                var monoValue = (0.299 * colorValues[i][0] + 0.587 * colorValues[i][1] + 0.114 * colorValues[i][2]) | 0, // eslint-disable-line no-bitwise
+                const monoValue = (0.299 * colorValues[i][0] + 0.587 * colorValues[i][1] + 0.114 * colorValues[i][2]) | 0, // eslint-disable-line no-bitwise
                 monoHex = monoValue.toString(16).toUpperCase().padStart(2, "0");
                 monoPalette[i] = palette === "green" ? "#00" + monoHex + "00" : "#" + monoHex + monoHex + monoHex;
             }
             Canvas.palettes[palette] = monoPalette;
         }
-    };
-    Canvas.prototype.applyPalette = function () {
-        var palette = this.options.palette;
+    }
+    applyPalette() {
+        const palette = this.options.palette;
         if (!Canvas.palettes[palette]) {
             Canvas.computePalette(palette);
         }
@@ -140,38 +140,38 @@ var Canvas = /** @class */ (function () {
             this.setNeedUpdate();
             this.applyBorderColor();
         }
-    };
-    Canvas.isLittleEndian = function () {
+    }
+    static isLittleEndian() {
         // https://gist.github.com/TooTallNate/4750953
-        var b = new ArrayBuffer(4), a = new Uint32Array(b), c = new Uint8Array(b);
+        const b = new ArrayBuffer(4), a = new Uint32Array(b), c = new Uint8Array(b);
         a[0] = 0xdeadbeef;
         return (c[0] === 0xef);
-    };
-    Canvas.extractColorValues = function (color) {
+    }
+    static extractColorValues(color) {
         return [
             parseInt(color.substring(1, 3), 16),
             parseInt(color.substring(3, 5), 16),
             parseInt(color.substring(5, 7), 16)
         ];
-    };
-    Canvas.extractAllColorValues = function (colors, colorValues) {
-        for (var i = 0; i < colors.length; i += 1) {
+    }
+    static extractAllColorValues(colors, colorValues) {
+        for (let i = 0; i < colors.length; i += 1) {
             colorValues[i] = Canvas.extractColorValues(colors[i]);
         }
-    };
-    Canvas.prototype.setColorValues = function (palette) {
+    }
+    setColorValues(palette) {
         Canvas.extractAllColorValues(palette, this.colorValues);
-    };
-    Canvas.prototype.setAlpha = function (alpha) {
-        var buf8 = this.imageData.data, length = this.dataset8.length; // or: this.width * this.height
-        for (var i = 0; i < length; i += 1) {
+    }
+    setAlpha(alpha) {
+        const buf8 = this.imageData.data, length = this.dataset8.length; // or: this.width * this.height
+        for (let i = 0; i < length; i += 1) {
             buf8[i * 4 + 3] = alpha; // alpha
         }
-    };
-    Canvas.prototype.setNeedUpdate = function () {
+    }
+    setNeedUpdate() {
         this.needUpdate = true;
-    };
-    Canvas.prototype.updateCanvas2 = function () {
+    }
+    updateCanvas2() {
         if (!this.isRunning) {
             return; // ignore remaining timeouts, if stopped
         }
@@ -181,19 +181,19 @@ var Canvas = /** @class */ (function () {
             // we always do a full updateCanvas...
             this.fnCopy2Canvas();
         }
-    };
+    }
     // http://creativejs.com/resources/requestanimationframe/ (set frame rate)
     // https://stackoverflow.com/questions/19764018/controlling-fps-with-requestanimationframe
-    Canvas.prototype.updateCanvas = function () {
+    updateCanvas() {
         this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1000 / this.fps); // ts (node)
-    };
-    Canvas.prototype.startUpdateCanvas = function () {
+    }
+    startUpdateCanvas() {
         if (!this.isRunning && this.canvas.offsetParent !== null) { // animation off and canvas visible in DOM?
             this.isRunning = true;
             this.updateCanvas();
         }
-    };
-    Canvas.prototype.stopUpdateCanvas = function () {
+    }
+    stopUpdateCanvas() {
         if (this.isRunning) {
             this.isRunning = false;
             if (this.animationFrame) {
@@ -203,44 +203,44 @@ var Canvas = /** @class */ (function () {
             clearTimeout(this.animationTimeoutId);
             this.animationTimeoutId = undefined;
         }
-    };
-    Canvas.prototype.copy2Canvas8bit = function () {
-        var buf8 = this.imageData.data, // use Uint8ClampedArray from canvas
+    }
+    copy2Canvas8bit() {
+        const buf8 = this.imageData.data, // use Uint8ClampedArray from canvas
         dataset8 = this.dataset8, length = dataset8.length, // or: this.width * this.height
         pen2ColorMap = this.pen2ColorMap;
-        for (var i = 0; i < length; i += 1) {
-            var color = pen2ColorMap[dataset8[i]], j = i * 4;
+        for (let i = 0; i < length; i += 1) {
+            const color = pen2ColorMap[dataset8[i]], j = i * 4;
             buf8[j] = color[0]; // r
             buf8[j + 1] = color[1]; // g
             buf8[j + 2] = color[2]; // b
             // alpha already set to 255
         }
         this.ctx.putImageData(this.imageData, 0, 0);
-    };
-    Canvas.prototype.copy2Canvas32bit = function () {
-        var dataset8 = this.dataset8, data32 = this.data32, pen2Color32 = this.pen2Color32;
-        for (var i = 0; i < data32.length; i += 1) {
+    }
+    copy2Canvas32bit() {
+        const dataset8 = this.dataset8, data32 = this.data32, pen2Color32 = this.pen2Color32;
+        for (let i = 0; i < data32.length; i += 1) {
             data32[i] = pen2Color32[dataset8[i]];
         }
         this.ctx.putImageData(this.imageData, 0, 0);
-    };
-    Canvas.prototype.copy2Canvas32bitWithOffset = function () {
-        var dataset8 = this.dataset8, data32 = this.data32, pen2Color32 = this.pen2Color32, offset = this.offset;
-        for (var i = 0; i < data32.length - offset; i += 1) {
+    }
+    copy2Canvas32bitWithOffset() {
+        const dataset8 = this.dataset8, data32 = this.data32, pen2Color32 = this.pen2Color32, offset = this.offset;
+        for (let i = 0; i < data32.length - offset; i += 1) {
             data32[i + offset] = pen2Color32[dataset8[i]];
         }
-        for (var i = data32.length - offset; i < data32.length; i += 1) {
+        for (let i = data32.length - offset; i < data32.length; i += 1) {
             data32[i + offset - data32.length] = pen2Color32[dataset8[i]];
         }
         this.ctx.putImageData(this.imageData, 0, 0);
-    };
-    Canvas.prototype.getCopy2CanvasFunction = function (offset) {
+    }
+    getCopy2CanvasFunction(offset) {
         if (this.use32BitCopy) {
             return offset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
         }
         return offset ? this.copy2Canvas8bit : this.copy2Canvas8bit; // TODO: for older browsers
-    };
-    Canvas.prototype.setScreenOffset = function (offset) {
+    }
+    setScreenOffset(offset) {
         if (offset) {
             // TODO
             offset = (offset % 80) * 8 + ((offset / 80) | 0) * 80 * 16 * 8; // eslint-disable-line no-bitwise
@@ -251,15 +251,15 @@ var Canvas = /** @class */ (function () {
             this.fnCopy2Canvas = this.getCopy2CanvasFunction(offset);
             this.setNeedUpdate();
         }
-    };
-    Canvas.prototype.updateColorMap = function () {
-        var colorValues = this.colorValues, currentInksInSet = this.currentInks[this.inkSet], pen2ColorMap = this.pen2ColorMap, pen2Color32 = this.pen2Color32, maxPens = 16, alpha = 255;
-        for (var i = 0; i < maxPens; i += 1) {
+    }
+    updateColorMap() {
+        const colorValues = this.colorValues, currentInksInSet = this.currentInks[this.inkSet], pen2ColorMap = this.pen2ColorMap, pen2Color32 = this.pen2Color32, maxPens = 16, alpha = 255;
+        for (let i = 0; i < maxPens; i += 1) {
             pen2ColorMap[i] = colorValues[currentInksInSet[i]];
         }
         if (pen2Color32) {
-            for (var i = 0; i < maxPens; i += 1) {
-                var color = pen2ColorMap[i];
+            for (let i = 0; i < maxPens; i += 1) {
+                const color = pen2ColorMap[i];
                 if (this.littleEndian) {
                     pen2Color32[i] = color[0] + color[1] * 256 + color[2] * 65536 + alpha * 65536 * 256;
                 }
@@ -268,25 +268,25 @@ var Canvas = /** @class */ (function () {
                 }
             }
         }
-    };
-    Canvas.prototype.updateColorsAndCanvasImmediately = function (inkList) {
-        var currentInksInSet = this.currentInks[this.inkSet], memorizedInks = currentInksInSet.slice();
+    }
+    updateColorsAndCanvasImmediately(inkList) {
+        const currentInksInSet = this.currentInks[this.inkSet], memorizedInks = currentInksInSet.slice();
         this.currentInks[this.inkSet] = inkList; // temporary inks
         this.updateColorMap();
         this.fnCopy2Canvas(); // do it immediately
         this.currentInks[this.inkSet] = memorizedInks.slice();
         this.updateColorMap();
         this.needUpdate = true; // we want to restore it with the next update...
-    };
-    Canvas.prototype.updateSpeedInk = function () {
-        var pens = this.modeData.pens;
+    }
+    updateSpeedInk() {
+        const pens = this.modeData.pens;
         this.speedInkCount -= 1;
         if (this.speedInkCount <= 0) {
-            var currentInkSet = this.inkSet, newInkSet = currentInkSet ^ 1; // eslint-disable-line no-bitwise
+            const currentInkSet = this.inkSet, newInkSet = currentInkSet ^ 1; // eslint-disable-line no-bitwise
             this.inkSet = newInkSet;
             this.speedInkCount = this.speedInk[newInkSet];
             // check for blinking inks which pens are visible in the current mode
-            for (var i = 0; i < pens; i += 1) {
+            for (let i = 0; i < pens; i += 1) {
                 if (this.currentInks[newInkSet][i] !== this.currentInks[currentInkSet][i]) {
                     this.updateColorMap(); // need ink update
                     this.needUpdate = true; // we also need update
@@ -298,30 +298,30 @@ var Canvas = /** @class */ (function () {
                 this.applyBorderColor();
             }
         }
-    };
-    Canvas.prototype.setCustomChar = function (char, charData) {
+    }
+    setCustomChar(char, charData) {
         this.customCharset[char] = charData;
-    };
-    Canvas.prototype.getCharData = function (char) {
+    }
+    getCharData(char) {
         return this.customCharset[char] || this.options.charset[char];
-    };
-    Canvas.prototype.setDefaultInks = function () {
+    }
+    setDefaultInks() {
         this.currentInks[0] = Canvas.defaultInks[0].slice(); // copy ink set 0 array
         this.currentInks[1] = Canvas.defaultInks[1].slice(); // copy ink set 1 array
         this.updateColorMap();
         this.setGPen(this.gPen);
-    };
-    Canvas.prototype.setFocusOnCanvas = function () {
+    }
+    setFocusOnCanvas() {
         this.cpcAreaBox.style.background = "#463c3c";
         if (this.canvas) {
             this.canvas.focus();
         }
         this.hasFocus = true;
-    };
-    Canvas.prototype.getMousePos = function (event) {
-        var anyDoc = document, isFullScreen = Boolean(document.fullscreenElement || anyDoc.mozFullScreenElement || anyDoc.webkitFullscreenElement || anyDoc.msFullscreenElement), rect = this.canvas.getBoundingClientRect();
+    }
+    getMousePos(event) {
+        const anyDoc = document, isFullScreen = Boolean(document.fullscreenElement || anyDoc.mozFullScreenElement || anyDoc.webkitFullscreenElement || anyDoc.msFullscreenElement), rect = this.canvas.getBoundingClientRect();
         if (isFullScreen) {
-            var areaX = 0, areaY = 0, rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2, rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2, ratioX = rectwidth / this.canvas.width, ratioY = rectHeight / this.canvas.height, minRatio = ratioX <= ratioY ? ratioX : ratioY, diffX = rectwidth - (this.canvas.width * minRatio), diffY = rectHeight - (this.canvas.height * minRatio);
+            const areaX = 0, areaY = 0, rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2, rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2, ratioX = rectwidth / this.canvas.width, ratioY = rectHeight / this.canvas.height, minRatio = ratioX <= ratioY ? ratioX : ratioY, diffX = rectwidth - (this.canvas.width * minRatio), diffY = rectHeight - (this.canvas.height * minRatio);
             return {
                 x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / minRatio,
                 y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / minRatio
@@ -331,24 +331,24 @@ var Canvas = /** @class */ (function () {
             x: (event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * this.canvas.width,
             y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * this.canvas.height
         };
-    };
-    Canvas.prototype.canvasClickAction = function (event) {
-        var pos = this.getMousePos(event), 
+    }
+    canvasClickAction(event) {
+        const pos = this.getMousePos(event), 
         /* eslint-disable no-bitwise */
         x = pos.x | 0, // force integer
         y = pos.y | 0;
         /* eslint-enable no-bitwise */
         if (this.options.onCanvasClick) {
             if (x >= 0 && x <= this.width - 1 && y >= 0 && y <= this.height - 1) {
-                var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, 
+                const charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, 
                 /* eslint-disable no-bitwise */
                 xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
                 /* eslint-enable no-bitwise */
                 this.options.onCanvasClick(event, x, y, xTxt, yTxt);
             }
         }
-    };
-    Canvas.prototype.onCanvasClick = function (event) {
+    }
+    onCanvasClick(event) {
         if (!this.hasFocus) {
             this.setFocusOnCanvas();
         }
@@ -356,63 +356,63 @@ var Canvas = /** @class */ (function () {
             this.canvasClickAction(event);
         }
         event.stopPropagation();
-    };
-    Canvas.prototype.onWindowClick = function (_event) {
+    }
+    onWindowClick(_event) {
         if (this.hasFocus) {
             this.hasFocus = false;
             this.cpcAreaBox.style.background = "";
         }
-    };
-    Canvas.prototype.getXpos = function () {
+    }
+    getXpos() {
         return this.xPos;
-    };
-    Canvas.prototype.getYpos = function () {
+    }
+    getYpos() {
         return this.yPos;
-    };
-    Canvas.prototype.fillMyRect = function (x, y, width, height, paper) {
-        var canvasWidth = this.width, dataset8 = this.dataset8;
-        for (var row = 0; row < height; row += 1) {
-            var idx = x + (y + row) * canvasWidth;
+    }
+    fillMyRect(x, y, width, height, paper) {
+        const canvasWidth = this.width, dataset8 = this.dataset8;
+        for (let row = 0; row < height; row += 1) {
+            const idx = x + (y + row) * canvasWidth;
             dataset8.fill(paper, idx, idx + width);
         }
-    };
-    Canvas.prototype.fillTextBox = function (left, top, width, height, paper) {
-        var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8;
+    }
+    fillTextBox(left, top, width, height, paper) {
+        const charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8;
         paper %= this.modeData.pens; // limit papers
         this.fillMyRect(left * charWidth, top * charHeight, width * charWidth, height * charHeight, paper);
         this.setNeedUpdate();
-    };
-    Canvas.prototype.moveMyRectUp = function (x, y, width, height, x2, y2) {
-        var canvasWidth = this.width, dataset8 = this.dataset8;
-        for (var row = 0; row < height; row += 1) {
-            var idx1 = x + (y + row) * canvasWidth, idx2 = x2 + (y2 + row) * canvasWidth;
+    }
+    moveMyRectUp(x, y, width, height, x2, y2) {
+        const canvasWidth = this.width, dataset8 = this.dataset8;
+        for (let row = 0; row < height; row += 1) {
+            const idx1 = x + (y + row) * canvasWidth, idx2 = x2 + (y2 + row) * canvasWidth;
             dataset8.copyWithin(idx2, idx1, idx1 + width);
         }
-    };
-    Canvas.prototype.moveMyRectDown = function (x, y, width, height, x2, y2) {
-        var canvasWidth = this.width, dataset8 = this.dataset8;
-        for (var row = height - 1; row >= 0; row -= 1) {
-            var idx1 = x + (y + row) * canvasWidth, idx2 = x2 + (y2 + row) * canvasWidth;
+    }
+    moveMyRectDown(x, y, width, height, x2, y2) {
+        const canvasWidth = this.width, dataset8 = this.dataset8;
+        for (let row = height - 1; row >= 0; row -= 1) {
+            const idx1 = x + (y + row) * canvasWidth, idx2 = x2 + (y2 + row) * canvasWidth;
             dataset8.copyWithin(idx2, idx1, idx1 + width);
         }
-    };
-    Canvas.prototype.invertChar = function (x, y, pen, paper) {
-        var pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, penXorPaper = pen ^ paper; // eslint-disable-line no-bitwise
-        for (var row = 0; row < 8; row += 1) {
-            for (var col = 0; col < 8; col += 1) {
-                var testPen = this.testSubPixel(x + col * pixelWidth, y + row * pixelHeight);
+    }
+    invertChar(x, y, pen, paper) {
+        const pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, penXorPaper = pen ^ paper; // eslint-disable-line no-bitwise
+        for (let row = 0; row < 8; row += 1) {
+            for (let col = 0; col < 8; col += 1) {
+                let testPen = this.testSubPixel(x + col * pixelWidth, y + row * pixelHeight);
                 testPen ^= penXorPaper; // eslint-disable-line no-bitwise
                 this.setSubPixelsNormal(x + col * pixelWidth, y + row * pixelHeight, testPen);
             }
         }
-    };
-    Canvas.prototype.setChar = function (char, x, y, pen, paper, transparent, gColMode, textAtGraphics) {
-        var charData = this.customCharset[char] || this.options.charset[char], pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight;
-        for (var row = 0; row < 8; row += 1) {
-            for (var col = 0; col < 8; col += 1) {
-                var charValue = charData[row], bit = charValue & (0x80 >> col); // eslint-disable-line no-bitwise
+    }
+    setChar(char, x, y, pen, paper, transparent, gColMode, textAtGraphics) {
+        const charData = this.customCharset[char] || this.options.charset[char], pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight;
+        for (let row = 0; row < 8; row += 1) {
+            for (let col = 0; col < 8; col += 1) {
+                const charValue = charData[row], bit = charValue & (0x80 >> col); // eslint-disable-line no-bitwise
                 if (!(transparent && !bit)) { // do not set background pixel in transparent mode
-                    var penOrPaper = (bit) ? pen : paper;
+                    const penOrPaper = (bit) ? pen : paper;
                     if (textAtGraphics) {
                         this.setPixel(x + col * pixelWidth, y - row * pixelHeight, penOrPaper, gColMode);
                     }
@@ -422,13 +422,13 @@ var Canvas = /** @class */ (function () {
                 }
             }
         }
-    };
-    Canvas.prototype.readCharData = function (x, y, expectedPen) {
-        var charData = [], pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight;
-        for (var row = 0; row < 8; row += 1) {
-            var charValue = 0;
-            for (var col = 0; col < 8; col += 1) {
-                var pen = this.testSubPixel(x + col * pixelWidth, y + row * pixelHeight);
+    }
+    readCharData(x, y, expectedPen) {
+        const charData = [], pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight;
+        for (let row = 0; row < 8; row += 1) {
+            let charValue = 0;
+            for (let col = 0; col < 8; col += 1) {
+                const pen = this.testSubPixel(x + col * pixelWidth, y + row * pixelHeight);
                 if (pen === expectedPen) {
                     charValue |= (0x80 >> col); // eslint-disable-line no-bitwise
                 }
@@ -436,29 +436,29 @@ var Canvas = /** @class */ (function () {
             charData[row] = charValue;
         }
         return charData;
-    };
+    }
     // set subpixels with normal mode (gColmode=0)
-    Canvas.prototype.setSubPixelsNormal = function (x, y, gPen) {
-        var pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, width = this.width;
+    setSubPixelsNormal(x, y, gPen) {
+        const pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, width = this.width;
         /* eslint-disable no-bitwise */
         x &= ~(pixelWidth - 1); // match CPC pixel
         y &= ~(pixelHeight - 1);
-        for (var row = 0; row < pixelHeight; row += 1) {
-            var i = x + width * (y + row);
-            for (var col = 0; col < pixelWidth; col += 1) {
+        for (let row = 0; row < pixelHeight; row += 1) {
+            const i = x + width * (y + row);
+            for (let col = 0; col < pixelWidth; col += 1) {
                 this.dataset8[i + col] = gPen;
             }
         }
         /* eslint-enable no-bitwise */
-    };
-    Canvas.prototype.setSubPixels = function (x, y, gPen, gColMode) {
-        var pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, width = this.width;
+    }
+    setSubPixels(x, y, gPen, gColMode) {
+        const pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, width = this.width;
         /* eslint-disable no-bitwise */
         x &= ~(pixelWidth - 1); // match CPC pixel
         y &= ~(pixelHeight - 1);
-        for (var row = 0; row < pixelHeight; row += 1) {
-            var i = x + width * (y + row);
-            for (var col = 0; col < pixelWidth; col += 1) {
+        for (let row = 0; row < pixelHeight; row += 1) {
+            let i = x + width * (y + row);
+            for (let col = 0; col < pixelWidth; col += 1) {
                 switch (gColMode) {
                     case 0: // normal
                         this.dataset8[i] = gPen;
@@ -473,21 +473,21 @@ var Canvas = /** @class */ (function () {
                         this.dataset8[i] |= gPen;
                         break;
                     default:
-                        Utils.console.warn("setSubPixels: Unknown colMode:", gColMode);
+                        UiUtils.console.warn("setSubPixels: Unknown colMode:", gColMode);
                         break;
                 }
                 i += 1;
             }
         }
         /* eslint-enable no-bitwise */
-    };
+    }
     // some rounding needed before applying origin:
-    Canvas.roundCoordinate = function (cor, widthOrHeight) {
+    static roundCoordinate(cor, widthOrHeight) {
         /* eslint-disable no-bitwise */
         return cor >= 0 ? cor & ~(widthOrHeight - 1) : -(-cor & ~(widthOrHeight - 1));
         /* eslint-enable no-bitwise */
-    };
-    Canvas.prototype.setPixel = function (x, y, gPen, gColMode) {
+    }
+    setPixel(x, y, gPen, gColMode) {
         // some rounding needed before applying origin:
         x = Canvas.roundCoordinate(x, this.modeData.pixelWidth);
         y = Canvas.roundCoordinate(y, this.modeData.pixelHeight);
@@ -497,18 +497,18 @@ var Canvas = /** @class */ (function () {
             return; // not in graphics window
         }
         this.setSubPixels(x, y, gPen, gColMode);
-    };
-    Canvas.prototype.setPixelOriginIncluded = function (x, y, gPen, gColMode) {
+    }
+    setPixelOriginIncluded(x, y, gPen, gColMode) {
         if (x < this.xLeft || x > this.xRight || y < (this.height - 1 - this.yTop) || y > (this.height - 1 - this.yBottom)) {
             return; // not in graphics window
         }
         this.setSubPixels(x, y, gPen, gColMode);
-    };
-    Canvas.prototype.testSubPixel = function (x, y) {
-        var i = x + this.width * y, pen = this.dataset8[i];
+    }
+    testSubPixel(x, y) {
+        const i = x + this.width * y, pen = this.dataset8[i];
         return pen;
-    };
-    Canvas.prototype.testPixel = function (x, y) {
+    }
+    testPixel(x, y) {
         // some rounding needed before applying origin:
         x = Canvas.roundCoordinate(x, this.modeData.pixelWidth);
         y = Canvas.roundCoordinate(y, this.modeData.pixelHeight);
@@ -517,13 +517,13 @@ var Canvas = /** @class */ (function () {
         if (x < this.xLeft || x > this.xRight || y < (this.height - 1 - this.yTop) || y > (this.height - 1 - this.yBottom)) {
             return this.gPaper; // not in graphics window => return graphics paper
         }
-        var i = x + this.width * y, pen = this.dataset8[i];
+        const i = x + this.width * y, pen = this.dataset8[i];
         return pen;
-    };
-    Canvas.prototype.getByte = function (addr) {
+    }
+    getByte(addr) {
         /* eslint-disable no-bitwise */
-        var mode = this.mode, pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, x = ((addr & 0x7ff) % 80) * 8, y = (((addr & 0x3800) / 0x800) + (((addr & 0x7ff) / 80) | 0) * 8) * pixelHeight;
-        var byte = null, // null=cannot read
+        const mode = this.mode, pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, x = ((addr & 0x7ff) % 80) * 8, y = (((addr & 0x3800) / 0x800) + (((addr & 0x7ff) / 80) | 0) * 8) * pixelHeight;
+        let byte = null, // null=cannot read
         gPen;
         if (y < this.height) { // only if in visible range
             if (mode === 0) {
@@ -545,7 +545,7 @@ var Canvas = /** @class */ (function () {
             }
             else if (mode === 2) {
                 byte = 0;
-                for (var i = 0; i <= 7; i += 1) {
+                for (let i = 0; i <= 7; i += 1) {
                     gPen = this.dataset8[x + i + this.width * y];
                     byte |= (gPen & 0x01) << (7 - i);
                 }
@@ -555,11 +555,11 @@ var Canvas = /** @class */ (function () {
         }
         /* eslint-enable no-bitwise */
         return byte;
-    };
-    Canvas.prototype.setByte = function (addr, byte) {
+    }
+    setByte(addr, byte) {
         /* eslint-disable no-bitwise */
-        var mode = this.mode, pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, x = ((addr & 0x7ff) % 80) * 8, y = (((addr & 0x3800) / 0x800) + (((addr & 0x7ff) / 80) | 0) * 8) * pixelHeight;
-        var gPen;
+        const mode = this.mode, pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, x = ((addr & 0x7ff) % 80) * 8, y = (((addr & 0x3800) / 0x800) + (((addr & 0x7ff) / 80) | 0) * 8) * pixelHeight;
+        let gPen;
         if (y < this.height) { // only if in visible range
             if (mode === 0) {
                 gPen = ((byte << 2) & 0x08) | ((byte >> 3) & 0x04) | ((byte >> 2) & 0x02) | ((byte >> 7) & 0x01); // b1,b5,b3,b7 (left pixel)
@@ -580,7 +580,7 @@ var Canvas = /** @class */ (function () {
                 this.setNeedUpdate();
             }
             else if (mode === 2) {
-                for (var i = 0; i <= 7; i += 1) {
+                for (let i = 0; i <= 7; i += 1) {
                     gPen = (byte >> (7 - i)) & 0x01;
                     this.setSubPixelsNormal(x + i * pixelWidth, y, gPen);
                 }
@@ -590,11 +590,11 @@ var Canvas = /** @class */ (function () {
             }
         }
         /* eslint-enable no-bitwise */
-    };
+    }
     // https://de.wikipedia.org/wiki/Bresenham-Algorithmus
-    Canvas.prototype.drawBresenhamLine = function (xstart, ystart, xend, yend) {
-        var pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, gPen = this.gPen, gPaper = this.gPaper, mask = this.mask, maskFirst = this.maskFirst, gColMode = this.gColMode, transparent = this.gTransparent;
-        var maskBit = this.maskBit;
+    drawBresenhamLine(xstart, ystart, xend, yend) {
+        const pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, gPen = this.gPen, gPaper = this.gPaper, mask = this.mask, maskFirst = this.maskFirst, gColMode = this.gColMode, transparent = this.gTransparent;
+        let maskBit = this.maskBit;
         xstart = Canvas.roundCoordinate(xstart, pixelWidth);
         ystart = Canvas.roundCoordinate(ystart, pixelHeight);
         xend = Canvas.roundCoordinate(xend, pixelWidth);
@@ -605,16 +605,16 @@ var Canvas = /** @class */ (function () {
         xend += this.xOrig;
         yend = this.height - 1 - (yend + this.yOrig);
         /* eslint-disable no-bitwise */
-        var dx = ((xend - xstart) / pixelWidth) | 0, dy = ((yend - ystart) / pixelHeight) | 0;
+        let dx = ((xend - xstart) / pixelWidth) | 0, dy = ((yend - ystart) / pixelHeight) | 0;
         /* eslint-enable no-bitwise */
-        var incx = Math.sign(dx) * pixelWidth, incy = Math.sign(dy) * pixelHeight;
+        const incx = Math.sign(dx) * pixelWidth, incy = Math.sign(dy) * pixelHeight;
         if (dx < 0) {
             dx = -dx;
         }
         if (dy < 0) {
             dy = -dy;
         }
-        var pdx, pdy, ddx, ddy, deltaslowdirection, deltafastdirection;
+        let pdx, pdy, ddx, ddy, deltaslowdirection, deltafastdirection;
         if (dx > dy) {
             pdx = incx;
             pdy = 0;
@@ -631,16 +631,16 @@ var Canvas = /** @class */ (function () {
             deltaslowdirection = dx;
             deltafastdirection = dy;
         }
-        var x = xstart, y = ystart, err = deltafastdirection >> 1; // eslint-disable-line no-bitwise
+        let x = xstart, y = ystart, err = deltafastdirection >> 1; // eslint-disable-line no-bitwise
         if (maskFirst) { // draw first pixel?
-            var bit = mask & maskBit; // eslint-disable-line no-bitwise
+            const bit = mask & maskBit; // eslint-disable-line no-bitwise
             if (!(transparent && !bit)) { // do not set background pixel in transparent mode
                 this.setPixelOriginIncluded(x, y, bit ? gPen : gPaper, gColMode); // we expect integers
             }
             // rotate bitpos right
             maskBit = (maskBit >> 1) | ((maskBit << 7) & 0xff); // eslint-disable-line no-bitwise
         }
-        for (var t = 0; t < deltafastdirection; t += 1) {
+        for (let t = 0; t < deltafastdirection; t += 1) {
             err -= deltaslowdirection;
             if (err < 0) {
                 err += deltafastdirection;
@@ -651,7 +651,7 @@ var Canvas = /** @class */ (function () {
                 x += pdx;
                 y += pdy;
             }
-            var bit = mask & maskBit; // eslint-disable-line no-bitwise
+            const bit = mask & maskBit; // eslint-disable-line no-bitwise
             if (!(transparent && !bit)) { // do not set background pixel in transparent mode
                 this.setPixelOriginIncluded(x, y, bit ? gPen : gPaper, gColMode); // we expect integers
             }
@@ -659,28 +659,28 @@ var Canvas = /** @class */ (function () {
             maskBit = (maskBit >> 1) | ((maskBit << 7) & 0xff); // eslint-disable-line no-bitwise
         }
         this.maskBit = maskBit;
-    };
-    Canvas.prototype.draw = function (x, y) {
-        var xStart = this.xPos, yStart = this.yPos;
+    }
+    draw(x, y) {
+        const xStart = this.xPos, yStart = this.yPos;
         this.move(x, y); // destination
         this.drawBresenhamLine(xStart, yStart, x, y);
         this.setNeedUpdate();
-    };
-    Canvas.prototype.move = function (x, y) {
+    }
+    move(x, y) {
         this.xPos = x; // must be integer
         this.yPos = y;
-    };
-    Canvas.prototype.plot = function (x, y) {
+    }
+    plot(x, y) {
         this.move(x, y);
         this.setPixel(x, y, this.gPen, this.gColMode); // must be integer
         this.setNeedUpdate();
-    };
-    Canvas.prototype.test = function (x, y) {
+    }
+    test(x, y) {
         this.move(x, y);
         return this.testPixel(this.xPos, this.yPos); // use rounded values
-    };
-    Canvas.prototype.setInk = function (pen, ink1, ink2) {
-        var needInkUpdate = false;
+    }
+    setInk(pen, ink1, ink2) {
+        let needInkUpdate = false;
         if (this.currentInks[0][pen] !== ink1) {
             this.currentInks[0][pen] = ink1;
             needInkUpdate = true;
@@ -694,57 +694,57 @@ var Canvas = /** @class */ (function () {
             this.setNeedUpdate(); // we need to notify that an update is needed
         }
         return needInkUpdate;
-    };
-    Canvas.prototype.setBorder = function (ink1, ink2) {
-        var needInkUpdate = this.setInk(16, ink1, ink2);
+    }
+    setBorder(ink1, ink2) {
+        const needInkUpdate = this.setInk(16, ink1, ink2);
         if (needInkUpdate) {
             this.applyBorderColor();
         }
-    };
-    Canvas.prototype.setGPen = function (gPen) {
+    }
+    setGPen(gPen) {
         this.gPen = gPen % this.modeData.pens; // limit pens
-    };
-    Canvas.prototype.setGPaper = function (gPaper) {
+    }
+    setGPaper(gPaper) {
         this.gPaper = gPaper % this.modeData.pens; // limit to pens
-    };
-    Canvas.prototype.setGTransparentMode = function (transparent) {
+    }
+    setGTransparentMode(transparent) {
         this.gTransparent = transparent;
-    };
-    Canvas.prototype.printGChar = function (char) {
-        var charWidth = this.modeData.pixelWidth * 8;
+    }
+    printGChar(char) {
+        const charWidth = this.modeData.pixelWidth * 8;
         if (char >= this.options.charset.length) {
-            Utils.console.warn("printGChar: Ignoring char with code", char);
+            UiUtils.console.warn("printGChar: Ignoring char with code", char);
             return;
         }
         this.setChar(char, this.xPos, this.yPos, this.gPen, this.gPaper, this.gTransparent, this.gColMode, true);
         this.xPos += charWidth;
         this.setNeedUpdate();
-    };
-    Canvas.prototype.printChar = function (char, x, y, pen, paper, transparent) {
-        var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, pens = this.modeData.pens;
+    }
+    printChar(char, x, y, pen, paper, transparent) {
+        const charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, pens = this.modeData.pens;
         if (char >= this.options.charset.length) {
-            Utils.console.warn("printChar: Ignoring char with code", char);
+            UiUtils.console.warn("printChar: Ignoring char with code", char);
             return;
         }
         pen %= pens;
         paper %= pens; // also pens
         this.setChar(char, x * charWidth, y * charHeight, pen, paper, transparent, 0, false);
         this.setNeedUpdate();
-    };
-    Canvas.prototype.drawCursor = function (x, y, pen, paper) {
-        var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, pens = this.modeData.pens;
+    }
+    drawCursor(x, y, pen, paper) {
+        const charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, pens = this.modeData.pens;
         pen %= pens;
         paper %= pens; // also pens
         this.invertChar(x * charWidth, y * charHeight, pen, paper);
         this.setNeedUpdate();
-    };
-    Canvas.prototype.findMatchingChar = function (charData) {
-        var charset = this.options.charset;
-        var char = -1; // not detected
-        for (var i = 0; i < charset.length; i += 1) {
-            var charData2 = this.customCharset[i] || charset[i];
-            var match = true;
-            for (var j = 0; j < 8; j += 1) {
+    }
+    findMatchingChar(charData) {
+        const charset = this.options.charset;
+        let char = -1; // not detected
+        for (let i = 0; i < charset.length; i += 1) {
+            const charData2 = this.customCharset[i] || charset[i];
+            let match = true;
+            for (let j = 0; j < 8; j += 1) {
                 if (charData[j] !== charData2[j]) {
                     match = false;
                     break;
@@ -756,20 +756,20 @@ var Canvas = /** @class */ (function () {
             }
         }
         return char;
-    };
-    Canvas.prototype.readChar = function (x, y, pen, paper) {
-        var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, pens = this.modeData.pens;
+    }
+    readChar(x, y, pen, paper) {
+        const charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, pens = this.modeData.pens;
         pen %= pens;
         paper %= pens; // also pens
         x *= charWidth;
         y *= charHeight;
-        var charData = this.readCharData(x, y, pen), char = this.findMatchingChar(charData);
+        let charData = this.readCharData(x, y, pen), char = this.findMatchingChar(charData);
         if (char < 0 || char === 32) { // no match? => check inverse with paper, char=32?
             charData = this.readCharData(x, y, paper);
-            for (var i = 0; i < charData.length; i += 1) {
+            for (let i = 0; i < charData.length; i += 1) {
                 charData[i] ^= 0xff; // eslint-disable-line no-bitwise
             }
-            var char2 = this.findMatchingChar(charData);
+            let char2 = this.findMatchingChar(charData);
             if (char2 >= 0) {
                 if (char2 === 143) { // invers of space?
                     char2 = 32; // use space
@@ -778,16 +778,16 @@ var Canvas = /** @class */ (function () {
             }
         }
         return char;
-    };
+    }
     // fill: idea from: https://simpledevcode.wordpress.com/2015/12/29/flood-fill-algorithm-using-c-net/
-    Canvas.prototype.fnIsNotInWindow = function (x, y) {
+    fnIsNotInWindow(x, y) {
         return (x < this.xLeft || x > this.xRight || y < (this.height - 1 - this.yTop) || y > (this.height - 1 - this.yBottom));
-    };
-    Canvas.prototype.fill = function (fillPen) {
-        var gPen = this.gPen, pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, pixels = [], fnIsStopPen = function (p) {
+    }
+    fill(fillPen) {
+        const gPen = this.gPen, pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, pixels = [], fnIsStopPen = function (p) {
             return p === fillPen || p === gPen;
         };
-        var xPos = this.xPos, yPos = this.yPos;
+        let xPos = this.xPos, yPos = this.yPos;
         fillPen %= this.modeData.pens; // limit pens
         // apply origin
         xPos += this.xOrig;
@@ -800,19 +800,19 @@ var Canvas = /** @class */ (function () {
             y: yPos
         });
         while (pixels.length) {
-            var pixel = pixels.pop();
-            var y1 = pixel.y, p1 = this.testSubPixel(pixel.x, y1);
+            const pixel = pixels.pop();
+            let y1 = pixel.y, p1 = this.testSubPixel(pixel.x, y1);
             while (y1 >= (this.height - 1 - this.yTop) && !fnIsStopPen(p1)) {
                 y1 -= pixelHeight;
                 p1 = this.testSubPixel(pixel.x, y1);
             }
             y1 += pixelHeight;
-            var spanLeft = false, spanRight = false;
+            let spanLeft = false, spanRight = false;
             p1 = this.testSubPixel(pixel.x, y1);
             while (y1 <= (this.height - 1 - this.yBottom) && !fnIsStopPen(p1)) {
                 this.setSubPixelsNormal(pixel.x, y1, fillPen);
-                var x1 = pixel.x - pixelWidth;
-                var p2 = this.testSubPixel(x1, y1);
+                let x1 = pixel.x - pixelWidth;
+                const p2 = this.testSubPixel(x1, y1);
                 if (!spanLeft && x1 >= this.xLeft && !fnIsStopPen(p2)) {
                     pixels.push({
                         x: x1,
@@ -824,7 +824,7 @@ var Canvas = /** @class */ (function () {
                     spanLeft = false;
                 }
                 x1 = pixel.x + pixelWidth;
-                var p3 = this.testSubPixel(x1, y1);
+                const p3 = this.testSubPixel(x1, y1);
                 if (!spanRight && x1 <= this.xRight && !fnIsStopPen(p3)) {
                     pixels.push({
                         x: x1,
@@ -840,8 +840,8 @@ var Canvas = /** @class */ (function () {
             }
         }
         this.setNeedUpdate();
-    };
-    Canvas.fnPutInRange = function (n, min, max) {
+    }
+    static fnPutInRange(n, min, max) {
         if (n < min) {
             n = min;
         }
@@ -849,22 +849,22 @@ var Canvas = /** @class */ (function () {
             n = max;
         }
         return n;
-    };
-    Canvas.prototype.setOrigin = function (xOrig, yOrig) {
-        var pixelWidth = this.modeData.pixelWidth;
+    }
+    setOrigin(xOrig, yOrig) {
+        const pixelWidth = this.modeData.pixelWidth;
         xOrig &= ~(pixelWidth - 1); // eslint-disable-line no-bitwise
         this.xOrig = xOrig; // must be integer
         this.yOrig = yOrig;
         this.move(0, 0);
-    };
-    Canvas.prototype.getXOrigin = function () {
+    }
+    getXOrigin() {
         return this.xOrig;
-    };
-    Canvas.prototype.getYOrigin = function () {
+    }
+    getYOrigin() {
         return this.yOrig;
-    };
-    Canvas.prototype.setGWindow = function (xLeft, xRight, yTop, yBottom) {
-        var pixelWidth = 8, // force byte boundaries: always 8 x/byte
+    }
+    setGWindow(xLeft, xRight, yTop, yBottom) {
+        const pixelWidth = 8, // force byte boundaries: always 8 x/byte
         pixelHeight = this.modeData.pixelHeight; // usually 2, anly for mode 3 we have 1
         xLeft = Canvas.fnPutInRange(xLeft, 0, this.width - 1);
         xRight = Canvas.fnPutInRange(xRight, 0, this.width - 1);
@@ -872,12 +872,12 @@ var Canvas = /** @class */ (function () {
         yBottom = Canvas.fnPutInRange(yBottom, 0, this.height - 1);
         // exchange coordinates, if needed (left>right or top<bottom)
         if (xRight < xLeft) {
-            var tmp = xRight;
+            const tmp = xRight;
             xRight = xLeft;
             xLeft = tmp;
         }
         if (yTop < yBottom) {
-            var tmp = yTop;
+            const tmp = yTop;
             yTop = yBottom;
             yBottom = tmp;
         }
@@ -893,62 +893,62 @@ var Canvas = /** @class */ (function () {
         this.xRight = xRight;
         this.yTop = yTop;
         this.yBottom = yBottom;
-    };
-    Canvas.prototype.setGColMode = function (gColMode) {
+    }
+    setGColMode(gColMode) {
         if (gColMode !== this.gColMode) {
             this.gColMode = gColMode;
         }
-    };
-    Canvas.prototype.clearTextWindow = function (left, right, top, bottom, paper) {
-        var width = right + 1 - left, height = bottom + 1 - top;
+    }
+    clearTextWindow(left, right, top, bottom, paper) {
+        const width = right + 1 - left, height = bottom + 1 - top;
         this.fillTextBox(left, top, width, height, paper);
-    };
-    Canvas.prototype.clearGraphicsWindow = function () {
+    }
+    clearGraphicsWindow() {
         this.fillMyRect(this.xLeft, this.height - 1 - this.yTop, this.xRight + 1 - this.xLeft, this.yTop + 1 - this.yBottom, this.gPaper); // +1 or not?
         this.move(0, 0);
         this.setNeedUpdate();
-    };
-    Canvas.prototype.clearFullWindow = function () {
-        var paper = 0;
+    }
+    clearFullWindow() {
+        const paper = 0;
         this.fillMyRect(0, 0, this.width, this.height, paper);
         this.setNeedUpdate();
-    };
-    Canvas.prototype.windowScrollUp = function (left, right, top, bottom, paper) {
-        var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, width = right + 1 - left, height = bottom + 1 - top;
+    }
+    windowScrollUp(left, right, top, bottom, paper) {
+        const charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, width = right + 1 - left, height = bottom + 1 - top;
         if (height > 1) { // scroll part
             this.moveMyRectUp(left * charWidth, (top + 1) * charHeight, width * charWidth, (height - 1) * charHeight, left * charWidth, top * charHeight);
         }
         this.fillTextBox(left, bottom, width, 1, paper);
         this.setNeedUpdate();
-    };
-    Canvas.prototype.windowScrollDown = function (left, right, top, bottom, paper) {
-        var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, width = right + 1 - left, height = bottom + 1 - top;
+    }
+    windowScrollDown(left, right, top, bottom, paper) {
+        const charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, width = right + 1 - left, height = bottom + 1 - top;
         if (height > 1) { // scroll part
             this.moveMyRectDown(left * charWidth, top * charHeight, width * charWidth, (height - 1) * charHeight, left * charWidth, (top + 1) * charHeight);
         }
         this.fillTextBox(left, top, width, 1, paper);
         this.setNeedUpdate();
-    };
-    Canvas.prototype.setSpeedInk = function (time1, time2) {
+    }
+    setSpeedInk(time1, time2) {
         this.speedInk[0] = time1;
         this.speedInk[1] = time2;
-    };
-    Canvas.prototype.setMask = function (mask) {
+    }
+    setMask(mask) {
         this.mask = mask;
         this.maskBit = 128;
-    };
-    Canvas.prototype.setMaskFirst = function (maskFirst) {
+    }
+    setMaskFirst(maskFirst) {
         this.maskFirst = maskFirst;
-    };
-    Canvas.prototype.getMode = function () {
+    }
+    getMode() {
         return this.mode;
-    };
-    Canvas.prototype.changeMode = function (mode) {
-        var modeData = Canvas.modeData[mode];
+    }
+    changeMode(mode) {
+        const modeData = Canvas.modeData[mode];
         this.mode = mode;
         this.modeData = modeData;
-    };
-    Canvas.prototype.setMode = function (mode) {
+    }
+    setMode(mode) {
         this.setScreenOffset(0);
         this.changeMode(mode);
         this.setOrigin(0, 0);
@@ -958,80 +958,78 @@ var Canvas = /** @class */ (function () {
         this.setGPen(this.gPen); // keep, but maybe different for other mode
         this.setGPaper(this.gPaper); // keep, maybe different for other mode
         this.setGTransparentMode(false);
-    };
-    Canvas.prototype.takeScreenShot = function () {
+    }
+    takeScreenShot() {
         if (this.canvas.toDataURL) {
             return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
         }
-        Utils.console.warn("Screenshot not available");
+        UiUtils.console.warn("Screenshot not available");
         return "";
-    };
-    // http://www.cpcwiki.eu/index.php/CPC_Palette
-    // (green and gray palette will be computed if needed)
-    Canvas.palettes = {
-        color: [
-            "#000000", //  0 Black
-            "#000080", //  1 Blue
-            "#0000FF", //  2 Bright Blue
-            "#800000", //  3 Red
-            "#800080", //  4 Magenta
-            "#8000FF", //  5 Mauve
-            "#FF0000", //  6 Bright Red
-            "#FF0080", //  7 Purple
-            "#FF00FF", //  8 Bright Magenta
-            "#008000", //  9 Green
-            "#008080", // 10 Cyan
-            "#0080FF", // 11 Sky Blue
-            "#808000", // 12 Yellow
-            "#808080", // 13 White
-            "#8080FF", // 14 Pastel Blue
-            "#FF8000", // 15 Orange
-            "#FF8080", // 16 Pink
-            "#FF80FF", // 17 Pastel Magenta
-            "#00FF00", // 18 Bright Green
-            "#00FF80", // 19 Sea Green
-            "#00FFFF", // 20 Bright Cyan
-            "#80FF00", // 21 Lime
-            "#80FF80", // 22 Pastel Green
-            "#80FFFF", // 23 Pastel Cyan
-            "#FFFF00", // 24 Bright Yellow
-            "#FFFF80", // 25 Pastel Yellow
-            "#FFFFFF", // 26 Bright White
-            "#808080", // 27 White (same as 13)
-            "#FF00FF", // 28 Bright Magenta (same as 8)
-            "#FFFF80", // 29 Pastel Yellow (same as 25)
-            "#000080", // 30 Blue (same as 1)
-            "#00FF80" //  31 Sea Green (same as 19)
-        ]
-    };
-    // mode 0: pen 0-15,16=border; inks for pen 14,15 are alternating: "1,24", "16,11"
-    Canvas.defaultInks = [
-        [1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1], // eslint-disable-line array-element-newline
-        [1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 24, 11, 1] // eslint-disable-line array-element-newline
-    ];
-    Canvas.modeData = [
-        {
-            pens: 16, // number of pens
-            pixelWidth: 4, // pixel width
-            pixelHeight: 2 // pixel height
-        },
-        {
-            pens: 4,
-            pixelWidth: 2,
-            pixelHeight: 2
-        },
-        {
-            pens: 2,
-            pixelWidth: 1,
-            pixelHeight: 2
-        },
-        {
-            pens: 16, // mode 3 not available on a real CPC
-            pixelWidth: 1,
-            pixelHeight: 1
-        }
-    ];
-    return Canvas;
-}());
-export { Canvas };
+    }
+}
+// http://www.cpcwiki.eu/index.php/CPC_Palette
+// (green and gray palette will be computed if needed)
+Canvas.palettes = {
+    color: [
+        "#000000", //  0 Black
+        "#000080", //  1 Blue
+        "#0000FF", //  2 Bright Blue
+        "#800000", //  3 Red
+        "#800080", //  4 Magenta
+        "#8000FF", //  5 Mauve
+        "#FF0000", //  6 Bright Red
+        "#FF0080", //  7 Purple
+        "#FF00FF", //  8 Bright Magenta
+        "#008000", //  9 Green
+        "#008080", // 10 Cyan
+        "#0080FF", // 11 Sky Blue
+        "#808000", // 12 Yellow
+        "#808080", // 13 White
+        "#8080FF", // 14 Pastel Blue
+        "#FF8000", // 15 Orange
+        "#FF8080", // 16 Pink
+        "#FF80FF", // 17 Pastel Magenta
+        "#00FF00", // 18 Bright Green
+        "#00FF80", // 19 Sea Green
+        "#00FFFF", // 20 Bright Cyan
+        "#80FF00", // 21 Lime
+        "#80FF80", // 22 Pastel Green
+        "#80FFFF", // 23 Pastel Cyan
+        "#FFFF00", // 24 Bright Yellow
+        "#FFFF80", // 25 Pastel Yellow
+        "#FFFFFF", // 26 Bright White
+        "#808080", // 27 White (same as 13)
+        "#FF00FF", // 28 Bright Magenta (same as 8)
+        "#FFFF80", // 29 Pastel Yellow (same as 25)
+        "#000080", // 30 Blue (same as 1)
+        "#00FF80" //  31 Sea Green (same as 19)
+    ]
+};
+// mode 0: pen 0-15,16=border; inks for pen 14,15 are alternating: "1,24", "16,11"
+Canvas.defaultInks = [
+    [1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1], // eslint-disable-line array-element-newline
+    [1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 24, 11, 1] // eslint-disable-line array-element-newline
+];
+Canvas.modeData = [
+    {
+        pens: 16, // number of pens
+        pixelWidth: 4, // pixel width
+        pixelHeight: 2 // pixel height
+    },
+    {
+        pens: 4,
+        pixelWidth: 2,
+        pixelHeight: 2
+    },
+    {
+        pens: 2,
+        pixelWidth: 1,
+        pixelHeight: 2
+    },
+    {
+        pens: 16, // mode 3 not available on a real CPC
+        pixelWidth: 1,
+        pixelHeight: 1
+    }
+];
 //# sourceMappingURL=Canvas.js.map

@@ -5,7 +5,7 @@ import { Z80Disass } from "../Z80Disass";
 import { TestHelper } from "./TestHelper";
 QUnit.dump.maxDepth = 10;
 /* eslint-disable quote-props */
-var allTests = {
+const allTests = {
     normal: {
         "\x00": "NOP",
         "\x01\x01\x02": "LD BC,&0201",
@@ -1827,7 +1827,7 @@ function createZ80Disass() {
     });
 }
 function createAllTests1(category, results) {
-    var z80Disass = createZ80Disass(), categoryMap = {
+    const z80Disass = createZ80Disass(), categoryMap = {
         prefixCB: 0xcb,
         prefixDD: 0xdd,
         prefixDDCB: 0xcbdd,
@@ -1835,8 +1835,8 @@ function createAllTests1(category, results) {
         prefixFD: 0xfd,
         prefixFDCB: 0xcbfd
     }, prefix = categoryMap[category];
-    for (var i = 0; i < 256; i += 1) {
-        var data = [];
+    for (let i = 0; i < 256; i += 1) {
+        const data = [];
         if (prefix) {
             data.push(prefix & 0xff); // eslint-disable-line no-bitwise
             if (prefix > 255) {
@@ -1851,10 +1851,10 @@ function createAllTests1(category, results) {
             data: data,
             addr: 0
         });
-        var result = z80Disass.disassLine();
-        var options = z80Disass.getOptions();
+        let result = z80Disass.disassLine();
+        const options = z80Disass.getOptions();
         if (options.addr > data.length) { // some missing bytes?
-            var j = 1;
+            let j = 1;
             while (options.addr > data.length) {
                 data.push(j);
                 j += 1;
@@ -1864,7 +1864,7 @@ function createAllTests1(category, results) {
             });
             result = z80Disass.disassLine(); // do it again
         }
-        var key = data.map(function (value) {
+        const key = data.map(function (value) {
             return String.fromCharCode(value);
         }).join("");
         results[category].push(TestHelper.hexInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
@@ -1873,23 +1873,23 @@ function createAllTests1(category, results) {
 }
 QUnit.module("Z80Disass: Tests", function (hooks) {
     hooks.before(function () {
-        var thisHooks = hooks;
+        const thisHooks = hooks;
         thisHooks.z80Disass = createZ80Disass();
     });
     function runSingleTest(z80Disass, key) {
-        var data = Utils.string2Uint8Array(key);
+        const data = Utils.string2Uint8Array(key);
         z80Disass.setOptions({
             data: data,
             addr: 0
         });
-        var result = z80Disass.disassLine(), options = z80Disass.getOptions();
+        const result = z80Disass.disassLine(), options = z80Disass.getOptions();
         if (options.addr > data.length) {
             Utils.console.error("Data too short: key: " + TestHelper.hexInQuotes(key) + ", length: " + data.length + ", addr: " + options.addr);
         }
         return result;
     }
     function runTestsFor(category, tests, assert, results) {
-        var thisHooks = hooks, z80Disass = thisHooks.z80Disass;
+        const thisHooks = hooks, z80Disass = thisHooks.z80Disass;
         if (results && TestHelper.config.test === "createAll") { // fast hack to do something else
             createAllTests1(category, results);
             if (assert) {
@@ -1897,9 +1897,9 @@ QUnit.module("Z80Disass: Tests", function (hooks) {
             }
             return;
         }
-        for (var key in tests) {
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
-                var expected = tests[key], result = runSingleTest(z80Disass, key);
+                const expected = tests[key], result = runSingleTest(z80Disass, key);
                 if (results) {
                     results[category].push(TestHelper.hexInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
                 }

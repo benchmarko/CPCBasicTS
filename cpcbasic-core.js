@@ -5,6 +5,7 @@
 })(this, (function (exports) { 'use strict';
 
 	const _Utils = class _Utils {
+	  //typeof globalThis !== "undefined" ? globalThis.console : undefined;
 	  static setDebug(debug) {
 	    _Utils.debug = debug;
 	  }
@@ -5845,7 +5846,7 @@
 	  vmGetMem() {
 	    return this.mem;
 	  }
-	  onCanvasClickCallback(event, x, y, xTxt, yTxt) {
+	  onCanvasClickCallback(x, y, xTxt, yTxt, doubleClick) {
 	    const height = 400;
 	    let char = -1;
 	    x -= this.canvas.getXOrigin();
@@ -5861,7 +5862,7 @@
 	          break;
 	        }
 	      }
-	      if ((char < 0 || char === 32 || char === 143) && event.detail === 2) {
+	      if ((char < 0 || char === 32 || char === 143) && doubleClick) {
 	        char = 13;
 	      }
 	      if (char >= 0) {

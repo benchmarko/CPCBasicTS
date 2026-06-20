@@ -2,24 +2,24 @@
 //
 import { Model } from "../Model";
 QUnit.module("Model: Properties", function (hooks) {
-    var that = {}; // eslint-disable-line consistent-this
+    const that = {}; // eslint-disable-line consistent-this
     function convId(id) {
         return id;
     }
     hooks.beforeEach(function () {
-        var config = {
+        const config = {
             p1: "v1"
         };
         that.model = new Model(config);
     });
     QUnit.test("init without options", function (assert) {
-        var model = new Model({});
+        const model = new Model({});
         assert.ok(model, "defined");
     });
     QUnit.test("properties", function (assert) {
-        var model = that.model, prop1 = convId("p1"), prop2 = convId("p2"), prop3 = convId("p3");
+        const model = that.model, prop1 = convId("p1"), prop2 = convId("p2"), prop3 = convId("p3");
         that.model.setProperty(prop2, "v2");
-        var allProperties = model.getAllInitialProperties();
+        let allProperties = model.getAllInitialProperties();
         assert.strictEqual(Object.keys(allProperties).join(" "), "p1", "all initial properties: p1");
         assert.strictEqual(model.getProperty(prop1), "v1", "p1=v1");
         assert.strictEqual(model.getProperty(prop2), "v2", "p2=v2");
@@ -43,7 +43,7 @@ QUnit.module("Model: Databases", function (hooks) {
         // empty
     });
     QUnit.test("databases", function (assert) {
-        var model = new Model({}), exampleDatabases = {
+        const model = new Model({}), exampleDatabases = {
             db1: {
                 text: "text1",
                 title: "title1",
@@ -67,10 +67,10 @@ QUnit.module("Model: Databases", function (hooks) {
     });
 });
 QUnit.module("Model: Examples", function (hooks) {
-    var that = {}; // eslint-disable-line consistent-this
+    const that = {}; // eslint-disable-line consistent-this
     hooks.beforeEach(function () {
         that.model = new Model({});
-        var exampleDatabases = {
+        const exampleDatabases = {
             db1: {
                 text: "db1Text",
                 title: "db1Title",
@@ -98,7 +98,7 @@ QUnit.module("Model: Examples", function (hooks) {
         that.model.setExample(example2);
     });
     QUnit.test("examples", function (assert) {
-        var model = that.model;
+        const model = that.model;
         assert.strictEqual(model.getExample("ex1").key, "ex1", "ex1");
         assert.strictEqual(model.getExample("ex2").key, "ex2", "ex2");
         assert.strictEqual(Object.keys(model.getAllExamples()).join(), "ex1,ex2", "two examples: ex1,ex2");

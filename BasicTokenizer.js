@@ -7,8 +7,8 @@
 // https://www.cpcwiki.eu/index.php/Technical_information_about_Locomotive_BASIC#BASIC_tokens
 //
 import { Utils } from "./Utils";
-var BasicTokenizer = /** @class */ (function () {
-    function BasicTokenizer() {
+export class BasicTokenizer {
+    constructor() {
         this.pos = 0;
         this.line = 0;
         // will also be set in decode
@@ -250,37 +250,37 @@ var BasicTokenizer = /** @class */ (function () {
             0x7f: "VPOS"
         };
     }
-    BasicTokenizer.prototype.fnNum8Dec = function () {
-        var num = this.input.charCodeAt(this.pos);
+    fnNum8Dec() {
+        const num = this.input.charCodeAt(this.pos);
         this.pos += 1;
         return num;
-    };
-    BasicTokenizer.prototype.fnNum16Dec = function () {
+    }
+    fnNum16Dec() {
         return this.fnNum8Dec() + this.fnNum8Dec() * 256;
-    };
-    BasicTokenizer.prototype.fnNum32Dec = function () {
+    }
+    fnNum32Dec() {
         return this.fnNum16Dec() + this.fnNum16Dec() * 65536;
-    };
-    BasicTokenizer.prototype.fnNum8DecAsStr = function () {
+    }
+    fnNum8DecAsStr() {
         return String(this.fnNum8Dec());
-    };
-    BasicTokenizer.prototype.fnNum16DecAsStr = function () {
+    }
+    fnNum16DecAsStr() {
         return String(this.fnNum16Dec());
-    };
+    }
     // line number pointer (can occur when loading snapshots)
-    BasicTokenizer.prototype.fnNum16LineAddrAsStr = function () {
-        var prgStart = 0x170, // assuming this as program start
+    fnNum16LineAddrAsStr() {
+        const prgStart = 0x170, // assuming this as program start
         lineAddr = this.fnNum16Dec() - prgStart, // address of (byte 0 before line)
         addr = lineAddr + 3, // address of line number
         line = this.input.charCodeAt(addr) + this.input.charCodeAt(addr + 1) * 256;
         return String(line);
-    };
-    BasicTokenizer.prototype.fnNum16Bin = function () {
+    }
+    fnNum16Bin() {
         return "&X" + this.fnNum16Dec().toString(2);
-    };
-    BasicTokenizer.prototype.fnNum16Hex = function () {
+    }
+    fnNum16Hex() {
         return "&" + this.fnNum16Dec().toString(16).toUpperCase();
-    };
+    }
     // floating point numbers (little endian byte order)
     // byte 0: mantissa (bits 7-0)
     // byte 1: mantissa (bits 15-8)
@@ -308,69 +308,69 @@ var BasicTokenizer = /** @class */ (function () {
     // 0x2a,0xe7,0x84,0x11,0xac      ; 10000000000000 (10^13) (1E+13)
     // Check also: https://mfukar.github.io/2015/10/29/amstrad-fp.html
     // Example PI: b=[0xa2,0xda,0x0f,0x49,0x82]; e=b[4]-128; m=(b[3] >= 128 ? -1 : +1) * (0x80000000 + ((b[3] & 0x7f) <<24) + (b[2] << 16) + (b[1] <<8) + b[0]); z=m*Math.pow(2,e-32);console.log(m,e,z)
-    BasicTokenizer.prototype.fnNumFp = function () {
-        var value = this.fnNum32Dec(); // signed integer
-        var exponent = this.fnNum8Dec(), out;
+    fnNumFp() {
+        const value = this.fnNum32Dec(); // signed integer
+        let exponent = this.fnNum8Dec(), out;
         if (!exponent) { // exponent zero? => 0
             out = "0";
         }
         else { // beware: JavaScript has no unsigned int except for ">>> 0"
-            var mantissa = value >= 0 ? value + 0x80000000 : value;
+            const mantissa = value >= 0 ? value + 0x80000000 : value;
             exponent -= 0x81; // 2-complement: 2^-127 .. 2^128
-            var num = mantissa * Math.pow(2, exponent - 31);
+            const num = mantissa * Math.pow(2, exponent - 31);
             out = Utils.toPrecision9(num);
         }
         return out;
-    };
-    BasicTokenizer.prototype.fnGetBit7TerminatedString = function () {
-        var data = this.input;
-        var pos = this.pos;
+    }
+    fnGetBit7TerminatedString() {
+        const data = this.input;
+        let pos = this.pos;
         while (data.charCodeAt(pos) <= 0x7f && pos < this.lineEnd) { // last character b7=1 (>= 0x80)
             pos += 1;
         }
-        var out = data.substring(this.pos, pos) + String.fromCharCode(data.charCodeAt(pos) & 0x7f); // eslint-disable-line no-bitwise
+        const out = data.substring(this.pos, pos) + String.fromCharCode(data.charCodeAt(pos) & 0x7f); // eslint-disable-line no-bitwise
         if (pos < this.lineEnd) { // maybe corrupted if used in DATA line
             this.pos = pos + 1;
         }
         return out;
-    };
-    BasicTokenizer.prototype.fnVar = function () {
+    }
+    fnVar() {
         this.fnNum16Dec(); // ignore offset (offset to memory location of variable)
         return this.fnGetBit7TerminatedString();
-    };
-    BasicTokenizer.prototype.fnIntVar = function () {
+    }
+    fnIntVar() {
         return this.fnVar() + "%";
-    };
-    BasicTokenizer.prototype.fnStringVar = function () {
+    }
+    fnStringVar() {
         return this.fnVar() + "$";
-    };
-    BasicTokenizer.prototype.fnFpVar = function () {
+    }
+    fnFpVar() {
         return this.fnVar() + "!";
-    };
-    BasicTokenizer.prototype.fnRsx = function () {
-        var name = this.fnGetBit7TerminatedString();
+    }
+    fnRsx() {
+        let name = this.fnGetBit7TerminatedString();
         name = name.substring(1); // ignore length (offset to tokens following RSX name)
         return "|" + name;
-    };
-    BasicTokenizer.fnControlsToUnicode = function (s) {
+    }
+    static fnControlsToUnicode(s) {
         return s.replace(/[\x00-\x1F\x80-\x9F]/g, function (ch) {
             return String.fromCharCode(ch.charCodeAt(0) + 0x100);
         });
-    };
-    BasicTokenizer.prototype.fnStringUntilEol = function () {
-        var out = BasicTokenizer.fnControlsToUnicode(this.input.substring(this.pos, this.lineEnd - 1)); // take remaining line
+    }
+    fnStringUntilEol() {
+        const out = BasicTokenizer.fnControlsToUnicode(this.input.substring(this.pos, this.lineEnd - 1)); // take remaining line
         this.pos = this.lineEnd;
         return out;
-    };
-    BasicTokenizer.prototype.fnApostrophe = function () {
+    }
+    fnApostrophe() {
         return "'" + this.fnStringUntilEol();
-    };
-    BasicTokenizer.prototype.fnRem = function () {
+    }
+    fnRem() {
         return "REM" + this.fnStringUntilEol();
-    };
-    BasicTokenizer.prototype.fnQuotedString = function () {
-        var closingQuotes = this.input.indexOf('"', this.pos);
-        var out = "";
+    }
+    fnQuotedString() {
+        const closingQuotes = this.input.indexOf('"', this.pos);
+        let out = "";
         if (closingQuotes < 0 || closingQuotes >= this.lineEnd) { // unclosed quoted string (quotes not found or not in this line)
             out = BasicTokenizer.fnControlsToUnicode(this.fnStringUntilEol()); // take remaining line
         }
@@ -389,15 +389,15 @@ var BasicTokenizer = /** @class */ (function () {
             out = out.replace(/\n(\d)/g, '"+chr$(10)+"$1');
         }
         return out;
-    };
-    BasicTokenizer.prototype.debugPrintInfo = function () {
-        var debug = this.debug;
+    }
+    debugPrintInfo() {
+        const debug = this.debug;
         Utils.console.debug("BasicTokenizer Details:\n", debug.info);
         debug.line = 0;
         debug.info = "";
-    };
-    BasicTokenizer.prototype.debugCollectInfo = function (tokenLine) {
-        var debug = this.debug, hex = this.input.substring(debug.startPos, this.pos).split("").map(function (s) {
+    }
+    debugCollectInfo(tokenLine) {
+        const debug = this.debug, hex = this.input.substring(debug.startPos, this.pos).split("").map(function (s) {
             return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
         }).join(",");
         if (this.line !== debug.line) {
@@ -408,13 +408,13 @@ var BasicTokenizer = /** @class */ (function () {
             debug.info += debug.line + ": ";
         }
         debug.info += " [" + hex + "] " + tokenLine;
-    };
-    BasicTokenizer.prototype.fnParseNextToken = function (input) {
-        var oldNeedSpace = this.needSpace;
-        var token = this.fnNum8Dec();
+    }
+    fnParseNextToken(input) {
+        const oldNeedSpace = this.needSpace;
+        let token = this.fnNum8Dec();
         if (token === 0x01) { // statement seperator ":"?
             if (this.pos < input.length) {
-                var nextToken = input.charCodeAt(this.pos); // test next token
+                const nextToken = input.charCodeAt(this.pos); // test next token
                 if (nextToken === 0x97 || nextToken === 0xc0) { // ELSE or rem '?
                     token = nextToken; // ignore ':'
                     this.pos += 1;
@@ -422,7 +422,7 @@ var BasicTokenizer = /** @class */ (function () {
             }
         }
         this.needSpace = ((token >= 0x05 && token <= 0x0d) || (token === 0x7c)); // variable without suffix, or RSX?
-        var tokenValue;
+        let tokenValue;
         if (token === 0xff) { // extended token?
             token = this.fnNum8Dec(); // get it
             tokenValue = this.tokensFF[token];
@@ -430,7 +430,7 @@ var BasicTokenizer = /** @class */ (function () {
         else {
             tokenValue = this.tokens[token];
         }
-        var tstr;
+        let tstr;
         if (tokenValue !== undefined) {
             tstr = typeof tokenValue === "function" ? tokenValue.call(this) : tokenValue;
             //if ((/[a-zA-Z0-9.]$/).test(tstr) && token !== 0xe4) { // last character char, number, dot? (not for token "FN")
@@ -451,20 +451,20 @@ var BasicTokenizer = /** @class */ (function () {
             this.debugCollectInfo(tstr);
         }
         return tstr;
-    };
-    BasicTokenizer.prototype.fnParseLineFragment = function () {
-        var input = this.input;
-        var out = "";
+    }
+    fnParseLineFragment() {
+        const input = this.input;
+        let out = "";
         this.needSpace = false; // only needed in fnParseNextToken
         while (this.pos < this.lineEnd) {
             this.debug.startPos = this.pos;
-            var tstr = this.fnParseNextToken(input);
+            const tstr = this.fnParseNextToken(input);
             out += tstr;
         }
         return out;
-    };
-    BasicTokenizer.prototype.fnParseNextLine = function () {
-        var lineLength = this.fnNum16Dec();
+    }
+    fnParseNextLine() {
+        const lineLength = this.fnNum16Dec();
         if (!lineLength) {
             return undefined; // nothing more
         }
@@ -475,37 +475,35 @@ var BasicTokenizer = /** @class */ (function () {
             Utils.console.warn("fnParseNextLine: pos=" + this.pos + ": EOF met!");
         }
         return this.line + " " + this.fnParseLineFragment();
-    };
-    BasicTokenizer.prototype.fnParseProgram = function () {
-        var out = "", line;
+    }
+    fnParseProgram() {
+        let out = "", line;
         while ((line = this.fnParseNextLine()) !== undefined) {
             out += line + "\n";
             // CPC uses "\r\n" line breaks, JavaScript uses "\n", textArea cannot contain "\r"
         }
         return out;
-    };
-    BasicTokenizer.prototype.decodeLineFragment = function (program, offset, length) {
+    }
+    decodeLineFragment(program, offset, length) {
         this.input = program;
         this.pos = offset;
         this.line = 0;
         this.lineEnd = this.pos + length;
-        var out = this.fnParseLineFragment();
+        const out = this.fnParseLineFragment();
         if (Utils.debug > 2) {
             this.debugPrintInfo();
         }
         return out;
-    };
-    BasicTokenizer.prototype.decode = function (program) {
+    }
+    decode(program) {
         this.input = program;
         this.pos = 0;
         this.line = 0;
-        var out = this.fnParseProgram();
+        const out = this.fnParseProgram();
         if (Utils.debug > 2) {
             this.debugPrintInfo();
         }
         return out;
-    };
-    return BasicTokenizer;
-}());
-export { BasicTokenizer };
+    }
+}
 //# sourceMappingURL=BasicTokenizer.js.map

@@ -1,4 +1,4 @@
-import { ViewID } from "./Constants";
+import { ViewID } from "./UiConstants";
 import { View } from "./View";
 type DragElementOptionEntryType = {
     itemId: ViewID;

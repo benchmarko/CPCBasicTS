@@ -75,6 +75,26 @@ export type ConfigTypeNew = {
 		trace: boolean // trace code
 };
 */
+export interface IStorage {
+	readonly length: number;
+	clear(): void;
+	getItem(key: string): string | null;
+	key(index: number): string | null;
+	removeItem(key: string): void;
+	setItem(key: string, value: string): void;
+	[key: string]: any;
+}
+
+/*
+export interface ILocalStorageXX {
+	clear: () => undefined,
+	getItem: (key: string) => string | null,
+	key: (index: number) => string | null,
+	removeItem: (key: string) => undefined,
+	setItem: (key: string, value: string) => undefined,
+	length: number;
+}
+*/
 
 export interface DatabaseEntry {
 	text: string

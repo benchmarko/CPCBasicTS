@@ -4,53 +4,6 @@
 	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.cpcbasicUI = {}));
 })(this, (function (exports) { 'use strict';
 
-	var ModelPropID = /* @__PURE__ */ ((ModelPropID2) => {
-	  ModelPropID2["arrayBounds"] = "arrayBounds";
-	  ModelPropID2["autorun"] = "autorun";
-	  ModelPropID2["basicVersion"] = "basicVersion";
-	  ModelPropID2["bench"] = "bench";
-	  ModelPropID2["canvasType"] = "canvasType";
-	  ModelPropID2["databaseDirs"] = "databaseDirs";
-	  ModelPropID2["database"] = "database";
-	  ModelPropID2["debug"] = "debug";
-	  ModelPropID2["example"] = "example";
-	  ModelPropID2["exampleIndex"] = "exampleIndex";
-	  ModelPropID2["implicitLines"] = "implicitLines";
-	  ModelPropID2["input"] = "input";
-	  ModelPropID2["integerOverflow"] = "integerOverflow";
-	  ModelPropID2["kbdLayout"] = "kbdLayout";
-	  ModelPropID2["linesOnLoad"] = "linesOnLoad";
-	  ModelPropID2["dragElements"] = "dragElements";
-	  ModelPropID2["palette"] = "palette";
-	  ModelPropID2["prettyBrackets"] = "prettyBrackets";
-	  ModelPropID2["prettyColons"] = "prettyColons";
-	  ModelPropID2["prettyLowercaseVars"] = "prettyLowercaseVars";
-	  ModelPropID2["prettySpace"] = "prettySpace";
-	  ModelPropID2["processFileImports"] = "processFileImports";
-	  ModelPropID2["random"] = "random";
-	  ModelPropID2["selectDataFiles"] = "selectDataFiles";
-	  ModelPropID2["showConsoleLog"] = "showConsoleLog";
-	  ModelPropID2["showCpc"] = "showCpc";
-	  ModelPropID2["showDisass"] = "showDisass";
-	  ModelPropID2["showExport"] = "showExport";
-	  ModelPropID2["showGallery"] = "showGallery";
-	  ModelPropID2["showInput"] = "showInput";
-	  ModelPropID2["showInp2"] = "showInp2";
-	  ModelPropID2["showKbd"] = "showKbd";
-	  ModelPropID2["showKbdSettings"] = "showKbdSettings";
-	  ModelPropID2["showMore"] = "showMore";
-	  ModelPropID2["showOutput"] = "showOutput";
-	  ModelPropID2["showPretty"] = "showPretty";
-	  ModelPropID2["showRenum"] = "showRenum";
-	  ModelPropID2["showResult"] = "showResult";
-	  ModelPropID2["showSettings"] = "showSettings";
-	  ModelPropID2["showVariable"] = "showVariable";
-	  ModelPropID2["showView"] = "showView";
-	  ModelPropID2["sound"] = "sound";
-	  ModelPropID2["speed"] = "speed";
-	  ModelPropID2["trace"] = "trace";
-	  return ModelPropID2;
-	})(ModelPropID || {});
 	var ViewID = /* @__PURE__ */ ((ViewID2) => {
 	  ViewID2["arrayBoundsInput"] = "arrayBoundsInput";
 	  ViewID2["autorunInput"] = "autorunInput";
@@ -165,112 +118,6 @@
 	  ViewID2["window"] = "window";
 	  return ViewID2;
 	})(ViewID || {});
-
-	const _Utils = class _Utils {
-	  static setDebug(debug) {
-	    _Utils.debug = debug;
-	  }
-	  static hexEscape(str) {
-	    return str.replace(/[\x00-\x1f]/g, function(char) {
-	      return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
-	    });
-	  }
-	  static dateFormat(d) {
-	    return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);
-	  }
-	  static stringCapitalize(str) {
-	    return str.charAt(0).toUpperCase() + str.substring(1);
-	  }
-	  static numberWithCommas(x) {
-	    const parts = String(x).split(".");
-	    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-	    return parts.join(".");
-	  }
-	  static toRadians(deg) {
-	    return deg * Math.PI / 180;
-	  }
-	  static toDegrees(rad) {
-	    return rad * 180 / Math.PI;
-	  }
-	  static toPrecision9(num) {
-	    const numStr = num.toPrecision(9), [decimal, exponent] = numStr.split("e"), result = String(Number(decimal)) + (exponent !== void 0 ? "E" + exponent.replace(/(\D)(\d)$/, "$10$2") : "");
-	    return result;
-	  }
-	  static testIsSupported(testExpression) {
-	    try {
-	      Function(testExpression);
-	    } catch (_e) {
-	      return false;
-	    }
-	    return true;
-	  }
-	  // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
-	  static stringTrimEnd(str) {
-	    return str.replace(/[\s\uFEFF\xA0]+$/, "");
-	  }
-	  static isCustomError(e) {
-	    return e.pos !== void 0;
-	  }
-	  static split2(str, char) {
-	    const index = str.indexOf(char);
-	    return index >= 0 ? [str.slice(0, index), str.slice(index + 1)] : [str];
-	  }
-	  static string2Uint8Array(data) {
-	    const buf = new ArrayBuffer(data.length), view = new Uint8Array(buf);
-	    for (let i = 0; i < data.length; i += 1) {
-	      view[i] = data.charCodeAt(i);
-	    }
-	    return view;
-	  }
-	  static uint8Array2string(data) {
-	    const callSize = 25e3;
-	    let len = data.length, offset = 0, out = "";
-	    while (len) {
-	      const chunkLen = Math.min(len, callSize), chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen);
-	      out += String.fromCharCode.apply(null, chunk);
-	      offset += chunkLen;
-	      len -= chunkLen;
-	    }
-	    return out;
-	  }
-	  static composeError(name, errorObject, message, value, pos, len, line, hidden) {
-	    const customError = errorObject;
-	    customError.name = name;
-	    customError.message = message;
-	    customError.value = value;
-	    if (pos !== void 0) {
-	      customError.pos = pos;
-	    }
-	    if (len !== void 0) {
-	      customError.len = len;
-	    }
-	    if (line !== customError.line) {
-	      customError.line = line;
-	    }
-	    if (hidden !== void 0) {
-	      customError.hidden = hidden;
-	    }
-	    let errorLen = customError.len;
-	    if (errorLen === void 0 && customError.value !== void 0) {
-	      errorLen = String(customError.value).length;
-	    }
-	    const endPos = (customError.pos || 0) + (errorLen || 0), lineMsg = customError.line !== void 0 ? " in " + customError.line : "", posMsg = pos !== void 0 ? " at pos " + (pos !== endPos ? customError.pos + "-" + endPos : customError.pos) : "";
-	    customError.shortMessage = customError.message + (lineMsg || posMsg) + ": " + customError.value;
-	    customError.message += lineMsg + posMsg + ": " + customError.value;
-	    return customError;
-	  }
-	  static composeVmError(name, errorObject, errCode, value) {
-	    const customError = _Utils.composeError(name, errorObject, String(errCode), value);
-	    customError.errCode = errCode;
-	    return customError;
-	  }
-	};
-	_Utils.debug = 0;
-	_Utils.console = console;
-	_Utils.supportsBinaryLiterals = _Utils.testIsSupported("0b01");
-	// does the browser support binary literals?
-	_Utils.supportReservedNames = _Utils.testIsSupported("({}).return()");
-	let Utils = _Utils;
 
 	const _UiUtils = class _UiUtils {
 	  static setDebug(debug) {
@@ -836,7 +683,7 @@
 	    this.canvas = canvas;
 	    this.cpcAreaBox = View.getElementById1(ViewID.cpcArea);
 	    if (canvas.offsetParent === null) {
-	      Utils.console.error("Error: canvas is not visible!");
+	      UiUtils.console.error("Error: canvas is not visible!");
 	    }
 	    const width = canvas.width, height = canvas.height;
 	    this.width = width;
@@ -852,15 +699,15 @@
 	        this.pen2Color32 = new Uint32Array(new ArrayBuffer(_Canvas.modeData[3].pens * 4));
 	        this.data32 = new Uint32Array(this.imageData.data.buffer);
 	        this.use32BitCopy = true;
-	        Utils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
+	        UiUtils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
 	      } else {
 	        this.setAlpha(255);
 	        this.use32BitCopy = false;
-	        Utils.console.log("Canvas: using copy2Canvas8bit");
+	        UiUtils.console.log("Canvas: using copy2Canvas8bit");
 	      }
 	      this.fnCopy2Canvas = this.getCopy2CanvasFunction(this.offset);
 	    } else {
-	      Utils.console.warn("Error: canvas.getContext is not supported.");
+	      UiUtils.console.warn("Error: canvas.getContext is not supported.");
 	      this.fnCopy2Canvas = () => {
 	      };
 	      this.ctx = {};
@@ -1233,7 +1080,7 @@
 	            this.dataset8[i] |= gPen;
 	            break;
 	          default:
-	            Utils.console.warn("setSubPixels: Unknown colMode:", gColMode);
+	            UiUtils.console.warn("setSubPixels: Unknown colMode:", gColMode);
 	            break;
 	        }
 	        i += 1;
@@ -1448,7 +1295,7 @@
 	  printGChar(char) {
 	    const charWidth = this.modeData.pixelWidth * 8;
 	    if (char >= this.options.charset.length) {
-	      Utils.console.warn("printGChar: Ignoring char with code", char);
+	      UiUtils.console.warn("printGChar: Ignoring char with code", char);
 	      return;
 	    }
 	    this.setChar(char, this.xPos, this.yPos, this.gPen, this.gPaper, this.gTransparent, this.gColMode, true);
@@ -1458,7 +1305,7 @@
 	  printChar(char, x, y, pen, paper, transparent) {
 	    const charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, pens = this.modeData.pens;
 	    if (char >= this.options.charset.length) {
-	      Utils.console.warn("printChar: Ignoring char with code", char);
+	      UiUtils.console.warn("printChar: Ignoring char with code", char);
 	      return;
 	    }
 	    pen %= pens;
@@ -1688,7 +1535,7 @@
 	    if (this.canvas.toDataURL) {
 	      return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
 	    }
-	    Utils.console.warn("Screenshot not available");
+	    UiUtils.console.warn("Screenshot not available");
 	    return "";
 	  }
 	};
@@ -1800,6 +1647,54 @@
 	  }
 	];
 	let Canvas = _Canvas;
+
+	var ModelPropID = /* @__PURE__ */ ((ModelPropID2) => {
+	  ModelPropID2["arrayBounds"] = "arrayBounds";
+	  ModelPropID2["autorun"] = "autorun";
+	  ModelPropID2["basicVersion"] = "basicVersion";
+	  ModelPropID2["bench"] = "bench";
+	  ModelPropID2["canvasType"] = "canvasType";
+	  ModelPropID2["databaseDirs"] = "databaseDirs";
+	  ModelPropID2["database"] = "database";
+	  ModelPropID2["debug"] = "debug";
+	  ModelPropID2["example"] = "example";
+	  ModelPropID2["exampleIndex"] = "exampleIndex";
+	  ModelPropID2["implicitLines"] = "implicitLines";
+	  ModelPropID2["input"] = "input";
+	  ModelPropID2["integerOverflow"] = "integerOverflow";
+	  ModelPropID2["kbdLayout"] = "kbdLayout";
+	  ModelPropID2["linesOnLoad"] = "linesOnLoad";
+	  ModelPropID2["dragElements"] = "dragElements";
+	  ModelPropID2["palette"] = "palette";
+	  ModelPropID2["prettyBrackets"] = "prettyBrackets";
+	  ModelPropID2["prettyColons"] = "prettyColons";
+	  ModelPropID2["prettyLowercaseVars"] = "prettyLowercaseVars";
+	  ModelPropID2["prettySpace"] = "prettySpace";
+	  ModelPropID2["processFileImports"] = "processFileImports";
+	  ModelPropID2["random"] = "random";
+	  ModelPropID2["selectDataFiles"] = "selectDataFiles";
+	  ModelPropID2["showConsoleLog"] = "showConsoleLog";
+	  ModelPropID2["showCpc"] = "showCpc";
+	  ModelPropID2["showDisass"] = "showDisass";
+	  ModelPropID2["showExport"] = "showExport";
+	  ModelPropID2["showGallery"] = "showGallery";
+	  ModelPropID2["showInput"] = "showInput";
+	  ModelPropID2["showInp2"] = "showInp2";
+	  ModelPropID2["showKbd"] = "showKbd";
+	  ModelPropID2["showKbdSettings"] = "showKbdSettings";
+	  ModelPropID2["showMore"] = "showMore";
+	  ModelPropID2["showOutput"] = "showOutput";
+	  ModelPropID2["showPretty"] = "showPretty";
+	  ModelPropID2["showRenum"] = "showRenum";
+	  ModelPropID2["showResult"] = "showResult";
+	  ModelPropID2["showSettings"] = "showSettings";
+	  ModelPropID2["showVariable"] = "showVariable";
+	  ModelPropID2["showView"] = "showView";
+	  ModelPropID2["sound"] = "sound";
+	  ModelPropID2["speed"] = "speed";
+	  ModelPropID2["trace"] = "trace";
+	  return ModelPropID2;
+	})(ModelPropID || {});
 
 	class CommonEventHandler {
 	  constructor(options) {
@@ -2518,6 +2413,113 @@
 	    }
 	  }
 	}
+
+	const _Utils = class _Utils {
+	  //typeof globalThis !== "undefined" ? globalThis.console : undefined;
+	  static setDebug(debug) {
+	    _Utils.debug = debug;
+	  }
+	  static hexEscape(str) {
+	    return str.replace(/[\x00-\x1f]/g, function(char) {
+	      return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
+	    });
+	  }
+	  static dateFormat(d) {
+	    return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);
+	  }
+	  static stringCapitalize(str) {
+	    return str.charAt(0).toUpperCase() + str.substring(1);
+	  }
+	  static numberWithCommas(x) {
+	    const parts = String(x).split(".");
+	    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+	    return parts.join(".");
+	  }
+	  static toRadians(deg) {
+	    return deg * Math.PI / 180;
+	  }
+	  static toDegrees(rad) {
+	    return rad * 180 / Math.PI;
+	  }
+	  static toPrecision9(num) {
+	    const numStr = num.toPrecision(9), [decimal, exponent] = numStr.split("e"), result = String(Number(decimal)) + (exponent !== void 0 ? "E" + exponent.replace(/(\D)(\d)$/, "$10$2") : "");
+	    return result;
+	  }
+	  static testIsSupported(testExpression) {
+	    try {
+	      Function(testExpression);
+	    } catch (_e) {
+	      return false;
+	    }
+	    return true;
+	  }
+	  // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
+	  static stringTrimEnd(str) {
+	    return str.replace(/[\s\uFEFF\xA0]+$/, "");
+	  }
+	  static isCustomError(e) {
+	    return e.pos !== void 0;
+	  }
+	  static split2(str, char) {
+	    const index = str.indexOf(char);
+	    return index >= 0 ? [str.slice(0, index), str.slice(index + 1)] : [str];
+	  }
+	  static string2Uint8Array(data) {
+	    const buf = new ArrayBuffer(data.length), view = new Uint8Array(buf);
+	    for (let i = 0; i < data.length; i += 1) {
+	      view[i] = data.charCodeAt(i);
+	    }
+	    return view;
+	  }
+	  static uint8Array2string(data) {
+	    const callSize = 25e3;
+	    let len = data.length, offset = 0, out = "";
+	    while (len) {
+	      const chunkLen = Math.min(len, callSize), chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen);
+	      out += String.fromCharCode.apply(null, chunk);
+	      offset += chunkLen;
+	      len -= chunkLen;
+	    }
+	    return out;
+	  }
+	  static composeError(name, errorObject, message, value, pos, len, line, hidden) {
+	    const customError = errorObject;
+	    customError.name = name;
+	    customError.message = message;
+	    customError.value = value;
+	    if (pos !== void 0) {
+	      customError.pos = pos;
+	    }
+	    if (len !== void 0) {
+	      customError.len = len;
+	    }
+	    if (line !== customError.line) {
+	      customError.line = line;
+	    }
+	    if (hidden !== void 0) {
+	      customError.hidden = hidden;
+	    }
+	    let errorLen = customError.len;
+	    if (errorLen === void 0 && customError.value !== void 0) {
+	      errorLen = String(customError.value).length;
+	    }
+	    const endPos = (customError.pos || 0) + (errorLen || 0), lineMsg = customError.line !== void 0 ? " in " + customError.line : "", posMsg = pos !== void 0 ? " at pos " + (pos !== endPos ? customError.pos + "-" + endPos : customError.pos) : "";
+	    customError.shortMessage = customError.message + (lineMsg || posMsg) + ": " + customError.value;
+	    customError.message += lineMsg + posMsg + ": " + customError.value;
+	    return customError;
+	  }
+	  static composeVmError(name, errorObject, errCode, value) {
+	    const customError = _Utils.composeError(name, errorObject, String(errCode), value);
+	    customError.errCode = errCode;
+	    return customError;
+	  }
+	};
+	_Utils.debug = 0;
+	_Utils.console = console;
+	_Utils.supportsBinaryLiterals = _Utils.testIsSupported("0b01");
+	// does the browser support binary literals?
+	_Utils.supportReservedNames = _Utils.testIsSupported("({}).return()");
+	let Utils = _Utils;
 
 	class BasicFormatter {
 	  // current label (line) for error messages
@@ -8770,7 +8772,7 @@
 	  vmGetMem() {
 	    return this.mem;
 	  }
-	  onCanvasClickCallback(event, x, y, xTxt, yTxt) {
+	  onCanvasClickCallback(x, y, xTxt, yTxt, doubleClick) {
 	    const height = 400;
 	    let char = -1;
 	    x -= this.canvas.getXOrigin();
@@ -8786,7 +8788,7 @@
 	          break;
 	        }
 	      }
-	      if ((char < 0 || char === 32 || char === 143) && event.detail === 2) {
+	      if ((char < 0 || char === 32 || char === 143) && doubleClick) {
 	        char = 13;
 	      }
 	      if (char >= 0) {
@@ -13647,14 +13649,14 @@
 	          data = dsk.readFile(dir[fileName]);
 	          this.fnLoad2(data, fileName, "", imported);
 	        } catch (e) {
-	          UiUtils.console.error(e);
+	          Utils.console.error(e);
 	          if (e instanceof Error) {
 	            this.options.outputError(e, true);
 	          }
 	        }
 	      }
 	    } catch (e) {
-	      UiUtils.console.error(e);
+	      Utils.console.error(e);
 	      if (e instanceof Error) {
 	        this.options.outputError(e, true);
 	      }
@@ -13669,7 +13671,7 @@
 	        zipName: name
 	      });
 	    } catch (e) {
-	      UiUtils.console.error(e);
+	      Utils.console.error(e);
 	      if (e instanceof Error) {
 	        this.options.outputError(e, true);
 	      }
@@ -13679,13 +13681,13 @@
 	      for (let i = 0; i < entries.length; i += 1) {
 	        const name2 = entries[i];
 	        if (name2.startsWith("__MACOSX/")) {
-	          UiUtils.console.log("processZipFile: Ignoring file:", name2);
+	          Utils.console.log("processZipFile: Ignoring file:", name2);
 	        } else {
 	          let data2;
 	          try {
 	            data2 = zip.readData(name2);
 	          } catch (e) {
-	            UiUtils.console.error(e);
+	            Utils.console.error(e);
 	            if (e instanceof Error) {
 	              this.options.outputError(e, true);
 	            }
@@ -13741,7 +13743,7 @@
 	        break;
 	      case "Z":
 	        if (this.processFileImports) {
-	          this.processZipFile(data instanceof Uint8Array ? data : UiUtils.string2Uint8Array(data), name, imported);
+	          this.processZipFile(data instanceof Uint8Array ? data : Utils.string2Uint8Array(data), name, imported);
 	        } else {
 	          header = DiskImage.createAmsdosHeader({
 	            typeString: type,
@@ -13750,7 +13752,7 @@
 	        }
 	        break;
 	      default:
-	        UiUtils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
+	        Utils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
 	        header = DiskImage.createAmsdosHeader({
 	          typeString: "B",
 	          length: data.length
@@ -13758,14 +13760,14 @@
 	        break;
 	    }
 	    if (header) {
-	      const storageName = _FileHandler.fnLocalStorageName(this.options.adaptFilename(name, "FILE")), meta = _FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? UiUtils.uint8Array2string(data) : data;
+	      const storageName = _FileHandler.fnLocalStorageName(this.options.adaptFilename(name, "FILE")), meta = _FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? Utils.uint8Array2string(data) : data;
 	      try {
-	        (Polyfills.localStorage || window.localStorage).setItem(storageName, meta + "," + dataAsString);
+	        this.options.storage.setItem(storageName, meta + "," + dataAsString);
 	        this.options.updateStorageDatabase("set", storageName);
-	        UiUtils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+	        Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
 	        imported.push(name);
 	      } catch (e) {
-	        UiUtils.console.error(e);
+	        Utils.console.error(e);
 	        if (e instanceof Error) {
 	          if (e.name === "QuotaExceededError") {
 	            e.shortMessage = storageName + ": Quota exceeded";
@@ -17417,8 +17419,15 @@
 	      variables: this.variables,
 	      onClickKey: this.fnPutKeyInBufferHandler
 	    });
+	    const onCanvasClick = (event, x, y, xTxt, yTxt) => {
+	      const handler = this.vm.getOnCanvasClickHandler();
+	      handler(x, y, xTxt, yTxt, event.detail === 2);
+	    };
+	    this.vmOnCanvasClickHandler = onCanvasClick;
+	    this.vm.getOnCanvasClickHandler();
 	    this.canvas.setOptions({
-	      onCanvasClick: this.vm.getOnCanvasClickHandler()
+	      //onCanvasClick: this.vm.getOnCanvasClickHandler()
+	      onCanvasClick
 	    });
 	    this.vm.setCanvas(this.canvas);
 	    this.vm.vmReset();
@@ -17469,6 +17478,9 @@
 	  }
 	  static getLocalStorage() {
 	    return Polyfills.localStorage || window.localStorage;
+	  }
+	  getCanvas() {
+	    return this.canvas;
 	  }
 	  //TODO
 	  /*
@@ -19373,9 +19385,8 @@
 	      this.canvas = canvas;
 	    }
 	    if (this.vm) {
-	      const handler = this.vm.getOnCanvasClickHandler();
 	      this.canvas.setOptions({
-	        onCanvasClick: handler
+	        onCanvasClick: this.vmOnCanvasClickHandler
 	      });
 	      this.vm.setCanvas(canvas);
 	    }
@@ -19453,7 +19464,8 @@
 	        adaptFilename: this.adaptFilename.bind(this),
 	        updateStorageDatabase: this.updateStorageDatabase.bind(this),
 	        outputError: this.outputError.bind(this),
-	        processFileImports: this.model.getProperty(ModelPropID.processFileImports)
+	        processFileImports: this.model.getProperty(ModelPropID.processFileImports),
+	        storage: Polyfills.localStorage || window.localStorage
 	      });
 	    }
 	    return this.fileHandler;
@@ -19763,7 +19775,6 @@
 	exports.CommonEventHandler = CommonEventHandler;
 	exports.Controller = Controller;
 	exports.DragElement = DragElement;
-	exports.FileHandler = FileHandler;
 	exports.FileSelect = FileSelect;
 	exports.Keyboard = Keyboard;
 	exports.NoCanvas = NoCanvas;

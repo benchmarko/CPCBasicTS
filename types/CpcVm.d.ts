@@ -170,7 +170,7 @@ export declare class CpcVm implements ICpcVm {
     private vmResetInks;
     vmReset4Run(): void;
     vmPutProgramInMem(tokens: string): number;
-    getOnCanvasClickHandler(): (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
+    getOnCanvasClickHandler(): (x: number, y: number, xTxt: number, yTxt: number, doubleClick: boolean) => void;
     setCanvas(canvas: ICanvasVm): void;
     vmGetLoadHandler(): LoadHandlerType;
     vmGetMem(): number[];

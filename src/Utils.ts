@@ -6,7 +6,7 @@
 import type { CustomError } from "./Interfaces";
 export class Utils {
 	static debug = 0;
-	static console = console;
+	static console = console; //typeof globalThis !== "undefined" ? globalThis.console : undefined;
 
 	public static setDebug(debug: number) {
 		Utils.debug = debug;

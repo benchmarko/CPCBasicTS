@@ -1,4 +1,4 @@
-import { ViewID } from "./Constants";
+import { ViewID } from "./UiConstants";
 import type { ICore, LoadScriptFn, VariableValue } from "../Interfaces";
 import type { ICanvas, IController } from "./UiInterfaces";
 import { VirtualKeyboard } from "./VirtualKeyboard";
@@ -46,6 +46,7 @@ export declare class Controller implements IController {
     private dragElement?;
     private readonly sound;
     private readonly vm;
+    private readonly vmOnCanvasClickHandler;
     private readonly noStop;
     private readonly savedStop;
     private fileHandler?;
@@ -58,6 +59,7 @@ export declare class Controller implements IController {
     private static readonly codeGenJsBasicParserOptions;
     private static readonly codeGenTokenBasicParserOptions;
     private static readonly formatterBasicParserOptions;
+    getCanvas(): ICanvas;
     private getHasStorageDatabase;
     private onUserAction;
     private setDatabaseSelectOptions;

@@ -3,8 +3,8 @@
 // https://benchmarko.github.io/CPCBasicTS/
 import { UiUtils } from "./UiUtils";
 import { View } from "./View";
-var CommonEventHandler = /** @class */ (function () {
-    function CommonEventHandler(options) {
+export class CommonEventHandler {
+    constructor(options) {
         this.eventDefInternalMap = {};
         this.fnUserAction = undefined;
         this.options = {};
@@ -15,82 +15,82 @@ var CommonEventHandler = /** @class */ (function () {
         this.controller = this.options.controller;
         this.createEventDefMap();
     }
-    CommonEventHandler.prototype.getOptions = function () {
+    getOptions() {
         return this.options;
-    };
-    CommonEventHandler.prototype.setOptions = function (options) {
+    }
+    setOptions(options) {
         Object.assign(this.options, options);
-    };
-    CommonEventHandler.prototype.fnSetUserAction = function (fnAction) {
+    }
+    fnSetUserAction(fnAction) {
         this.fnUserAction = fnAction;
-    };
-    CommonEventHandler.prototype.initOneToggle = function (_type, id, eventDef) {
+    }
+    initOneToggle(_type, id, eventDef) {
         if (eventDef.property) {
             if (eventDef.toggleId) {
-                var isEnabled = this.model.getProperty(eventDef.property);
+                const isEnabled = this.model.getProperty(eventDef.property);
                 this.view.setHidden(eventDef.toggleId, !isEnabled, eventDef.display);
                 if (UiUtils.debug > 3) {
                     UiUtils.console.debug("initToggles: setHidden: togglId:", eventDef.toggleId, ", property:", eventDef.property, ", hidden:", !isEnabled, ", display:", eventDef.display);
                 }
             }
             if (eventDef.viewType === "checked") {
-                var isEnabled2 = this.model.getProperty(eventDef.property);
+                const isEnabled2 = this.model.getProperty(eventDef.property);
                 this.view.setInputChecked(id, isEnabled2);
                 if (UiUtils.debug > 3) {
                     UiUtils.console.debug("initToggles: checked: id:", id, ", property:", eventDef.property, ", checked:", isEnabled2);
                 }
             }
             else if (eventDef.viewType === "select") {
-                var value = this.model.getProperty(eventDef.property);
+                const value = this.model.getProperty(eventDef.property);
                 this.view.setSelectValue(id, value);
                 if (UiUtils.debug > 3) {
                     UiUtils.console.debug("initToggles: select: id:", id, ", property:", eventDef.property, ", value:", value);
                 }
             }
             else if (eventDef.viewType === "numberInput") {
-                var value = this.model.getProperty(eventDef.property);
+                const value = this.model.getProperty(eventDef.property);
                 this.view.setInputValue(id, String(value));
                 if (UiUtils.debug > 3) {
                     UiUtils.console.debug("initToggles: numberInput: id:", id, ", property:", eventDef.property, ", value:", value);
                 }
             }
         }
-    };
-    CommonEventHandler.prototype.initToggles = function () {
-        var eventDefInternalMap = this.eventDefInternalMap;
-        for (var type in eventDefInternalMap) {
+    }
+    initToggles() {
+        const eventDefInternalMap = this.eventDefInternalMap;
+        for (const type in eventDefInternalMap) {
             if (eventDefInternalMap.hasOwnProperty(type)) {
-                var eventDefMap4Type = eventDefInternalMap[type];
-                for (var id in eventDefMap4Type) {
+                const eventDefMap4Type = eventDefInternalMap[type];
+                for (const id in eventDefMap4Type) {
                     if (eventDefMap4Type.hasOwnProperty(id)) {
-                        var eventDef = eventDefMap4Type[id];
+                        const eventDef = eventDefMap4Type[id];
                         this.initOneToggle(type, id, eventDef);
                     }
                 }
             }
         }
-    };
-    CommonEventHandler.getToggleId = function (eventDef) {
+    }
+    static getToggleId(eventDef) {
         if (!eventDef.toggleId) {
             UiUtils.console.error("getToggleId: id=" + eventDef.id + ": toggleId missing!");
             return ""; //TTT
         }
         return eventDef.toggleId;
-    };
-    CommonEventHandler.getproperty = function (eventDef) {
+    }
+    static getproperty(eventDef) {
         if (!eventDef.property) {
             UiUtils.console.error("setPopoversHiddenExcept: id=" + eventDef.id + ": property missing!");
             return ""; //TTT
         }
         return eventDef.property;
-    };
-    CommonEventHandler.prototype.setPopoversHiddenExcept = function (exceptId) {
-        var eventDefInternalMap = this.eventDefInternalMap, eventDefMapClick = eventDefInternalMap.click;
-        for (var id in eventDefMapClick) {
+    }
+    setPopoversHiddenExcept(exceptId) {
+        const eventDefInternalMap = this.eventDefInternalMap, eventDefMapClick = eventDefInternalMap.click;
+        for (const id in eventDefMapClick) {
             if (eventDefMapClick.hasOwnProperty(id)) {
-                var eventDef = eventDefMapClick[id];
+                const eventDef = eventDefMapClick[id];
                 if (eventDef.isPopover && (eventDef.toggleId !== exceptId)) {
-                    var toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef);
+                    const toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef);
                     if (!this.view.getHidden(toggleId)) {
                         // we cannot use toggleAreaHidden because it would be recursive
                         this.model.setProperty(property, false);
@@ -99,9 +99,9 @@ var CommonEventHandler = /** @class */ (function () {
                 }
             }
         }
-    };
-    CommonEventHandler.prototype.toggleAreaHidden = function (eventDef) {
-        var toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef), visible = !this.model.getProperty(property);
+    }
+    toggleAreaHidden(eventDef) {
+        const toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef), visible = !this.model.getProperty(property);
         this.model.setProperty(property, visible);
         this.view.setHidden(toggleId, !visible, eventDef.display);
         // on old browsers display "flex" is not available, so set default "" (="block"), if still hidden
@@ -112,77 +112,77 @@ var CommonEventHandler = /** @class */ (function () {
             this.setPopoversHiddenExcept(toggleId);
         }
         return visible;
-    };
+    }
     // maybe we can avoid this...
-    CommonEventHandler.prototype.getEventDefById = function (type, id) {
-        var eventDefForType = this.eventDefInternalMap[type], eventDef = eventDefForType[id];
+    getEventDefById(type, id) {
+        const eventDefForType = this.eventDefInternalMap[type], eventDef = eventDefForType[id];
         if (!eventDef) {
             UiUtils.console.error("getEventDefById: type=" + type + ", id=" + id + ": No eventDef!");
         }
         return eventDef;
-    };
-    CommonEventHandler.prototype.toggleAreaHiddenById = function (type, id) {
-        var eventDef = this.getEventDefById(type, id);
+    }
+    toggleAreaHiddenById(type, id) {
+        const eventDef = this.getEventDefById(type, id);
         return this.toggleAreaHidden(eventDef);
-    };
-    CommonEventHandler.prototype.onCheckedChange = function (eventDef) {
-        var id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), checked = this.view.getInputChecked(id);
+    }
+    onCheckedChange(eventDef) {
+        const id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), checked = this.view.getInputChecked(id);
         this.model.setProperty(property, checked);
         return checked;
-    };
-    CommonEventHandler.prototype.onNumberInputChange = function (eventDef) {
-        var id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), valueAsString = this.view.getInputValue(id), value = Number(valueAsString);
+    }
+    onNumberInputChange(eventDef) {
+        const id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), valueAsString = this.view.getInputValue(id), value = Number(valueAsString);
         this.model.setProperty(property, value);
         return value;
-    };
-    CommonEventHandler.prototype.onSelectChange = function (eventDef) {
-        var id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), value = this.view.getSelectValue(id);
+    }
+    onSelectChange(eventDef) {
+        const id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), value = this.view.getSelectValue(id);
         this.model.setProperty(property, value);
         this.view.setSelectTitleFromSelectedOption(id);
         return value;
-    };
-    CommonEventHandler.prototype.onExportButtonClick = function (eventDef) {
+    }
+    onExportButtonClick(eventDef) {
         if (this.toggleAreaHidden(eventDef)) {
             this.controller.setExportSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */);
         }
-    };
-    CommonEventHandler.prototype.onGalleryButtonClick = function (eventDef) {
+    }
+    onGalleryButtonClick(eventDef) {
         if (this.toggleAreaHidden(eventDef)) {
             this.controller.setGalleryAreaInputs();
         }
-    };
-    CommonEventHandler.prototype.fnUpdateAreaText = function (input) {
+    }
+    fnUpdateAreaText(input) {
         this.controller.setInputText(input, true);
         this.view.setAreaValue("outputText" /* ViewID.outputText */, "");
-    };
-    CommonEventHandler.prototype.onUndoButtonClick = function () {
-        var input = this.controller.undoStackElement();
+    }
+    onUndoButtonClick() {
+        const input = this.controller.undoStackElement();
         this.fnUpdateAreaText(input);
-    };
-    CommonEventHandler.prototype.onRedoButtonClick = function () {
-        var input = this.controller.redoStackElement();
+    }
+    onRedoButtonClick() {
+        const input = this.controller.redoStackElement();
         this.fnUpdateAreaText(input);
-    };
-    CommonEventHandler.prototype.onContinueButtonClick = function (eventDef, event) {
+    }
+    onContinueButtonClick(eventDef, event) {
         this.controller.startContinue();
         this.onCpcCanvasClick(eventDef, event);
-    };
-    CommonEventHandler.prototype.onParseRunButtonClick = function (eventDef, event) {
+    }
+    onParseRunButtonClick(eventDef, event) {
         this.controller.startParseRun();
         this.onCpcCanvasClick(eventDef, event);
-    };
-    CommonEventHandler.onHelpButtonClick = function () {
+    }
+    static onHelpButtonClick() {
         window.open("https://github.com/benchmarko/CPCBasicTS/#readme");
-    };
-    CommonEventHandler.prototype.onGalleryItemClick = function (_eventDef, event) {
-        var target = View.getEventTarget(event), value = target.value;
+    }
+    onGalleryItemClick(_eventDef, event) {
+        const target = View.getEventTarget(event), value = target.value;
         this.view.setSelectValue("exampleSelect" /* ViewID.exampleSelect */, value);
         this.setPopoversHiddenExcept(); // close
         this.controller.onExampleSelectChange();
-    };
+    }
     // eslint-disable-next-line class-methods-use-this
-    CommonEventHandler.prototype.onCopyTextButtonClick = function () {
-        var textText = View.getElementByIdAs("textText" /* ViewID.textText */);
+    onCopyTextButtonClick() {
+        const textText = View.getElementByIdAs("textText" /* ViewID.textText */);
         textText.select();
         this.view.setAreaSelection("textText" /* ViewID.textText */, 0, 99999); // for mobile devices
         if (window.navigator && window.navigator.clipboard) {
@@ -191,89 +191,89 @@ var CommonEventHandler = /** @class */ (function () {
         else {
             UiUtils.console.warn("Copy to clipboard not available");
         }
-    };
-    CommonEventHandler.encodeUriParam = function (params) {
-        var parts = [];
-        for (var key in params) {
+    }
+    static encodeUriParam(params) {
+        const parts = [];
+        for (const key in params) {
             if (params.hasOwnProperty(key)) {
-                var value = params[key];
+                const value = params[key];
                 parts[parts.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value === null ? "" : value);
             }
         }
         return parts.join("&");
-    };
-    CommonEventHandler.prototype.onReloadButtonClick = function () {
+    }
+    onReloadButtonClick() {
         this.setPopoversHiddenExcept(); // hide all popovers,
-        var changed = this.model.getChangedProperties();
-        var paras = CommonEventHandler.encodeUriParam(changed);
+        const changed = this.model.getChangedProperties();
+        let paras = CommonEventHandler.encodeUriParam(changed);
         paras = paras.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
         window.location.search = "?" + paras;
-    };
-    CommonEventHandler.prototype.onVarSelectChange = function () {
-        var par = this.view.getSelectValue("varSelect" /* ViewID.varSelect */), value = this.controller.getVariable(par), valueString = (value !== undefined) ? String(value) : "";
+    }
+    onVarSelectChange() {
+        const par = this.view.getSelectValue("varSelect" /* ViewID.varSelect */), value = this.controller.getVariable(par), valueString = (value !== undefined) ? String(value) : "";
         this.view.setAreaValue("varText" /* ViewID.varText */, valueString);
-    };
-    CommonEventHandler.prototype.onKbdLayoutSelectChange = function (eventDef) {
-        var value = this.onSelectChange(eventDef);
+    }
+    onKbdLayoutSelectChange(eventDef) {
+        const value = this.onSelectChange(eventDef);
         this.view.setHidden("kbdAlpha" /* ViewID.kbdAlpha */, value === "num");
         this.view.setHidden("kbdNum" /* ViewID.kbdNum */, value === "alpha");
-    };
-    CommonEventHandler.prototype.onBasicVersionSelectChange = function (eventDef) {
-        var value = this.onSelectChange(eventDef);
+    }
+    onBasicVersionSelectChange(eventDef) {
+        const value = this.onSelectChange(eventDef);
         this.controller.setBasicVersion(value);
-    };
-    CommonEventHandler.prototype.onPaletteSelectChange = function (eventDef) {
-        var value = this.onSelectChange(eventDef);
+    }
+    onPaletteSelectChange(eventDef) {
+        const value = this.onSelectChange(eventDef);
         this.controller.setPalette(value);
-    };
-    CommonEventHandler.prototype.onCanvasTypeSelectChange = function (eventDef) {
-        var value = this.onSelectChange(eventDef);
+    }
+    onCanvasTypeSelectChange(eventDef) {
+        const value = this.onSelectChange(eventDef);
         this.controller.setCanvasType(value);
-    };
-    CommonEventHandler.prototype.onDebugInputChange = function (eventDef) {
-        var value = this.onNumberInputChange(eventDef);
+    }
+    onDebugInputChange(eventDef) {
+        const value = this.onNumberInputChange(eventDef);
         UiUtils.debug = value;
-    };
-    CommonEventHandler.prototype.onDragElementsInputChange = function (eventDef) {
-        var checked = this.onCheckedChange(eventDef);
+    }
+    onDragElementsInputChange(eventDef) {
+        const checked = this.onCheckedChange(eventDef);
         this.controller.fnDragElementsActive(checked);
-    };
-    CommonEventHandler.prototype.onShowCpcInputChange = function (eventDef) {
+    }
+    onShowCpcInputChange(eventDef) {
         if (this.toggleAreaHidden(eventDef)) {
             this.controller.startUpdateCanvas();
         }
         else {
             this.controller.stopUpdateCanvas();
         }
-    };
-    CommonEventHandler.prototype.onShowKbdInputChange = function (eventDef) {
+    }
+    onShowKbdInputChange(eventDef) {
         if (this.toggleAreaHidden(eventDef)) {
             this.controller.getVirtualKeyboard(); // maybe draw it
         }
-    };
-    CommonEventHandler.prototype.onDisassInputChange = function () {
-        var addressStr = this.view.getInputValue("disassInput" /* ViewID.disassInput */), addrList = addressStr.split("-"), // maybe range
+    }
+    onDisassInputChange() {
+        const addressStr = this.view.getInputValue("disassInput" /* ViewID.disassInput */), addrList = addressStr.split("-"), // maybe range
         addr = parseInt(addrList[0], 16), // parse as hex
         endAddr = addrList[1] ? parseInt(addrList[1], 16) : undefined; // parse as hex
         this.controller.setDisassAddr(addr, endAddr);
-    };
-    CommonEventHandler.prototype.onSoundInputChange = function (eventDef) {
+    }
+    onSoundInputChange(eventDef) {
         this.onCheckedChange(eventDef);
         this.controller.setSoundActive();
-    };
-    CommonEventHandler.prototype.onScreenshotButtonClick = function () {
+    }
+    onScreenshotButtonClick() {
         var example = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */), image = this.controller.startScreenshot(), link = View.getElementById1("screenshotLink" /* ViewID.screenshotLink */), name = example + ".png";
         if (image) {
             link.setAttribute("download", name);
             link.setAttribute("href", image);
             link.click();
         }
-    };
-    CommonEventHandler.prototype.onClearInputButtonClick = function () {
+    }
+    onClearInputButtonClick() {
         this.view.setAreaValue("inp2Text" /* ViewID.inp2Text */, ""); // delete input
-    };
-    CommonEventHandler.prototype.onFullscreenButtonClick = function () {
-        var id;
+    }
+    onFullscreenButtonClick() {
+        let id;
         if (!this.view.getHidden("cpcCanvas" /* ViewID.cpcCanvas */)) {
             id = "cpcCanvas" /* ViewID.cpcCanvas */;
         }
@@ -285,17 +285,17 @@ var CommonEventHandler = /** @class */ (function () {
             UiUtils.console.warn("Fullscreen only possible for graphics or text canvas");
             return;
         }
-        var switched = this.view.requestFullscreenForId(id); // make sure to use an element with tabindex set to get keyboard events
+        const switched = this.view.requestFullscreenForId(id); // make sure to use an element with tabindex set to get keyboard events
         if (!switched) {
             UiUtils.console.warn("Switch to fullscreen not available");
         }
-    };
-    CommonEventHandler.prototype.onCpcCanvasClick = function (_eventDef, event) {
+    }
+    onCpcCanvasClick(_eventDef, event) {
         this.setPopoversHiddenExcept(); // hide all popovers
         this.controller.onCpcCanvasClick(event);
-    };
-    CommonEventHandler.prototype.createEventDefMap = function () {
-        var eventDefInternalMap = this.eventDefInternalMap, eventDefs = {
+    }
+    createEventDefMap() {
+        const eventDefInternalMap = this.eventDefInternalMap, eventDefs = {
             click: [
                 {
                     id: "clearInputButton" /* ViewID.clearInputButton */,
@@ -679,19 +679,19 @@ var CommonEventHandler = /** @class */ (function () {
                 }
             ]
         };
-        for (var type in eventDefs) {
+        for (const type in eventDefs) {
             if (eventDefs.hasOwnProperty(type)) {
                 eventDefInternalMap[type] = {};
-                var eventDefList = eventDefs[type], itemForType = eventDefInternalMap[type];
-                for (var i = 0; i < eventDefList.length; i += 1) {
+                const eventDefList = eventDefs[type], itemForType = eventDefInternalMap[type];
+                for (let i = 0; i < eventDefList.length; i += 1) {
                     itemForType[eventDefList[i].id] = eventDefList[i];
                 }
             }
         }
-    };
-    CommonEventHandler.prototype.handleEvent = function (event) {
-        var target = View.getEventTarget(event), type = event.type; // click or change
-        var id = (target) ? target.getAttribute("id") : String(target);
+    }
+    handleEvent(event) {
+        const target = View.getEventTarget(event), type = event.type; // click or change
+        let id = (target) ? target.getAttribute("id") : String(target);
         if (this.fnUserAction) {
             this.fnUserAction(event, id);
         }
@@ -703,7 +703,7 @@ var CommonEventHandler = /** @class */ (function () {
                 id = "galleryItem"; // replace galleryitem<num> by galleryitem
             }
             if (this.eventDefInternalMap[type] && this.eventDefInternalMap[type][id]) {
-                var eventDef = this.eventDefInternalMap[type][id];
+                const eventDef = this.eventDefInternalMap[type][id];
                 if (UiUtils.debug) {
                     UiUtils.console.debug("handleEvent: " + type + ", " + id + ":", eventDef);
                 }
@@ -726,8 +726,6 @@ var CommonEventHandler = /** @class */ (function () {
                 this.controller.onWindowClick(event);
             }
         }
-    };
-    return CommonEventHandler;
-}());
-export { CommonEventHandler };
+    }
+}
 //# sourceMappingURL=CommonEventHandler.js.map

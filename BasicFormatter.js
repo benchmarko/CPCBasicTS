@@ -4,36 +4,36 @@
 //
 //
 import { Utils } from "./Utils";
-var BasicFormatter = /** @class */ (function () {
-    function BasicFormatter(options) {
+export class BasicFormatter {
+    constructor(options) {
         this.label = ""; // current label (line) for error messages
         this.options = {
             implicitLines: false
         };
         this.setOptions(options);
     }
-    BasicFormatter.prototype.getOptions = function () {
+    getOptions() {
         return this.options;
-    };
-    BasicFormatter.prototype.setOptions = function (options) {
+    }
+    setOptions(options) {
         Object.assign(this.options, options);
-    };
-    BasicFormatter.prototype.composeError = function (error, message, value, pos, len) {
+    }
+    composeError(error, message, value, pos, len) {
         return Utils.composeError("BasicFormatter", error, message, value, pos, len, this.label);
-    };
+    }
     // renumber
-    BasicFormatter.fnHasLabel = function (label) {
+    static fnHasLabel(label) {
         return label !== "";
-    };
-    BasicFormatter.prototype.fnCreateLabelEntry = function (node, lastLine, implicitLines) {
-        var origLen = (node.orig || node.value).length;
+    }
+    fnCreateLabelEntry(node, lastLine, implicitLines) {
+        const origLen = (node.orig || node.value).length;
         if (!BasicFormatter.fnHasLabel(node.value) && implicitLines) {
             node.value = String(lastLine + 1); // generate label
         }
-        var label = node.value;
+        const label = node.value;
         this.label = label; // for error messages
         if (BasicFormatter.fnHasLabel(label)) {
-            var line = Number(label);
+            const line = Number(label);
             if (line < 1 || line > 65535) {
                 throw this.composeError(Error(), "Line number overflow", label, node.pos, node.len);
             }
@@ -41,28 +41,28 @@ var BasicFormatter = /** @class */ (function () {
                 throw this.composeError(Error(), "Expected increasing line number", label, node.pos, node.len);
             }
         }
-        var labelEntry = {
+        const labelEntry = {
             value: label,
             pos: node.pos,
             len: origLen, // original length
             refCount: 0
         };
         return labelEntry;
-    };
-    BasicFormatter.prototype.fnCreateLabelMap = function (nodes, implicitLines) {
-        var lines = {}; // line numbers
-        var lastLine = 0;
-        for (var i = 0; i < nodes.length; i += 1) {
-            var node = nodes[i];
+    }
+    fnCreateLabelMap(nodes, implicitLines) {
+        const lines = {}; // line numbers
+        let lastLine = 0;
+        for (let i = 0; i < nodes.length; i += 1) {
+            const node = nodes[i];
             if (node.type === "label") {
-                var labelEntry = this.fnCreateLabelEntry(node, lastLine, implicitLines);
+                const labelEntry = this.fnCreateLabelEntry(node, lastLine, implicitLines);
                 lines[labelEntry.value] = labelEntry;
                 lastLine = Number(labelEntry.value);
             }
         }
         return lines;
-    };
-    BasicFormatter.prototype.fnAddSingleReference = function (node, lines, refs) {
+    }
+    fnAddSingleReference(node, lines, refs) {
         if (node.type === "linenumber") {
             if (node.value in lines) {
                 refs.push({
@@ -70,7 +70,7 @@ var BasicFormatter = /** @class */ (function () {
                     pos: node.pos,
                     len: (node.orig || node.value).length
                 });
-                var linesEntry = lines[node.value];
+                const linesEntry = lines[node.value];
                 if (linesEntry.refCount === undefined) { // not needed for renum but for removing line numbers
                     linesEntry.refCount = 1;
                 }
@@ -82,8 +82,8 @@ var BasicFormatter = /** @class */ (function () {
                 throw this.composeError(Error(), "Line does not exist", node.value, node.pos);
             }
         }
-    };
-    BasicFormatter.prototype.fnAddReferencesForNode = function (node, lines, refs) {
+    }
+    fnAddReferencesForNode(node, lines, refs) {
         if (node.type === "label") {
             this.label = node.value;
         }
@@ -104,20 +104,20 @@ var BasicFormatter = /** @class */ (function () {
                 this.fnAddReferences(node.args, lines, refs); // recursive
             }
         }
-    };
-    BasicFormatter.prototype.fnAddReferences = function (nodes, lines, refs) {
-        for (var i = 0; i < nodes.length; i += 1) {
+    }
+    fnAddReferences(nodes, lines, refs) {
+        for (let i = 0; i < nodes.length; i += 1) {
             this.fnAddReferencesForNode(nodes[i], lines, refs);
         }
-    };
-    BasicFormatter.prototype.fnRenumberLines = function (lines, refs, newLine, oldLine, step, keep) {
-        var changes = {}, keys = Object.keys(lines);
+    }
+    fnRenumberLines(lines, refs, newLine, oldLine, step, keep) {
+        const changes = {}, keys = Object.keys(lines);
         function fnSortbyPosition(a, b) {
             return lines[a].pos - lines[b].pos;
         }
         keys.sort(fnSortbyPosition);
-        for (var i = 0; i < keys.length; i += 1) {
-            var lineEntry = lines[keys[i]], hasLabel = BasicFormatter.fnHasLabel(lineEntry.value), line = Number(lineEntry.value);
+        for (let i = 0; i < keys.length; i += 1) {
+            const lineEntry = lines[keys[i]], hasLabel = BasicFormatter.fnHasLabel(lineEntry.value), line = Number(lineEntry.value);
             if (!hasLabel || (line >= oldLine && line < keep)) {
                 if (newLine > 65535) {
                     throw this.composeError(Error(), "Line number overflow", lineEntry.value, lineEntry.pos);
@@ -127,8 +127,8 @@ var BasicFormatter = /** @class */ (function () {
                 newLine += step;
             }
         }
-        for (var i = 0; i < refs.length; i += 1) {
-            var ref = refs[i], lineString = ref.value, line = Number(lineString);
+        for (let i = 0; i < refs.length; i += 1) {
+            const ref = refs[i], lineString = ref.value, line = Number(lineString);
             if (line >= oldLine && line < keep) {
                 if (lineString !== lines[lineString].newValue) {
                     ref.newValue = lines[lineString].newValue;
@@ -137,34 +137,34 @@ var BasicFormatter = /** @class */ (function () {
             }
         }
         return changes;
-    };
-    BasicFormatter.fnSortNumbers = function (a, b) {
+    }
+    static fnSortNumbers(a, b) {
         return a - b;
-    };
-    BasicFormatter.fnApplyChanges = function (input, changes) {
-        var keys = Object.keys(changes).map(Number);
+    }
+    static fnApplyChanges(input, changes) {
+        const keys = Object.keys(changes).map(Number);
         keys.sort(BasicFormatter.fnSortNumbers);
         // apply changes to input in reverse order
-        for (var i = keys.length - 1; i >= 0; i -= 1) {
-            var line = changes[keys[i]];
+        for (let i = keys.length - 1; i >= 0; i -= 1) {
+            const line = changes[keys[i]];
             input = input.substring(0, line.pos) + line.newValue + input.substring(line.pos + line.len);
         }
         return input;
-    };
-    BasicFormatter.prototype.fnRenumber = function (input, parseTree, newLine, oldLine, step, keep) {
-        var refs = [], // references
+    }
+    fnRenumber(input, parseTree, newLine, oldLine, step, keep) {
+        const refs = [], // references
         lines = this.fnCreateLabelMap(parseTree, Boolean(this.options.implicitLines));
         this.fnAddReferences(parseTree, lines, refs); // create reference list
-        var changes = this.fnRenumberLines(lines, refs, newLine, oldLine, step, keep), output = BasicFormatter.fnApplyChanges(input, changes);
+        const changes = this.fnRenumberLines(lines, refs, newLine, oldLine, step, keep), output = BasicFormatter.fnApplyChanges(input, changes);
         return output;
-    };
-    BasicFormatter.prototype.renumber = function (input, newLine, oldLine, step, keep) {
-        var out = {
+    }
+    renumber(input, newLine, oldLine, step, keep) {
+        const out = {
             text: ""
         };
         this.label = ""; // current line (label)
         try {
-            var tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.fnRenumber(input, parseTree, newLine, oldLine, step, keep || 65535);
+            const tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.fnRenumber(input, parseTree, newLine, oldLine, step, keep || 65535);
             out.text = output;
         }
         catch (e) {
@@ -177,16 +177,16 @@ var BasicFormatter = /** @class */ (function () {
             }
         }
         return out;
-    };
+    }
     // ---
-    BasicFormatter.prototype.fnRemoveUnusedLines = function (input, parseTree) {
-        var refs = [], // references
+    fnRemoveUnusedLines(input, parseTree) {
+        const refs = [], // references
         implicitLines = true, lines = this.fnCreateLabelMap(parseTree, implicitLines);
         this.fnAddReferences(parseTree, lines, refs); // create reference list
         // reference count would be enough
-        var changes = {}, keys = Object.keys(lines);
-        for (var i = 0; i < keys.length; i += 1) {
-            var lineEntry = lines[keys[i]];
+        const changes = {}, keys = Object.keys(lines);
+        for (let i = 0; i < keys.length; i += 1) {
+            const lineEntry = lines[keys[i]];
             if (lineEntry.len && !lineEntry.refCount) { // non-empty label without references?
                 lineEntry.newValue = ""; // set empty line number
                 if (input[lineEntry.pos + lineEntry.len] === " ") { // space following line number?
@@ -195,16 +195,16 @@ var BasicFormatter = /** @class */ (function () {
                 changes[lineEntry.pos] = lineEntry;
             }
         }
-        var output = BasicFormatter.fnApplyChanges(input, changes);
+        const output = BasicFormatter.fnApplyChanges(input, changes);
         return output;
-    };
-    BasicFormatter.prototype.removeUnusedLines = function (input) {
-        var out = {
+    }
+    removeUnusedLines(input) {
+        const out = {
             text: ""
         };
         this.label = ""; // current line (label)
         try {
-            var tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.fnRemoveUnusedLines(input, parseTree);
+            const tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.fnRemoveUnusedLines(input, parseTree);
             out.text = output;
         }
         catch (e) {
@@ -217,8 +217,6 @@ var BasicFormatter = /** @class */ (function () {
             }
         }
         return out;
-    };
-    return BasicFormatter;
-}());
-export { BasicFormatter };
+    }
+}
 //# sourceMappingURL=BasicFormatter.js.map

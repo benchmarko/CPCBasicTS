@@ -1,4 +1,4 @@
-import { ViewID } from "./Constants";
+import { ViewID } from "./UiConstants";
 export interface SelectOptionElement {
     value: string;
     text: string;

@@ -4,7 +4,7 @@ import { Utils } from "../Utils";
 import { CpcVm } from "../CpcVm";
 import { TestHelper } from "./TestHelper";
 // https://www.cpcwiki.eu/index.php/Locomotive_BASIC
-var allTests = {
+const allTests = {
     abs: {
         "-1 ": "1",
         "0 ": "0",
@@ -1948,114 +1948,66 @@ var allTests = {
     }
 };
 // tests added: USING with escape character "_"; VAl...
-var lastTestFunctions = [], // eslint-disable-line one-var
+const lastTestFunctions = [], // eslint-disable-line one-var
 varTypesMap = {}, variablesMap = {}, mockCanvas = {
-    setOptions: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setOptions: function (...args) {
         lastTestFunctions.push({
-            setOptions: args.map(function (arg) { return String(arg); })
+            setOptions: args.map((arg) => String(arg))
         });
     },
-    getOptions: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    getOptions: function (...args) {
         lastTestFunctions.push({
             getOptions: args
         });
     },
-    changeMode: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    changeMode: function (...args) {
         lastTestFunctions.push({
             changeMode: args
         });
     },
-    clearFullWindow: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    clearFullWindow: function (...args) {
         lastTestFunctions.push({
             clearFullWindow: args
         });
     },
-    clearGraphicsWindow: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    clearGraphicsWindow: function (...args) {
         lastTestFunctions.push({
             clearGraphicsWindow: args
         });
     },
-    clearTextWindow: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    clearTextWindow: function (...args) {
         lastTestFunctions.push({
             clearTextWindow: args
         });
     },
-    draw: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    draw: function (...args) {
         lastTestFunctions.push({
             draw: args
         });
     },
-    drawCursor: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    drawCursor: function (...args) {
         lastTestFunctions.push({
             drawCursor: args
         });
     },
-    fill: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    fill: function (...args) {
         lastTestFunctions.push({
             fill: args
         });
     },
-    fillTextBox: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    fillTextBox: function (...args) {
         lastTestFunctions.push({
             fillTextBox: args
         });
     },
-    getCharData: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    getCharData: function (...args) {
         lastTestFunctions.push({
             getCharData: args
         });
         return [0x18, 0x3c, 0x66, 0x66, 0x7e, 0x66, 0x66, 0x00]; // eslint-disable-line array-element-newline
     },
-    getByte: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        var addr = args[0];
+    getByte: function (...args) {
+        const addr = args[0];
         // test output only for 2 bytes starting with 0x0000, 0x4000, 0x8000, 0xc000
         if ((addr & 0xc001) === addr) { // eslint-disable-line no-bitwise
             lastTestFunctions.push({
@@ -2064,115 +2016,67 @@ varTypesMap = {}, variablesMap = {}, mockCanvas = {
         }
         return addr & 0xff; // eslint-disable-line no-bitwise
     },
-    getMode: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    getMode: function (...args) {
         lastTestFunctions.push({
             getMode: args
         });
         return 1;
     },
-    getXpos: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    getXpos: function (...args) {
         lastTestFunctions.push({
             getXpos: args
         });
         return 10;
     },
-    getYpos: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    getYpos: function (...args) {
         lastTestFunctions.push({
             getYpos: args
         });
         return 20;
     },
-    move: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    move: function (...args) {
         lastTestFunctions.push({
             move: args
         });
     },
-    plot: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    plot: function (...args) {
         lastTestFunctions.push({
             plot: args
         });
     },
-    printChar: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    printChar: function (...args) {
         lastTestFunctions.push({
-            printChar: args.map(function (arg) { return String(arg); })
+            printChar: args.map((arg) => String(arg))
         });
     },
-    printGChar: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    printGChar: function (...args) {
         lastTestFunctions.push({
             printGChar: args
         });
     },
-    readChar: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    readChar: function (...args) {
         lastTestFunctions.push({
             readChar: args
         });
         return 65;
     },
-    reset: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    reset: function (...args) {
         lastTestFunctions.push({
             reset: args
         });
     },
-    resetCustomChars: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    resetCustomChars: function (...args) {
         lastTestFunctions.push({
             resetCustomChars: args
         });
     },
-    setBorder: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setBorder: function (...args) {
         lastTestFunctions.push({
             setBorder: args
         });
     },
-    setByte: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        var addr = args[0];
+    setByte: function (...args) {
+        const addr = args[0];
         // test output only for 2 bytes starting with 0x0000, 0x4000, 0x8000, 0xc000
         if ((addr & 0xc001) === addr) { // eslint-disable-line no-bitwise
             lastTestFunctions.push({
@@ -2181,376 +2085,220 @@ varTypesMap = {}, variablesMap = {}, mockCanvas = {
         }
     },
     setCustomChar: function (char, charData) {
-        var charDataStrings = charData.map(function (arg) { return arg; }), stringArgs = [char].concat(charDataStrings);
+        const charDataStrings = charData.map((arg) => arg), stringArgs = [char].concat(charDataStrings);
         lastTestFunctions.push({
             setCustomChar: stringArgs
         });
     },
-    setDefaultInks: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setDefaultInks: function (...args) {
         lastTestFunctions.push({
             setDefaultInks: args
         });
     },
-    setGColMode: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setGColMode: function (...args) {
         lastTestFunctions.push({
             setGColMode: args
         });
     },
-    setGPaper: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setGPaper: function (...args) {
         lastTestFunctions.push({
             setGPaper: args
         });
     },
-    setGPen: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setGPen: function (...args) {
         lastTestFunctions.push({
             setGPen: args
         });
     },
-    setGTransparentMode: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setGTransparentMode: function (...args) {
         lastTestFunctions.push({
-            setGTransparentMode: args.map(function (arg) { return String(arg); })
+            setGTransparentMode: args.map((arg) => String(arg))
         });
     },
-    setGWindow: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setGWindow: function (...args) {
         lastTestFunctions.push({
             setGWindow: args
         });
     },
-    setInk: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setInk: function (...args) {
         lastTestFunctions.push({
             setInk: args
         });
         return Boolean(args[0]); // example
     },
-    setMask: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setMask: function (...args) {
         lastTestFunctions.push({
             setMask: args
         });
     },
-    setMaskFirst: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setMaskFirst: function (...args) {
         lastTestFunctions.push({
             setMaskFirst: args
         });
     },
-    setMode: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setMode: function (...args) {
         lastTestFunctions.push({
             setMode: args
         });
     },
-    setOrigin: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setOrigin: function (...args) {
         lastTestFunctions.push({
             setOrigin: args
         });
     },
-    setSpeedInk: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setSpeedInk: function (...args) {
         lastTestFunctions.push({
             setSpeedInk: args
         });
     },
-    test: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    test: function (...args) {
         lastTestFunctions.push({
             test: args
         });
         return Number(args[0]) % 16; // example
     },
-    updateSpeedInk: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    updateSpeedInk: function (...args) {
         lastTestFunctions.push({
             updateSpeedInk: args
         });
     },
-    windowScrollDown: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    windowScrollDown: function (...args) {
         lastTestFunctions.push({
             windowScrollDown: args
         });
     },
-    startUpdateCanvas: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    startUpdateCanvas: function (...args) {
         lastTestFunctions.push({
             startUpdateCanvas: args
         });
     },
-    stopUpdateCanvas: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    stopUpdateCanvas: function (...args) {
         lastTestFunctions.push({
             stopUpdateCanvas: args
         });
     },
-    setScreenOffset: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setScreenOffset: function (...args) {
         lastTestFunctions.push({
             startUpdateCanvas: args
         });
     },
-    updateColorsAndCanvasImmediately: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    updateColorsAndCanvasImmediately: function (...args) {
         lastTestFunctions.push({
             updateColorsAndCanvasImmediately: [String(args)]
         });
     },
-    onCanvasClick: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    onCanvasClick: function (...args) {
         lastTestFunctions.push({
             onCanvasClick: [String(args)]
         });
     },
-    onWindowClick: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    onWindowClick: function (...args) {
         lastTestFunctions.push({
             onWindowClick: [String(args)]
         });
     },
-    getXOrigin: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    getXOrigin: function (...args) {
         lastTestFunctions.push({
             getXOrigin: args
         });
         return 0;
     },
-    getYOrigin: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    getYOrigin: function (...args) {
         lastTestFunctions.push({
             getYOrigin: args
         });
         return 0;
     },
-    windowScrollUp: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    windowScrollUp: function (...args) {
         lastTestFunctions.push({
             windowScrollUp: args
         });
     },
-    takeScreenShot: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    takeScreenShot: function (...args) {
         lastTestFunctions.push({
             takeScreenShot: args
         });
         return "scr";
     }
 }, mockKeyboard = {
-    clearInput: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    clearInput: function (...args) {
         lastTestFunctions.push({
             clearInput: args
         });
     },
-    getJoyState: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    getJoyState: function (...args) {
         lastTestFunctions.push({
             getJoyState: args
         });
         return 4 + Number(args); // example
     },
-    getKeyFromBuffer: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    getKeyFromBuffer: function (...args) {
         lastTestFunctions.push({
             getKeyFromBuffer: args
         });
         return "A";
     },
-    getKeyState: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    getKeyState: function (...args) {
         lastTestFunctions.push({
             getKeyState: args
         });
         return args[0] === 79 ? 13 : -1; // example
     },
-    putKeyInBuffer: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        var stringArgs = args.map(function (arg) { return JSON.stringify(arg); });
+    putKeyInBuffer: function (...args) {
+        const stringArgs = args.map((arg) => JSON.stringify(arg));
         lastTestFunctions.push({
             putKeyInBuffer: stringArgs
         });
     },
-    reset: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    reset: function (...args) {
         lastTestFunctions.push({
             reset: args
         });
     },
-    resetCpcKeysExpansions: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    resetCpcKeysExpansions: function (...args) {
         lastTestFunctions.push({
             resetCpcKeysExpansions: args
         });
     },
-    resetExpansionTokens: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    resetExpansionTokens: function (...args) {
         lastTestFunctions.push({
             resetExpansionTokens: args
         });
     },
-    setCpcKeyExpansion: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        var stringArgs = args.map(function (arg) { return JSON.stringify(arg); });
+    setCpcKeyExpansion: function (...args) {
+        const stringArgs = args.map((arg) => JSON.stringify(arg));
         lastTestFunctions.push({
             setCpcKeyExpansion: stringArgs
         });
     },
-    setExpansionToken: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    setExpansionToken: function (...args) {
         lastTestFunctions.push({
             setExpansionToken: args
         });
     }
 }, mockSound = {
-    release: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    release: function (...args) {
         lastTestFunctions.push({
             release: args
         });
     },
-    reset: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    reset: function (...args) {
         lastTestFunctions.push({
             reset: args
         });
     },
-    resetQueue: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    resetQueue: function (...args) {
         lastTestFunctions.push({
             resetQueue: args
         });
     },
-    scheduler: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    scheduler: function (...args) {
         lastTestFunctions.push({
             scheduler: args
         });
     },
     setToneEnv: function (toneEnv, toneEnvData) {
-        var args2 = [
+        const args2 = [
             toneEnv,
             JSON.stringify(toneEnvData)
         ];
@@ -2559,7 +2307,7 @@ varTypesMap = {}, variablesMap = {}, mockCanvas = {
         });
     },
     setVolEnv: function (volEnv, volEnvData) {
-        var args2 = [
+        const args2 = [
             volEnv,
             JSON.stringify(volEnvData)
         ];
@@ -2567,63 +2315,39 @@ varTypesMap = {}, variablesMap = {}, mockCanvas = {
             setVolEnv: args2
         });
     },
-    sound: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        var stringArgs = args.map(function (arg) { return JSON.stringify(arg); });
+    sound: function (...args) {
+        const stringArgs = args.map((arg) => JSON.stringify(arg));
         lastTestFunctions.push({
             sound: stringArgs
         });
     },
-    sq: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    sq: function (...args) {
         lastTestFunctions.push({
             sq: args
         });
         return 3;
     },
-    testCanQueue: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    testCanQueue: function (...args) {
         lastTestFunctions.push({
             testCanQueue: args
         });
         return Boolean(args[0] & ~0x02); // eslint-disable-line no-bitwise
     }
 }, mockRandom = {
-    init: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    init: function (...args) {
         lastTestFunctions.push({
             init: args
         });
     },
-    random: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    random: function (...args) {
         lastTestFunctions.push({
             random: args
         });
         return 0.5;
     }
 }, mockVariables = {
-    dimVariable: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        var varName = args[0], stringArgs = args.map(function (arg) { return String(arg); });
+    dimVariable: function (...args) {
+        const varName = args[0], stringArgs = args.map((arg) => String(arg));
         variablesMap[varName] = this.getVarType(varName.charAt(0)) === "$" ? [""] : [0]; // we set one dimension, one element
         lastTestFunctions.push({
             dimVariable: stringArgs
@@ -2642,25 +2366,25 @@ varTypesMap = {}, variablesMap = {}, mockCanvas = {
         variablesMap[varName] = this.getVarType(varName.charAt(0)) === "$" ? "" : 0;
     },
     initAllVariables: function () {
-        var variables = this.getAllVariableNames();
-        for (var i = 0; i < variables.length; i += 1) {
+        const variables = this.getAllVariableNames();
+        for (let i = 0; i < variables.length; i += 1) {
             this.initVariable(variables[i]);
         }
     },
-    getAllVariableNames: function () {
+    getAllVariableNames() {
         return Object.keys(variablesMap);
     },
-    variableExist: function (name) {
+    variableExist(name) {
         return name in variablesMap;
     },
-    removeAllVariables: function () {
-        for (var name_1 in variablesMap) { // eslint-disable-line guard-for-in
-            delete variablesMap[name_1];
+    removeAllVariables() {
+        for (const name in variablesMap) { // eslint-disable-line guard-for-in
+            delete variablesMap[name];
         }
     }
 };
 function createCpcVm() {
-    var options = {
+    const options = {
         canvas: mockCanvas,
         keyboard: mockKeyboard,
         random: mockRandom,
@@ -2675,7 +2399,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
         hooks.cpcVm = createCpcVm();
     });
     function deleteObjectContents(obj) {
-        for (var prop in obj) {
+        for (const prop in obj) {
             if (obj.hasOwnProperty(prop)) {
                 delete obj[prop];
             }
@@ -2685,16 +2409,16 @@ QUnit.module("CpcVm: Tests", function (hooks) {
         lastTestFunctions.length = 0;
     }
     function combineLastTestFunctions() {
-        return lastTestFunctions.map(function (lastTestFunction) { return Object.keys(lastTestFunction)[0] + ":" + Object.values(lastTestFunction)[0]; }).join(" , ") || undefined;
+        return lastTestFunctions.map((lastTestFunction) => Object.keys(lastTestFunction)[0] + ":" + Object.values(lastTestFunction)[0]).join(" , ") || undefined;
     }
     function getValidStream(cpcVm, input) {
-        var stream = cpcVm.vmRound(input);
+        let stream = cpcVm.vmRound(input);
         if (stream < 0 || stream > 7) {
             stream = 0;
         }
         return stream;
     }
-    var allTestFunctions = {
+    const allTestFunctions = {
         abs: function (cpcVm, input) {
             return String(cpcVm.abs.apply(cpcVm, input));
         },
@@ -2749,14 +2473,14 @@ QUnit.module("CpcVm: Tests", function (hooks) {
             cpcVm.clg.apply(cpcVm, input);
         },
         closein: function (cpcVm, input) {
-            var inFile = cpcVm.vmGetInFileObject();
+            const inFile = cpcVm.vmGetInFileObject();
             inFile.open = true;
             inFile.command = "test1";
             inFile.name = "name1";
             cpcVm.closein.apply(cpcVm, input);
         },
         closeout: function (cpcVm, input) {
-            var outFile = cpcVm.vmGetOutFileObject(), testCase = input.shift();
+            const outFile = cpcVm.vmGetOutFileObject(), testCase = input.shift();
             switch (testCase) {
                 case "_testCase1":
                     break;
@@ -2784,7 +2508,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
             return String(cpcVm.vmInternal.commaTab.apply(cpcVm, input));
         },
         cont: function (cpcVm, input) {
-            var testCase = input.shift();
+            const testCase = input.shift();
             switch (testCase) {
                 case "_testCase1":
                     cpcVm.vmSetStartLine(123);
@@ -2800,7 +2524,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
             cpcVm.cont.apply(cpcVm, input);
         },
         copychr$: function (cpcVm, input) {
-            var stream = getValidStream(cpcVm, Number(input));
+            const stream = getValidStream(cpcVm, Number(input));
             cpcVm.locate(stream, 2 + 1, 3 + 1);
             clearLastTestFunctions(); // test only copychr$
             return cpcVm.copychr$.apply(cpcVm, input);
@@ -2817,7 +2541,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
             return String(cpcVm.creal.apply(cpcVm, input));
         },
         cursor: function (cpcVm, input) {
-            var stream = getValidStream(cpcVm, Number(input));
+            const stream = getValidStream(cpcVm, Number(input));
             cpcVm.locate(stream, 2 + 1, 3 + 1);
             clearLastTestFunctions();
             cpcVm.cursor.apply(cpcVm, input);
@@ -2877,7 +2601,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
             cpcVm.env.apply(cpcVm, input);
         },
         eof: function (cpcVm, input) {
-            var inFile = cpcVm.vmGetInFileObject(), testCase = input.shift();
+            const inFile = cpcVm.vmGetInFileObject(), testCase = input.shift();
             switch (testCase) {
                 case "_testCase1":
                     break;
@@ -2933,7 +2657,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
             cpcVm.frame.apply(cpcVm, input);
         },
         fre: function (cpcVm, input) {
-            var testCase = input.shift();
+            const testCase = input.shift();
             switch (testCase) {
                 case "_testCase1":
                     break;
@@ -2964,7 +2688,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
             return cpcVm.hex$.apply(cpcVm, input);
         },
         himem: function (cpcVm, input) {
-            var testCase = input.shift();
+            const testCase = input.shift();
             switch (testCase) {
                 case "_testCase1":
                     break;
@@ -2993,7 +2717,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
             if (input.length && input[0] === 9) {
                 if (input.length >= 2) { // test case with arguments?
                     cpcVm.openin("file1");
-                    var inFile = cpcVm.vmGetInFileObject(), input2 = "abc\ndef\n7";
+                    const inFile = cpcVm.vmGetInFileObject(), input2 = "abc\ndef\n7";
                     if (inFile.fnFileCallback) {
                         inFile.fnFileCallback(input2);
                     }
@@ -3001,17 +2725,17 @@ QUnit.module("CpcVm: Tests", function (hooks) {
                 }
             }
             cpcVm.input.apply(cpcVm, input);
-            var stop = cpcVm.vmGetStopObject();
+            const stop = cpcVm.vmGetStopObject();
             if (stop.reason === "waitInput" && stop.paras.command === "input") {
-                var inputParas = stop.paras;
+                const inputParas = stop.paras;
                 inputParas.input = "abc1,7,e";
-                var mockPrint = cpcVm.print;
-                cpcVm.print = function () { return undefined; };
+                const mockPrint = cpcVm.print;
+                cpcVm.print = () => undefined;
                 inputParas.fnInputCallback();
                 cpcVm.print = mockPrint;
             }
-            var collectInput = [];
-            var nextInput;
+            const collectInput = [];
+            let nextInput;
             do {
                 nextInput = cpcVm.vmGetNextInput();
                 if (nextInput !== undefined) {
@@ -3043,9 +2767,9 @@ QUnit.module("CpcVm: Tests", function (hooks) {
         },
         lineInput: function (cpcVm, input) {
             cpcVm.lineInput.apply(cpcVm, input);
-            var stop = cpcVm.vmGetStopObject();
+            const stop = cpcVm.vmGetStopObject();
             if (stop.reason === "waitInput" && stop.paras.command === "lineinput") {
-                var inputParas = stop.paras;
+                const inputParas = stop.paras;
                 inputParas.input = "abc1,7,e";
                 inputParas.fnInputCallback();
             }
@@ -3056,9 +2780,9 @@ QUnit.module("CpcVm: Tests", function (hooks) {
         },
         load: function (cpcVm, input) {
             cpcVm.load.apply(cpcVm, input);
-            var stop = cpcVm.vmGetStopObject(), inFile = cpcVm.vmGetInFileObject(), inFileString = JSON.stringify(inFile);
+            const stop = cpcVm.vmGetStopObject(), inFile = cpcVm.vmGetInFileObject(), inFileString = JSON.stringify(inFile);
             if (stop.reason === "fileLoad" && inFile.command === "load") {
-                var input2 = "\x31\x32", meta = {
+                const input2 = "\x31\x32", meta = {
                     typeString: "B"
                 };
                 if (inFile.fnFileCallback) {
@@ -3068,7 +2792,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
             return inFileString;
         },
         locate: function (cpcVm, input) {
-            var stream = getValidStream(cpcVm, Number(input));
+            const stream = getValidStream(cpcVm, Number(input));
             cpcVm.locate.apply(cpcVm, input);
             return cpcVm.pos(stream) + "," + cpcVm.vpos(stream);
         },
@@ -3144,9 +2868,9 @@ QUnit.module("CpcVm: Tests", function (hooks) {
         },
         openin: function (cpcVm, input) {
             cpcVm.openin.apply(cpcVm, input);
-            var stop = cpcVm.vmGetStopObject(), inFile = cpcVm.vmGetInFileObject();
+            const stop = cpcVm.vmGetStopObject(), inFile = cpcVm.vmGetInFileObject();
             if (stop.reason === "fileLoad" && inFile.command === "openin") {
-                var input2 = "10,a\b20,b\n";
+                const input2 = "10,a\b20,b\n";
                 if (inFile.fnFileCallback) {
                     inFile.fnFileCallback(input2);
                 }
@@ -3200,12 +2924,12 @@ QUnit.module("CpcVm: Tests", function (hooks) {
         },
         randomize: function (cpcVm, input) {
             cpcVm.randomize.apply(cpcVm, input);
-            var stop = cpcVm.vmGetStopObject();
+            const stop = cpcVm.vmGetStopObject();
             if (stop.reason === "waitInput" && stop.paras.command === "randomize") {
-                var inputParas = stop.paras;
+                const inputParas = stop.paras;
                 inputParas.input = "12.76";
-                var mockPrint = cpcVm.print;
-                cpcVm.print = function () { return undefined; };
+                const mockPrint = cpcVm.print;
+                cpcVm.print = () => undefined;
                 inputParas.fnInputCallback();
                 cpcVm.print = mockPrint;
             }
@@ -3246,9 +2970,9 @@ QUnit.module("CpcVm: Tests", function (hooks) {
         },
         run: function (cpcVm, input) {
             cpcVm.run.apply(cpcVm, input);
-            var stop = cpcVm.vmGetStopObject(), inFile = cpcVm.vmGetInFileObject(), stopString = JSON.stringify(stop);
+            const stop = cpcVm.vmGetStopObject(), inFile = cpcVm.vmGetInFileObject(), stopString = JSON.stringify(stop);
             if (stop.reason === "fileLoad" && inFile.command === "run") {
-                var input2 = "10 print 12.76", meta = {
+                const input2 = "10 print 12.76", meta = {
                     typeString: "A"
                 };
                 if (!inFile.fnFileCallback) {
@@ -3338,7 +3062,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
             return String(cpcVm.testr.apply(cpcVm, input));
         },
         time: function (cpcVm, input) {
-            var time = cpcVm.time.apply(cpcVm, input);
+            let time = cpcVm.time.apply(cpcVm, input);
             if (time) { // we need a fixed value
                 time = 3;
             }
@@ -3419,15 +3143,15 @@ QUnit.module("CpcVm: Tests", function (hooks) {
         }
     };
     function adaptParameters(input) {
-        var args = [], parts = input.split(/,?("[^"]*"),?/);
-        for (var p = 0; p < parts.length; p += 1) {
-            var part = parts[p];
+        const args = [], parts = input.split(/,?("[^"]*"),?/);
+        for (let p = 0; p < parts.length; p += 1) {
+            const part = parts[p];
             if (part.startsWith('"')) { // string in quotes?
                 args.push(part.substring(1, 1 + part.length - 2)); // remove quotes
             }
             else if (part !== "") {
-                var a = part.split(",");
-                for (var i = 0; i < a.length; i += 1) {
+                const a = part.split(",");
+                for (let i = 0; i < a.length; i += 1) {
                     if (a[i] !== "") { // non empty string => to number
                         args.push(Number(a[i]));
                     }
@@ -3440,21 +3164,21 @@ QUnit.module("CpcVm: Tests", function (hooks) {
         return args;
     }
     function getVmState(cpcVm) {
-        var vmState = {
+        const vmState = {
             /* eslint-disable object-curly-newline */
             stopObject: JSON.stringify(Object.assign({ _key: "stop" }, cpcVm.vmGetStopObject())),
             inFileObject: JSON.stringify(Object.assign({ _key: "inFile" }, cpcVm.vmGetInFileObject())),
             outFileObject: JSON.stringify(Object.assign({ _key: "outFile" }, cpcVm.vmGetOutFileObject()))
             /* eslint-enable object-curly-newline */
         }, winDataList = cpcVm.vmInternal.getWindowDataList.call(cpcVm), timerList = cpcVm.vmInternal.getTimerList.call(cpcVm);
-        for (var i = 0; i < winDataList.length; i += 1) {
-            var key = "win" + i, winData = Object.assign({
+        for (let i = 0; i < winDataList.length; i += 1) {
+            const key = "win" + i, winData = Object.assign({
                 _key: key
             }, winDataList[i]);
             vmState[key] = winData;
         }
-        for (var i = 0; i < timerList.length; i += 1) {
-            var key = "timer" + i, timerData = Object.assign({
+        for (let i = 0; i < timerList.length; i += 1) {
+            const key = "timer" + i, timerData = Object.assign({
                 _key: key
             }, timerList[i]);
             timerData.nextTimeMs = undefined; // remove varying property
@@ -3464,8 +3188,8 @@ QUnit.module("CpcVm: Tests", function (hooks) {
     }
     function getStateDiff(vmState0, vmState1) {
         if (typeof vmState0 === "object" && typeof vmState1 === "object") {
-            var stateObj0 = vmState0, stateObj1 = vmState1;
-            for (var key in stateObj1) {
+            const stateObj0 = vmState0, stateObj1 = vmState1;
+            for (const key in stateObj1) {
                 if (stateObj1.hasOwnProperty(key)) {
                     if (key !== "_key" && stateObj1[key] === stateObj0[key]) {
                         // same values set to undefined (will be ignored by JSON.stringify)
@@ -3475,20 +3199,20 @@ QUnit.module("CpcVm: Tests", function (hooks) {
                 }
             }
         }
-        var vmState0AsString = typeof vmState0 !== "string" ? JSON.stringify(vmState0) : vmState0, vmState1AsString = typeof vmState1 !== "string" ? JSON.stringify(vmState1) : vmState1;
+        const vmState0AsString = typeof vmState0 !== "string" ? JSON.stringify(vmState0) : vmState0, vmState1AsString = typeof vmState1 !== "string" ? JSON.stringify(vmState1) : vmState1;
         return vmState0AsString !== vmState1AsString ? vmState1AsString : undefined;
     }
     function combineResult(vmState0, vmState1, result) {
-        var combinedTestFunctions = combineLastTestFunctions(), combinedResult = [];
+        const combinedTestFunctions = combineLastTestFunctions(), combinedResult = [];
         if (combinedTestFunctions !== undefined) {
             combinedResult.push(combinedTestFunctions);
         }
         if (result !== undefined) {
             combinedResult.push(result);
         }
-        for (var state in vmState0) {
+        for (const state in vmState0) {
             if (vmState0.hasOwnProperty(state)) {
-                var stateDiff = getStateDiff(vmState0[state], vmState1[state]);
+                const stateDiff = getStateDiff(vmState0[state], vmState1[state]);
                 if (stateDiff !== undefined) {
                     combinedResult.push(stateDiff);
                 }
@@ -3507,13 +3231,13 @@ QUnit.module("CpcVm: Tests", function (hooks) {
         config.variables.removeAllVariables();
         clearLastTestFunctions();
         cpcVm.vmStop("", 0, true);
-        var vmState0 = getVmState(cpcVm), input = key === "" ? [] : adaptParameters(key);
-        var result;
+        const vmState0 = getVmState(cpcVm), input = key === "" ? [] : adaptParameters(key);
+        let result;
         try {
             if (!testFunction) {
                 throw new Error("Undefined testFunction: " + category);
             }
-            var result0 = testFunction(cpcVm, input);
+            const result0 = testFunction(cpcVm, input);
             result = combineResult(vmState0, getVmState(cpcVm), result0);
         }
         catch (e) {
@@ -3525,10 +3249,10 @@ QUnit.module("CpcVm: Tests", function (hooks) {
         return result;
     }
     function runTestsFor(category, tests, assert, results) {
-        var cpcVm = hooks.cpcVm, testFunction = allTestFunctions[category];
-        for (var key in tests) {
+        const cpcVm = hooks.cpcVm, testFunction = allTestFunctions[category];
+        for (const key in tests) {
             if (tests.hasOwnProperty(key)) {
-                var expected = tests[key], result = runSingleTest(testFunction, cpcVm, cpcVm.getOptions(), key, expected, category);
+                const expected = tests[key], result = runSingleTest(testFunction, cpcVm, cpcVm.getOptions(), key, expected, category);
                 if (results) {
                     results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
                 }
@@ -3541,9 +3265,9 @@ QUnit.module("CpcVm: Tests", function (hooks) {
     TestHelper.generateAllTests(allTests, runTestsFor, hooks);
 });
 QUnit.module("CpcVm: vm functions", function (hooks) {
-    var that = {}; // eslint-disable-line consistent-this
+    const that = {}; // eslint-disable-line consistent-this
     hooks.beforeEach(function () {
-        var config = {
+        const config = {
             canvas: mockCanvas,
             keyboard: mockKeyboard,
             random: mockRandom,
@@ -3554,19 +3278,13 @@ QUnit.module("CpcVm: vm functions", function (hooks) {
         that.cpcVm = new CpcVm(config);
     });
     QUnit.test("init without options", function (assert) {
-        var minimalCanvas = {
-            reset: function () { return undefined; },
-            setOptions: function () {
-                var _args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    _args[_i] = arguments[_i];
-                }
-                return undefined;
-            }
+        const minimalCanvas = {
+            reset: () => undefined,
+            setOptions: (..._args) => undefined
         }, minimalKeyboard = {
-            reset: function () { return undefined; }
+            reset: () => undefined
         }, minimalRandom = {}, minimalSound = {
-            reset: function () { return undefined; }
+            reset: () => undefined
         }, minimalVariables = {}, cpcVm = new CpcVm({
             canvas: minimalCanvas,
             keyboard: minimalKeyboard,
@@ -3577,7 +3295,7 @@ QUnit.module("CpcVm: vm functions", function (hooks) {
         assert.ok(cpcVm, "defined");
     });
     QUnit.test("vmReset", function (assert) {
-        var cpcVm = that.cpcVm;
+        const cpcVm = that.cpcVm;
         cpcVm.vmReset();
         assert.ok(cpcVm, "defined");
     });

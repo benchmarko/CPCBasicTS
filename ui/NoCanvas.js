@@ -2,126 +2,124 @@
 // (c) Marco Vieth, 2023
 // https://benchmarko.github.io/CPCBasicTS/
 //
-var NoCanvas = /** @class */ (function () {
-    function NoCanvas(options) {
+export class NoCanvas {
+    constructor(options) {
         this.options = {};
         this.setOptions(options);
         this.reset();
     }
-    NoCanvas.prototype.getOptions = function () {
+    getOptions() {
         return this.options;
-    };
-    NoCanvas.prototype.setOptions = function (options) {
+    }
+    setOptions(options) {
         Object.assign(this.options, options);
-    };
-    NoCanvas.prototype.reset = function () {
-    };
-    NoCanvas.prototype.resetCustomChars = function () {
-    };
-    NoCanvas.prototype.setScreenOffset = function (_offset) {
-    };
-    NoCanvas.prototype.updateColorsAndCanvasImmediately = function (_inkList) {
-    };
-    NoCanvas.prototype.updateSpeedInk = function () {
-    };
-    NoCanvas.prototype.setCustomChar = function (_char, _charData) {
-    };
-    NoCanvas.prototype.getCharData = function (_char) {
+    }
+    reset() {
+    }
+    resetCustomChars() {
+    }
+    setScreenOffset(_offset) {
+    }
+    updateColorsAndCanvasImmediately(_inkList) {
+    }
+    updateSpeedInk() {
+    }
+    setCustomChar(_char, _charData) {
+    }
+    getCharData(_char) {
         return [];
-    };
-    NoCanvas.prototype.setDefaultInks = function () {
-    };
-    NoCanvas.prototype.onCanvasClick = function (_event) {
-    };
-    NoCanvas.prototype.getXpos = function () {
+    }
+    setDefaultInks() {
+    }
+    onCanvasClick(_event) {
+    }
+    getXpos() {
         return 0;
-    };
-    NoCanvas.prototype.getYpos = function () {
+    }
+    getYpos() {
         return 0;
-    };
-    NoCanvas.prototype.getByte = function (_addr) {
+    }
+    getByte(_addr) {
         return 0;
-    };
-    NoCanvas.prototype.setByte = function (_addr, _byte) {
-    };
-    NoCanvas.prototype.draw = function (_x, _y) {
-    };
-    NoCanvas.prototype.move = function (_x, _y) {
-    };
-    NoCanvas.prototype.plot = function (_x, _y) {
-    };
-    NoCanvas.prototype.test = function (_x, _y) {
+    }
+    setByte(_addr, _byte) {
+    }
+    draw(_x, _y) {
+    }
+    move(_x, _y) {
+    }
+    plot(_x, _y) {
+    }
+    test(_x, _y) {
         return 0;
-    };
-    NoCanvas.prototype.setInk = function (_pen, _ink1, _ink2) {
+    }
+    setInk(_pen, _ink1, _ink2) {
         return false;
-    };
-    NoCanvas.prototype.setBorder = function (_ink1, _ink2) {
-    };
-    NoCanvas.prototype.setGPen = function (_gPen) {
-    };
-    NoCanvas.prototype.setGPaper = function (_gPaper) {
-    };
-    NoCanvas.prototype.setGTransparentMode = function (_transparent) {
-    };
-    NoCanvas.prototype.printGChar = function (_char) {
-    };
-    NoCanvas.prototype.drawCursor = function (_x, _y, _pen, _paper) {
-    };
-    NoCanvas.prototype.fill = function (_fillPen) {
-    };
-    NoCanvas.prototype.setOrigin = function (_xOrig, _yOrig) {
-    };
-    NoCanvas.prototype.getXOrigin = function () {
+    }
+    setBorder(_ink1, _ink2) {
+    }
+    setGPen(_gPen) {
+    }
+    setGPaper(_gPaper) {
+    }
+    setGTransparentMode(_transparent) {
+    }
+    printGChar(_char) {
+    }
+    drawCursor(_x, _y, _pen, _paper) {
+    }
+    fill(_fillPen) {
+    }
+    setOrigin(_xOrig, _yOrig) {
+    }
+    getXOrigin() {
         return 0;
-    };
-    NoCanvas.prototype.getYOrigin = function () {
+    }
+    getYOrigin() {
         return 0;
-    };
-    NoCanvas.prototype.setGWindow = function (_xLeft, _xRight, _yTop, _yBottom) {
-    };
-    NoCanvas.prototype.setGColMode = function (_gColMode) {
-    };
-    NoCanvas.prototype.clearGraphicsWindow = function () {
-    };
-    NoCanvas.prototype.setSpeedInk = function (_time1, _time2) {
-    };
-    NoCanvas.prototype.setMask = function (_mask) {
-    };
-    NoCanvas.prototype.setMaskFirst = function (_maskFirst) {
-    };
-    NoCanvas.prototype.getMode = function () {
+    }
+    setGWindow(_xLeft, _xRight, _yTop, _yBottom) {
+    }
+    setGColMode(_gColMode) {
+    }
+    clearGraphicsWindow() {
+    }
+    setSpeedInk(_time1, _time2) {
+    }
+    setMask(_mask) {
+    }
+    setMaskFirst(_maskFirst) {
+    }
+    getMode() {
         return 0;
-    };
-    NoCanvas.prototype.changeMode = function (_mode) {
-    };
-    NoCanvas.prototype.takeScreenShot = function () {
+    }
+    changeMode(_mode) {
+    }
+    takeScreenShot() {
         return "";
-    };
-    NoCanvas.prototype.startUpdateCanvas = function () {
-    };
-    NoCanvas.prototype.stopUpdateCanvas = function () {
-    };
-    NoCanvas.prototype.onWindowClick = function (_event) {
-    };
-    NoCanvas.prototype.fillTextBox = function (_left, _top, _width, _height, _paper) {
-    };
-    NoCanvas.prototype.printChar = function (_char, _x, _y, _pen, _paper, _transparent) {
-    };
-    NoCanvas.prototype.readChar = function (_x, _y, _pen, _paper) {
+    }
+    startUpdateCanvas() {
+    }
+    stopUpdateCanvas() {
+    }
+    onWindowClick(_event) {
+    }
+    fillTextBox(_left, _top, _width, _height, _paper) {
+    }
+    printChar(_char, _x, _y, _pen, _paper, _transparent) {
+    }
+    readChar(_x, _y, _pen, _paper) {
         return 0;
-    };
-    NoCanvas.prototype.clearTextWindow = function (_left, _right, _top, _bottom, _paper) {
-    };
-    NoCanvas.prototype.setMode = function (_mode) {
-    };
-    NoCanvas.prototype.clearFullWindow = function () {
-    };
-    NoCanvas.prototype.windowScrollUp = function (_left, _right, _top, _bottom, _paper) {
-    };
-    NoCanvas.prototype.windowScrollDown = function (_left, _right, _top, _bottom, _paper) {
-    };
-    return NoCanvas;
-}());
-export { NoCanvas };
+    }
+    clearTextWindow(_left, _right, _top, _bottom, _paper) {
+    }
+    setMode(_mode) {
+    }
+    clearFullWindow() {
+    }
+    windowScrollUp(_left, _right, _top, _bottom, _paper) {
+    }
+    windowScrollDown(_left, _right, _top, _bottom, _paper) {
+    }
+}
 //# sourceMappingURL=NoCanvas.js.map

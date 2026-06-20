@@ -1,74 +1,73 @@
+import { Controller0 } from "./Controller0";
 import { Model } from "./Model";
 import { Utils } from "./Utils";
-var ModelPropIDdatabase = "database";
-var ModelPropIDexample = "example";
-var ModelPropIDdatabaseDirs = "databaseDirs";
-var Core = /** @class */ (function () {
-    function Core(defaultConfig) {
-        var _this = this;
-        this.addIndex = function (dir, input) {
-            var _a;
+const ModelPropIDdatabase = "database";
+const ModelPropIDexample = "example";
+const ModelPropIDdatabaseDirs = "databaseDirs";
+export class Core {
+    constructor(defaultConfig) {
+        this.addIndex = (dir, input) => {
             if (typeof input === "function") {
-                input = (_a = {},
-                    _a[dir] = JSON.parse(Core.fnHereDoc(input).trim()),
-                    _a);
+                input = {
+                    [dir]: JSON.parse(Core.fnHereDoc(input).trim())
+                };
             }
-            for (var value in input) {
-                var item = input[value];
-                for (var i = 0; i < item.length; i += 1) {
-                    _this.model.setExample(item[i]);
+            for (const value in input) {
+                const item = input[value];
+                for (let i = 0; i < item.length; i += 1) {
+                    this.model.setExample(item[i]);
                 }
             }
         };
-        this.addItem = function (key, input) {
-            var inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
+        this.addItem = (key, input) => {
+            let inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
             inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
             if (!key) { // maybe ""
-                console.warn("addItem: no key!");
+                Utils.console.warn("addItem: no key!");
                 key = "unknown";
             }
-            var example = _this.model.getExample(key);
+            const implicitLines = this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */);
+            const linesOnLoad = this.model.getProperty("linesOnLoad" /* ModelPropID.linesOnLoad */);
+            if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
+                inputString = Controller0.addLineNumbers(inputString);
+            }
+            const example = this.model.getExample(key);
             if (example) {
                 example.script = inputString;
             }
         };
-        this.addRsx = function (key, RsxConstructor) {
-            if (!key) { // maybe ""
-                key = (document.currentScript && document.currentScript.getAttribute("data-key")) || _this.model.getProperty(ModelPropIDexample);
-                // on IE we can just get the current example
-            }
-            var example = _this.model.getExample(key);
+        this.addRsx = (key, RsxConstructor) => {
+            const example = this.model.getExample(key);
             example.key = key; // maybe changed
             example.rsx = new RsxConstructor();
             example.loaded = true;
-            console.log("addItem:", key);
+            Utils.console.log("addItem:", key);
             return key;
         };
         this.model = new Model(defaultConfig);
     }
-    Core.prototype.init = function () {
+    init() {
         this.initDatabases();
-    };
-    Core.prototype.getModel = function () {
+    }
+    getModel() {
         return this.model;
-    };
-    Core.prototype.setDebug = function (debug) {
+    }
+    setDebug(debug) {
         Utils.setDebug(debug);
-    };
-    Core.getUniqueDbKey = function (name, databases) {
-        var key = name, index = 2;
+    }
+    static getUniqueDbKey(name, databases) {
+        let key = name, index = 2;
         while (databases[key]) {
             key = name + index;
             index += 1;
         }
         return key;
-    };
-    Core.prototype.initDatabases = function () {
-        var model = this.model, databases = {}, databaseDirs = model.getProperty(ModelPropIDdatabaseDirs).split(",");
+    }
+    initDatabases() {
+        const model = this.model, databases = {}, databaseDirs = model.getProperty(ModelPropIDdatabaseDirs).split(",");
         //let hasStorageDatabase = false;
-        for (var _i = 0, databaseDirs_1 = databaseDirs; _i < databaseDirs_1.length; _i++) {
-            var databaseDir = databaseDirs_1[_i];
-            var parts1 = databaseDir.split("="), databaseSrc = parts1[0], assignedName = parts1.length > 1 ? parts1[1] : "", parts2 = databaseSrc.split("/"), name_1 = assignedName || parts2[parts2.length - 1], key = Core.getUniqueDbKey(name_1, databases);
+        for (const databaseDir of databaseDirs) {
+            const parts1 = databaseDir.split("="), databaseSrc = parts1[0], assignedName = parts1.length > 1 ? parts1[1] : "", parts2 = databaseSrc.split("/"), name = assignedName || parts2[parts2.length - 1], key = Core.getUniqueDbKey(name, databases);
             databases[key] = {
                 text: key,
                 title: databaseSrc,
@@ -82,16 +81,15 @@ var Core = /** @class */ (function () {
         this.model.addDatabases(databases);
         //this.setDatabaseSelectOptions();
         //return hasStorageDatabase;
-    };
-    Core.fnHereDoc = function (fn) {
+    }
+    static fnHereDoc(fn) {
         return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
-    };
-    Core.prototype.parseArgs = function (args, config) {
-        for (var _i = 0, args_1 = args; _i < args_1.length; _i++) {
-            var arg = args_1[_i];
-            var _a = arg.split("="), name_2 = _a[0], valueParts = _a.slice(1);
-            var nameType = typeof config[name_2];
-            var value = valueParts.join("=");
+    }
+    parseArgs(args, config) {
+        for (const arg of args) {
+            const [name, ...valueParts] = arg.split("=");
+            const nameType = typeof config[name];
+            let value = valueParts.join("=");
             if (value !== undefined) {
                 if (nameType === "boolean") {
                     value = value === "true";
@@ -99,20 +97,18 @@ var Core = /** @class */ (function () {
                 else if (nameType === "number") {
                     value = Number(value);
                 }
-                config[name_2] = value;
+                config[name] = value;
             }
         }
         return config;
-    };
-    Core.prototype.fnRedirectExamples = function (redirectExamples) {
-        var model = this.getModel();
-        var name = model.getProperty(ModelPropIDdatabase) + "/" + model.getProperty(ModelPropIDexample);
+    }
+    fnRedirectExamples(redirectExamples) {
+        const model = this.getModel();
+        const name = model.getProperty(ModelPropIDdatabase) + "/" + model.getProperty(ModelPropIDexample);
         if (redirectExamples[name]) {
             model.setProperty(ModelPropIDdatabase, redirectExamples[name].database);
             model.setProperty(ModelPropIDexample, redirectExamples[name].example);
         }
-    };
-    return Core;
-}());
-export { Core };
+    }
+}
 //# sourceMappingURL=Core.js.map

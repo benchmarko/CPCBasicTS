@@ -1,5 +1,5 @@
 import type { ICanvasVm, VariableValue } from "../Interfaces";
-import type { ViewID } from "./Constants";
+import type { ViewID } from "./UiConstants";
 type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
 export type CanvasCharType = number[];
 export type CanvasCharsetType = CanvasCharType[];

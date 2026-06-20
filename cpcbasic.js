@@ -5,7 +5,7 @@
 import { Utils } from "./Utils";
 import { Core } from "./Core";
 import { cpcconfig } from "./cpcconfig";
-var startConfig = {
+const startConfig = {
     arrayBounds: false,
     autorun: true,
     basicVersion: "1.1", // "1.1" or "1.0"
@@ -51,23 +51,21 @@ var startConfig = {
     speed: 100,
     trace: false // trace code
 };
-var cpcBasic = /** @class */ (function () {
-    function cpcBasic() {
-    }
-    cpcBasic.start = function (startupAdapter) {
-        console.log("CPCBasicTS started at", Utils.dateFormat(new Date()));
-        var adapterConfig = startupAdapter.getConfigOverrides() || {};
+export class cpcBasic {
+    static start(startupAdapter) {
+        Utils.console.log("CPCBasicTS started at", Utils.dateFormat(new Date()));
+        const adapterConfig = startupAdapter.getConfigOverrides() || {};
         Object.assign(startConfig, cpcconfig, adapterConfig);
-        var redirectExamples = startConfig.redirectExamples;
+        const redirectExamples = startConfig.redirectExamples;
         delete startConfig.redirectExamples;
-        var core = new Core(startConfig);
+        const core = new Core(startConfig);
         if (redirectExamples) {
             core.fnRedirectExamples(redirectExamples);
         }
         if (!startupAdapter.isNodeRuntime()) {
-            var winFn = function () {
-                var ui = startupAdapter.getUI();
-                var win = window;
+            const winFn = () => {
+                const ui = startupAdapter.getUI();
+                const win = window;
                 if (!ui) {
                     throw new Error("start: UI undefined!");
                 }
@@ -76,27 +74,30 @@ var cpcBasic = /** @class */ (function () {
                 }
                 win.cpcBasic = {
                     addIndex: core.addIndex,
-                    addItem: function (key, input) {
+                    addItem: (key, input) => {
                         if (!key) { // maybe ""
                             key = ui.getCurrentDataKey();
                         }
                         core.addItem(key, input);
                     },
-                    addRsx: function (key, RsxConstructor) { return core.addRsx(key, RsxConstructor); }
+                    addRsx: (key, RsxConstructor) => {
+                        if (!key) { // maybe ""
+                            key = ui.getCurrentDataKey();
+                        }
+                        core.addRsx(key, RsxConstructor);
+                    }
                 };
                 ui.onWindowLoadContinue(core);
             };
             winFn();
         }
         else { // nodeJS
-            var nodeUtils = startupAdapter.getNodeUtils();
+            const nodeUtils = startupAdapter.getNodeUtils();
             if (!nodeUtils) {
                 throw new Error("start: NodeUtils undefined!");
             }
             nodeUtils.nodeMain(core);
         }
-    };
-    return cpcBasic;
-}());
-export { cpcBasic };
+    }
+}
 //# sourceMappingURL=cpcbasic.js.map

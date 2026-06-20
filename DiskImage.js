@@ -1,23 +1,12 @@
 // DiskImage.ts - DiskImage
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasicTS/
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
 // Extended DSK image definition
 // https://www.cpcwiki.eu/index.php/Format:DSK_disk_image_file_format
 // http://www.cpctech.org.uk/docs/extdsk.html
 import { Utils } from "./Utils";
-var DiskImage = /** @class */ (function () {
-    function DiskImage(options) {
+export class DiskImage {
+    constructor(options) {
         this.diskInfo = DiskImage.getInitialDiskInfo();
         this.options = {
             data: "",
@@ -25,19 +14,19 @@ var DiskImage = /** @class */ (function () {
         };
         this.setOptions(options);
     }
-    DiskImage.prototype.getOptions = function () {
+    getOptions() {
         return this.options;
-    };
-    DiskImage.prototype.setOptions = function (options) {
-        var currentData = this.options.data;
+    }
+    setOptions(options) {
+        const currentData = this.options.data;
         Object.assign(this.options, options);
         if (this.options.data !== currentData) { // changed?
             this.diskInfo.ident = ""; // invalidate diskinfo
             this.diskInfo.trackInfo.ident = ""; // invalidate trackinfo
         }
-    };
-    DiskImage.getInitialDiskInfo = function () {
-        var diskInfo = {
+    }
+    static getInitialDiskInfo() {
+        const diskInfo = {
             ident: "",
             creator: "",
             tracks: 0,
@@ -52,50 +41,50 @@ var DiskImage = /** @class */ (function () {
             extended: false
         };
         return diskInfo;
-    };
-    DiskImage.prototype.getFormatDescriptor = function () {
-        var formatDescriptor = this.formatDescriptor;
+    }
+    getFormatDescriptor() {
+        const formatDescriptor = this.formatDescriptor;
         if (!formatDescriptor) {
             throw this.composeError(Error(), "getFormatDescriptor: formatDescriptor:", String(formatDescriptor));
         }
         return formatDescriptor;
-    };
-    DiskImage.prototype.composeError = function (error, message, value, pos) {
-        var len = 0;
+    }
+    composeError(error, message, value, pos) {
+        const len = 0;
         return Utils.composeError("DiskImage", error, this.options.diskName + ": " + message, value, pos || 0, len);
-    };
-    DiskImage.testDiskIdent = function (ident) {
-        var diskType = DiskImage.diskInfoIdentMap[ident] || 0;
+    }
+    static testDiskIdent(ident) {
+        const diskType = DiskImage.diskInfoIdentMap[ident] || 0;
         return diskType;
-    };
-    DiskImage.prototype.readUtf = function (pos, len) {
-        var out = this.options.data.substring(pos, pos + len);
+    }
+    readUtf(pos, len) {
+        const out = this.options.data.substring(pos, pos + len);
         if (out.length !== len) {
             throw this.composeError(new Error(), "End of File", "", pos);
         }
         return out;
-    };
-    DiskImage.prototype.readUInt8 = function (pos) {
-        var num = this.options.data.charCodeAt(pos);
+    }
+    readUInt8(pos) {
+        const num = this.options.data.charCodeAt(pos);
         if (isNaN(num)) {
             throw this.composeError(new Error(), "End of File", String(num), pos);
         }
         return num;
-    };
-    DiskImage.prototype.readUInt16 = function (pos) {
+    }
+    readUInt16(pos) {
         return this.readUInt8(pos) + this.readUInt8(pos + 1) * 256;
-    };
-    DiskImage.uInt8ToString = function (value) {
+    }
+    static uInt8ToString(value) {
         return String.fromCharCode(value);
-    };
-    DiskImage.uInt16ToString = function (value) {
+    }
+    static uInt16ToString(value) {
         return DiskImage.uInt8ToString(value & 0xff) + DiskImage.uInt8ToString((value >> 8) & 0xff); // eslint-disable-line no-bitwise
-    };
-    DiskImage.uInt24ToString = function (value) {
+    }
+    static uInt24ToString(value) {
         return DiskImage.uInt16ToString(value & 0xffff) + DiskImage.uInt8ToString(value >> 16); // eslint-disable-line no-bitwise
-    };
-    DiskImage.prototype.readDiskInfo = function (diskInfo, pos) {
-        var ident = this.readUtf(pos, 8), // check first 8 characters as characteristic
+    }
+    readDiskInfo(diskInfo, pos) {
+        const ident = this.readUtf(pos, 8), // check first 8 characters as characteristic
         diskType = DiskImage.testDiskIdent(ident);
         if (!diskType) {
             throw this.composeError(Error(), "Ident not found", ident, pos);
@@ -112,12 +101,12 @@ var DiskImage = /** @class */ (function () {
         diskInfo.tracks = this.readUInt8(pos + 48);
         diskInfo.heads = this.readUInt8(pos + 49);
         diskInfo.trackSize = this.readUInt16(pos + 50);
-        var trackSizes = [], trackInfoPosList = [], trackSizeCount = diskInfo.tracks * diskInfo.heads; // number of track sizes
-        var trackInfoPos = DiskImage.diskInfoSize;
+        const trackSizes = [], trackInfoPosList = [], trackSizeCount = diskInfo.tracks * diskInfo.heads; // number of track sizes
+        let trackInfoPos = DiskImage.diskInfoSize;
         pos += 52; // track sizes high bytes start at offset 52 (0x35)
-        for (var i = 0; i < trackSizeCount; i += 1) {
+        for (let i = 0; i < trackSizeCount; i += 1) {
             trackInfoPosList.push(trackInfoPos);
-            var trackSize = diskInfo.trackSize || (this.readUInt8(pos + i) * 256); // take common track size or read individual track size (extended)
+            const trackSize = diskInfo.trackSize || (this.readUInt8(pos + i) * 256); // take common track size or read individual track size (extended)
             trackSizes.push(trackSize);
             trackInfoPos += trackSize;
         }
@@ -127,19 +116,19 @@ var DiskImage = /** @class */ (function () {
         if (Utils.debug > 1) {
             Utils.console.debug("readDiskInfo: extended=" + diskInfo.extended + ", tracks=" + diskInfo.tracks + ", heads=" + diskInfo.heads + ", trackSize=" + diskInfo.trackSize);
         }
-    };
-    DiskImage.createDiskInfoAsString = function (diskInfo) {
+    }
+    static createDiskInfoAsString(diskInfo) {
         // only standard format
-        var diskInfoString = diskInfo.ident // 34
+        const diskInfoString = diskInfo.ident // 34
             + diskInfo.creator // 14
             + DiskImage.uInt8ToString(diskInfo.tracks)
             + DiskImage.uInt8ToString(diskInfo.heads)
             + DiskImage.uInt16ToString(diskInfo.trackSize)
             + DiskImage.uInt8ToString(0).repeat(204); // unused
         return diskInfoString;
-    };
-    DiskImage.prototype.readTrackInfo = function (trackInfo, pos) {
-        var trackInfoSize = DiskImage.trackInfoSize, sectorInfoList = trackInfo.sectorInfoList, trackDataPos = pos + trackInfoSize;
+    }
+    readTrackInfo(trackInfo, pos) {
+        const trackInfoSize = DiskImage.trackInfoSize, sectorInfoList = trackInfo.sectorInfoList, trackDataPos = pos + trackInfoSize;
         trackInfo.ident = this.readUtf(pos, 12);
         if (trackInfo.ident.substring(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
             // "Track-Info" string is optional
@@ -157,12 +146,12 @@ var DiskImage = /** @class */ (function () {
         trackInfo.gap3 = this.readUInt8(pos + 22);
         trackInfo.fill = this.readUInt8(pos + 23);
         sectorInfoList.length = trackInfo.spt;
-        var sectorNum2Index = {};
+        const sectorNum2Index = {};
         trackInfo.sectorNum2Index = sectorNum2Index;
         pos += 24; // start sector info
-        var sectorPos = trackDataPos;
-        for (var i = 0; i < trackInfo.spt; i += 1) {
-            var sectorInfo = sectorInfoList[i] || {}; // reuse SectorInfo object if possible
+        let sectorPos = trackDataPos;
+        for (let i = 0; i < trackInfo.spt; i += 1) {
+            const sectorInfo = sectorInfoList[i] || {}; // reuse SectorInfo object if possible
             sectorInfoList[i] = sectorInfo;
             sectorInfo.dataPos = sectorPos;
             sectorInfo.track = this.readUInt8(pos);
@@ -171,16 +160,16 @@ var DiskImage = /** @class */ (function () {
             sectorInfo.bps = this.readUInt8(pos + 3);
             sectorInfo.state1 = this.readUInt8(pos + 4);
             sectorInfo.state2 = this.readUInt8(pos + 5);
-            var sectorSize = this.readUInt16(pos + 6) || (0x0080 << trackInfo.bps); // eslint-disable-line no-bitwise
+            const sectorSize = this.readUInt16(pos + 6) || (0x0080 << trackInfo.bps); // eslint-disable-line no-bitwise
             sectorInfo.sectorSize = sectorSize;
             sectorPos += sectorSize;
             sectorNum2Index[sectorInfo.sector] = i;
             pos += 8;
         }
-    };
-    DiskImage.createTrackInfoAsString = function (trackInfo) {
-        var sectorInfoList = trackInfo.sectorInfoList;
-        var trackInfoString = trackInfo.ident // 12
+    }
+    static createTrackInfoAsString(trackInfo) {
+        const sectorInfoList = trackInfo.sectorInfoList;
+        let trackInfoString = trackInfo.ident // 12
             + DiskImage.uInt8ToString(0).repeat(4) // 4 unused
             + DiskImage.uInt8ToString(trackInfo.track)
             + DiskImage.uInt8ToString(trackInfo.head)
@@ -190,8 +179,8 @@ var DiskImage = /** @class */ (function () {
             + DiskImage.uInt8ToString(trackInfo.spt)
             + DiskImage.uInt8ToString(trackInfo.gap3)
             + DiskImage.uInt8ToString(trackInfo.fill);
-        for (var i = 0; i < trackInfo.spt; i += 1) {
-            var sectorInfo = sectorInfoList[i], sectorinfoString = DiskImage.uInt8ToString(sectorInfo.track)
+        for (let i = 0; i < trackInfo.spt; i += 1) {
+            const sectorInfo = sectorInfoList[i], sectorinfoString = DiskImage.uInt8ToString(sectorInfo.track)
                 + DiskImage.uInt8ToString(sectorInfo.head)
                 + DiskImage.uInt8ToString(sectorInfo.sector)
                 + DiskImage.uInt8ToString(sectorInfo.bps)
@@ -203,74 +192,74 @@ var DiskImage = /** @class */ (function () {
         // fill up
         trackInfoString += DiskImage.uInt8ToString(0).repeat(DiskImage.trackInfoSize - trackInfoString.length);
         return trackInfoString;
-    };
-    DiskImage.prototype.seekTrack = function (diskInfo, track, head) {
+    }
+    seekTrack(diskInfo, track, head) {
         if (!diskInfo.ident) {
             this.readDiskInfo(diskInfo, 0);
         }
-        var trackInfo = diskInfo.trackInfo;
+        const trackInfo = diskInfo.trackInfo;
         if (trackInfo.ident && trackInfo.track === track && trackInfo.head === head) { // already positionend?
             return;
         }
-        var trackInfoPos = diskInfo.trackInfoPosList[track * diskInfo.heads + head];
+        const trackInfoPos = diskInfo.trackInfoPosList[track * diskInfo.heads + head];
         if (trackInfoPos === undefined) {
             throw this.composeError(new Error(), "Track not found", String(track));
         }
         this.readTrackInfo(trackInfo, trackInfoPos);
-    };
-    DiskImage.sectorNum2Index = function (trackInfo, sector) {
-        var sectorIndex = trackInfo.sectorNum2Index[sector];
+    }
+    static sectorNum2Index(trackInfo, sector) {
+        const sectorIndex = trackInfo.sectorNum2Index[sector];
         return sectorIndex;
-    };
-    DiskImage.seekSector = function (sectorInfoList, sectorIndex) {
+    }
+    static seekSector(sectorInfoList, sectorIndex) {
         return sectorInfoList[sectorIndex];
-    };
-    DiskImage.prototype.readSector = function (trackInfo, sector) {
-        var sectorIndex = DiskImage.sectorNum2Index(trackInfo, sector);
+    }
+    readSector(trackInfo, sector) {
+        const sectorIndex = DiskImage.sectorNum2Index(trackInfo, sector);
         if (sectorIndex === undefined) {
             throw this.composeError(Error(), "Track " + trackInfo.track + ": Sector not found", String(sector), 0);
         }
-        var sectorInfo = DiskImage.seekSector(trackInfo.sectorInfoList, sectorIndex), out = this.readUtf(sectorInfo.dataPos, sectorInfo.sectorSize);
+        const sectorInfo = DiskImage.seekSector(trackInfo.sectorInfoList, sectorIndex), out = this.readUtf(sectorInfo.dataPos, sectorInfo.sectorSize);
         return out;
-    };
-    DiskImage.prototype.writeSector = function (trackInfo, sector, sectorData) {
-        var sectorIndex = DiskImage.sectorNum2Index(trackInfo, sector);
+    }
+    writeSector(trackInfo, sector, sectorData) {
+        const sectorIndex = DiskImage.sectorNum2Index(trackInfo, sector);
         if (sectorIndex === undefined) {
             throw this.composeError(Error(), "Track " + trackInfo.track + ": Sector not found", String(sector), 0);
         }
-        var sectorInfo = DiskImage.seekSector(trackInfo.sectorInfoList, sectorIndex), data = this.options.data;
+        const sectorInfo = DiskImage.seekSector(trackInfo.sectorInfoList, sectorIndex), data = this.options.data;
         if (sectorData.length !== sectorInfo.sectorSize) {
             Utils.console.error(this.composeError({}, "sectordata.length " + sectorData.length + " <> sectorSize " + sectorInfo.sectorSize, String(0)));
         }
         this.options.data = data.substring(0, sectorInfo.dataPos) + sectorData + data.substring(sectorInfo.dataPos + sectorInfo.sectorSize);
-    };
+    }
     // ...
-    DiskImage.prototype.composeFormatDescriptor = function (format) {
-        var derivedFormatDescriptor = DiskImage.formatDescriptors[format];
+    composeFormatDescriptor(format) {
+        const derivedFormatDescriptor = DiskImage.formatDescriptors[format];
         if (!derivedFormatDescriptor) {
             throw this.composeError(Error(), "Unknown format", format);
         }
-        var formatDescriptor;
+        let formatDescriptor;
         if (derivedFormatDescriptor.parentRef) {
-            var parentFormatDescriptor = this.composeFormatDescriptor(derivedFormatDescriptor.parentRef); // recursive
+            const parentFormatDescriptor = this.composeFormatDescriptor(derivedFormatDescriptor.parentRef); // recursive
             formatDescriptor = Object.assign({}, parentFormatDescriptor, derivedFormatDescriptor);
         }
         else {
             formatDescriptor = Object.assign({}, derivedFormatDescriptor); // get a copy
         }
         return formatDescriptor;
-    };
-    DiskImage.prototype.determineFormat = function (diskInfo) {
-        var trackInfo = diskInfo.trackInfo, track = 0, head = 0;
+    }
+    determineFormat(diskInfo) {
+        const trackInfo = diskInfo.trackInfo, track = 0, head = 0;
         this.seekTrack(diskInfo, track, head);
-        var firstSector = 0xff;
-        for (var i = 0; i < trackInfo.spt; i += 1) {
-            var sector = trackInfo.sectorInfoList[i].sector;
+        let firstSector = 0xff;
+        for (let i = 0; i < trackInfo.spt; i += 1) {
+            const sector = trackInfo.sectorInfoList[i].sector;
             if (sector < firstSector) {
                 firstSector = sector;
             }
         }
-        var format = "";
+        let format = "";
         if (firstSector === 0xc1) {
             format = "data";
         }
@@ -293,9 +282,9 @@ var DiskImage = /** @class */ (function () {
             Utils.console.debug("determineFormat: format=", format);
         }
         return format;
-    };
-    DiskImage.prototype.createImage = function (format) {
-        var formatDescriptor = this.composeFormatDescriptor(format), sectorInfoList = [], sectorSize = (0x80 << formatDescriptor.bps), // eslint-disable-line no-bitwise
+    }
+    createImage(format) {
+        const formatDescriptor = this.composeFormatDescriptor(format), sectorInfoList = [], sectorSize = (0x80 << formatDescriptor.bps), // eslint-disable-line no-bitwise
         sectorInfo = {
             track: 0,
             head: 0,
@@ -328,28 +317,28 @@ var DiskImage = /** @class */ (function () {
             trackInfoPosList: [],
             extended: false
         }, emptySectorData = DiskImage.uInt8ToString(formatDescriptor.fill).repeat(sectorSize);
-        for (var i = 0; i < trackInfo.spt; i += 1) {
-            var sectorInfoClone = __assign({}, sectorInfo);
+        for (let i = 0; i < trackInfo.spt; i += 1) {
+            const sectorInfoClone = Object.assign({}, sectorInfo);
             sectorInfoClone.sector = formatDescriptor.firstSector + i;
             trackInfo.sectorNum2Index[sectorInfoClone.sector] = i;
             sectorInfoList.push(sectorInfoClone);
         }
-        var image = DiskImage.createDiskInfoAsString(diskInfo), trackInfoPos = DiskImage.diskInfoSize;
-        for (var track = 0; track < formatDescriptor.tracks; track += 1) {
-            for (var head = 0; head < formatDescriptor.heads; head += 1) {
+        let image = DiskImage.createDiskInfoAsString(diskInfo), trackInfoPos = DiskImage.diskInfoSize;
+        for (let track = 0; track < formatDescriptor.tracks; track += 1) {
+            for (let head = 0; head < formatDescriptor.heads; head += 1) {
                 trackInfo.track = track;
                 trackInfo.head = head;
                 diskInfo.trackInfoPosList.push(trackInfoPos);
-                for (var sector = 0; sector < trackInfo.spt; sector += 1) {
-                    var sectorInfo2 = sectorInfoList[sector];
+                for (let sector = 0; sector < trackInfo.spt; sector += 1) {
+                    const sectorInfo2 = sectorInfoList[sector];
                     sectorInfo2.track = track;
                     sectorInfo2.head = head;
                     // in case we want to use the formatted image...
                     sectorInfo2.dataPos = trackInfoPos + DiskImage.trackInfoSize + sector * sectorInfo2.sectorSize;
                 }
-                var trackAsString = DiskImage.createTrackInfoAsString(trackInfo);
+                const trackAsString = DiskImage.createTrackInfoAsString(trackInfo);
                 image += trackAsString;
-                for (var sector = 0; sector < formatDescriptor.spt; sector += 1) {
+                for (let sector = 0; sector < formatDescriptor.spt; sector += 1) {
                     image += emptySectorData;
                 }
                 trackInfoPos += diskInfo.trackSize;
@@ -358,23 +347,23 @@ var DiskImage = /** @class */ (function () {
         this.diskInfo = diskInfo;
         this.formatDescriptor = formatDescriptor;
         return image;
-    };
-    DiskImage.prototype.formatImage = function (format) {
-        var image = this.createImage(format);
+    }
+    formatImage(format) {
+        const image = this.createImage(format);
         this.options.data = image;
         return image;
-    };
-    DiskImage.fnRemoveHighBit7 = function (str) {
-        var out = "";
-        for (var i = 0; i < str.length; i += 1) {
-            var char = str.charCodeAt(i);
+    }
+    static fnRemoveHighBit7(str) {
+        let out = "";
+        for (let i = 0; i < str.length; i += 1) {
+            const char = str.charCodeAt(i);
             out += String.fromCharCode(char & 0x7f); // eslint-disable-line no-bitwise
         }
         return out;
-    };
-    DiskImage.prototype.readDirectoryExtents = function (extents, pos, endPos) {
+    }
+    readDirectoryExtents(extents, pos, endPos) {
         while (pos < endPos) {
-            var extent = {
+            const extent = {
                 user: this.readUInt8(pos),
                 name: this.readUtf(pos + 1, 8),
                 ext: this.readUtf(pos + 9, 3), // extension with flags
@@ -385,69 +374,69 @@ var DiskImage = /** @class */ (function () {
                 blocks: []
             };
             pos += 16;
-            var blocks = extent.blocks;
-            for (var i = 0; i < 16; i += 1) {
-                var block = this.readUInt8(pos + i);
+            const blocks = extent.blocks;
+            for (let i = 0; i < 16; i += 1) {
+                const block = this.readUInt8(pos + i);
                 blocks.push(block);
             }
             pos += 16;
             extents.push(extent);
         }
         return extents;
-    };
-    DiskImage.createDirectoryExtentAsString = function (extent) {
-        var extentString = DiskImage.uInt8ToString(extent.user)
+    }
+    static createDirectoryExtentAsString(extent) {
+        let extentString = DiskImage.uInt8ToString(extent.user)
             + extent.name
             + extent.ext
             + DiskImage.uInt8ToString(extent.extent)
             + DiskImage.uInt8ToString(extent.lastRecBytes)
             + DiskImage.uInt8ToString(extent.extentHi)
             + DiskImage.uInt8ToString(extent.records), blockString = "";
-        for (var i = 0; i < extent.blocks.length; i += 1) {
+        for (let i = 0; i < extent.blocks.length; i += 1) {
             blockString += DiskImage.uInt8ToString(extent.blocks[i]);
         }
         extentString += blockString;
         return extentString;
-    };
-    DiskImage.createSeveralDirectoryExtentsAsString = function (extents, first, last) {
-        var extentString = "";
-        for (var i = first; i < last; i += 1) {
+    }
+    static createSeveralDirectoryExtentsAsString(extents, first, last) {
+        let extentString = "";
+        for (let i = first; i < last; i += 1) {
             extentString += DiskImage.createDirectoryExtentAsString(extents[i]);
         }
         return extentString;
-    };
-    DiskImage.fnSortByExtentNumber = function (a, b) {
+    }
+    static fnSortByExtentNumber(a, b) {
         return a.extent - b.extent;
-    };
+    }
     // do not know if we need to sort the extents per file, but...
-    DiskImage.sortFileExtents = function (dir) {
-        for (var name_1 in dir) {
-            if (dir.hasOwnProperty(name_1)) {
-                var fileExtents = dir[name_1];
+    static sortFileExtents(dir) {
+        for (const name in dir) {
+            if (dir.hasOwnProperty(name)) {
+                const fileExtents = dir[name];
                 fileExtents.sort(DiskImage.fnSortByExtentNumber);
             }
         }
-    };
-    DiskImage.prepareDirectoryList = function (extents, fill, reFilePattern) {
-        var dir = {};
-        for (var i = 0; i < extents.length; i += 1) {
-            var extent = extents[i];
+    }
+    static prepareDirectoryList(extents, fill, reFilePattern) {
+        const dir = {};
+        for (let i = 0; i < extents.length; i += 1) {
+            const extent = extents[i];
             if (fill === null || extent.user !== fill) {
-                var name_2 = DiskImage.fnRemoveHighBit7(extent.name) + "." + DiskImage.fnRemoveHighBit7(extent.ext); // and extent.user?
+                const name = DiskImage.fnRemoveHighBit7(extent.name) + "." + DiskImage.fnRemoveHighBit7(extent.ext); // and extent.user?
                 // (do not convert filename here (to display messages in filenames))
-                if (!reFilePattern || reFilePattern.test(name_2)) {
-                    if (!(name_2 in dir)) {
-                        dir[name_2] = [];
+                if (!reFilePattern || reFilePattern.test(name)) {
+                    if (!(name in dir)) {
+                        dir[name] = [];
                     }
-                    dir[name_2].push(extent);
+                    dir[name].push(extent);
                 }
             }
         }
         DiskImage.sortFileExtents(dir);
         return dir;
-    };
-    DiskImage.convertBlock2Sector = function (formatDescriptor, block) {
-        var spt = formatDescriptor.spt, blockSectors = formatDescriptor.bls / 512, // usually 2
+    }
+    static convertBlock2Sector(formatDescriptor, block) {
+        const spt = formatDescriptor.spt, blockSectors = formatDescriptor.bls / 512, // usually 2
         logSec = block * blockSectors, // directory is in block 0-1
         pos = {
             track: Math.floor(logSec / spt) + formatDescriptor.off,
@@ -455,61 +444,61 @@ var DiskImage = /** @class */ (function () {
             sector: (logSec % spt) + formatDescriptor.firstSector
         };
         return pos;
-    };
-    DiskImage.prototype.readAllDirectoryExtents = function (diskInfo, formatDescriptor, extents) {
-        var directorySectors = 4, // could be determined from al0,al1
+    }
+    readAllDirectoryExtents(diskInfo, formatDescriptor, extents) {
+        const directorySectors = 4, // could be determined from al0,al1
         off = formatDescriptor.off, firstSector = formatDescriptor.firstSector, trackInfo = diskInfo.trackInfo, sectorInfoList = trackInfo.sectorInfoList;
         this.seekTrack(diskInfo, off, 0);
-        for (var i = 0; i < directorySectors; i += 1) {
-            var sectorIndex = DiskImage.sectorNum2Index(trackInfo, firstSector + i);
+        for (let i = 0; i < directorySectors; i += 1) {
+            const sectorIndex = DiskImage.sectorNum2Index(trackInfo, firstSector + i);
             if (sectorIndex === undefined) {
                 throw this.composeError(Error(), "Cannot read directory at track " + off + " sector", String(firstSector));
             }
-            var sectorInfo = DiskImage.seekSector(sectorInfoList, sectorIndex);
+            const sectorInfo = DiskImage.seekSector(sectorInfoList, sectorIndex);
             this.readDirectoryExtents(extents, sectorInfo.dataPos, sectorInfo.dataPos + sectorInfo.sectorSize);
         }
         return extents;
-    };
-    DiskImage.prototype.writeAllDirectoryExtents = function (diskInfo, formatDescriptor, extents) {
-        var directoryBlocks = 2, // could be determined from al0,al1
+    }
+    writeAllDirectoryExtents(diskInfo, formatDescriptor, extents) {
+        const directoryBlocks = 2, // could be determined from al0,al1
         extentsPerBlock = extents.length / directoryBlocks;
-        for (var i = 0; i < directoryBlocks; i += 1) {
-            var blockData = DiskImage.createSeveralDirectoryExtentsAsString(extents, i * extentsPerBlock, (i + 1) * extentsPerBlock);
+        for (let i = 0; i < directoryBlocks; i += 1) {
+            const blockData = DiskImage.createSeveralDirectoryExtentsAsString(extents, i * extentsPerBlock, (i + 1) * extentsPerBlock);
             this.writeBlock(diskInfo, formatDescriptor, i, blockData);
         }
-    };
-    DiskImage.prototype.readDirectory = function () {
-        var diskInfo = this.diskInfo, format = this.determineFormat(diskInfo), formatDescriptor = this.composeFormatDescriptor(format), extents = [];
+    }
+    readDirectory() {
+        const diskInfo = this.diskInfo, format = this.determineFormat(diskInfo), formatDescriptor = this.composeFormatDescriptor(format), extents = [];
         this.formatDescriptor = formatDescriptor;
         this.readAllDirectoryExtents(diskInfo, formatDescriptor, extents);
         return DiskImage.prepareDirectoryList(extents, this.formatDescriptor.fill);
-    };
-    DiskImage.nextSector = function (formatDescriptor, pos) {
+    }
+    static nextSector(formatDescriptor, pos) {
         pos.sector += 1;
         if (pos.sector >= formatDescriptor.firstSector + formatDescriptor.spt) {
             pos.track += 1;
             pos.sector = formatDescriptor.firstSector;
         }
-    };
-    DiskImage.prototype.readBlock = function (diskInfo, formatDescriptor, block) {
-        var blockSectors = formatDescriptor.bls / 512, // usually 2
+    }
+    readBlock(diskInfo, formatDescriptor, block) {
+        const blockSectors = formatDescriptor.bls / 512, // usually 2
         pos = DiskImage.convertBlock2Sector(formatDescriptor, block);
-        var out = "";
+        let out = "";
         if (pos.track >= diskInfo.tracks) {
             Utils.console.error(this.composeError({}, "Block " + block + ": Track out of range", String(pos.track)));
         }
         if (pos.head >= diskInfo.heads) {
             Utils.console.error(this.composeError({}, "Block " + block + ": Head out of range", String(pos.track)));
         }
-        for (var i = 0; i < blockSectors; i += 1) {
+        for (let i = 0; i < blockSectors; i += 1) {
             this.seekTrack(diskInfo, pos.track, pos.head);
             out += this.readSector(diskInfo.trackInfo, pos.sector);
             DiskImage.nextSector(formatDescriptor, pos);
         }
         return out;
-    };
-    DiskImage.prototype.writeBlock = function (diskInfo, formatDescriptor, block, blockData) {
-        var blockSectors = formatDescriptor.bls / 512, // usually 2
+    }
+    writeBlock(diskInfo, formatDescriptor, block, blockData) {
+        const blockSectors = formatDescriptor.bls / 512, // usually 2
         sectorSize = (0x80 << formatDescriptor.bps), // eslint-disable-line no-bitwise
         pos = DiskImage.convertBlock2Sector(formatDescriptor, block);
         if (pos.track >= diskInfo.tracks) {
@@ -521,26 +510,26 @@ var DiskImage = /** @class */ (function () {
         if (blockData.length !== (blockSectors * sectorSize)) {
             Utils.console.error(this.composeError({}, "blockData.length " + blockData.length + " <> blockSize " + (blockSectors * sectorSize), String(0)));
         }
-        for (var i = 0; i < blockSectors; i += 1) {
+        for (let i = 0; i < blockSectors; i += 1) {
             this.seekTrack(diskInfo, pos.track, pos.head);
-            var sectorData = blockData.substring(i * sectorSize, (i + 1) * sectorSize);
+            const sectorData = blockData.substring(i * sectorSize, (i + 1) * sectorSize);
             this.writeSector(diskInfo.trackInfo, pos.sector, sectorData);
             DiskImage.nextSector(formatDescriptor, pos);
         }
-    };
-    DiskImage.prototype.readExtents = function (diskInfo, formatDescriptor, fileExtents) {
-        var recPerBlock = formatDescriptor.bls / 128; // usually 8
-        var out = "";
-        for (var i = 0; i < fileExtents.length; i += 1) {
-            var extent = fileExtents[i], blocks = extent.blocks;
-            var records = extent.records;
+    }
+    readExtents(diskInfo, formatDescriptor, fileExtents) {
+        const recPerBlock = formatDescriptor.bls / 128; // usually 8
+        let out = "";
+        for (let i = 0; i < fileExtents.length; i += 1) {
+            const extent = fileExtents[i], blocks = extent.blocks;
+            let records = extent.records;
             if (extent.extent > 0) {
                 if (recPerBlock > 8) { // fast hack for parados: adapt records
                     records += extent.extent * 128;
                 }
             }
-            for (var blockIndex = 0; blockIndex < blocks.length; blockIndex += 1) {
-                var block = this.readBlock(diskInfo, formatDescriptor, blocks[blockIndex]);
+            for (let blockIndex = 0; blockIndex < blocks.length; blockIndex += 1) {
+                let block = this.readBlock(diskInfo, formatDescriptor, blocks[blockIndex]);
                 if (records < recPerBlock) { // block with some remaining data
                     block = block.substring(0, 0x80 * records);
                 }
@@ -552,18 +541,18 @@ var DiskImage = /** @class */ (function () {
             }
         }
         return out;
-    };
-    DiskImage.prototype.readFile = function (fileExtents) {
-        var diskInfo = this.diskInfo, formatDescriptor = this.getFormatDescriptor();
-        var out = this.readExtents(diskInfo, formatDescriptor, fileExtents);
-        var header = DiskImage.parseAmsdosHeader(out);
-        var realLen;
+    }
+    readFile(fileExtents) {
+        const diskInfo = this.diskInfo, formatDescriptor = this.getFormatDescriptor();
+        let out = this.readExtents(diskInfo, formatDescriptor, fileExtents);
+        const header = DiskImage.parseAmsdosHeader(out);
+        let realLen;
         if (header) {
-            var amsdosHeaderLength = 0x80;
+            const amsdosHeaderLength = 0x80;
             realLen = header.length + amsdosHeaderLength;
         }
         if (realLen === undefined) { // no real length: ASCII: find EOF (0x1a) in last record
-            var fileLen = out.length, lastRecPos = fileLen > 0x80 ? (fileLen - 0x80) : 0, index = out.indexOf(String.fromCharCode(0x1a), lastRecPos);
+            const fileLen = out.length, lastRecPos = fileLen > 0x80 ? (fileLen - 0x80) : 0, index = out.indexOf(String.fromCharCode(0x1a), lastRecPos);
             if (index >= 0) {
                 realLen = index;
                 if (Utils.debug > 0) {
@@ -575,41 +564,41 @@ var DiskImage = /** @class */ (function () {
             out = out.substring(0, realLen);
         }
         return out;
-    };
-    DiskImage.getFreeExtents = function (extents, fill) {
-        var freeExtents = [];
-        for (var i = 0; i < extents.length; i += 1) {
+    }
+    static getFreeExtents(extents, fill) {
+        const freeExtents = [];
+        for (let i = 0; i < extents.length; i += 1) {
             if (extents[i].user === fill) {
                 freeExtents.push(i);
             }
         }
         return freeExtents;
-    };
-    DiskImage.getBlockMask = function (extents, fill, dsm, al0, al1) {
-        var blockMask = [];
-        for (var i = 0; i < dsm - 1; i += 1) {
+    }
+    static getBlockMask(extents, fill, dsm, al0, al1) {
+        const blockMask = [];
+        for (let i = 0; i < dsm - 1; i += 1) {
             blockMask[i] = false;
         }
         // mark reserved blocks
-        var mask = 0x80;
-        for (var i = 0; i < 8; i += 1) {
+        let mask = 0x80;
+        for (let i = 0; i < 8; i += 1) {
             if (al0 & mask) { // eslint-disable-line no-bitwise
                 blockMask[i] = true; // mark reserved block
             }
             mask >>= 1; // eslint-disable-line no-bitwise
         }
         mask = 0x80;
-        for (var i = 8; i < 16; i += 1) {
+        for (let i = 8; i < 16; i += 1) {
             if (al1 & mask) { // eslint-disable-line no-bitwise
                 blockMask[i] = true; // mark reserved block
             }
             mask >>= 1; // eslint-disable-line no-bitwise
         }
-        for (var i = 0; i < extents.length; i += 1) {
-            var extent = extents[i], blockList = extent.blocks;
+        for (let i = 0; i < extents.length; i += 1) {
+            const extent = extents[i], blockList = extent.blocks;
             if (extent.user !== fill) {
-                for (var blockindex = 0; blockindex < blockList.length; blockindex += 1) {
-                    var block = blockList[blockindex];
+                for (let blockindex = 0; blockindex < blockList.length; blockindex += 1) {
+                    const block = blockList[blockindex];
                     if (block) {
                         if (blockMask[block]) { // eslint-disable-line max-depth
                             Utils.console.warn("getBlockMask: Block number already in use: ", block);
@@ -623,26 +612,26 @@ var DiskImage = /** @class */ (function () {
             }
         }
         return blockMask;
-    };
-    DiskImage.getFreeBlocks = function (blockMask, dsm) {
-        var freeBlocks = [];
-        for (var i = 0; i < dsm; i += 1) {
+    }
+    static getFreeBlocks(blockMask, dsm) {
+        const freeBlocks = [];
+        for (let i = 0; i < dsm; i += 1) {
             if (!blockMask[i]) {
                 freeBlocks.push(i);
             }
         }
         return freeBlocks;
-    };
-    DiskImage.getFilenameAndExtension = function (filename) {
-        var _a = filename.split("."), name1 = _a[0], ext1 = _a[1]; // eslint-disable-line array-element-newline
+    }
+    static getFilenameAndExtension(filename) {
+        let [name1, ext1] = filename.split("."); // eslint-disable-line array-element-newline
         name1 = name1.substring(0, 8).toUpperCase().padEnd(8, " ");
         ext1 = ext1.substring(0, 3).toUpperCase().padEnd(3, " ");
         return [name1, ext1]; // eslint-disable-line array-element-newline
-    };
-    DiskImage.prototype.writeFile = function (filename, data) {
-        var diskInfo = this.diskInfo, formatDescriptor = this.getFormatDescriptor(), extents = [];
+    }
+    writeFile(filename, data) {
+        const diskInfo = this.diskInfo, formatDescriptor = this.getFormatDescriptor(), extents = [];
         this.readAllDirectoryExtents(diskInfo, formatDescriptor, extents);
-        var fill = formatDescriptor.fill, freeExtents = DiskImage.getFreeExtents(extents, formatDescriptor.fill), sectors = (formatDescriptor.tracks - formatDescriptor.off) * formatDescriptor.spt, ssize = 0x80 << formatDescriptor.bps, // eslint-disable-line no-bitwise
+        const fill = formatDescriptor.fill, freeExtents = DiskImage.getFreeExtents(extents, formatDescriptor.fill), sectors = (formatDescriptor.tracks - formatDescriptor.off) * formatDescriptor.spt, ssize = 0x80 << formatDescriptor.bps, // eslint-disable-line no-bitwise
         dsm = ((sectors * ssize) / formatDescriptor.bls) | 0, // eslint-disable-line no-bitwise
         // DSM: total size of disc in blocks excluding any reserved tracks
         al0 = formatDescriptor.al0, al1 = formatDescriptor.al1, blockMask = DiskImage.getBlockMask(extents, fill, dsm, al0, al1), freeBlocks = DiskImage.getFreeBlocks(blockMask, dsm);
@@ -657,23 +646,23 @@ var DiskImage = /** @class */ (function () {
             Utils.console.warn("writeFile: " + filename + ": Directory full!");
             return false;
         }
-        var _a = DiskImage.getFilenameAndExtension(filename), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline
+        const [name1, ext1] = DiskImage.getFilenameAndExtension(filename), // eslint-disable-line array-element-newline
         fileSize = data.length, bls = formatDescriptor.bls, requiredBlocks = ((fileSize + bls - 1) / bls) | 0; // eslint-disable-line no-bitwise
         if (requiredBlocks > freeBlocks.length) {
-            var requiredKB = ((requiredBlocks * bls) / 1024) | 0, // eslint-disable-line no-bitwise
+            const requiredKB = ((requiredBlocks * bls) / 1024) | 0, // eslint-disable-line no-bitwise
             freeKB = ((freeBlocks.length * bls) / 1024) | 0; // eslint-disable-line no-bitwise
             Utils.console.warn("writeFile: " + filename + ": Not enough space left (" + requiredKB + "K > " + freeKB + "K). Ignoring.");
             return false;
         }
-        var blocksPerExtent = 16, requiredExtents = ((requiredBlocks + blocksPerExtent - 1) / blocksPerExtent) | 0; // eslint-disable-line no-bitwise
+        const blocksPerExtent = 16, requiredExtents = ((requiredBlocks + blocksPerExtent - 1) / blocksPerExtent) | 0; // eslint-disable-line no-bitwise
         if (requiredExtents > freeExtents.length) {
             Utils.console.warn("writeFile: " + filename + ": Directory full!");
             return false;
         }
-        var size = fileSize, extent, extentCnt = 0, blockCnt = 0;
+        let size = fileSize, extent, extentCnt = 0, blockCnt = 0;
         while (size > 0) {
             if (!extent || (blockCnt >= 16)) {
-                var records = ((size + 0x80 - 1) / 0x80) | 0; // eslint-disable-line no-bitwise
+                const records = ((size + 0x80 - 1) / 0x80) | 0; // eslint-disable-line no-bitwise
                 extent = extents[freeExtents[extentCnt]];
                 extent.user = 0;
                 extent.name = name1;
@@ -683,20 +672,20 @@ var DiskImage = /** @class */ (function () {
                 extent.extentHi = 0;
                 extent.records = (records > 0x80) ? 0x80 : records;
                 extent.blocks.length = 0;
-                for (var i = 0; i < 16; i += 1) {
+                for (let i = 0; i < 16; i += 1) {
                     extent.blocks[i] = 0;
                 }
                 extentCnt += 1;
                 blockCnt = 0;
             }
-            var thisSize = (size > bls) ? bls : size;
-            var dataChunk = data.substring(fileSize - size, fileSize - size + thisSize);
+            const thisSize = (size > bls) ? bls : size;
+            let dataChunk = data.substring(fileSize - size, fileSize - size + thisSize);
             if (thisSize < bls) {
                 dataChunk += DiskImage.uInt8ToString(0x1a); // add EOF (0x1a)
-                var remain = bls - thisSize - 1;
+                const remain = bls - thisSize - 1;
                 dataChunk += DiskImage.uInt8ToString(formatDescriptor.fill).repeat(remain); // fill up last block with fill byte
             }
-            var block = freeBlocks[(extentCnt - 1) * 16 + blockCnt];
+            const block = freeBlocks[(extentCnt - 1) * 16 + blockCnt];
             this.writeBlock(diskInfo, formatDescriptor, block, dataChunk);
             extent.blocks[blockCnt] = block;
             blockCnt += 1;
@@ -704,28 +693,28 @@ var DiskImage = /** @class */ (function () {
         }
         this.writeAllDirectoryExtents(diskInfo, formatDescriptor, extents);
         return true;
-    };
-    DiskImage.isSectorEmpty = function (data, index, size, fill) {
-        var endIndex = (index + size) <= data.length ? index + size : data.length - index;
-        var isEmpty = true;
-        for (var i = index; i < endIndex; i += 1) {
+    }
+    static isSectorEmpty(data, index, size, fill) {
+        const endIndex = (index + size) <= data.length ? index + size : data.length - index;
+        let isEmpty = true;
+        for (let i = index; i < endIndex; i += 1) {
             if (data.charCodeAt(i) !== fill) {
                 isEmpty = false;
                 break;
             }
         }
         return isEmpty;
-    };
-    DiskImage.prototype.stripEmptyTracks = function () {
-        var diskInfo = this.diskInfo, format = this.determineFormat(diskInfo), formatDescriptor = this.composeFormatDescriptor(format), tracks = diskInfo.tracks, firstDataTrack = formatDescriptor.off, head = 0;
-        var data = this.options.data;
+    }
+    stripEmptyTracks() {
+        const diskInfo = this.diskInfo, format = this.determineFormat(diskInfo), formatDescriptor = this.composeFormatDescriptor(format), tracks = diskInfo.tracks, firstDataTrack = formatDescriptor.off, head = 0;
+        let data = this.options.data;
         this.formatDescriptor = formatDescriptor;
-        for (var track = firstDataTrack; track < tracks; track += 1) {
+        for (let track = firstDataTrack; track < tracks; track += 1) {
             this.seekTrack(diskInfo, track, head);
-            var trackInfo = diskInfo.trackInfo, fill = diskInfo.trackInfo.fill, sectorInfoList = trackInfo.sectorInfoList;
-            var isEmpty = true;
-            for (var i = 0; i < trackInfo.spt; i += 1) {
-                var sectorInfo = sectorInfoList[i];
+            const trackInfo = diskInfo.trackInfo, fill = diskInfo.trackInfo.fill, sectorInfoList = trackInfo.sectorInfoList;
+            let isEmpty = true;
+            for (let i = 0; i < trackInfo.spt; i += 1) {
+                const sectorInfo = sectorInfoList[i];
                 if (!DiskImage.isSectorEmpty(data, sectorInfo.dataPos, sectorInfo.sectorSize, fill)) {
                     isEmpty = false;
                     break;
@@ -733,50 +722,50 @@ var DiskImage = /** @class */ (function () {
             }
             if (isEmpty) {
                 diskInfo.tracks = track; // set new number of tracks
-                var trackDataPos = sectorInfoList[0].dataPos;
+                const trackDataPos = sectorInfoList[0].dataPos;
                 data = DiskImage.createDiskInfoAsString(diskInfo) + data.substring(DiskImage.diskInfoSize, trackDataPos - DiskImage.trackInfoSize); // set new track count and remove empty track and rest
                 this.options.data = data;
                 break;
             }
         }
         return data;
-    };
+    }
     /* eslint-enable array-element-newline */
-    DiskImage.unOrProtectData = function (data) {
-        var table1 = DiskImage.protectTable[0], table2 = DiskImage.protectTable[1];
-        var out = "";
-        for (var i = 0; i < data.length; i += 1) {
-            var byte = data.charCodeAt(i);
+    static unOrProtectData(data) {
+        const table1 = DiskImage.protectTable[0], table2 = DiskImage.protectTable[1];
+        let out = "";
+        for (let i = 0; i < data.length; i += 1) {
+            let byte = data.charCodeAt(i);
             byte ^= table1[(i & 0x7f) % table1.length] ^ table2[(i & 0x7f) % table2.length]; // eslint-disable-line no-bitwise
             out += String.fromCharCode(byte);
         }
         return out;
-    };
+    }
     // ...
-    DiskImage.computeChecksum = function (data) {
-        var sum = 0;
-        for (var i = 0; i < data.length; i += 1) {
+    static computeChecksum(data) {
+        let sum = 0;
+        for (let i = 0; i < data.length; i += 1) {
             sum += data.charCodeAt(i);
         }
         return sum;
-    };
-    DiskImage.hasAmsdosHeader = function (data) {
-        var hasHeader = false;
+    }
+    static hasAmsdosHeader(data) {
+        let hasHeader = false;
         if (data.length >= 0x80) {
-            var computed = DiskImage.computeChecksum(data.substring(0, 66)), sum = data.charCodeAt(67) + data.charCodeAt(68) * 256;
+            const computed = DiskImage.computeChecksum(data.substring(0, 66)), sum = data.charCodeAt(67) + data.charCodeAt(68) * 256;
             hasHeader = computed === sum;
         }
         return hasHeader;
-    };
-    DiskImage.parseAmsdosHeader = function (data) {
-        var typeMap = {
+    }
+    static parseAmsdosHeader(data) {
+        const typeMap = {
             0: "T", // tokenized BASIC (T=not official)
             1: "P", // protected BASIC (also tokenized)
             2: "B", // Binary
             8: "G", // GENA3 Assember (G=not official)
             0x16: "A" // ASCII
         };
-        var header;
+        let header;
         // http://www.benchmarko.de/cpcemu/cpcdoc/chapter/cpcdoc7_e.html#I_AMSDOS_HD
         // http://www.cpcwiki.eu/index.php/AMSDOS_Header
         // https://www.cpcwiki.eu/imgs/b/bc/S968se09.pdf (Firmware Guide Section 9)
@@ -795,27 +784,27 @@ var DiskImage = /** @class */ (function () {
             header.typeString = typeMap[header.typeNumber] || typeMap[16]; // default: ASCII
         }
         return header;
-    };
-    DiskImage.combineAmsdosHeader = function (header) {
-        var typeMap = {
+    }
+    static combineAmsdosHeader(header) {
+        const typeMap = {
             T: 0, // tokenized BASIC (T=not official)
             P: 1, // protected BASIC
             B: 2, // Binary
             G: 8, // GENA3 Assember (G=not official)
             A: 0x16 // ASCII
         };
-        var type = header.typeNumber;
+        let type = header.typeNumber;
         if (header.typeString) { // overwrite type form type
             type = typeMap[header.typeString];
             if (type === undefined) {
                 type = typeMap.A;
             }
         }
-        var length = header.pseudoLen || header.length; // logical length;
+        let length = header.pseudoLen || header.length; // logical length;
         if (length > 0xffff) { // 16 bit
             length = 0xffff;
         }
-        var data1 = DiskImage.uInt8ToString(header.user || 0)
+        const data1 = DiskImage.uInt8ToString(header.user || 0)
             + (header.name || "").padEnd(8, " ")
             + (header.ext || "").padEnd(3, " ")
             + DiskImage.uInt16ToString(0)
@@ -833,91 +822,89 @@ var DiskImage = /** @class */ (function () {
             + DiskImage.uInt16ToString(checksum)
             + "\x00".repeat(59);
         return data;
-    };
-    DiskImage.createAmsdosHeader = function (parameter) {
-        var header = __assign({ user: 0, name: "", ext: "", typeNumber: 0, start: 0, pseudoLen: 0, entry: 0, length: 0, typeString: "" }, parameter);
+    }
+    static createAmsdosHeader(parameter) {
+        const header = Object.assign({ user: 0, name: "", ext: "", typeNumber: 0, start: 0, pseudoLen: 0, entry: 0, length: 0, typeString: "" }, parameter);
         return header;
-    };
-    DiskImage.twoHeads = "2h";
-    DiskImage.formatDescriptors = {
-        data: {
-            tracks: 40, // number of tracks (1-85)
-            heads: 1, // number of heads/sides (1-2)
-            // head: 0, // head number?
-            bps: 2, // Bytes per Sector (1-5)
-            spt: 9, // Sectors per Track (1-18)
-            gap3: 0x4e, // gap between ID and data
-            fill: 0xe5, // filler byte
-            firstSector: 0xc1, // first sector number
-            bls: 1024, // BLS: data block allocaton size (1024, 2048, 4096, 8192, 16384)
-            // bsh: 3, // log2 BLS - 7
-            // blm: 7, // BLS / 128 - 1
-            al0: 0xc0, // bit significant representation of reserved directory blocks 0..7 (0x80=0, 0xc00=0 and 1,,...)
-            al1: 0x00, // bit significant representation of reserved directory blocks 8..15 (0x80=8,...)
-            off: 0 // number of reserved tracks (also the track where the directory starts)
-        },
-        data42t: {
-            parentRef: "data",
-            tracks: 42
-        },
-        // double sided data
-        data2h: {
-            parentRef: "data",
-            heads: 2
-        },
-        system: {
-            parentRef: "data",
-            firstSector: 0x41,
-            off: 2
-        },
-        // double sided system
-        system2h: {
-            parentRef: "system",
-            heads: 2
-        },
-        vortex: {
-            parentRef: "data",
-            tracks: 80,
-            heads: 2,
-            firstSector: 0x01
-        },
-        "3dos": {
-            parentRef: "data",
-            firstSector: 0x00
-        },
-        parados80: {
-            parentRef: "data",
-            tracks: 80,
-            firstSector: 0x91,
-            spt: 10,
-            bls: 2048
-        },
-        big780k: {
-            parentRef: "data",
-            al0: 0x80, // block 0 reserved
-            tracks: 80,
-            off: 1,
-            firstSector: 0x01
-        },
-        big780k2h: {
-            parentRef: "big780k",
-            heads: 2
-        }
-    };
-    DiskImage.diskInfoIdentMap = {
-        "MV - CPC": 1,
-        EXTENDED: 2
-    };
-    DiskImage.diskInfoSize = 0x100;
-    DiskImage.trackInfoSize = 0x100;
-    // ...
-    // see AMSDOS ROM, &D252
-    /* eslint-disable array-element-newline */
-    DiskImage.protectTable = [
-        [0xe2, 0x9d, 0xdb, 0x1a, 0x42, 0x29, 0x39, 0xc6, 0xb3, 0xc6, 0x90, 0x45, 0x8a], // 13 bytes
-        [0x49, 0xb1, 0x36, 0xf0, 0x2e, 0x1e, 0x06, 0x2a, 0x28, 0x19, 0xea] // 11 bytes
-    ];
-    return DiskImage;
-}());
-export { DiskImage };
+    }
+}
+DiskImage.twoHeads = "2h";
+DiskImage.formatDescriptors = {
+    data: {
+        tracks: 40, // number of tracks (1-85)
+        heads: 1, // number of heads/sides (1-2)
+        // head: 0, // head number?
+        bps: 2, // Bytes per Sector (1-5)
+        spt: 9, // Sectors per Track (1-18)
+        gap3: 0x4e, // gap between ID and data
+        fill: 0xe5, // filler byte
+        firstSector: 0xc1, // first sector number
+        bls: 1024, // BLS: data block allocaton size (1024, 2048, 4096, 8192, 16384)
+        // bsh: 3, // log2 BLS - 7
+        // blm: 7, // BLS / 128 - 1
+        al0: 0xc0, // bit significant representation of reserved directory blocks 0..7 (0x80=0, 0xc00=0 and 1,,...)
+        al1: 0x00, // bit significant representation of reserved directory blocks 8..15 (0x80=8,...)
+        off: 0 // number of reserved tracks (also the track where the directory starts)
+    },
+    data42t: {
+        parentRef: "data",
+        tracks: 42
+    },
+    // double sided data
+    data2h: {
+        parentRef: "data",
+        heads: 2
+    },
+    system: {
+        parentRef: "data",
+        firstSector: 0x41,
+        off: 2
+    },
+    // double sided system
+    system2h: {
+        parentRef: "system",
+        heads: 2
+    },
+    vortex: {
+        parentRef: "data",
+        tracks: 80,
+        heads: 2,
+        firstSector: 0x01
+    },
+    "3dos": {
+        parentRef: "data",
+        firstSector: 0x00
+    },
+    parados80: {
+        parentRef: "data",
+        tracks: 80,
+        firstSector: 0x91,
+        spt: 10,
+        bls: 2048
+    },
+    big780k: {
+        parentRef: "data",
+        al0: 0x80, // block 0 reserved
+        tracks: 80,
+        off: 1,
+        firstSector: 0x01
+    },
+    big780k2h: {
+        parentRef: "big780k",
+        heads: 2
+    }
+};
+DiskImage.diskInfoIdentMap = {
+    "MV - CPC": 1,
+    EXTENDED: 2
+};
+DiskImage.diskInfoSize = 0x100;
+DiskImage.trackInfoSize = 0x100;
+// ...
+// see AMSDOS ROM, &D252
+/* eslint-disable array-element-newline */
+DiskImage.protectTable = [
+    [0xe2, 0x9d, 0xdb, 0x1a, 0x42, 0x29, 0x39, 0xc6, 0xb3, 0xc6, 0x90, 0x45, 0x8a], // 13 bytes
+    [0x49, 0xb1, 0x36, 0xf0, 0x2e, 0x1e, 0x06, 0x2a, 0x28, 0x19, 0xea] // 11 bytes
+];
 //# sourceMappingURL=DiskImage.js.map

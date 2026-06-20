@@ -3,11 +3,10 @@
 
 import { Utils } from "../Utils";
 import { CpcVm, CpcVmOptions, FileMeta } from "../CpcVm";
-import type { VmInputParas } from "../Interfaces";
-import type { ICanvas } from "../ui/UiInterfaces";
-import { Keyboard } from "../ui/Keyboard";
+import type { ICanvasVm, IKeyboard, ISound, VmInputParas } from "../Interfaces";
+//import { Keyboard } from "../ui/Keyboard";
 import { Random } from "../Random";
-import { Sound } from "../ui/Sound";
+//import { Sound } from "../ui/Sound";
 import { Variables } from "../Variables";
 import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
 
@@ -1966,12 +1965,12 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 	varTypesMap: Record<string, string> = {},
 	variablesMap: Record<string, string | number | string[] | number[]> = {},
 	mockCanvas = {
-		setOptions: function (...args) {
+		setOptions: function (...args: any) {
 			lastTestFunctions.push({
-				setOptions: args.map((arg) => String(arg))
+				setOptions: args.map((arg: any) => String(arg))
 			});
 		},
-		getOptions: function (...args) {
+		getOptions: function (...args: any) {
 			lastTestFunctions.push({
 				getOptions: args
 			});
@@ -2187,12 +2186,12 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 				windowScrollDown: args
 			});
 		},
-		startUpdateCanvas: function (...args) {
+		startUpdateCanvas: function (...args: any) {
 			lastTestFunctions.push({
 				startUpdateCanvas: args
 			});
 		},
-		stopUpdateCanvas: function (...args) {
+		stopUpdateCanvas: function (...args: any) {
 			lastTestFunctions.push({
 				stopUpdateCanvas: args
 			});
@@ -2207,12 +2206,12 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 				updateColorsAndCanvasImmediately: [String(args)]
 			});
 		},
-		onCanvasClick: function (...args) {
+		onCanvasClick: function (...args: any) {
 			lastTestFunctions.push({
 				onCanvasClick: [String(args)]
 			});
 		},
-		onWindowClick: function (...args) {
+		onWindowClick: function (...args: any) {
 			lastTestFunctions.push({
 				onWindowClick: [String(args)]
 			});
@@ -2234,13 +2233,13 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 				windowScrollUp: args
 			});
 		},
-		takeScreenShot: function (...args) {
+		takeScreenShot: function (...args: any) {
 			lastTestFunctions.push({
 				takeScreenShot: args
 			});
 			return "scr";
 		}
-	} as ICanvas,
+	} as ICanvasVm,
 
 	mockKeyboard = {
 		clearInput: function (...args) {
@@ -2300,7 +2299,7 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 				setExpansionToken: args
 			});
 		}
-	} as Keyboard,
+	} as IKeyboard,
 
 	mockSound = {
 		release: function (...args) {
@@ -2362,7 +2361,7 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 			});
 			return Boolean(args[0] & ~0x02); // eslint-disable-line no-bitwise
 		}
-	} as Sound,
+	} as ISound,
 
 	mockRandom = {
 		init: function (...args) {
@@ -3434,15 +3433,15 @@ QUnit.module("CpcVm: vm functions", function (hooks) {
 	QUnit.test("init without options", function (assert) {
 		const minimalCanvas = {
 			reset: () => undefined,
-			setOptions: (..._args) => undefined
-		} as ICanvas,
+			setOptions: (..._args: any) => undefined
+		} as unknown as ICanvasVm,
 			minimalKeyboard = {
 				reset: () => undefined
-			} as Keyboard,
+			} as IKeyboard,
 			minimalRandom = {} as Random,
 			minimalSound = {
 				reset: () => undefined
-			} as Sound,
+			} as ISound,
 			minimalVariables = {} as Variables,
 			cpcVm = new CpcVm({
 				canvas: minimalCanvas,

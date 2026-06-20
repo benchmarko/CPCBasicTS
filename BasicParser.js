@@ -4,17 +4,6 @@
 //
 // BASIC parser for Locomotive BASIC 1.1 for Amstrad CPC 6128
 //
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
 // [ https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript ; test online: http://jsfiddle.net/h3xwj/embedded/result/ ]
 //
 // http://crockford.com/javascript/tdop/tdop.html
@@ -29,8 +18,8 @@ var __assign = (this && this.__assign) || function () {
 // How to write a simple interpreter in JavaScript
 // Peter_Olson, 30 Oct 2014
 import { Utils } from "./Utils";
-var BasicParser = /** @class */ (function () {
-    function BasicParser(options) {
+export class BasicParser {
+    constructor(options) {
         this.keywords = BasicParser.keywordsBasic11;
         this.label = "0"; // for error messages
         this.symbols = {};
@@ -81,37 +70,37 @@ var BasicParser = /** @class */ (function () {
         this.previousToken = {}; // to avoid warnings
         this.token = this.previousToken;
     }
-    BasicParser.prototype.getOptions = function () {
+    getOptions() {
         return this.options;
-    };
-    BasicParser.prototype.setOptions = function (options, force) {
-        var currentBasicVersion = this.options.basicVersion;
+    }
+    setOptions(options, force) {
+        const currentBasicVersion = this.options.basicVersion;
         Object.assign(this.options, options);
         if (force || (this.options.basicVersion !== currentBasicVersion)) { // changed?
             this.applyBasicVersion();
         }
-    };
-    BasicParser.prototype.getKeywords = function () {
+    }
+    getKeywords() {
         return this.keywords;
-    };
-    BasicParser.prototype.applyBasicVersion = function () {
-        var basicVersion = this.options.basicVersion;
+    }
+    applyBasicVersion() {
+        const basicVersion = this.options.basicVersion;
         this.keywords = basicVersion === "1.0" ? this.getKeywords10() : BasicParser.keywordsBasic11;
         // if basicVersion changes, we need to recreate the symbols
         this.fnClearSymbols();
         this.fnGenerateSymbols();
-    };
-    BasicParser.fnIsInString = function (string, find) {
+    }
+    static fnIsInString(string, find) {
         return find && string.indexOf(find) >= 0;
-    };
-    BasicParser.prototype.getKeywords10 = function () {
+    }
+    getKeywords10() {
         if (this.keywordsBasic10) {
             return this.keywordsBasic10;
         }
-        var keywords10 = __assign({}, BasicParser.keywordsBasic11); // clone
-        for (var key in keywords10) {
+        const keywords10 = Object.assign({}, BasicParser.keywordsBasic11); // clone
+        for (const key in keywords10) {
             if (keywords10.hasOwnProperty(key)) {
-                var keyWithSpaces = " " + key + " ";
+                const keyWithSpaces = " " + key + " ";
                 // what about DEC$ ?
                 if (BasicParser.fnIsInString(" clearInput copychr$ cursor derr fill frame graphics graphicsPaper graphicsPen mask onBreakCont ", keyWithSpaces)) {
                     delete keywords10[key]; // remove keywords which do not exist in BASIC 1.0
@@ -126,16 +115,16 @@ var BasicParser = /** @class */ (function () {
         }
         this.keywordsBasic10 = keywords10;
         return keywords10;
-    };
-    BasicParser.prototype.composeError = function (error, message, value, pos, len) {
+    }
+    composeError(error, message, value, pos, len) {
         len = value === "(end)" ? 0 : len;
         return Utils.composeError("BasicParser", error, message, value, pos, len, this.label || undefined);
-    };
-    BasicParser.prototype.fnLastStatementIsOnErrorGotoX = function () {
-        var statements = this.statementList;
-        var isOnErrorGoto = false;
-        for (var i = statements.length - 1; i >= 0; i -= 1) {
-            var lastStatement = statements[i];
+    }
+    fnLastStatementIsOnErrorGotoX() {
+        const statements = this.statementList;
+        let isOnErrorGoto = false;
+        for (let i = statements.length - 1; i >= 0; i -= 1) {
+            const lastStatement = statements[i];
             if (lastStatement.type !== ":") { // ignore colons (separator when keepTokens=true)
                 if (lastStatement.type === "onErrorGoto" && lastStatement.args && Number(lastStatement.args[0].value) > 0) {
                     isOnErrorGoto = true;
@@ -144,15 +133,15 @@ var BasicParser = /** @class */ (function () {
             }
         }
         return isOnErrorGoto;
-    };
-    BasicParser.prototype.fnMaskedError = function (node, message) {
+    }
+    fnMaskedError(node, message) {
         if (!this.fnLastStatementIsOnErrorGotoX()) {
             throw this.composeError(Error(), message, node.value, node.pos);
         }
         else if (!this.options.quiet) {
             Utils.console.warn(this.composeError({}, message, node.value, node.pos).message);
         }
-    };
+    }
     // http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
     // http://crockford.com/javascript/tdop/parse.js
     // Operator precedence parsing
@@ -160,8 +149,8 @@ var BasicParser = /** @class */ (function () {
     // Operator: With left binding power (lbp) and operational function.
     // Manipulates tokens to its left (e.g: +)? => left denotative function led(), otherwise null denotative function nud()), (e.g. unary -)
     // identifiers, numbers: also nud.
-    BasicParser.prototype.advance = function (id) {
-        var token = this.token;
+    advance(id) {
+        let token = this.token;
         this.previousToken = this.token;
         if (id && id !== token.type) {
             if (!this.fnLastStatementIsOnErrorGotoX()) {
@@ -177,15 +166,15 @@ var BasicParser = /** @class */ (function () {
             return this.token; // old token
         }
         this.index += 1;
-        var sym = this.symbols[token.type];
+        const sym = this.symbols[token.type];
         if (!sym) {
             throw this.composeError(Error(), "Unknown token", token.type, token.pos);
         }
         this.token = token;
         return token;
-    };
-    BasicParser.prototype.expression = function (rbp) {
-        var t = this.token, s = this.symbols[t.type];
+    }
+    expression(rbp) {
+        let t = this.token, s = this.symbols[t.type];
         if (Utils.debug > 3) {
             Utils.console.debug("parse: expression rbp=" + rbp + " type=" + t.type + " t=%o", t);
         }
@@ -196,7 +185,7 @@ var BasicParser = /** @class */ (function () {
         if (!s.nud) {
             throw this.composeError(Error(), "Unexpected token", t.value, t.pos);
         }
-        var left = s.nud(t); // process literals, variables, and prefix operators
+        let left = s.nud(t); // process literals, variables, and prefix operators
         t = this.token;
         s = this.symbols[t.type];
         while (rbp < (s.lbp || 0)) { // as long as the right binding power is less than the left binding power of the next token...
@@ -210,29 +199,29 @@ var BasicParser = /** @class */ (function () {
             s = this.symbols[t.type];
         }
         return left;
-    };
-    BasicParser.prototype.fnCheckExpressionType = function (expression, expectedType, typeFirstChar) {
+    }
+    fnCheckExpressionType(expression, expectedType, typeFirstChar) {
         if (expression.type !== expectedType) {
             this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
         }
-    };
-    BasicParser.prototype.assignment = function () {
+    }
+    assignment() {
         this.fnCheckExpressionType(this.token, "identifier", "v");
-        var left = this.expression(90), // take it (can also be an array) and stop
+        const left = this.expression(90), // take it (can also be an array) and stop
         value = this.token;
         this.advance("="); // equal as assignment
         value.left = left;
         value.right = this.expression(0);
         value.type = "assign"; // replace "="
         return value;
-    };
-    BasicParser.prototype.statement = function () {
-        var t = this.token, s = this.symbols[t.type];
+    }
+    statement() {
+        const t = this.token, s = this.symbols[t.type];
         if (s.std) { // statement?
             this.advance();
             return s.std(this.previousToken);
         }
-        var value;
+        let value;
         if (t.type === "identifier") {
             value = this.assignment();
         }
@@ -243,10 +232,10 @@ var BasicParser = /** @class */ (function () {
             this.fnMaskedError(t, "Bad expression statement");
         }
         return value;
-    };
-    BasicParser.prototype.statements = function (statementList, closeTokens) {
+    }
+    statements(statementList, closeTokens) {
         this.statementList = statementList; // fast hack to access last statement for error messages
-        var colonExpected = false;
+        let colonExpected = false;
         while (!closeTokens[this.token.type]) {
             if (colonExpected || this.token.type === ":") {
                 if (this.token.type !== "'" && this.token.type !== "else") { // no colon required for line comment or ELSE
@@ -266,17 +255,17 @@ var BasicParser = /** @class */ (function () {
             }
         }
         return statementList;
-    };
-    BasicParser.fnCreateDummyArg = function (type, value) {
+    }
+    static fnCreateDummyArg(type, value) {
         return {
             type: type, // e.g. "null"
             value: value || "",
             pos: 0,
             len: 0
         };
-    };
-    BasicParser.prototype.basicLine = function () {
-        var node;
+    }
+    basicLine() {
+        let node;
         if (this.token.type !== "number") {
             node = BasicParser.fnCreateDummyArg("label", "");
             node.pos = this.token.pos;
@@ -298,9 +287,9 @@ var BasicParser = /** @class */ (function () {
             node.args.push(this.token); // end token with whitespace
         }
         return node;
-    };
-    BasicParser.prototype.fnCombineTwoTokensNoArgs = function (node, token2) {
-        var name = node.type + Utils.stringCapitalize(this.token.type); // e.g ."speedInk"
+    }
+    fnCombineTwoTokensNoArgs(node, token2) {
+        const name = node.type + Utils.stringCapitalize(this.token.type); // e.g ."speedInk"
         node.value += (this.token.ws || " ") + this.token.value; // combine values of both
         this.token = this.advance(token2); // for "speed" e.g. "ink", "key", "write" (this.token.type)
         if (this.options.keepTokens) {
@@ -313,12 +302,12 @@ var BasicParser = /** @class */ (function () {
         }
         this.previousToken = node; // fast hack to get e.g. "speed" token
         return name;
-    };
-    BasicParser.prototype.fnCombineTwoTokens = function (node, token2) {
+    }
+    fnCombineTwoTokens(node, token2) {
         return this.fnCreateCmdCallForType(node, this.fnCombineTwoTokensNoArgs(node, token2));
-    };
-    BasicParser.prototype.fnGetOptionalStream = function () {
-        var node;
+    }
+    fnGetOptionalStream() {
+        let node;
         if (this.token.type === "#") { // stream?
             node = this.expression(0);
         }
@@ -327,25 +316,25 @@ var BasicParser = /** @class */ (function () {
             node.right = BasicParser.fnCreateDummyArg("null", "0"); // ...with dummy parameter
         }
         return node;
-    };
-    BasicParser.prototype.fnChangeNumber2LineNumber = function (node) {
+    }
+    fnChangeNumber2LineNumber(node) {
         this.fnCheckExpressionType(node, "number", "l");
         node.type = "linenumber"; // change type: number => linenumber
-    };
-    BasicParser.prototype.fnGetLineRange = function () {
-        var left;
+    }
+    fnGetLineRange() {
+        let left;
         if (this.token.type === "number") {
             left = this.token;
             this.advance();
             this.fnChangeNumber2LineNumber(left);
         }
-        var range;
+        let range;
         if (this.token.type === "-") {
             range = this.token;
             this.advance();
         }
         if (range) {
-            var right = void 0;
+            let right;
             if (this.token.type === "number") {
                 right = this.token;
                 this.advance();
@@ -363,13 +352,13 @@ var BasicParser = /** @class */ (function () {
             throw this.composeError(Error(), "Programming error: Undefined range", this.token.value, this.token.pos);
         }
         return range;
-    };
-    BasicParser.fnIsSingleLetterIdentifier = function (node) {
+    }
+    static fnIsSingleLetterIdentifier(node) {
         return node.type === "identifier" && !node.args && node.value.length === 1;
-    };
-    BasicParser.prototype.fnGetLetterRange = function (typeFirstChar) {
+    }
+    fnGetLetterRange(typeFirstChar) {
         this.fnCheckExpressionType(this.token, "identifier", typeFirstChar);
-        var expression = this.expression(0); // n or n-n
+        const expression = this.expression(0); // n or n-n
         if (BasicParser.fnIsSingleLetterIdentifier(expression)) { // ok
             expression.type = "letter"; // change type: identifier -> letter
         }
@@ -382,31 +371,31 @@ var BasicParser = /** @class */ (function () {
             this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
         }
         return expression;
-    };
-    BasicParser.prototype.fnCheckRemainingTypes = function (types) {
-        for (var i = 0; i < types.length; i += 1) { // some more parameters expected?
-            var type = types[i];
+    }
+    fnCheckRemainingTypes(types) {
+        for (let i = 0; i < types.length; i += 1) { // some more parameters expected?
+            const type = types[i];
             if (!type.endsWith("?") && !type.endsWith("*")) { // mandatory?
-                var text = BasicParser.parameterTypes[type] || ("parameter " + type);
+                const text = BasicParser.parameterTypes[type] || ("parameter " + type);
                 this.fnMaskedError(this.token, "Expected " + text + " for " + this.previousToken.type);
             }
         }
-    };
-    BasicParser.prototype.fnCheckStaticTypeNotNumber = function (expression, typeFirstChar) {
-        var type = expression.type, isStringFunction = (this.keywords[type] || "").startsWith("f") && type.endsWith("$"), isStringIdentifier = type === "identifier" && expression.value.endsWith("$");
+    }
+    fnCheckStaticTypeNotNumber(expression, typeFirstChar) {
+        const type = expression.type, isStringFunction = (this.keywords[type] || "").startsWith("f") && type.endsWith("$"), isStringIdentifier = type === "identifier" && expression.value.endsWith("$");
         if (type === "string" || type === "ustring" || type === "#" || isStringFunction || isStringIdentifier) { // got a string or a stream? (statical check)
             this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
         }
-    };
-    BasicParser.prototype.fnCheckStaticTypeNotString = function (expression, typeFirstChar) {
-        var type = expression.type, isNumericFunction = (this.keywords[type] || "").startsWith("f") && !type.endsWith("$"), isNumericIdentifier = type === "identifier" && (expression.value.endsWith("%") || expression.value.endsWith("!")), isComparison = type === "=" || type.startsWith("<") || type.startsWith(">"); // =, <, >, <=, >=
+    }
+    fnCheckStaticTypeNotString(expression, typeFirstChar) {
+        const type = expression.type, isNumericFunction = (this.keywords[type] || "").startsWith("f") && !type.endsWith("$"), isNumericIdentifier = type === "identifier" && (expression.value.endsWith("%") || expression.value.endsWith("!")), isComparison = type === "=" || type.startsWith("<") || type.startsWith(">"); // =, <, >, <=, >=
         if (type === "number" || type === "binnumber" || type === "hexnumber" || type === "expnumber" || type === "#" || isNumericFunction || isNumericIdentifier || isComparison) { // got e.g. number or a stream? (statical check)
             this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
         }
-    };
-    BasicParser.prototype.fnGetExpressionForType = function (args, type, types) {
-        var typeFirstChar = type.charAt(0), separator = ",";
-        var expression, suppressAdvance = false;
+    }
+    fnGetExpressionForType(args, type, types) {
+        const typeFirstChar = type.charAt(0), separator = ",";
+        let expression, suppressAdvance = false;
         switch (typeFirstChar) {
             case "#": // stream expected? (for functions)
                 if (type === "#0?") { // optional stream?
@@ -483,10 +472,10 @@ var BasicParser = /** @class */ (function () {
             type = ""; // stop
         }
         return type;
-    };
-    BasicParser.prototype.fnGetArgs = function (args, keyword) {
-        var keyOpts = this.keywords[keyword], types = keyOpts.split(" "), closeTokens = BasicParser.closeTokensForArgs;
-        var type = "xxx"; // initial needMore
+    }
+    fnGetArgs(args, keyword) {
+        const keyOpts = this.keywords[keyword], types = keyOpts.split(" "), closeTokens = BasicParser.closeTokensForArgs;
+        let type = "xxx"; // initial needMore
         types.shift(); // remove keyword type
         while (type && !closeTokens[this.token.type]) {
             if (types && type.slice(-1) !== "*") { // "*"= any number of parameters
@@ -501,7 +490,7 @@ var BasicParser = /** @class */ (function () {
             this.fnCheckRemainingTypes(types); // error if remaining mandatory args
             type = types[0];
             if (type === "#0?") { // null stream to add?
-                var expression = BasicParser.fnCreateDummyArg("#"); // dummy stream with dummy arg
+                const expression = BasicParser.fnCreateDummyArg("#"); // dummy stream with dummy arg
                 expression.right = BasicParser.fnCreateDummyArg("null", "0");
                 args.push(expression);
             }
@@ -510,9 +499,9 @@ var BasicParser = /** @class */ (function () {
             this.fnMaskedError(this.previousToken, "Operand missing");
         }
         return args;
-    };
-    BasicParser.prototype.fnGetArgsSepByCommaSemi = function (args) {
-        var closeTokens = BasicParser.closeTokensForArgs;
+    }
+    fnGetArgsSepByCommaSemi(args) {
+        const closeTokens = BasicParser.closeTokensForArgs;
         while (!closeTokens[this.token.type]) {
             args.push(this.expression(0));
             if (this.token.type === "," || this.token.type === ";") {
@@ -524,8 +513,8 @@ var BasicParser = /** @class */ (function () {
             }
         }
         return args;
-    };
-    BasicParser.prototype.fnGetArgsInParenthesis = function (args, keyword) {
+    }
+    fnGetArgsInParenthesis(args, keyword) {
         this.advance("(");
         if (this.options.keepTokens) {
             args.push(this.previousToken);
@@ -536,32 +525,32 @@ var BasicParser = /** @class */ (function () {
             args.push(this.previousToken);
         }
         return args;
-    };
-    BasicParser.prototype.fnGetArgsInParenthesesOrBrackets = function (args) {
-        var brackets = BasicParser.brackets;
+    }
+    fnGetArgsInParenthesesOrBrackets(args) {
+        const brackets = BasicParser.brackets;
         this.advance(this.token.type === "[" ? "[" : "(");
-        var bracketOpen = this.previousToken;
+        const bracketOpen = this.previousToken;
         args.push(bracketOpen);
         this.fnGetArgs(args, "_any1"); // until "]" or ")"
         this.advance(this.token.type === "]" ? "]" : ")");
-        var bracketClose = this.previousToken;
+        const bracketClose = this.previousToken;
         args.push(bracketClose);
         if (!this.options.quiet && (brackets[bracketOpen.type] !== bracketClose.type)) {
             Utils.console.warn(this.composeError({}, "Inconsistent bracket style", this.previousToken.value, this.previousToken.pos).message);
         }
         return args;
-    };
-    BasicParser.prototype.fnCreateCmdCall = function (node) {
+    }
+    fnCreateCmdCall(node) {
         node.args = this.fnGetArgs([], node.type);
         return node;
-    };
-    BasicParser.prototype.fnCreateCmdCallForType = function (node, type) {
+    }
+    fnCreateCmdCallForType(node, type) {
         if (type) {
             node.type = type; // override
         }
         return this.fnCreateCmdCall(node);
-    };
-    BasicParser.prototype.fnCreateFuncCall = function (node) {
+    }
+    fnCreateFuncCall(node) {
         node.args = [];
         if (this.token.type === "(") { // args in parenthesis?
             if (node.type === "dec$" && this.options.basicVersion === "1.0") {
@@ -571,24 +560,24 @@ var BasicParser = /** @class */ (function () {
         }
         else { // no parenthesis?
             // if we have a check, make sure there are no non-optional parameters left
-            var keyOpts = this.keywords[node.type];
+            const keyOpts = this.keywords[node.type];
             if (keyOpts) {
-                var types = keyOpts.split(" ");
+                const types = keyOpts.split(" ");
                 types.shift(); // remove key
                 this.fnCheckRemainingTypes(types);
             }
         }
         return node;
-    };
+    }
     // ...
-    BasicParser.prototype.fnIdentifier = function (node) {
+    fnIdentifier(node) {
         if (this.token.type === "(" || this.token.type === "[") {
             node.args = [];
             this.fnGetArgsInParenthesesOrBrackets(node.args);
         }
         return node;
-    };
-    BasicParser.prototype.fnParenthesis = function (node) {
+    }
+    fnParenthesis(node) {
         if (this.options.keepBrackets) {
             node.args = [this.expression(0)];
         }
@@ -606,8 +595,8 @@ var BasicParser = /** @class */ (function () {
             this.token.ws = this.previousToken.ws + (this.token.ws || ""); // add ws to next token
         }
         return node;
-    };
-    BasicParser.prototype.fnFn = function (node) {
+    }
+    fnFn(node) {
         node.args = [];
         this.token = this.advance("identifier");
         node.right = this.previousToken;
@@ -615,10 +604,10 @@ var BasicParser = /** @class */ (function () {
             this.fnGetArgsInParenthesis(node.args);
         }
         return node;
-    };
-    BasicParser.prototype.rsx = function (node) {
+    }
+    rsx(node) {
         node.args = [];
-        var type = "_any1"; // expect any number of arguments
+        let type = "_any1"; // expect any number of arguments
         if (this.token.type === ",") { // arguments starting with comma
             this.advance();
             if (this.options.keepTokens) {
@@ -628,14 +617,14 @@ var BasicParser = /** @class */ (function () {
         }
         this.fnGetArgs(node.args, type); // get arguments
         if (this.options.basicVersion === "1.0") { // BASIC 1.0: make sure there are no string parameters
-            for (var i = 0; i < node.args.length; i += 1) {
+            for (let i = 0; i < node.args.length; i += 1) {
                 this.fnCheckStaticTypeNotNumber(node.args[i], "n");
             }
         }
         return node;
-    };
-    BasicParser.prototype.afterEveryGosub = function (node) {
-        var combinedNode = this.fnCreateCmdCallForType(node, node.type + "Gosub"); // "afterGosub" or "everyGosub", interval and optional timer
+    }
+    afterEveryGosub(node) {
+        const combinedNode = this.fnCreateCmdCallForType(node, node.type + "Gosub"); // "afterGosub" or "everyGosub", interval and optional timer
         if (!combinedNode.args) {
             throw this.composeError(Error(), "Programming error: Undefined args", this.token.type, this.token.pos); // should not occur
         }
@@ -648,22 +637,22 @@ var BasicParser = /** @class */ (function () {
         }
         this.fnGetArgs(combinedNode.args, "gosub"); // line number
         return combinedNode;
-    };
-    BasicParser.prototype.chain = function (node) {
+    }
+    chain(node) {
         if (this.token.type === "merge") { // chain merge?
-            var name_1 = this.fnCombineTwoTokensNoArgs(node, this.token.type); // chainMerge
-            node.type = name_1;
+            const name = this.fnCombineTwoTokensNoArgs(node, this.token.type); // chainMerge
+            node.type = name;
         }
         node.args = [];
         // chain, chain merge with optional DELETE
-        var node2 = this.expression(0); // filename
+        let node2 = this.expression(0); // filename
         node.args.push(node2);
         if (this.token.type === ",") {
             this.token = this.advance();
             if (this.options.keepTokens) {
                 node.args.push(this.previousToken);
             }
-            var numberExpression = false; // line number (expression) found
+            let numberExpression = false; // line number (expression) found
             if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(end)") {
                 node2 = this.expression(0); // line number or expression
                 node.args.push(node2);
@@ -686,13 +675,13 @@ var BasicParser = /** @class */ (function () {
             }
         }
         return node;
-    };
-    BasicParser.prototype.clear = function (node) {
-        var tokenType = this.token.type;
+    }
+    clear(node) {
+        const tokenType = this.token.type;
         return tokenType === "input" && this.keywords.clearInput ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "clear input" (BASIC 1.1) or "clear"
-    };
-    BasicParser.prototype.data = function (node) {
-        var parameterFound = false;
+    }
+    data(node) {
+        let parameterFound = false;
         node.args = [];
         // data is special: it can have empty parameters, also the last parameter, and also if no parameters
         if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(end)") {
@@ -720,8 +709,8 @@ var BasicParser = /** @class */ (function () {
             node.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
         }
         return node;
-    };
-    BasicParser.prototype.def = function (node) {
+    }
+    def(node) {
         node.args = [];
         this.advance("fn");
         if (this.options.keepTokens) {
@@ -741,11 +730,11 @@ var BasicParser = /** @class */ (function () {
         if (this.options.keepTokens) {
             node.args.push(this.previousToken);
         }
-        var expression = this.expression(0);
+        const expression = this.expression(0);
         node.args.push(expression);
         return node;
-    };
-    BasicParser.prototype.fnElse = function (node) {
+    }
+    fnElse(node) {
         node.args = [];
         node.type += "Comment"; // else => elseComment
         if (!this.options.quiet) {
@@ -760,10 +749,10 @@ var BasicParser = /** @class */ (function () {
             this.advance();
         }
         return node;
-    };
-    BasicParser.prototype.entOrEnv = function (node) {
+    }
+    entOrEnv(node) {
         node.args = [this.expression(0)]; // should be number or variable
-        var count = 0;
+        let count = 0;
         while (this.token.type === ",") {
             this.token = this.advance();
             if (this.options.keepTokens) {
@@ -777,15 +766,15 @@ var BasicParser = /** @class */ (function () {
                 node.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
                 count += 1;
             }
-            var expression = this.expression(0);
+            const expression = this.expression(0);
             node.args.push(expression);
             count += 1;
         }
         return node;
-    };
-    BasicParser.prototype.fnFor = function (node) {
+    }
+    fnFor(node) {
         this.fnCheckExpressionType(this.token, "identifier", "v");
-        var name = this.expression(90); // take simple identifier, nothing more
+        const name = this.expression(90); // take simple identifier, nothing more
         this.fnCheckExpressionType(name, "identifier", "v"); // expected simple
         node.args = [name];
         this.advance("=");
@@ -806,19 +795,19 @@ var BasicParser = /** @class */ (function () {
             node.args.push(this.expression(0));
         }
         return node;
-    };
-    BasicParser.prototype.graphics = function (node) {
-        var tokenType = this.token.type;
+    }
+    graphics(node) {
+        const tokenType = this.token.type;
         if (tokenType !== "pen" && tokenType !== "paper") {
             throw this.composeError(Error(), "Expected PEN or PAPER", tokenType, this.token.pos);
         }
         return this.fnCombineTwoTokens(node, tokenType);
-    };
-    BasicParser.prototype.fnCheckForUnreachableCode = function (args) {
-        for (var i = 0; i < args.length; i += 1) {
-            var node = args[i], tokenType = node.type;
+    }
+    fnCheckForUnreachableCode(args) {
+        for (let i = 0; i < args.length; i += 1) {
+            const node = args[i], tokenType = node.type;
             if ((i === 0 && tokenType === "linenumber") || tokenType === "goto" || tokenType === "stop") {
-                var index = i + 1;
+                const index = i + 1;
                 if (index < args.length && (args[index].type !== "rem") && (args[index].type !== "'")) {
                     if (args[index].type === ":" && this.options.keepColons) {
                         // ignore
@@ -830,8 +819,8 @@ var BasicParser = /** @class */ (function () {
                 }
             }
         }
-    };
-    BasicParser.prototype.fnIf = function (node) {
+    }
+    fnIf(node) {
         node.right = this.expression(0); // condition
         node.args = [];
         if (this.token.type !== "goto") { // no "goto", expect "then" token...
@@ -847,7 +836,7 @@ var BasicParser = /** @class */ (function () {
         this.fnCheckForUnreachableCode(node.args);
         if (this.token.type === "else") {
             this.token = this.advance("else");
-            var elseNode = this.previousToken;
+            const elseNode = this.previousToken;
             node.args.push(elseNode);
             elseNode.args = [];
             if (this.token.type === "number") {
@@ -863,9 +852,9 @@ var BasicParser = /** @class */ (function () {
             this.fnCheckForUnreachableCode(elseNode.args);
         }
         return node;
-    };
-    BasicParser.prototype.input = function (node) {
-        var stream = this.fnGetOptionalStream();
+    }
+    input(node) {
+        const stream = this.fnGetOptionalStream();
         node.args = [stream];
         if (stream.len !== 0) { // not an inserted stream?
             this.advance(",");
@@ -896,7 +885,7 @@ var BasicParser = /** @class */ (function () {
             node.args.push(BasicParser.fnCreateDummyArg("null")); // dummy prompt
         }
         do { // we need loop for input
-            var value2 = this.expression(90); // we expect "identifier", no fnxx
+            const value2 = this.expression(90); // we expect "identifier", no fnxx
             this.fnCheckExpressionType(value2, "identifier", "v");
             node.args.push(value2);
             if (node.type === "lineInput" || this.token.type !== ",") {
@@ -908,27 +897,27 @@ var BasicParser = /** @class */ (function () {
             }
         } while (true); // eslint-disable-line no-constant-condition
         return node;
-    };
-    BasicParser.prototype.key = function (node) {
-        var tokenType = this.token.type;
+    }
+    key(node) {
+        const tokenType = this.token.type;
         return tokenType === "def" ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "key def" or "key"
-    };
-    BasicParser.prototype.let = function (node) {
+    }
+    let(node) {
         node.right = this.assignment();
         return node;
-    };
-    BasicParser.prototype.line = function (node) {
+    }
+    line(node) {
         node.type = this.fnCombineTwoTokensNoArgs(node, "input"); // combine "line" => "lineInput"
         return this.input(node); // continue with input
-    };
-    BasicParser.prototype.mid$Assign = function (node) {
+    }
+    mid$Assign(node) {
         node.type = "mid$Assign"; // change type mid$ => mid$Assign
         this.fnCreateFuncCall(node);
         if (!node.args) {
             throw this.composeError(Error(), "Programming error: Undefined args", this.token.type, this.token.pos); // should not occur
         }
         // check that first argument is a variable...
-        var i = 0;
+        let i = 0;
         if (this.options.keepTokens) {
             while (node.args[i].type === "(" && i < (node.args.length - 1)) {
                 i += 1;
@@ -939,13 +928,13 @@ var BasicParser = /** @class */ (function () {
         if (this.options.keepTokens) {
             node.args.push(this.previousToken);
         }
-        var expression = this.expression(0);
+        const expression = this.expression(0);
         node.args.push(expression);
         return node;
-    };
-    BasicParser.prototype.on = function (node) {
+    }
+    on(node) {
         node.args = [];
-        var tokenType;
+        let tokenType;
         switch (this.token.type) {
             case "break":
                 node.type = this.fnCombineTwoTokensNoArgs(node, "break"); // onBreak
@@ -954,7 +943,7 @@ var BasicParser = /** @class */ (function () {
                     this.fnCombineTwoTokens(node, this.token.type); // onBreakGosub, onBreakCont, onBreakStop
                 }
                 else {
-                    var msgContPart = this.keywords.onBreakCont ? "CONT, " : "";
+                    const msgContPart = this.keywords.onBreakCont ? "CONT, " : "";
                     throw this.composeError(Error(), "Expected " + msgContPart + "GOSUB or STOP", this.token.type, this.token.pos);
                 }
                 break;
@@ -990,9 +979,9 @@ var BasicParser = /** @class */ (function () {
                 break;
         }
         return node;
-    };
-    BasicParser.prototype.print = function (node) {
-        var closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
+    }
+    print(node) {
+        const closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
         node.args = [stream];
         if (stream.len !== 0) { // not an inserted stream?
             if (!closeTokens[this.token.type]) {
@@ -1003,7 +992,7 @@ var BasicParser = /** @class */ (function () {
             }
         }
         while (!closeTokens[this.token.type]) {
-            var node2 = void 0;
+            let node2;
             if (this.token.type === "spc" || this.token.type === "tab") {
                 this.advance();
                 node2 = this.fnCreateFuncCall(this.previousToken);
@@ -1032,17 +1021,17 @@ var BasicParser = /** @class */ (function () {
             node.args.push(node2);
         }
         return node;
-    };
-    BasicParser.prototype.question = function (node) {
-        var node2 = this.print(node); // not really a new node
+    }
+    question(node) {
+        const node2 = this.print(node); // not really a new node
         node2.type = "print";
         return node2;
-    };
-    BasicParser.prototype.resume = function (node) {
-        var tokenType = this.token.type;
+    }
+    resume(node) {
+        const tokenType = this.token.type;
         return tokenType === "next" ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "resume next" or "resume"
-    };
-    BasicParser.prototype.run = function (node) {
+    }
+    run(node) {
         if (this.token.type === "number") {
             node.args = this.fnGetArgs([], "goto"); // we get linenumber arg as for goto
         }
@@ -1050,24 +1039,24 @@ var BasicParser = /** @class */ (function () {
             node = this.fnCreateCmdCall(node);
         }
         return node;
-    };
-    BasicParser.prototype.speed = function (node) {
-        var tokenType = this.token.type;
+    }
+    speed(node) {
+        const tokenType = this.token.type;
         if (tokenType !== "ink" && tokenType !== "key" && tokenType !== "write") {
             throw this.composeError(Error(), "Expected INK, KEY or WRITE", tokenType, this.token.pos);
         }
         return this.fnCombineTwoTokens(node, tokenType);
-    };
-    BasicParser.prototype.symbol = function (node) {
-        var tokenType = this.token.type;
+    }
+    symbol(node) {
+        const tokenType = this.token.type;
         return tokenType === "after" ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "symbol after" or "symbol"
-    };
-    BasicParser.prototype.window = function (node) {
-        var tokenType = this.token.type;
+    }
+    window(node) {
+        const tokenType = this.token.type;
         return tokenType === "swap" ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "window swap" or "window"
-    };
-    BasicParser.prototype.write = function (node) {
-        var closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
+    }
+    write(node) {
+        const closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
         node.args = [stream];
         if (stream.len !== 0) { // not an inserted stream?
             if (!closeTokens[this.token.type]) {
@@ -1077,71 +1066,66 @@ var BasicParser = /** @class */ (function () {
                 }
             }
         }
-        var lengthBefore = node.args.length;
+        const lengthBefore = node.args.length;
         this.fnGetArgsSepByCommaSemi(node.args);
         if ((this.previousToken.type === "," && node.args.length > lengthBefore) || this.previousToken.type === ";") {
             this.fnMaskedError(this.previousToken, "Operand missing");
         }
         return node;
-    };
+    }
     // ---
-    BasicParser.prototype.fnClearSymbols = function () {
+    fnClearSymbols() {
         this.symbols = {};
-    };
-    BasicParser.fnNode = function (node) {
+    }
+    static fnNode(node) {
         return node;
-    };
-    BasicParser.prototype.createSymbol = function (id) {
+    }
+    createSymbol(id) {
         if (!this.symbols[id]) { // some symbols are extended, e.g. symbols for both infix and prefix
             this.symbols[id] = {}; // create symbol
         }
         return this.symbols[id];
-    };
-    BasicParser.prototype.createNudSymbol = function (id, nud) {
-        var symbol = this.createSymbol(id);
+    }
+    createNudSymbol(id, nud) {
+        const symbol = this.createSymbol(id);
         symbol.nud = nud;
         return symbol;
-    };
-    BasicParser.prototype.fnInfixLed = function (left, rbp) {
-        var node = this.previousToken;
+    }
+    fnInfixLed(left, rbp) {
+        const node = this.previousToken;
         node.left = left;
         node.right = this.expression(rbp);
         return node;
-    };
-    BasicParser.prototype.createInfix = function (id, lbp, rbp) {
-        var _this = this;
-        var symbol = this.createSymbol(id);
+    }
+    createInfix(id, lbp, rbp) {
+        const symbol = this.createSymbol(id);
         symbol.lbp = lbp;
-        symbol.led = function (left) { return _this.fnInfixLed(left, rbp || lbp); };
-    };
-    BasicParser.prototype.createInfixr = function (id, lbp) {
-        var _this = this;
-        var symbol = this.createSymbol(id);
+        symbol.led = (left) => this.fnInfixLed(left, rbp || lbp);
+    }
+    createInfixr(id, lbp) {
+        const symbol = this.createSymbol(id);
         symbol.lbp = lbp;
-        symbol.led = function (left) { return _this.fnInfixLed(left, lbp - 1); };
-    };
-    BasicParser.prototype.fnPrefixNud = function (rbp) {
-        var node = this.previousToken;
+        symbol.led = (left) => this.fnInfixLed(left, lbp - 1);
+    }
+    fnPrefixNud(rbp) {
+        const node = this.previousToken;
         node.right = this.expression(rbp);
         return node;
-    };
-    BasicParser.prototype.createPrefix = function (id, rbp) {
-        var _this = this;
-        this.createNudSymbol(id, function () { return _this.fnPrefixNud(rbp); });
-    };
-    BasicParser.prototype.createStatement = function (id, fn) {
-        var _this = this;
-        var symbol = this.createSymbol(id);
-        symbol.std = function () { return fn.call(_this, _this.previousToken); };
+    }
+    createPrefix(id, rbp) {
+        this.createNudSymbol(id, () => this.fnPrefixNud(rbp));
+    }
+    createStatement(id, fn) {
+        const symbol = this.createSymbol(id);
+        symbol.std = () => fn.call(this, this.previousToken);
         return symbol;
-    };
-    BasicParser.prototype.fnGenerateKeywordSymbols = function () {
-        var _this = this;
-        for (var key in this.keywords) {
+    }
+    fnGenerateKeywordSymbols() {
+        for (const key in this.keywords) {
             if (this.keywords.hasOwnProperty(key)) {
-                var keywordType = this.keywords[key].charAt(0);
+                const keywordType = this.keywords[key].charAt(0);
                 if (keywordType === "f") {
-                    this.createNudSymbol(key, function () { return _this.fnCreateFuncCall(_this.previousToken); });
+                    this.createNudSymbol(key, () => this.fnCreateFuncCall(this.previousToken));
                 }
                 else if (keywordType === "c") {
                     this.createStatement(key, this.specialStatements[key] || this.fnCreateCmdCall);
@@ -1151,9 +1135,8 @@ var BasicParser = /** @class */ (function () {
                 }
             }
         }
-    };
-    BasicParser.prototype.fnGenerateSymbols = function () {
-        var _this = this;
+    }
+    fnGenerateSymbols() {
         this.fnGenerateKeywordSymbols();
         // special statements ...
         this.createStatement("|", this.specialStatements["|"]); // rsx
@@ -1176,9 +1159,9 @@ var BasicParser = /** @class */ (function () {
         this.createNudSymbol("ustring", BasicParser.fnNode);
         this.createNudSymbol("unquoted", BasicParser.fnNode);
         this.createNudSymbol("ws", BasicParser.fnNode); // optional whitespace
-        this.createNudSymbol("identifier", function () { return _this.fnIdentifier(_this.previousToken); });
-        this.createNudSymbol("(", function () { return _this.fnParenthesis(_this.previousToken); });
-        this.createNudSymbol("fn", function () { return _this.fnFn(_this.previousToken); }); // separate fn
+        this.createNudSymbol("identifier", () => this.fnIdentifier(this.previousToken));
+        this.createNudSymbol("(", () => this.fnParenthesis(this.previousToken));
+        this.createNudSymbol("fn", () => this.fnFn(this.previousToken)); // separate fn
         this.createPrefix("@", 95); // address of
         this.createInfix("^", 90, 80);
         this.createPrefix("+", 80); // + can be uses as prefix or infix
@@ -1200,7 +1183,7 @@ var BasicParser = /** @class */ (function () {
         this.createInfixr("or", 21);
         this.createInfixr("xor", 20);
         this.createPrefix("#", 10); // priority ok?
-    };
+    }
     // http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
     // http://crockford.com/javascript/tdop/parse.js
     // Operator precedence parsing
@@ -1208,254 +1191,252 @@ var BasicParser = /** @class */ (function () {
     // Operator: With left binding power (lbp) and operational function.
     // Manipulates tokens to its left (e.g: +)? => left denotative function led(), otherwise null denotative function nud()), (e.g. unary -)
     // identifiers, numbers: also nud.
-    BasicParser.prototype.parse = function (tokens) {
+    parse(tokens) {
         this.tokens = tokens;
         // line
         this.label = "0"; // for error messages
         this.index = 0;
         this.token = {};
         this.previousToken = this.token; // just to avoid warning
-        var parseTree = this.parseTree;
+        const parseTree = this.parseTree;
         parseTree.length = 0;
         this.advance();
         while (this.token.type !== "(end)") {
             parseTree.push(this.basicLine());
         }
         return parseTree;
-    };
-    // for basicKeywords:
-    BasicParser.parameterTypes = {
-        c: "command",
-        f: "function",
-        o: "operator",
-        n: "number",
-        s: "string",
-        l: "line number", // checked
-        q: "line number range",
-        v: "variable", // checked,
-        r: "letter or range",
-        a: "any parameter",
-        "n0?": "optional parameter with default null",
-        "#": "stream"
-    };
-    // keyword list for BASIC 1.1
-    // first letter: c=command, f=function, p=part of command, o=operator, x=misc
-    // following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), q=line number range, r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
-    BasicParser.keywordsBasic11 = {
-        abs: "f n", // ABS(<numeric expression>)
-        after: "c", // => afterGosub
-        afterGosub: "c n n?", // AFTER <timer delay>[,<timer number>] GOSUB <line number> / (special, cannot check optional first n, and line number)
-        and: "o", // <argument> AND <argument>
-        asc: "f s", // ASC(<string expression>)
-        atn: "f n", // ATN(<numeric expression>)
-        auto: "c n0? n0?", // AUTO [<line number>][,<increment>]
-        bin$: "f n n?", // BIN$(<unsigned integer expression>[,<integer expression>])
-        border: "c n n?", // BORDER <color>[,<color>]
-        "break": "p", // see: ON BREAK...
-        call: "c n *", // CALL <address expression>[,<list of: parameter>]
-        cat: "c", // CAT
-        chain: "c s n? *", // CHAIN <filename>[,<line number expression>][,DELETE <line number range>]  (accepts also delete syntax) or: => chainMerge
-        chainMerge: "c s n? *", // CHAIN MERGE <filename>[,<line number expression>][,DELETE <line number range>] / (special)
-        chr$: "f n", // CHR$(<integer expression>)
-        cint: "f n", // CINT(<numeric expression>)
-        clear: "c", // CLEAR  or: => clearInput
-        clearInput: "c", // CLEAR INPUT  (BASIC 1.1)
-        clg: "c n?", // CLG [<ink>]
-        closein: "c", // CLOSEIN
-        closeout: "c", // CLOSEOUT
-        cls: "c #0?", // CLS[#<stream expression>]
-        cont: "c", // CONT
-        copychr$: "f #", // COPYCHR$(#<stream expression>)  (BASIC 1.1)
-        cos: "f n", // COS(<numeric expression>)
-        creal: "f n", // CREAL(<numeric expression>)
-        cursor: "c #0? n0? n?", // CURSOR [<system switch>][,<user switch>] (either parameter can be omitted but not both)  (BASIC 1.1)
-        data: "c n0*", // DATA <list of: constant> (rather 0*, insert dummy null, if necessary)
-        dec$: "f n s", // DEC$(<numeric expression>,<format template>)  (corrected with BASIC 1.1)
-        def: "c s *", // DEF FN[<space>]<function name>[(<formal parameters>)]=<expression> / (not checked from this)
-        defint: "c r r*", // DEFINT <list of: letter range>
-        defreal: "c r r*", // DEFREAL <list of: letter range>
-        defstr: "c r r*", // DEFSTR <list of: letter range>
-        deg: "c", // DEG
-        "delete": "c q0?", // DELETE [<line number range>]
-        derr: "f", // DERR [BASIC 1.1]
-        di: "c", // DI
-        dim: "c v *", // DIM <list of: subscripted variable>
-        draw: "c n n n0? n?", // DRAW <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
-        drawr: "c n n n0? n?", // DRAWR <x offset>,<y offset>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
-        edit: "c l", // EDIT <line number>
-        ei: "c", // EI
-        "else": "c", // see: IF (else belongs to "if", but can also be used as command)
-        end: "c", // END
-        ent: "c n *", // ENT <envelope number>[,<envelope section][,<envelope section>]... (up to 5) / section: <number of steps>,<step size>,<pause time>  or: =<tone period>,<pause time>
-        env: "c n *", // ENV <envelope number>[,<envelope section][,<envelope section>]... (up to 5) / section: <number of steps>,<step size>,<pause time>  or: =<hardware envelope>,<envelope period>
-        eof: "f", // EOF
-        erase: "c v *", // ERASE <list of: variable name>  (array names without indices or dimensions)
-        erl: "f", // ERL
-        err: "f", // ERR
-        error: "c n", // ERROR <integer expression>
-        every: "c", // => everyGosub
-        everyGosub: "c n n?", // EVERY <timer delay>[,<timer number>] GOSUB <line number>  / (special, cannot check optional first n, and line number)
-        exp: "f n", // EXP(<numeric expression>)
-        fill: "c n", // FILL <ink>  (BASIC 1.1)
-        fix: "f n", // FIX(<numeric expression>)
-        fn: "x", // see DEF FN / (FN can also be separate from <function name>)
-        "for": "c", // FOR <simple variable>=<start> TO <end> [STEP <size>]
-        frame: "c", // FRAME
-        fre: "f a", // FRE(<numeric expression>)  or: FRE(<string expression>)
-        gosub: "c l", // GOSUB <line number>
-        "goto": "c l", // GOTO <line number>
-        graphics: "c", // => graphicsPaper or graphicsPen  (BASIC 1.1)
-        graphicsPaper: "x n", // GRAPHICS PAPER <ink>  / (special)  (BASIC 1.1)
-        graphicsPen: "x n0? n?", // GRAPHICS PEN [<ink>][,<background mode>]  / (either of the parameters may be omitted, but not both)  (BASIC 1.1)
-        hex$: "f n n?", // HEX$(<unsigned integer expression>[,<field width>])
-        himem: "f", // HIMEM
-        "if": "c", // IF <logical expression> THEN <option part> [ELSE <option part>]
-        ink: "c n n n?", // INK <ink>,<color>[,<color>]
-        inkey: "f n", // INKEY(<integer expression>)
-        inkey$: "f", // INKEY$
-        inp: "f n", // INP(<port number>)
-        input: "c #0? *", // INPUT[#<stream expression>,][;][<quoted string><separator>]<list of: variable>  / (special: not checked from this)
-        instr: "f a a a?", // INSTR([<start position>,]<searched string>,<searched for string>)  / (cannot check "f n? s s")
-        "int": "f n", // INT(<numeric expression>)
-        joy: "f n", // JOY(<integer expression>)
-        key: "c n s", // KEY <expansion token number>,<string expression>  / or: => keyDef
-        keyDef: "c n n n? n? n?", // KEY DEF <key number>,<repeat>[,<normal>[,<shifted>[,<control>]]]
-        left$: "f s n", // LEFT$(<string expression>,<required length>)
-        len: "f s", // LEN(<string expression>)
-        let: "c", // LET <variable>=<expression>
-        line: "c", // => lineInput / (not checked from this)
-        lineInput: "c #0? *", // INPUT INPUT[#<stream expression>,][;][<quoted string><separator>]<string variable> (not checked from this)
-        list: "c q0? #0?", // LIST [<line number range>][,#<stream expression>] (not checked from this, we cannot check multiple optional args; here we have stream as last parameter)
-        load: "c s n?", // LOAD <filename>[,<address expression>]
-        locate: "c #0? n n", // LOCATE [#<stream expression>,]<x coordinate>,<y coordinate>
-        log: "f n", // LOG(<numeric expression>)
-        log10: "f n", // LOG10(<numeric expression>)
-        lower$: "f s", // LOWER$(<string expression>)
-        mask: "c n0? n?", // MASK [<integer expression>][,<first point setting>]  / (either of the parameters may be omitted, but not both)  (BASIC 1.1)
-        max: "f a *", // MAX(<list of: numeric expression> | <one number of string>)
-        memory: "c n", // MEMORY <address expression>
-        merge: "c s", // MERGE <filename>
-        mid$: "f s n n?", // MID$(<string expression>,<start position>[,<sub-string length>])  / (start position=1..255, sub-string length=0..255)
-        mid$Assign: "f s n n?", // MID$(<string variable>,<insertion point>[,<new string length>])=<new string expression>  / (mid$ as assign)
-        min: "f a *", // MIN(<list of: numeric expression> | <one number of string>)
-        mod: "o", // <argument> MOD <argument>
-        mode: "c n", // MODE <integer expression>
-        move: "c n n n0? n?", // MOVE <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink>,<ink mode>)
-        mover: "c n n n0? n?", // MOVER <x offset>,<y offset>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink>,<ink mode>)
-        "new": "c", // NEW
-        next: "c v*", // NEXT [<list of: variable>]
-        not: "o", // NOT <argument>
-        on: "c", // => onBreakCont, on break gosub, on break stop, on error goto, on <ex> gosub, on <ex> goto, on sq(n) gosub
-        onBreakCont: "c", // ON BREAK CONT  / (special)
-        onBreakGosub: "c l", // ON BREAK GOSUB <line number>  / (special)
-        onBreakStop: "c", // ON BREAK STOP  / (special)
-        onErrorGoto: "c l", // ON ERROR GOTO <line number>  / (special)
-        onGosub: "c l l*", // ON <selector> GOSUB <list of: line number>  / (special; n not checked from this)
-        onGoto: "c l l*", // ON <selector> GOTO <list of: line number>  / (special; n not checked from this)
-        onSqGosub: "c l", // ON SQ(<channel>) GOSUB <line number>  / (special)
-        openin: "c s", // OPENIN <filename>
-        openout: "c s", // OPENOUT <filename>
-        or: "o", // <argument> OR <argument>
-        origin: "c n n n? n? n? n?", // ORIGIN <x>,<y>[,<left>,<right>,<top>,<bottom>]
-        out: "c n n", // OUT <port number>,<integer expression>
-        paper: "c #0? n", // PAPER[#<stream expression>,]<ink>
-        peek: "f n", // PEEK(<address expression>)
-        pen: "c #0? n0 n?", // PEN[#<stream expression>,][<ink>][,<background mode>]  / ink=0..15; background mode=0..1 (BASIC 1.1 with <background mode)
-        pi: "f", // PI
-        plot: "c n n n0? n?", // PLOT <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
-        plotr: "c n n n0? n?", // PLOTR <x offset>,<y offset>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
-        poke: "c n n", // POKE <address expression>,<integer expression>
-        pos: "f #", // POS(#<stream expression>)
-        print: "c #0? *", // PRINT[#<stream expression>,][<list of: print items>] ... [;][SPC(<integer expression>)] ... [;][TAB(<integer expression>)] ... [;][USING <format template>][<separator expression>]
-        rad: "c", // RAD
-        randomize: "c n?", // RANDOMIZE [<numeric expression>]
-        read: "c v v*", // READ <list of: variable>
-        release: "c n", // RELEASE <sound channels>  / (sound channels=1..7)
-        rem: "c s?", // REM <rest of line>
-        "'": "c s?", // '<rest of line> (apostrophe comment)
-        remain: "f n", // REMAIN(<timer number>)  / (timer number=0..3)
-        renum: "c n0? n0? n?", // RENUM [<new line number>][,<old line number>][,<increment>]
-        restore: "c l?", // RESTORE [<line number>]
-        resume: "c l?", // RESUME [<line number>]  or: => resumeNext
-        resumeNext: "c", // RESUME NEXT
-        "return": "c", // RETURN
-        right$: "f s n", // RIGHT$(<string expression>,<required length>)
-        rnd: "f n?", // RND[(<numeric expression>)]
-        round: "f n n?", // ROUND(<numeric expression>[,<decimals>])
-        run: "c a?", // RUN <string expression>  or: RUN [<line number>]  / (cannot check "c s | l?")
-        save: "c s a? n? n? n?", // SAVE <filename>[,<file type>][,<binary parameters>]  // <binary parameters>=<start address>,<file tength>[,<entry point>]
-        sgn: "f n", // SGN(<numeric expression>)
-        sin: "f n", // SIN(<numeric expression>)
-        sound: "c n n n? n0? n0? n0? n?", // SOUND <channel status>,<tone period>[,<duration>[,<volume>[,<valume envelope>[,<tone envelope>[,<noise period>]]]]]
-        space$: "f n", // SPACE$(<integer expression>)
-        spc: "f n", // SPC(<integer expression)  / see: PRINT SPC
-        speed: "c", // => speedInk, speedKey, speedWrite
-        speedInk: "c n n", // SPEED INK <period1>,<period2>  / (special)
-        speedKey: "c n n", // SPEED KEY <start delay>,<repeat period>  / (special)
-        speedWrite: "c n", // SPEED WRITE <integer expression>  / (integer expression=0..1)
-        sq: "f n", // SQ(<channel>)  / (channel=1,2 or 4)
-        sqr: "f n", // SQR(<numeric expression>)
-        step: "p", // STEP <size> / see: FOR
-        stop: "c", // STOP
-        str$: "f n", // STR$(<numeric expression>)
-        string$: "f n a", // STRING$(<length>,<character specificier>) / character specificier=string character or number 0..255
-        swap: "p n n?", // => windowSwap
-        symbol: "c n n *", // SYMBOL <character number>,<list of: rows>   or => symbolAfter  / character number=0..255, list of 1..8 rows=0..255
-        symbolAfter: "c n", // SYMBOL AFTER <integer expression>  / integer expression=0..256 (special)
-        tab: "f n", // TAB(<integer expression)  / see: PRINT TAB
-        tag: "c #0?", // TAG[#<stream expression>]
-        tagoff: "c #0?", // TAGOFF[#<stream expression>]
-        tan: "f n", // TAN(<numeric expression>)
-        test: "f n n", // TEST(<x coordinate>,<y coordinate>)
-        testr: "f n n", // TESTR(<x offset>,<y offset>)
-        then: "p", // THEN <option part>  / see: IF
-        time: "f", // TIME
-        to: "p", // TO <end>  / see: FOR
-        troff: "c", // TROFF
-        tron: "c", // TRON
-        unt: "f n", // UNT(<address expression>)
-        upper$: "f s", // UPPER$(<string expression>)
-        using: "p", // USING <format template>[<separator expression>]  / see: PRINT
-        val: "f s", // VAL (<string expression>)
-        vpos: "f #", // VPOS(#<stream expression>)
-        wait: "c n n n?", // WAIT <port number>,<mask>[,<inversion>]
-        wend: "c", // WEND
-        "while": "c n", // WHILE <logical expression>
-        width: "c n", // WIDTH <integer expression>
-        window: "c #0? n n n n", // WINDOW[#<stream expression>,]<left>,<right>,<top>,<bottom>  / or: => windowSwap
-        windowSwap: "c n n?", // WINDOW SWAP <stream expression>[,<stream expression>]  / (special: with numbers, not streams)
-        write: "c #0? *", // WRITE [#<stream expression>,][<write list>]
-        xor: "o", // <argument> XOR <argument>
-        xpos: "f", // XPOS
-        ypos: "f", // YPOS
-        zone: "c n", // ZONE <integer expression>  / integer expression=1..255
-        _rsx1: "c a a*", // |<rsxName>[, <argument list>] dummy with at least one parameter
-        _any1: "x *", // dummy: any number of args
-        _vars1: "x v*" // dummy: any number of variables
-    };
-    /* eslint-enable no-invalid-this */
-    BasicParser.closeTokensForLine = {
-        "(eol)": 1,
-        "(end)": 1
-    };
-    BasicParser.closeTokensForLineAndElse = {
-        "(eol)": 1,
-        "(end)": 1,
-        "else": 1
-    };
-    BasicParser.closeTokensForArgs = {
-        ":": 1,
-        "(eol)": 1,
-        "(end)": 1,
-        "else": 1,
-        rem: 1,
-        "'": 1
-    };
-    BasicParser.brackets = {
-        "(": ")",
-        "[": "]"
-    };
-    return BasicParser;
-}());
-export { BasicParser };
+    }
+}
+// for basicKeywords:
+BasicParser.parameterTypes = {
+    c: "command",
+    f: "function",
+    o: "operator",
+    n: "number",
+    s: "string",
+    l: "line number", // checked
+    q: "line number range",
+    v: "variable", // checked,
+    r: "letter or range",
+    a: "any parameter",
+    "n0?": "optional parameter with default null",
+    "#": "stream"
+};
+// keyword list for BASIC 1.1
+// first letter: c=command, f=function, p=part of command, o=operator, x=misc
+// following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), q=line number range, r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
+BasicParser.keywordsBasic11 = {
+    abs: "f n", // ABS(<numeric expression>)
+    after: "c", // => afterGosub
+    afterGosub: "c n n?", // AFTER <timer delay>[,<timer number>] GOSUB <line number> / (special, cannot check optional first n, and line number)
+    and: "o", // <argument> AND <argument>
+    asc: "f s", // ASC(<string expression>)
+    atn: "f n", // ATN(<numeric expression>)
+    auto: "c n0? n0?", // AUTO [<line number>][,<increment>]
+    bin$: "f n n?", // BIN$(<unsigned integer expression>[,<integer expression>])
+    border: "c n n?", // BORDER <color>[,<color>]
+    "break": "p", // see: ON BREAK...
+    call: "c n *", // CALL <address expression>[,<list of: parameter>]
+    cat: "c", // CAT
+    chain: "c s n? *", // CHAIN <filename>[,<line number expression>][,DELETE <line number range>]  (accepts also delete syntax) or: => chainMerge
+    chainMerge: "c s n? *", // CHAIN MERGE <filename>[,<line number expression>][,DELETE <line number range>] / (special)
+    chr$: "f n", // CHR$(<integer expression>)
+    cint: "f n", // CINT(<numeric expression>)
+    clear: "c", // CLEAR  or: => clearInput
+    clearInput: "c", // CLEAR INPUT  (BASIC 1.1)
+    clg: "c n?", // CLG [<ink>]
+    closein: "c", // CLOSEIN
+    closeout: "c", // CLOSEOUT
+    cls: "c #0?", // CLS[#<stream expression>]
+    cont: "c", // CONT
+    copychr$: "f #", // COPYCHR$(#<stream expression>)  (BASIC 1.1)
+    cos: "f n", // COS(<numeric expression>)
+    creal: "f n", // CREAL(<numeric expression>)
+    cursor: "c #0? n0? n?", // CURSOR [<system switch>][,<user switch>] (either parameter can be omitted but not both)  (BASIC 1.1)
+    data: "c n0*", // DATA <list of: constant> (rather 0*, insert dummy null, if necessary)
+    dec$: "f n s", // DEC$(<numeric expression>,<format template>)  (corrected with BASIC 1.1)
+    def: "c s *", // DEF FN[<space>]<function name>[(<formal parameters>)]=<expression> / (not checked from this)
+    defint: "c r r*", // DEFINT <list of: letter range>
+    defreal: "c r r*", // DEFREAL <list of: letter range>
+    defstr: "c r r*", // DEFSTR <list of: letter range>
+    deg: "c", // DEG
+    "delete": "c q0?", // DELETE [<line number range>]
+    derr: "f", // DERR [BASIC 1.1]
+    di: "c", // DI
+    dim: "c v *", // DIM <list of: subscripted variable>
+    draw: "c n n n0? n?", // DRAW <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
+    drawr: "c n n n0? n?", // DRAWR <x offset>,<y offset>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
+    edit: "c l", // EDIT <line number>
+    ei: "c", // EI
+    "else": "c", // see: IF (else belongs to "if", but can also be used as command)
+    end: "c", // END
+    ent: "c n *", // ENT <envelope number>[,<envelope section][,<envelope section>]... (up to 5) / section: <number of steps>,<step size>,<pause time>  or: =<tone period>,<pause time>
+    env: "c n *", // ENV <envelope number>[,<envelope section][,<envelope section>]... (up to 5) / section: <number of steps>,<step size>,<pause time>  or: =<hardware envelope>,<envelope period>
+    eof: "f", // EOF
+    erase: "c v *", // ERASE <list of: variable name>  (array names without indices or dimensions)
+    erl: "f", // ERL
+    err: "f", // ERR
+    error: "c n", // ERROR <integer expression>
+    every: "c", // => everyGosub
+    everyGosub: "c n n?", // EVERY <timer delay>[,<timer number>] GOSUB <line number>  / (special, cannot check optional first n, and line number)
+    exp: "f n", // EXP(<numeric expression>)
+    fill: "c n", // FILL <ink>  (BASIC 1.1)
+    fix: "f n", // FIX(<numeric expression>)
+    fn: "x", // see DEF FN / (FN can also be separate from <function name>)
+    "for": "c", // FOR <simple variable>=<start> TO <end> [STEP <size>]
+    frame: "c", // FRAME
+    fre: "f a", // FRE(<numeric expression>)  or: FRE(<string expression>)
+    gosub: "c l", // GOSUB <line number>
+    "goto": "c l", // GOTO <line number>
+    graphics: "c", // => graphicsPaper or graphicsPen  (BASIC 1.1)
+    graphicsPaper: "x n", // GRAPHICS PAPER <ink>  / (special)  (BASIC 1.1)
+    graphicsPen: "x n0? n?", // GRAPHICS PEN [<ink>][,<background mode>]  / (either of the parameters may be omitted, but not both)  (BASIC 1.1)
+    hex$: "f n n?", // HEX$(<unsigned integer expression>[,<field width>])
+    himem: "f", // HIMEM
+    "if": "c", // IF <logical expression> THEN <option part> [ELSE <option part>]
+    ink: "c n n n?", // INK <ink>,<color>[,<color>]
+    inkey: "f n", // INKEY(<integer expression>)
+    inkey$: "f", // INKEY$
+    inp: "f n", // INP(<port number>)
+    input: "c #0? *", // INPUT[#<stream expression>,][;][<quoted string><separator>]<list of: variable>  / (special: not checked from this)
+    instr: "f a a a?", // INSTR([<start position>,]<searched string>,<searched for string>)  / (cannot check "f n? s s")
+    "int": "f n", // INT(<numeric expression>)
+    joy: "f n", // JOY(<integer expression>)
+    key: "c n s", // KEY <expansion token number>,<string expression>  / or: => keyDef
+    keyDef: "c n n n? n? n?", // KEY DEF <key number>,<repeat>[,<normal>[,<shifted>[,<control>]]]
+    left$: "f s n", // LEFT$(<string expression>,<required length>)
+    len: "f s", // LEN(<string expression>)
+    let: "c", // LET <variable>=<expression>
+    line: "c", // => lineInput / (not checked from this)
+    lineInput: "c #0? *", // INPUT INPUT[#<stream expression>,][;][<quoted string><separator>]<string variable> (not checked from this)
+    list: "c q0? #0?", // LIST [<line number range>][,#<stream expression>] (not checked from this, we cannot check multiple optional args; here we have stream as last parameter)
+    load: "c s n?", // LOAD <filename>[,<address expression>]
+    locate: "c #0? n n", // LOCATE [#<stream expression>,]<x coordinate>,<y coordinate>
+    log: "f n", // LOG(<numeric expression>)
+    log10: "f n", // LOG10(<numeric expression>)
+    lower$: "f s", // LOWER$(<string expression>)
+    mask: "c n0? n?", // MASK [<integer expression>][,<first point setting>]  / (either of the parameters may be omitted, but not both)  (BASIC 1.1)
+    max: "f a *", // MAX(<list of: numeric expression> | <one number of string>)
+    memory: "c n", // MEMORY <address expression>
+    merge: "c s", // MERGE <filename>
+    mid$: "f s n n?", // MID$(<string expression>,<start position>[,<sub-string length>])  / (start position=1..255, sub-string length=0..255)
+    mid$Assign: "f s n n?", // MID$(<string variable>,<insertion point>[,<new string length>])=<new string expression>  / (mid$ as assign)
+    min: "f a *", // MIN(<list of: numeric expression> | <one number of string>)
+    mod: "o", // <argument> MOD <argument>
+    mode: "c n", // MODE <integer expression>
+    move: "c n n n0? n?", // MOVE <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink>,<ink mode>)
+    mover: "c n n n0? n?", // MOVER <x offset>,<y offset>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink>,<ink mode>)
+    "new": "c", // NEW
+    next: "c v*", // NEXT [<list of: variable>]
+    not: "o", // NOT <argument>
+    on: "c", // => onBreakCont, on break gosub, on break stop, on error goto, on <ex> gosub, on <ex> goto, on sq(n) gosub
+    onBreakCont: "c", // ON BREAK CONT  / (special)
+    onBreakGosub: "c l", // ON BREAK GOSUB <line number>  / (special)
+    onBreakStop: "c", // ON BREAK STOP  / (special)
+    onErrorGoto: "c l", // ON ERROR GOTO <line number>  / (special)
+    onGosub: "c l l*", // ON <selector> GOSUB <list of: line number>  / (special; n not checked from this)
+    onGoto: "c l l*", // ON <selector> GOTO <list of: line number>  / (special; n not checked from this)
+    onSqGosub: "c l", // ON SQ(<channel>) GOSUB <line number>  / (special)
+    openin: "c s", // OPENIN <filename>
+    openout: "c s", // OPENOUT <filename>
+    or: "o", // <argument> OR <argument>
+    origin: "c n n n? n? n? n?", // ORIGIN <x>,<y>[,<left>,<right>,<top>,<bottom>]
+    out: "c n n", // OUT <port number>,<integer expression>
+    paper: "c #0? n", // PAPER[#<stream expression>,]<ink>
+    peek: "f n", // PEEK(<address expression>)
+    pen: "c #0? n0 n?", // PEN[#<stream expression>,][<ink>][,<background mode>]  / ink=0..15; background mode=0..1 (BASIC 1.1 with <background mode)
+    pi: "f", // PI
+    plot: "c n n n0? n?", // PLOT <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
+    plotr: "c n n n0? n?", // PLOTR <x offset>,<y offset>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
+    poke: "c n n", // POKE <address expression>,<integer expression>
+    pos: "f #", // POS(#<stream expression>)
+    print: "c #0? *", // PRINT[#<stream expression>,][<list of: print items>] ... [;][SPC(<integer expression>)] ... [;][TAB(<integer expression>)] ... [;][USING <format template>][<separator expression>]
+    rad: "c", // RAD
+    randomize: "c n?", // RANDOMIZE [<numeric expression>]
+    read: "c v v*", // READ <list of: variable>
+    release: "c n", // RELEASE <sound channels>  / (sound channels=1..7)
+    rem: "c s?", // REM <rest of line>
+    "'": "c s?", // '<rest of line> (apostrophe comment)
+    remain: "f n", // REMAIN(<timer number>)  / (timer number=0..3)
+    renum: "c n0? n0? n?", // RENUM [<new line number>][,<old line number>][,<increment>]
+    restore: "c l?", // RESTORE [<line number>]
+    resume: "c l?", // RESUME [<line number>]  or: => resumeNext
+    resumeNext: "c", // RESUME NEXT
+    "return": "c", // RETURN
+    right$: "f s n", // RIGHT$(<string expression>,<required length>)
+    rnd: "f n?", // RND[(<numeric expression>)]
+    round: "f n n?", // ROUND(<numeric expression>[,<decimals>])
+    run: "c a?", // RUN <string expression>  or: RUN [<line number>]  / (cannot check "c s | l?")
+    save: "c s a? n? n? n?", // SAVE <filename>[,<file type>][,<binary parameters>]  // <binary parameters>=<start address>,<file tength>[,<entry point>]
+    sgn: "f n", // SGN(<numeric expression>)
+    sin: "f n", // SIN(<numeric expression>)
+    sound: "c n n n? n0? n0? n0? n?", // SOUND <channel status>,<tone period>[,<duration>[,<volume>[,<valume envelope>[,<tone envelope>[,<noise period>]]]]]
+    space$: "f n", // SPACE$(<integer expression>)
+    spc: "f n", // SPC(<integer expression)  / see: PRINT SPC
+    speed: "c", // => speedInk, speedKey, speedWrite
+    speedInk: "c n n", // SPEED INK <period1>,<period2>  / (special)
+    speedKey: "c n n", // SPEED KEY <start delay>,<repeat period>  / (special)
+    speedWrite: "c n", // SPEED WRITE <integer expression>  / (integer expression=0..1)
+    sq: "f n", // SQ(<channel>)  / (channel=1,2 or 4)
+    sqr: "f n", // SQR(<numeric expression>)
+    step: "p", // STEP <size> / see: FOR
+    stop: "c", // STOP
+    str$: "f n", // STR$(<numeric expression>)
+    string$: "f n a", // STRING$(<length>,<character specificier>) / character specificier=string character or number 0..255
+    swap: "p n n?", // => windowSwap
+    symbol: "c n n *", // SYMBOL <character number>,<list of: rows>   or => symbolAfter  / character number=0..255, list of 1..8 rows=0..255
+    symbolAfter: "c n", // SYMBOL AFTER <integer expression>  / integer expression=0..256 (special)
+    tab: "f n", // TAB(<integer expression)  / see: PRINT TAB
+    tag: "c #0?", // TAG[#<stream expression>]
+    tagoff: "c #0?", // TAGOFF[#<stream expression>]
+    tan: "f n", // TAN(<numeric expression>)
+    test: "f n n", // TEST(<x coordinate>,<y coordinate>)
+    testr: "f n n", // TESTR(<x offset>,<y offset>)
+    then: "p", // THEN <option part>  / see: IF
+    time: "f", // TIME
+    to: "p", // TO <end>  / see: FOR
+    troff: "c", // TROFF
+    tron: "c", // TRON
+    unt: "f n", // UNT(<address expression>)
+    upper$: "f s", // UPPER$(<string expression>)
+    using: "p", // USING <format template>[<separator expression>]  / see: PRINT
+    val: "f s", // VAL (<string expression>)
+    vpos: "f #", // VPOS(#<stream expression>)
+    wait: "c n n n?", // WAIT <port number>,<mask>[,<inversion>]
+    wend: "c", // WEND
+    "while": "c n", // WHILE <logical expression>
+    width: "c n", // WIDTH <integer expression>
+    window: "c #0? n n n n", // WINDOW[#<stream expression>,]<left>,<right>,<top>,<bottom>  / or: => windowSwap
+    windowSwap: "c n n?", // WINDOW SWAP <stream expression>[,<stream expression>]  / (special: with numbers, not streams)
+    write: "c #0? *", // WRITE [#<stream expression>,][<write list>]
+    xor: "o", // <argument> XOR <argument>
+    xpos: "f", // XPOS
+    ypos: "f", // YPOS
+    zone: "c n", // ZONE <integer expression>  / integer expression=1..255
+    _rsx1: "c a a*", // |<rsxName>[, <argument list>] dummy with at least one parameter
+    _any1: "x *", // dummy: any number of args
+    _vars1: "x v*" // dummy: any number of variables
+};
+/* eslint-enable no-invalid-this */
+BasicParser.closeTokensForLine = {
+    "(eol)": 1,
+    "(end)": 1
+};
+BasicParser.closeTokensForLineAndElse = {
+    "(eol)": 1,
+    "(end)": 1,
+    "else": 1
+};
+BasicParser.closeTokensForArgs = {
+    ":": 1,
+    "(eol)": 1,
+    "(end)": 1,
+    "else": 1,
+    rem: 1,
+    "'": 1
+};
+BasicParser.brackets = {
+    "(": ")",
+    "[": "]"
+};
 //# sourceMappingURL=BasicParser.js.map
