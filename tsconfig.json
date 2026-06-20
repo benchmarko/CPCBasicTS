@@ -2,8 +2,6 @@
   "files": [],
   "include": [],
   "references": [
-    { "path": "./src" },
-    { "path": "./src/ui" },
-    { "path": "./src/test" }
- ]
+    { "path": "./src" }
+  ]
 }

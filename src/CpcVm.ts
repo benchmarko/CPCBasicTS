@@ -103,7 +103,7 @@ export class CpcVm implements ICpcVm {
 	private readonly fnCloseoutHandler: () => void;
 	private readonly fnLoadHandler: LoadHandlerType;
 	private readonly fnRunHandler: LoadHandlerType;
-	private readonly fnOnCanvasClickHandler: (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
+	private readonly fnOnCanvasClickHandler: (x: number, y: number, xTxt: number, yTxt: number, doubleClick: boolean) => void;
 	private readonly fnInputCallbackHandler: () => boolean;
 	private readonly fnLineInputCallbackHandler: () => boolean;
 	private readonly fnRandomizeCallbackHandler: () => boolean;
@@ -758,7 +758,7 @@ export class CpcVm implements ICpcVm {
 		return this.mem;
 	}
 
-	private onCanvasClickCallback(event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) {
+	private onCanvasClickCallback(x: number, y: number, xTxt: number, yTxt: number, doubleClick: boolean) {
 		// for graphics coordinates, adapt origin
 		const height = 400;
 		let char = -1;
@@ -780,7 +780,7 @@ export class CpcVm implements ICpcVm {
 				}
 			}
 
-			if ((char < 0 || char === 32 || char === 143) && event.detail === 2) { // no (useful) char but mouse double click?
+			if ((char < 0 || char === 32 || char === 143) && doubleClick) { // no (useful) char but mouse double click?
 				char = 13; // use CR
 			}
 

@@ -2,7 +2,8 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 
-import { ModelPropID, ViewID } from "./Constants";
+import { ModelPropID } from "../Constants"; //TODO
+import { ViewID } from "./UiConstants";
 import { UiUtils } from "./UiUtils";
 import type { ConfigType, IModel } from "../Interfaces";
 import type { IController } from "./UiInterfaces";

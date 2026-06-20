@@ -3,14 +3,13 @@
   "compilerOptions": {
     "outDir": "../../dist/test",
     "types": ["node"],
-    "sourceRoot":"../src/test",
+    "lib": ["es2020", "dom"],
     "rootDir": "../",
+    "noEmit": true
   },
   "include": [
     "./*.ts",
-    "../ui/*.ts",
-  ],
-  "references": [
-    { "path": "../" }
+      "../*.ts",
+    "../ui/*.ts"
   ]
 }

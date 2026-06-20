@@ -1,8 +1,8 @@
-import type { ICore, INodeUtils, ICpcVmRsx, LoadScriptFn, ICanvasVm, IKeyboard, CpcKeyExpansionsOptions, VolEnvData, ToneEnvData, SoundData, ISound, IStorage } from "../Interfaces";
+import type { ICore, INodeUtils, ICpcVmRsx, LoadScriptFn, ICanvasVm, IKeyboard, CpcKeyExpansionsOptions, VolEnvData, ToneEnvData, SoundData, ISound, IStorage, CanvasCharType } from "../Interfaces";
 //import "./NodePolyfills";
 import { Utils } from "../Utils";
 import { Controller0, ControllerOptions0 } from "../Controller0";
-import { NoCanvas } from "../ui/NoCanvas";
+//import { NoCanvas } from "../ui/NoCanvas";
 //import { View } from "../ui/View";
 //import { NodeDocumentAdapter } from "./NodeDocumentAdapter";
 
@@ -157,14 +157,136 @@ export class NodeUtils implements INodeUtils {
 			text: ""
 		};
 
-		// const canvas: ICanvasVm = {
-		// 	resetCustomChars: () => undefined
-		// };
-		const canvas: ICanvasVm = new NoCanvas({
-				canvasID: "id" as any,
-				charset: [],
-				palette: "color"
-		});
+
+		const textBuffer: number[][] = []; // textbuffer characters at row,column
+
+		const putCharInTextBuffer = (char: number, x: number, y: number) => {
+			if (!textBuffer[y]) {
+				textBuffer[y] = [];
+			}
+			textBuffer[y][x] = char;
+		};
+
+		const getCharFromTextBuffer = (x: number, y: number) => {
+			let char: number | undefined;
+
+			if (textBuffer[y]) {
+				char = textBuffer[y][x]; // can be undefined, if not set
+			}
+			return char;
+		};
+
+		const clearTextBufferBox = (left: number, top: number, width: number, height: number) => {
+			for (let y = top; y < top + height; y += 1) {
+				const textBufferRow = textBuffer[y];
+
+				if (textBufferRow) {
+					for (let x = left; x < left + width; x += 1) {
+						delete textBufferRow[x];
+					}
+				}
+			}
+		}
+
+		const copyTextBufferBoxUp = (left: number, top: number, width: number, height: number, left2: number, top2: number) => {
+			for (let y = 0; y < height; y += 1) {
+				const sourceRow = textBuffer[top + y];
+				let destinationRow = textBuffer[top2 + y];
+
+				if (sourceRow) {
+					// could be optimized, if complete rows
+					if (!destinationRow) {
+						destinationRow = [];
+						textBuffer[top2 + y] = destinationRow;
+					}
+					for (let x = 0; x < width; x += 1) {
+						destinationRow[left2 + x] = sourceRow[left + x];
+					}
+				} else if (destinationRow) {
+					delete textBuffer[top2 + y]; // no sourceRow => clear destinationRow
+				}
+			}
+		};
+
+		const canvas: ICanvasVm = {
+			reset: () => {
+				textBuffer.length = 0;
+			},
+			resetCustomChars: () => undefined,
+			setScreenOffset: (_offset: number) => undefined,
+			updateColorsAndCanvasImmediately: (_inkList: number[]) => undefined,
+			updateSpeedInk: () => undefined,
+			setCustomChar: (_char: number, _charData: CanvasCharType) => undefined,
+			getCharData: (_char: number) => [],
+			setDefaultInks: () => undefined,
+			//onCanvasClick: (_event: MouseEvent) => undefined,
+			getXpos: () => 0,
+			getYpos: () => 0,
+			getByte: (_addr: number) => 0,
+			setByte: (_addr: number, _byte: number) => undefined,
+			draw: (_x: number, _y: number) => undefined,
+			move: (_x: number, _y: number) => undefined,
+			plot: (_x: number, _y: number) => undefined,
+			test: (_x: number, _y: number) => 0,
+			setInk: (_pen: number, _ink1: number, _ink2: number) => false,
+			setBorder: (_ink1: number, _ink2: number) => undefined,
+			setGPen: (_gPen: number) => undefined,
+			setGPaper: (_gPaper: number) => undefined,
+			setGTransparentMode: (_transparent: boolean) => undefined,
+			printGChar: (_char: number) => undefined,
+			drawCursor: (_x: number, _y: number, _pen: number, _paper: number) => undefined,
+			fill: (_fillPen: number) => undefined,
+			setOrigin: (_xOrig: number, _yOrig: number) => undefined,
+			getXOrigin: () => 0,
+			getYOrigin: () => 0,
+			setGWindow: (_xLeft: number, _xRight: number, _yTop: number, _yBottom: number) => undefined,
+			setGColMode: (_gColMode: number) => undefined,
+			clearGraphicsWindow: () => undefined,
+			setSpeedInk: (_time1: number, _time2: number) => undefined,
+			setMask: (_mask: number) => undefined,
+			setMaskFirst: (_maskFirst: number) => undefined,
+			getMode: () => 0,
+			changeMode: (_mode: number) => undefined,
+			//takeScreenShot: () => "",
+			//startUpdateCanvas: () => undefined,
+			//stopUpdateCanvas: () => undefined,
+			//onWindowClick: (_event: Event) => undefined,
+			fillTextBox: (left: number, top: number, width: number, height: number, _paper: number) => {
+				clearTextBufferBox(left, top, width, height);
+			},
+			printChar: (char: number, x: number, y: number, _pen: number, _paper: number, _transparent: boolean) => {
+				putCharInTextBuffer(char, x, y);
+			},
+			readChar: (x: number, y: number, _pen: number, _paper: number) => {
+				let char = getCharFromTextBuffer(x, y);
+				if (char === undefined) {
+					char = -1; // not detected
+				}
+				return char;
+			},
+			clearTextWindow: (_left: number, _right: number, _top: number, _bottom: number, _paper: number) => undefined,
+			setMode: (_mode: number) => undefined,
+			clearFullWindow: () => {
+				textBuffer.length = 0;
+			},
+			windowScrollUp: (left: number, right: number, top: number, bottom: number, _paper: number) => {
+				const width = right + 1 - left,
+					height = bottom + 1 - top;
+
+				if (height > 1) { // scroll part
+					// adapt also text buffer
+					copyTextBufferBoxUp(left, top + 1, width, height - 1, left, top);
+				}
+				canvas.fillTextBox(left, bottom, width, 1, 0);
+			},
+			windowScrollDown: (_left: number, _right: number, _top: number, _bottom: number, _paper: number) => undefined
+		};
+
+		// const canvas: ICanvasVm = new NoCanvas({
+		// 		canvasID: "id" as any,
+		// 		charset: [],
+		// 		palette: "color"
+		// });
 
 		const keyboard: IKeyboard = {
 			reset: () => undefined,
@@ -191,6 +313,15 @@ export class NodeUtils implements INodeUtils {
 			sq: (_n: number) => 0
 		};
 
+		// https://dirask.com/posts/Node-js-atob-btoa-functions-equivalents-1Aqb51
+		const atobFn = (input: string) => { // decode
+			return Buffer.from(input, "base64").toString("binary");
+		};
+
+		const btoaFn = (input: string) => { // encode
+			return Buffer.from(input, "binary").toString("base64");
+		}
+
 		const controllerOptions: ControllerOptions0 = {
 			canvas,
 			keyboard,
@@ -206,7 +337,11 @@ export class NodeUtils implements INodeUtils {
 			onProgramEnd: () => {
 				myGlobalThis.process.exit(0);
 			},
-			storage: createLocalStorage()
+			storage: createLocalStorage(),
+			atobFn: atobFn,
+			btoaFn: btoaFn,
+			console: console,
+			setTimeout: setTimeout
 		};
 
 		const controller = new Controller0(core, controllerOptions);

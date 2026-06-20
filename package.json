@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "./dist/cpcbasic-ui-bootstrap.js",
   "exports": {
@@ -52,7 +52,7 @@
     "build:separate": "tsc --build",
     "build:rollup": "rollup -c",
     "build": "npm run build:separate && npm run build:rollup && node updateVersion.js && npm run copy",
-    "testnode": "node dist/cpcbasic-node-bootstrap.js sound=false canvasType=text example=test/testpage",
+    "testnode": "node dist/cpcbasic-node-bootstrap.js example=test/testpage",
     "test": "qunit dist/test-bundle.js",
     "testAll": "qunit dist/test-bundle.js testAll=true",
     "deploy": "gh-pages -d dist",

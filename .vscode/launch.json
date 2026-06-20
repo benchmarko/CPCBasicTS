@@ -24,7 +24,8 @@
                 //"sound=false",
                 "debug=0",
                 //"canvasType=text",
-                "example=test/testpage"
+                //"example=test/testrsx"
+                "example=test/testpage",
                 //"example=math/euler"
             ],
             "outFiles": [

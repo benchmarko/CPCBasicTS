@@ -1,5 +1,5 @@
 import { CommonEventHandler } from "./CommonEventHandler";
-import { ViewID } from "./Constants";
+import { ViewID } from "./UiConstants";
 import type { ICore } from "../Interfaces";
 import type { IController } from "./UiInterfaces";
 import { View } from "./View";

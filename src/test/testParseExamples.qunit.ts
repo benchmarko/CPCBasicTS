@@ -16,7 +16,7 @@ interface NodePath {
 let path = undefined as unknown as NodePath;
 /* eslint-enable prefer-const */
 
-import { ModelPropID } from "../ui/Constants";
+import { ModelPropID } from "../Constants";
 import { Utils } from "../Utils";
 import type { DatabaseEntry, DatabasesType, ExampleEntry, ICpcVmRsx, IOutput } from "../Interfaces";
 import { BasicLexer } from "../BasicLexer";

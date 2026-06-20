@@ -4,8 +4,8 @@
 //
 /* globals ArrayBuffer, Uint8Array, Uint32Array */
 
-import { ViewID } from "./Constants";
-import { Utils } from "../Utils";
+import { ViewID } from "./UiConstants";
+import { UiUtils } from "./UiUtils";
 import { View } from "./View";
 import type { CanvasOptions, ICanvas } from "./UiInterfaces";
 import type { ICanvasVm, CanvasCharType } from "../Interfaces";
@@ -103,7 +103,7 @@ export class Canvas implements ICanvas, ICanvasVm {
 
 		// make sure canvas is not hidden (allows to get width, height, set style)
 		if (canvas.offsetParent === null) {
-			Utils.console.error("Error: canvas is not visible!");
+			UiUtils.console.error("Error: canvas is not visible!");
 		}
 
 		const width = canvas.width,
@@ -127,16 +127,16 @@ export class Canvas implements ICanvas, ICanvasVm {
 				this.pen2Color32 = new Uint32Array(new ArrayBuffer(Canvas.modeData[3].pens * 4));
 				this.data32 = new Uint32Array(this.imageData.data.buffer);
 				this.use32BitCopy = true;
-				Utils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
+				UiUtils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
 			} else {
 				this.setAlpha(255);
 				this.use32BitCopy = false;
-				Utils.console.log("Canvas: using copy2Canvas8bit");
+				UiUtils.console.log("Canvas: using copy2Canvas8bit");
 			}
 
 			this.fnCopy2Canvas = this.getCopy2CanvasFunction(this.offset);
 		} else {
-			Utils.console.warn("Error: canvas.getContext is not supported.");
+			UiUtils.console.warn("Error: canvas.getContext is not supported.");
 			// not available on e.g. IE8, nodeJS
 			this.fnCopy2Canvas = () => {
 				// nothing
@@ -748,7 +748,7 @@ export class Canvas implements ICanvas, ICanvasVm {
 					this.dataset8[i] |= gPen;
 					break;
 				default:
-					Utils.console.warn("setSubPixels: Unknown colMode:", gColMode);
+					UiUtils.console.warn("setSubPixels: Unknown colMode:", gColMode);
 					break;
 				}
 				i += 1;
@@ -1050,7 +1050,7 @@ export class Canvas implements ICanvas, ICanvasVm {
 		const charWidth = this.modeData.pixelWidth * 8;
 
 		if (char >= this.options.charset.length) {
-			Utils.console.warn("printGChar: Ignoring char with code", char);
+			UiUtils.console.warn("printGChar: Ignoring char with code", char);
 			return;
 		}
 
@@ -1065,7 +1065,7 @@ export class Canvas implements ICanvas, ICanvasVm {
 			pens = this.modeData.pens;
 
 		if (char >= this.options.charset.length) {
-			Utils.console.warn("printChar: Ignoring char with code", char);
+			UiUtils.console.warn("printChar: Ignoring char with code", char);
 			return;
 		}
 
@@ -1384,7 +1384,7 @@ export class Canvas implements ICanvas, ICanvasVm {
 		if (this.canvas.toDataURL) {
 			return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
 		}
-		Utils.console.warn("Screenshot not available");
+		UiUtils.console.warn("Screenshot not available");
 		return "";
 	}
 }

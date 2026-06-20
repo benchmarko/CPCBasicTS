@@ -5,7 +5,7 @@
 //
 
 import type { ICanvasVm, VariableValue } from "../Interfaces";
-import type { ViewID } from "./Constants"; //TTT
+import type { ViewID } from "./UiConstants";
 
 // Canvas
 

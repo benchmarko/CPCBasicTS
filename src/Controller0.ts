@@ -16,7 +16,7 @@ import { CpcVm, type FileMeta, type VmStopEntry } from "./CpcVm";
 import { DiskImage } from "./DiskImage";
 import { FileHandler } from "./FileHandler";
 import type { CustomError, ICanvasVm, ICore, IKeyboard, IStorage, IOutput, ISound, LoadScriptFn, SoundData, VmBaseParas, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas } from "./Interfaces";
-import { ModelPropID } from "./ui/Constants"; //TTT
+import { ModelPropID } from "./Constants";
 import { Random } from "./Random";
 import { RsxAmsdos } from "./RsxAmsdos";
 import { RsxCpcBasic } from "./RsxCpcBasic";
@@ -73,8 +73,12 @@ export interface ControllerOptions0 {
 	onResultText: (value: string) => void
 	onOutputText: (value: string) => void
 	onProgramEnd: () => void
-	loadScript: LoadScriptFn,
+	loadScript: LoadScriptFn
 	storage: IStorage
+	atobFn: (input: string) => string
+	btoaFn: (input: string) => string
+	console: any, //TTT
+	setTimeout: (callback: () => void, delay?: number) => any
 }
 
 /*
@@ -99,7 +103,8 @@ export class Controller0 {
 	//private readonly fnWaitForContinueHandler: () => void;
 	private readonly fnEditLineCallbackHandler: () => boolean;
 
-	private script = "";
+	private inScript = "";
+	private outScript = "";
 	private fnScript?: Function = undefined; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
 
 	private timeoutHandlerActive = false;
@@ -590,7 +595,10 @@ export class Controller0 {
 	}
 
 	setInputText(input: string, _keepStack?: boolean): void {
-		this.script = input; //TODO
+		this.inScript = input; //TODO
+		if (Utils.debug > 0) { //TODO: just to avoid unused error
+			Utils.console.debug("inScript.length=", this.inScript.length);
+		}
 	}
 
 	// setInputText(input: string, keepStack?: boolean): void {
@@ -920,7 +928,7 @@ export class Controller0 {
 		return parseInt(line, 10); // we do not check for linenumber in range 0...65535
 	}
 
-	private static addLineNumbers(input: string) {
+	public static addLineNumbers(input: string) {
 		const lineParts = input.split("\n");
 		let lastLine = 0;
 
@@ -1401,7 +1409,7 @@ export class Controller0 {
 			input = data.data; // maybe changed
 
 			if (data.meta.encoding === "base64") {
-				input = window.atob(input); // decode base64
+				input = this.options.atobFn(input); // decode base64
 			}
 
 			const type = data.meta.typeString;
@@ -1567,7 +1575,8 @@ export class Controller0 {
 	}
 
 	private setOutputText(text: string) {
-		this.options.onResultText(text);
+		this.outScript = text;
+		//this.options.onResultText(text);
 		//this.view.setAreaValue(ViewID.outputText, text);
 		// if (this.options.onOutputText) {
 		// 	this.options.onOutputText(text);
@@ -1575,7 +1584,7 @@ export class Controller0 {
 	}
 
 	private setResultText(text: string, _scroll = false) {
-		this.options.onOutputText(text);
+		this.options.onResultText(text);
 		//this.view.setAreaValue(ViewID.resultText, text);
 		// if (this.options.onResultText) {
 		// 	this.options.onResultText(text);
@@ -2145,11 +2154,13 @@ export class Controller0 {
 			name = "",
 			data = "";
 
+		const btoaFn = this.options.btoaFn;
+
 		const fnExportBase64 = function () {
 			meta.encoding = "base64";
 			const metaString = FileHandler.joinMeta(meta);
 
-			data = metaString + "," + window.btoa(data);
+			data = metaString + "," + btoaFn(data);
 			name += ".b64.txt";
 		};
 
@@ -2256,7 +2267,7 @@ export class Controller0 {
 	// }
 
 	private fnChain(paras?: VmLineParas) {
-		const script = this.script, //this.view.getAreaValue(ViewID.outputText),
+		const script = this.outScript, //this.view.getAreaValue(ViewID.outputText),
 			vm = this.vm;
 		let line = paras && paras.first || 0;
 
@@ -2555,14 +2566,14 @@ export class Controller0 {
 			this.timeoutHandlerActive = false; // not running any more
 			this.exitLoop();
 		} else {
-			setTimeout(this.fnRunLoopHandler, this.nextLoopTimeOut);
+			this.options.setTimeout(this.fnRunLoopHandler, this.nextLoopTimeOut);
 		}
 	}
 
 	startMainLoop(): void {
 		if (!this.timeoutHandlerActive) {
 			this.timeoutHandlerActive = true;
-			setTimeout(this.fnRunLoopHandler, 0);
+			this.options.setTimeout(this.fnRunLoopHandler, 0);
 		}
 	}
 
@@ -3155,10 +3166,11 @@ export class Controller0 {
 			this.onDirectorySelectChange();
 		} else {
 			this.setInputText("#loading database " + databaseName + "...");
-			const exampleIndex = this.core.getModel().getProperty<string>(ModelPropID.exampleIndex),
-				url = database.src + "/" + exampleIndex;
+			const exampleIndex = this.core.getModel().getProperty<string>(ModelPropID.exampleIndex);
+			const url = database.src + "/" + exampleIndex;
+			const loadScriptFn = this.getLoadScript();
 
-			this.getLoadScript()(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
+			loadScriptFn(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
 		}
 	}
 

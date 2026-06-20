@@ -3,7 +3,7 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-import { ViewID } from "./Constants";
+import { ViewID } from "./UiConstants";
 import { UiUtils } from "./UiUtils";
 import { PressReleaseCpcKey } from "./Keyboard";
 import { View, PointerEventNamesType } from "./View";

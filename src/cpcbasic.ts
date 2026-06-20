@@ -75,7 +75,7 @@ const startConfig: ConfigType = {
 
 export class cpcBasic {
 	static start(startupAdapter: CpcBasicStartupAdapter) {
-		console.log("CPCBasicTS started at", Utils.dateFormat(new Date()));
+		Utils.console.log("CPCBasicTS started at", Utils.dateFormat(new Date()));
 		const adapterConfig = startupAdapter.getConfigOverrides() || {};
 		Object.assign(startConfig, cpcconfig, adapterConfig);
 
@@ -108,7 +108,12 @@ export class cpcBasic {
 						}
 						core.addItem(key, input);
 					},
-					addRsx: (key: string, RsxConstructor: new () => ICpcVmRsx) => core.addRsx(key, RsxConstructor)
+					addRsx: (key: string, RsxConstructor: new () => ICpcVmRsx) => {
+						if (!key) { // maybe ""
+							key = ui.getCurrentDataKey();
+						}
+						core.addRsx(key, RsxConstructor);
+					}
 				};
 				ui.onWindowLoadContinue(core);
 			};

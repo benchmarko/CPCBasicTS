@@ -3,7 +3,7 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-import { ViewID } from "./Constants";
+import { ViewID } from "./UiConstants";
 import { View } from "./View";
 import type { ICanvasVm } from "../Interfaces";
 import type { CanvasOptions, CanvasCharType, ICanvas } from "./UiInterfaces";

@@ -1,3 +1,5 @@
+import { ModelPropID } from "./Constants";
+import { Controller0 } from "./Controller0";
 import type { ConfigEntryType, ConfigType, DatabasesType, ExampleEntry, ICore, ICpcVmRsx, IModel } from "./Interfaces";
 import { Model } from "./Model";
 import { Utils } from "./Utils";
@@ -93,8 +95,15 @@ export class Core implements ICore {
 		inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
 
 		if (!key) { // maybe ""
-			console.warn("addItem: no key!");
+			Utils.console.warn("addItem: no key!");
 			key = "unknown";
+		}
+
+		const implicitLines = this.model.getProperty<boolean>(ModelPropID.implicitLines);
+		const linesOnLoad = this.model.getProperty<boolean>(ModelPropID.linesOnLoad);
+
+		if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
+			inputString = Controller0.addLineNumbers(inputString);
 		}
 
 		const example = this.model.getExample(key);
@@ -104,17 +113,12 @@ export class Core implements ICore {
 	};
 
 	public addRsx = (key: string, RsxConstructor: new () => ICpcVmRsx): string => {
-		if (!key) { // maybe ""
-			key = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty<string>(ModelPropIDexample);
-			// on IE we can just get the current example
-		}
-
 		const example = this.model.getExample(key);
 
 		example.key = key; // maybe changed
 		example.rsx = new RsxConstructor();
 		example.loaded = true;
-		console.log("addItem:", key);
+		Utils.console.log("addItem:", key);
 		return key;
 	};
 

@@ -4,10 +4,18 @@
     "outDir": "../dist",
     "declarationDir": "../dist/types",
     "types": ["node"],
-    "sourceRoot":"./src"
+    "lib": [
+      "es2020",
+      "dom"
+    ],
+    "sourceRoot":"./src",
+    "composite": true
   },
   "include": [
-    "./*.ts"
-    ,"ui/Constants.ts"
+    "./*.ts",
+    "core/**/*.ts",
+    "ui/**/*.ts",
+    "node/**/*.ts",
+    "test/**/*.ts"
   ]
 }

@@ -3,7 +3,8 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-import { ModelPropID, ViewID } from "./Constants";
+import { ModelPropID } from "../Constants";
+import { ViewID } from "./UiConstants";
 import { UiUtils } from "./UiUtils";
 import { BasicFormatter } from "../BasicFormatter";
 import { BasicLexer } from "../BasicLexer";
@@ -101,6 +102,7 @@ export class Controller implements IController {
 	});
 
 	private readonly vm: CpcVm;
+	private readonly vmOnCanvasClickHandler: (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
 
 	private readonly noStop: VmStopEntry;
 	private readonly savedStop: VmStopEntry; // backup of stop object
@@ -163,9 +165,18 @@ export class Controller implements IController {
 			variables: this.variables,
 			onClickKey: this.fnPutKeyInBufferHandler
 		});
+		
+		const onCanvasClick = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => {
+			const handler = this.vm.getOnCanvasClickHandler();
+			handler(x, y, xTxt, yTxt, event.detail === 2);
+		};
+		this.vmOnCanvasClickHandler = onCanvasClick;
+
+		this.vm.getOnCanvasClickHandler();
 		this.canvas.setOptions({
-				onCanvasClick: this.vm.getOnCanvasClickHandler()
-			});
+			//onCanvasClick: this.vm.getOnCanvasClickHandler()
+			onCanvasClick
+		});
 		this.vm.setCanvas(this.canvas);
 		this.vm.vmReset();
 
@@ -2728,9 +2739,9 @@ export class Controller implements IController {
 		}
 
 		if (this.vm) {
-			const handler = this.vm.getOnCanvasClickHandler();
+			//const handler = this.vm.getOnCanvasClickHandler();
 			this.canvas.setOptions({
-				onCanvasClick: handler
+				onCanvasClick: this.vmOnCanvasClickHandler
 			});
 			this.vm.setCanvas(canvas);
 		}
