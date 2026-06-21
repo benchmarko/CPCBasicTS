@@ -1500,7 +1500,7 @@ export class CpcVm implements ICpcVm {
 			// and TXT Reset...
 			this.vmResetControlBuffer();
 			break;
-		case 0xbb51: // TXT Reset (ROM &11088)
+		case 0xbb51: // TXT Reset (ROM &1088)
 			this.vmResetControlBuffer();
 			break;
 		case 0xbb5a: // TXT Output (ROM &1400), depending on number of args

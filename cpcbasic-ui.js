@@ -13823,12 +13823,12 @@
 	      return;
 	    }
 	    const file = this.file, name = file.name, reader = event.target;
-	    let data = reader && reader.result || null, type = file.type;
-	    if ((type === "application/x-zip-compressed" || type === "application/zip") && data instanceof ArrayBuffer) {
+	    let data = reader && reader.result || null, type = "";
+	    if ((file.type === "application/x-zip-compressed" || file.type === "application/zip") && data instanceof ArrayBuffer) {
 	      type = "Z";
 	      this.options.fnLoad2(new Uint8Array(data), name, type, this.imported);
 	    } else if (typeof data === "string") {
-	      if (type === "text/plain") {
+	      if (file.type === "text/plain") {
 	        type = "A";
 	      } else if (data.indexOf("data:") === 0) {
 	        const index = data.indexOf(",");
@@ -13838,7 +13838,7 @@
 	          if (info1.indexOf("base64") >= 0) {
 	            data = window.atob(data);
 	          }
-	          if (info1.indexOf("text/") >= 0) {
+	          if (info1.indexOf("text/") >= 0 && info1.indexOf("text/x-basic") < 0) {
 	            type = "A";
 	          }
 	        }
