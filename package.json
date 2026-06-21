@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "./dist/cpcbasic-ui-bootstrap.js",
   "exports": {
@@ -51,7 +51,7 @@
     "copy": "cp src/*.html src/*.css LICENSE favicon.ico dist/ && mkdirp -p dist/src && cp -r src/*.ts dist/src && mkdirp -p dist/src/test && cp -r src/test/*.ts dist/src/test && cp src/test/*.html dist/test/ && mkdirp -p dist/examples && cp -r examples/* dist/examples && mkdirp -p dist/img && cp img/* dist/img",
     "build:separate": "tsc --build",
     "build:rollup": "rollup -c",
-    "build": "npm run build:separate && npm run build:rollup && node updateVersion.js && npm run copy",
+    "build": "npm run build:separate && npm run build:rollup && npm run copy && node updateVersion.mjs",
     "testnode": "node dist/cpcbasic-node-bootstrap.js example=test/testpage",
     "test": "qunit dist/test-bundle.js",
     "testAll": "qunit dist/test-bundle.js testAll=true",
