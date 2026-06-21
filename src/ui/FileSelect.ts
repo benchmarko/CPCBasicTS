@@ -73,13 +73,13 @@ export class FileSelect {
 			name = file.name,
 			reader = event.target;
 		let data = (reader && reader.result) || null,
-			type = file.type;
+			type = "";
 
-		if ((type === "application/x-zip-compressed" || type === "application/zip") && data instanceof ArrayBuffer) { // on Mac OS it is "application/zip"
+		if ((file.type === "application/x-zip-compressed" || file.type === "application/zip") && data instanceof ArrayBuffer) { // on Mac OS it is "application/zip"
 			type = "Z";
 			this.options.fnLoad2(new Uint8Array(data), name, type, this.imported);
 		} else if (typeof data === "string") {
-			if (type === "text/plain") { // "text/plain"
+			if (file.type === "text/plain") { // "text/plain"
 				type = "A";
 			} else if (data.indexOf("data:") === 0) {
 				// check for meta info in data: data:application/octet-stream;base64, or: data:text/javascript;base64,
@@ -93,7 +93,7 @@ export class FileSelect {
 					if (info1.indexOf("base64") >= 0) {
 						data = window.atob(data); // decode base64
 					}
-					if (info1.indexOf("text/") >= 0) {
+					if ((info1.indexOf("text/") >= 0) && (info1.indexOf("text/x-basic") < 0)) { // text/x-basic is sometimes used for .bas on Linux (also with AMSDOS header)
 						type = "A";
 					}
 				}
