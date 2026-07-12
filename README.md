@@ -37,6 +37,17 @@ There are several great CPC emulators which emulate a complete CPC with exact ti
 
 With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, can we achieve a similar or faster speed than the assembler programmed functionality that runs on a CPC or emulator?
 
+## Build locally
+
+To build the browser app from source, install the dependencies and run the build script:
+
+```bash
+npm install
+npm run build
+```
+
+The build generates the distribution files in the `dist/` directory, including `dist/index.html`. You can then open that file in a browser, or use the generated files from `dist/` directly.
+
 ## Usage
 
 - Just open index.html in a browser.
