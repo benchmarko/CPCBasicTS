@@ -11,6 +11,7 @@ import "./DiskImage.qunit";
 import "./Model.qunit";
 import "./Sound.qunit";
 import "./Variables.qunit";
+import "./Headless.qunit";
 import "./Z80Disass.qunit";
 import "./ZipFile.qunit";
 import "./testParseExamples.qunit";

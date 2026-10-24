@@ -21869,6 +21869,661 @@
 	  TestHelper.generateAllTests(allTests, runTestsForDetermineStaticVarType, hooks);
 	});
 
+	const randomCpcInitState = 1812433253;
+	class RandomCpc {
+	  constructor(seed) {
+	    this.state = randomCpcInitState;
+	    this.init(seed);
+	  }
+	  init(seed) {
+	    this.state = randomCpcInitState;
+	    seed || (seed = 0);
+	    if (seed !== 0) {
+	      this.randomizeMantissa(RandomCpc.encodeCpcMantissa(seed));
+	    }
+	  }
+	  static encodeCpcMantissa(value) {
+	    if (!Number.isFinite(value)) {
+	      throw new Error("Seed must be a finite number");
+	    }
+	    let mantissa = 0, exponent = 0, sign = 0;
+	    if (value !== 0) {
+	      if (value < 0) {
+	        sign = 2147483648;
+	        value = -value;
+	      }
+	      exponent = Math.ceil(Math.log(value) / Math.log(2));
+	      mantissa = Math.round(value / Math.pow(2, exponent - 32)) & 2147483647;
+	    }
+	    const signMantissa = sign + mantissa, result = [
+	      signMantissa & 255,
+	      signMantissa >> 8 & 255,
+	      signMantissa >> 16 & 255,
+	      signMantissa >> 24 & 255
+	    ];
+	    return result;
+	  }
+	  randomizeMantissa(bytes) {
+	    const xorMask = ((bytes[1] << 8 | bytes[0]) << 16 | (bytes[3] << 8 | bytes[2])) >>> 0;
+	    this.state = (this.state ^ xorMask) >>> 0;
+	  }
+	  static nextStateU32(state) {
+	    const initLow = 35173, initHigh = 27655, mulLow = 62828, high = state >>> 16, low = state & 65535, highAcc = high * initLow + initLow, newHigh = highAcc & 65535, newLow = low * mulLow + initHigh + (highAcc >>> 16) & 65535;
+	    return (newHigh << 16 | newLow) >>> 0;
+	  }
+	  random() {
+	    this.state = RandomCpc.nextStateU32(this.state);
+	    const high = this.state >>> 16, low = this.state & 65535;
+	    return ((low << 16 | high) >>> 0) / 4294967296;
+	  }
+	}
+	class RandomMinStd {
+	  constructor(seed) {
+	    this.init(seed);
+	  }
+	  // https://en.wikipedia.org/wiki/Jenkins_hash_function
+	  static vmHashCode(s) {
+	    let hash = 0;
+	    for (let i = 0; i < s.length; i += 1) {
+	      hash += s.charCodeAt(i);
+	      hash += hash << 10;
+	      hash ^= hash >> 6;
+	    }
+	    hash += hash << 3;
+	    hash ^= hash >> 11;
+	    hash += hash << 15;
+	    return hash;
+	  }
+	  init(seed) {
+	    seed = RandomMinStd.vmHashCode(String(seed));
+	    this.x = seed || 2305125383;
+	  }
+	  random() {
+	    const m = 2147483647, a = 16807, q = 127773, r = 2836;
+	    let x = this.x;
+	    x = a * (x % q) - r * (x / q | 0);
+	    if (x <= 0) {
+	      x += m;
+	    }
+	    this.x = x;
+	    return x / m;
+	  }
+	}
+	class Random {
+	  constructor(useCpcRandom = true) {
+	    if (useCpcRandom) {
+	      this.rndGen = new RandomCpc();
+	    } else {
+	      this.rndGen = new RandomMinStd();
+	    }
+	  }
+	  init(seed) {
+	    return this.rndGen.init(seed);
+	  }
+	  random() {
+	    return this.rndGen.random();
+	  }
+	}
+
+	class NoCanvas {
+	  constructor(options) {
+	    this.options = {};
+	    this.setOptions(options);
+	    this.reset();
+	  }
+	  getOptions() {
+	    return this.options;
+	  }
+	  setOptions(options) {
+	    Object.assign(this.options, options);
+	  }
+	  reset() {
+	  }
+	  resetCustomChars() {
+	  }
+	  setScreenOffset(_offset) {
+	  }
+	  updateColorsAndCanvasImmediately(_inkList) {
+	  }
+	  updateSpeedInk() {
+	  }
+	  setCustomChar(_char, _charData) {
+	  }
+	  getCharData(_char) {
+	    return [];
+	  }
+	  setDefaultInks() {
+	  }
+	  onCanvasClick(_event) {
+	  }
+	  getXpos() {
+	    return 0;
+	  }
+	  getYpos() {
+	    return 0;
+	  }
+	  getByte(_addr) {
+	    return 0;
+	  }
+	  setByte(_addr, _byte) {
+	  }
+	  draw(_x, _y) {
+	  }
+	  move(_x, _y) {
+	  }
+	  plot(_x, _y) {
+	  }
+	  test(_x, _y) {
+	    return 0;
+	  }
+	  setInk(_pen, _ink1, _ink2) {
+	    return false;
+	  }
+	  setBorder(_ink1, _ink2) {
+	  }
+	  setGPen(_gPen) {
+	  }
+	  setGPaper(_gPaper) {
+	  }
+	  setGTransparentMode(_transparent) {
+	  }
+	  printGChar(_char) {
+	  }
+	  drawCursor(_x, _y, _pen, _paper) {
+	  }
+	  fill(_fillPen) {
+	  }
+	  setOrigin(_xOrig, _yOrig) {
+	  }
+	  getXOrigin() {
+	    return 0;
+	  }
+	  getYOrigin() {
+	    return 0;
+	  }
+	  setGWindow(_xLeft, _xRight, _yTop, _yBottom) {
+	  }
+	  setGColMode(_gColMode) {
+	  }
+	  clearGraphicsWindow() {
+	  }
+	  setSpeedInk(_time1, _time2) {
+	  }
+	  setMask(_mask) {
+	  }
+	  setMaskFirst(_maskFirst) {
+	  }
+	  getMode() {
+	    return 0;
+	  }
+	  changeMode(_mode) {
+	  }
+	  takeScreenShot() {
+	    return "";
+	  }
+	  startUpdateCanvas() {
+	  }
+	  stopUpdateCanvas() {
+	  }
+	  onWindowClick(_event) {
+	  }
+	  fillTextBox(_left, _top, _width, _height, _paper) {
+	  }
+	  printChar(_char, _x, _y, _pen, _paper, _transparent) {
+	  }
+	  readChar(_x, _y, _pen, _paper) {
+	    return 0;
+	  }
+	  clearTextWindow(_left, _right, _top, _bottom, _paper) {
+	  }
+	  setMode(_mode) {
+	  }
+	  clearFullWindow() {
+	  }
+	  windowScrollUp(_left, _right, _top, _bottom, _paper) {
+	  }
+	  windowScrollDown(_left, _right, _top, _bottom, _paper) {
+	  }
+	}
+
+	function unsupported(feature) {
+	  throw new Error("Headless testing does not support " + feature);
+	}
+	class HeadlessScreen extends NoCanvas {
+	  constructor() {
+	    super({});
+	    this.cells = /* @__PURE__ */ new Map();
+	    this.modeValue = 1;
+	  }
+	  reset() {
+	    this.cells?.clear();
+	  }
+	  getCell(x, y) {
+	    const cell = this.cells.get(x + "," + y);
+	    return cell && { ...cell };
+	  }
+	  printChar(char, x, y, pen, paper, transparent) {
+	    if (transparent) {
+	      unsupported("transparent text pixel composition");
+	    }
+	    this.cells.set(x + "," + y, { char, pen, paper });
+	  }
+	  readChar(x, y) {
+	    return this.getCell(x, y)?.char ?? 32;
+	  }
+	  clearFullWindow() {
+	    this.cells.clear();
+	  }
+	  fillTextBox(left, top, width, height, paper) {
+	    for (let y = top; y < top + height; y += 1) {
+	      for (let x = left; x < left + width; x += 1) {
+	        this.cells.set(x + "," + y, { char: 32, pen: paper, paper });
+	      }
+	    }
+	  }
+	  clearTextWindow(left, right, top, bottom, paper) {
+	    this.fillTextBox(left, top, right - left + 1, bottom - top + 1, paper);
+	  }
+	  scroll(left, right, top, bottom, paper, direction) {
+	    const snapshot = new Map(this.cells);
+	    for (let y = top; y <= bottom; y += 1) {
+	      for (let x = left; x <= right; x += 1) {
+	        const sourceY = y + direction, cell = sourceY >= top && sourceY <= bottom ? snapshot.get(x + "," + sourceY) : void 0;
+	        this.cells.set(x + "," + y, cell ? { ...cell } : { char: 32, pen: paper, paper });
+	      }
+	    }
+	  }
+	  windowScrollUp(left, right, top, bottom, paper) {
+	    this.scroll(left, right, top, bottom, paper, 1);
+	  }
+	  windowScrollDown(left, right, top, bottom, paper) {
+	    this.scroll(left, right, top, bottom, paper, -1);
+	  }
+	  setMode(mode) {
+	    this.modeValue = mode;
+	  }
+	  getMode() {
+	    return this.modeValue;
+	  }
+	  changeMode(_mode) {
+	    unsupported("screen reinterpretation");
+	  }
+	  getByte(_address) {
+	    return unsupported("screen-memory reads");
+	  }
+	  setByte(_address, _byte) {
+	    unsupported("screen-memory writes");
+	  }
+	  draw(_x, _y) {
+	    unsupported("graphics DRAW");
+	  }
+	  move(_x, _y) {
+	    unsupported("graphics MOVE");
+	  }
+	  plot(_x, _y) {
+	    unsupported("graphics PLOT");
+	  }
+	  test(_x, _y) {
+	    return unsupported("graphics TEST");
+	  }
+	  fill(_pen) {
+	    unsupported("graphics FILL");
+	  }
+	  printGChar(_char) {
+	    unsupported("graphics text");
+	  }
+	}
+	class HeadlessKeyboard {
+	  constructor() {
+	    this.queue = [];
+	    this.reads = 0;
+	  }
+	  reset() {
+	    this.clearInput();
+	    this.reads = 0;
+	  }
+	  clearInput() {
+	    this.queue.length = 0;
+	  }
+	  getKeyFromBuffer() {
+	    this.reads += 1;
+	    return this.queue.shift() ?? "";
+	  }
+	  putKeyInBuffer(key) {
+	    this.queue.push(...key.split(""));
+	  }
+	  getKeyState(_key) {
+	    return unsupported("INKEY key-state queries; use INKEY$");
+	  }
+	  getJoyState(_joy) {
+	    return unsupported("joysticks");
+	  }
+	  resetExpansionTokens() {
+	  }
+	  resetCpcKeysExpansions() {
+	  }
+	  setExpansionToken(_token, _text) {
+	    unsupported("KEY expansions");
+	  }
+	  setCpcKeyExpansion() {
+	    unsupported("KEY DEF");
+	  }
+	}
+	class HeadlessSound {
+	  reset() {
+	  }
+	  resetQueue() {
+	  }
+	  testCanQueue(_state) {
+	    return true;
+	  }
+	  sound(_data) {
+	  }
+	  setVolEnv(_env, _data) {
+	  }
+	  setToneEnv(_env, _data) {
+	  }
+	  scheduler() {
+	  }
+	  release(_mask) {
+	  }
+	  sq(_channel) {
+	    return unsupported("sound-queue queries");
+	  }
+	}
+	class HeadlessVm extends CpcVm {
+	  constructor() {
+	    super(...arguments);
+	    this.ticks = 0;
+	    this.checkpoint = () => false;
+	    this.readKey = () => "";
+	  }
+	  vmLoopCondition() {
+	    return this.checkpoint();
+	  }
+	  time() {
+	    return this.ticks;
+	  }
+	  inkey$() {
+	    return this.readKey();
+	  }
+	  frame() {
+	    this.ticks += 6;
+	    super.frame();
+	  }
+	  afterGosub() {
+	    unsupported("AFTER timers");
+	  }
+	  everyGosub() {
+	    unsupported("EVERY timers");
+	  }
+	  onSqGosub() {
+	    unsupported("ON SQ timers");
+	  }
+	}
+	class HeadlessCompileError extends Error {
+	  constructor(diagnostic) {
+	    super(String(diagnostic));
+	    this.diagnostic = diagnostic;
+	    this.name = "HeadlessCompileError";
+	  }
+	}
+	class HeadlessProgram {
+	  constructor(code, variableNames) {
+	    this.code = code;
+	    this.variableNames = variableNames;
+	  }
+	  createHeadlessMachine(options = {}) {
+	    return new HeadlessMachine(this.code, this.variableNames, options);
+	  }
+	}
+	class HeadlessMachine {
+	  constructor(code, names, options) {
+	    this.screen = new HeadlessScreen();
+	    this.keyboard = new HeadlessKeyboard();
+	    this.variables = new Variables({ arrayBounds: true });
+	    const random = new Random(true);
+	    this.vm = new HeadlessVm({ canvas: this.screen, keyboard: this.keyboard, sound: new HeadlessSound(), random, variables: this.variables, quiet: true });
+	    this.vm.vmReset();
+	    for (const name of names) {
+	      this.variables.initVariable(name);
+	    }
+	    if (options.seed !== void 0 && !Number.isFinite(options.seed)) {
+	      throw new RangeError("Seed must be finite");
+	    }
+	    random.init(options.seed);
+	    this.advanceTime(options.ticks ?? 0);
+	    this.vm.readKey = () => this.keyboard.getKeyFromBuffer();
+	    this.execute = new Function("o", code);
+	  }
+	  advanceTime(ticks) {
+	    if (!Number.isSafeInteger(ticks) || ticks < 0 || !Number.isSafeInteger(this.vm.ticks + ticks)) {
+	      throw new RangeError("Ticks must be nonnegative safe integers");
+	    }
+	    this.vm.ticks += ticks;
+	  }
+	  pressKey(key) {
+	    if ([...key].some((char) => char.charCodeAt(0) > 255)) {
+	      throw new RangeError("Keys must be CPC byte characters");
+	    }
+	    this.keyboard.putKeyInBuffer(key);
+	  }
+	  run(options = {}) {
+	    return this.executeUntil(false, options);
+	  }
+	  // INKEY$ returns before pausing at the next generated-code checkpoint. This
+	  // never unwinds/replays a partially executed BASIC expression or statement.
+	  runUntilInput(options = {}) {
+	    return this.executeUntil(true, options);
+	  }
+	  executeUntil(untilInput, options) {
+	    const limit = options.maxSteps ?? 1e5, initialReads = this.keyboard.reads;
+	    if (!Number.isSafeInteger(limit) || limit < 1) {
+	      throw new RangeError("maxSteps must be a positive safe integer");
+	    }
+	    if (this.vm.vmGetStopObject().reason === "waitFrame") {
+	      this.vm.vmStop("", 0, true);
+	    }
+	    let steps = 0;
+	    this.vm.checkpoint = () => {
+	      if (this.vm.vmGetStopObject().reason || this.fault || steps >= limit || untilInput && this.keyboard.reads > initialReads) {
+	        return false;
+	      }
+	      steps += 1;
+	      return true;
+	    };
+	    try {
+	      this.execute(this.vm);
+	    } catch (error) {
+	      this.fault = error instanceof Error ? error : new Error(String(error));
+	    }
+	    const vmReason = this.vm.vmGetStopObject().reason, reason = this.fault ? "error" : vmReason === "stop" || vmReason === "end" ? "stopped" : vmReason === "waitFrame" ? "frame" : vmReason ? "blocked" : untilInput && this.keyboard.reads > initialReads ? "input" : "budget";
+	    return { reason, steps, line: this.vm.line, vmReason, ...this.fault ? { error: this.fault } : {} };
+	  }
+	  getOutput() {
+	    return this.vm.vmGetOutBuffer();
+	  }
+	  getTime() {
+	    return this.vm.ticks;
+	  }
+	  variableKey(name, dimensions) {
+	    if (!/^[a-z][a-z0-9.]*(?:[!%$])?$/i.test(name)) {
+	      throw new TypeError("Expected a BASIC variable name without subscripts");
+	    }
+	    const explicit = /[!%$]$/.test(name), base = (explicit ? name.slice(0, -1) : name).toLowerCase().replace(/\./g, "_"), type = explicit ? { "!": "R", "%": "I", $: "$" }[name.slice(-1)] : this.variables.getVarType(base[0]), key = base + "A".repeat(dimensions) + type;
+	    if (this.variables.variableExist(key)) {
+	      return key;
+	    }
+	    if (this.variables.variableExist("_" + key)) {
+	      return "_" + key;
+	    }
+	    throw new ReferenceError("Unknown BASIC variable: " + name);
+	  }
+	  scalar(value) {
+	    if (typeof value !== "number" && typeof value !== "string") {
+	      throw new TypeError("Expected a scalar BASIC value");
+	    }
+	    return value;
+	  }
+	  assigned(key, value) {
+	    if (typeof value === "number" && !Number.isFinite(value)) {
+	      throw new RangeError("Numeric values must be finite");
+	    }
+	    const type = key.slice(-1);
+	    if (type === "$") {
+	      if (typeof value !== "string") {
+	        throw new TypeError("Expected a string value");
+	      }
+	      if (value.length > 255) {
+	        throw new RangeError("BASIC strings cannot exceed 255 characters");
+	      }
+	      return value;
+	    }
+	    if (type !== "$" && typeof value !== "number") {
+	      throw new TypeError("Expected a numeric value");
+	    }
+	    if (type === "I") {
+	      const rounded = value < 0 ? -Math.round(-value) : Math.round(value);
+	      if (rounded < -32768 || rounded > 32767) {
+	        throw new RangeError("BASIC integer overflow");
+	      }
+	      return rounded;
+	    }
+	    return value;
+	  }
+	  getVariable(name) {
+	    return this.scalar(this.variables.getVariable(this.variableKey(name, 0)));
+	  }
+	  setVariable(name, value) {
+	    const key = this.variableKey(name, 0);
+	    this.variables.setVariable(key, this.assigned(key, value));
+	  }
+	  arraySlot(name, indices) {
+	    if (indices.length < 1 || indices.length > 3 || indices.some((index) => !Number.isSafeInteger(index) || index < 0)) {
+	      throw new RangeError("Expected one to three nonnegative integer indices");
+	    }
+	    const key = this.variableKey(name, indices.length);
+	    let value = this.variables.getVariable(key);
+	    for (let dimension = 0; dimension < indices.length; dimension += 1) {
+	      const index = indices[dimension];
+	      if (!Array.isArray(value) || index >= value.length) {
+	        throw new RangeError("BASIC array index out of bounds");
+	      }
+	      if (dimension === indices.length - 1) {
+	        return { key, array: value, index };
+	      }
+	      value = value[index];
+	    }
+	    throw new RangeError("Invalid array indices");
+	  }
+	  getArrayElement(name, indices) {
+	    const slot = this.arraySlot(name, indices);
+	    return this.scalar(slot.array[slot.index]);
+	  }
+	  setArrayElement(name, indices, value) {
+	    const slot = this.arraySlot(name, indices);
+	    slot.array[slot.index] = this.assigned(slot.key, value);
+	  }
+	}
+	function compile(source, options = {}) {
+	  const parser = new BasicParser({ quiet: true }), variables = new Variables({ arrayBounds: true }), generator = new CodeGeneratorJs({ parser, lexer: new BasicLexer({ keywords: parser.getKeywords(), quiet: true }), implicitLines: options.implicitLines ?? false, integerOverflow: true, quiet: true }), output = generator.generate(source, variables);
+	  if (output.error) {
+	    throw new HeadlessCompileError(output.error);
+	  }
+	  return new HeadlessProgram(output.text, variables.getAllVariableNames());
+	}
+
+	QUnit.module("Headless", function() {
+	  QUnit.test("compilation diagnostics and independent machines", function(assert) {
+	    assert.throws(() => compile("10 LET ="), HeadlessCompileError);
+	    const program = compile("a=7\nEND", { implicitLines: true }), first = program.createHeadlessMachine(), second = program.createHeadlessMachine();
+	    assert.strictEqual(first.run().reason, "stopped");
+	    assert.strictEqual(first.getVariable("a"), 7);
+	    assert.strictEqual(second.getVariable("a"), 0);
+	    assert.strictEqual(first.run().steps, 0);
+	    assert.strictEqual(second.run().reason, "stopped");
+	  });
+	  QUnit.test("keyboard checkpoint pausing does not replay side effects", function(assert) {
+	    const machine = compile("10 count=count+1:k$=INKEY$:done=done+1:GOTO 10").createHeadlessMachine();
+	    for (const key of ["", "a", "b", ""]) {
+	      if (key) {
+	        machine.pressKey(key);
+	      }
+	      assert.strictEqual(machine.runUntilInput().reason, "input");
+	      assert.strictEqual(machine.getVariable("k$"), key);
+	    }
+	    assert.strictEqual(machine.getVariable("count"), 4);
+	    assert.strictEqual(machine.getVariable("done"), 4);
+	  });
+	  QUnit.test("budget exhaustion is resumable and bounded", function(assert) {
+	    const machine = compile("10 count=count+1:GOTO 10").createHeadlessMachine();
+	    const first = machine.run({ maxSteps: 20 }), before = machine.getVariable("count");
+	    assert.strictEqual(first.reason, "budget");
+	    assert.strictEqual(first.steps, 20);
+	    assert.strictEqual(machine.run({ maxSteps: 10 }).reason, "budget");
+	    assert.ok(machine.getVariable("count") > before);
+	    assert.throws(() => machine.run({ maxSteps: 0 }), RangeError);
+	  });
+	  QUnit.test("virtual time and FRAME never wait for wall time", function(assert) {
+	    const machine = compile("10 first=TIME:CALL &BD19\n20 second=TIME:k$=INKEY$\n30 END").createHeadlessMachine({ ticks: 300 });
+	    assert.strictEqual(machine.run().reason, "frame");
+	    assert.strictEqual(machine.getTime(), 306);
+	    machine.advanceTime(150);
+	    machine.runUntilInput();
+	    assert.strictEqual(machine.getVariable("first"), 300);
+	    assert.strictEqual(machine.getVariable("second"), 456);
+	    assert.throws(() => machine.advanceTime(-1), RangeError);
+	  });
+	  QUnit.test("seeded random streams are deterministic and isolated", function(assert) {
+	    const program = compile("10 initial=RND:FOR idx=1 TO 5:value=RND:NEXT idx\n20 END"), first = program.createHeadlessMachine({ seed: 123 }), second = program.createHeadlessMachine({ seed: 123 }), other = program.createHeadlessMachine({ seed: 456 });
+	    first.run();
+	    second.run();
+	    other.run();
+	    assert.strictEqual(first.getVariable("value"), second.getVariable("value"));
+	    assert.notStrictEqual(first.getVariable("initial"), other.getVariable("initial"));
+	  });
+	  QUnit.test("BASIC variable names, suffixes, dimensions and bounds", function(assert) {
+	    const machine = compile('10 DEFINT A-Z:DIM board(2,3):name$="CPC":value=7:timer!=2.5\n20 k$=INKEY$\n30 END').createHeadlessMachine();
+	    machine.runUntilInput();
+	    assert.strictEqual(machine.getVariable("VALUE"), 7);
+	    assert.strictEqual(machine.getVariable("name$"), "CPC");
+	    assert.strictEqual(machine.getVariable("timer!"), 2.5);
+	    machine.setVariable("value", 8.5);
+	    assert.strictEqual(machine.getVariable("value%"), 9);
+	    machine.setArrayElement("board", [2, 3], 4);
+	    assert.strictEqual(machine.getArrayElement("BOARD%", [2, 3]), 4);
+	    assert.throws(() => machine.setArrayElement("board", [3, 0], 1), RangeError);
+	    assert.throws(() => machine.getArrayElement("board", [-1, 0]), RangeError);
+	    assert.throws(() => machine.getVariable("unknown"), ReferenceError);
+	    assert.throws(() => machine.getVariable("board(0,0)"), TypeError);
+	    assert.throws(() => machine.setVariable("value", 32768), RangeError);
+	    assert.throws(() => machine.setVariable("name$", 5), TypeError);
+	    assert.strictEqual(machine.run().reason, "stopped", "Invalid API writes do not stop the VM");
+	  });
+	  QUnit.test("text cells and window scrolling are observable", function(assert) {
+	    const machine = compile('10 MODE 0:WINDOW #1,2,3,2,3:PEN #1,3\n20 PRINT #1,"AB";:LOCATE #1,1,2:PRINT #1,"CD";\n30 LOCATE #1,1,1:PRINT #1,CHR$(11);CHR$(16);\n40 END').createHeadlessMachine();
+	    assert.strictEqual(machine.run().reason, "stopped");
+	    assert.strictEqual(machine.screen.getCell(1, 1)?.char, 32);
+	    assert.deepEqual(machine.screen.getCell(1, 2), { char: 65, pen: 3, paper: 0 });
+	    const cell = machine.screen.getCell(1, 2);
+	    if (cell) {
+	      cell.char = 0;
+	    }
+	    assert.strictEqual(machine.screen.getCell(1, 2)?.char, 65);
+	  });
+	  QUnit.test("runtime failures and unsupported facilities are explicit", function(assert) {
+	    const invalid = compile("10 ERROR 5").createHeadlessMachine(), result = invalid.run();
+	    assert.strictEqual(result.reason, "error");
+	    assert.ok(result.error);
+	    assert.strictEqual(invalid.run().reason, "error");
+	    assert.strictEqual(compile("10 PLOT 0,0").createHeadlessMachine().run().reason, "error");
+	    assert.strictEqual(compile("10 AFTER 1 GOSUB 30\n20 END\n30 RETURN").createHeadlessMachine().run().reason, "error");
+	    const blocked = compile("10 INPUT value").createHeadlessMachine().run();
+	    assert.strictEqual(blocked.reason, "blocked");
+	    assert.strictEqual(blocked.vmReason, "waitInput");
+	  });
+	});
+
 	const _Z80Disass = class _Z80Disass {
 	  // actual prefix: 0=none, 1=0xDD, 2=0xFD, 4=0xED
 	  constructor(options) {

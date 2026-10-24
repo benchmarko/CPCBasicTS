@@ -29,5 +29,4 @@ cpcBasic.addItem("", function () { /*
 13030 on error goto 0
 13040 openin "!testrsx.rsx":closein
 13060 return
-
 */ });
