@@ -50,8 +50,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     private static onHelpButtonClick;
     private onGalleryItemClick;
     private onCopyTextButtonClick;
-    private static encodeUriParam;
-    private onReloadButtonClick;
+    private updateUrlFromConfig;
     onVarSelectChange(): void;
     onKbdLayoutSelectChange(eventDef: EventDefType): void;
     private onBasicVersionSelectChange;

@@ -168,7 +168,8 @@ export type ExamplesType = Record<string, Record<string, ExampleEntry>>;
 export interface IModel {
     getProperty<T extends ConfigEntryType>(property: string): T; //TODO: property: ModelPropID
 	setProperty<T extends ConfigEntryType>(property: string, value: T): void; // property: ModelPropID
-	getAllProperties(): ConfigType;
+    setPropertyChangeCallback(callback: (() => void) | undefined): void;
+    getAllProperties(): ConfigType;
 	getAllInitialProperties(): ConfigType;
 	getChangedProperties(): ConfigType;
 	addDatabases(db: DatabasesType): void;

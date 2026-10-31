@@ -59,6 +59,21 @@ QUnit.module("Model: Properties", function (hooks) {
 		allProperties = model.getAllInitialProperties();
 		assert.strictEqual(Object.keys(allProperties).join(" "), "p1", "all initial properties: p1");
 	});
+
+	QUnit.test("property change callback", function (assert) {
+		const model = that.model,
+			prop1 = convId("p1");
+		let changes = 0;
+
+		model.setPropertyChangeCallback(() => {
+			changes += 1;
+		});
+		model.setProperty(prop1, "v1");
+		assert.strictEqual(changes, 0, "unchanged property");
+
+		model.setProperty(prop1, "v1.2");
+		assert.strictEqual(changes, 1, "changed property");
+	});
 });
 
 

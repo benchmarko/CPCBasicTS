@@ -74,8 +74,6 @@ export var ViewID;
     ViewID["prettySpaceInput"] = "prettySpaceInput";
     ViewID["redoButton"] = "redoButton";
     ViewID["redoButton2"] = "redoButton2";
-    ViewID["reloadButton"] = "reloadButton";
-    ViewID["reload2Button"] = "reload2Button";
     ViewID["renumArea"] = "renumArea";
     ViewID["renumButton"] = "renumButton";
     ViewID["renumKeepInput"] = "renumKeepInput";

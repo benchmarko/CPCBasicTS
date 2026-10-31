@@ -75,8 +75,6 @@
 	  ViewID2["prettySpaceInput"] = "prettySpaceInput";
 	  ViewID2["redoButton"] = "redoButton";
 	  ViewID2["redoButton2"] = "redoButton2";
-	  ViewID2["reloadButton"] = "reloadButton";
-	  ViewID2["reload2Button"] = "reload2Button";
 	  ViewID2["renumArea"] = "renumArea";
 	  ViewID2["renumButton"] = "renumButton";
 	  ViewID2["renumKeepInput"] = "renumKeepInput";
@@ -1706,6 +1704,7 @@
 	    this.model = this.options.model;
 	    this.view = this.options.view;
 	    this.controller = this.options.controller;
+	    this.model.setPropertyChangeCallback(() => this.updateUrlFromConfig());
 	    this.createEventDefMap();
 	  }
 	  getOptions() {
@@ -1880,22 +1879,21 @@
 	      UiUtils.console.warn("Copy to clipboard not available");
 	    }
 	  }
-	  static encodeUriParam(params) {
-	    const parts = [];
-	    for (const key in params) {
-	      if (params.hasOwnProperty(key)) {
-	        const value = params[key];
-	        parts[parts.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value === null ? "" : value);
+	  updateUrlFromConfig() {
+	    const url = new URL(window.location.href), initial = this.model.getAllInitialProperties(), changed = this.model.getChangedProperties();
+	    for (const name in initial) {
+	      if (initial.hasOwnProperty(name)) {
+	        url.searchParams.delete(name);
 	      }
 	    }
-	    return parts.join("&");
-	  }
-	  onReloadButtonClick() {
-	    this.setPopoversHiddenExcept();
-	    const changed = this.model.getChangedProperties();
-	    let paras = CommonEventHandler.encodeUriParam(changed);
-	    paras = paras.replace(/%2[Ff]/g, "/");
-	    window.location.search = "?" + paras;
+	    for (const name in changed) {
+	      if (changed.hasOwnProperty(name)) {
+	        url.searchParams.set(name, String(changed[name]));
+	      }
+	    }
+	    if (url.href !== window.location.href) {
+	      window.history.replaceState(window.history.state, "", url.href);
+	    }
 	  }
 	  onVarSelectChange() {
 	    const par = this.view.getSelectValue(ViewID.varSelect), value = this.controller.getVariable(par), valueString = value !== void 0 ? String(value) : "";
@@ -2075,15 +2073,6 @@
 	          id: ViewID.redoButton2,
 	          func: this.onRedoButtonClick
 	          // same redo
-	        },
-	        {
-	          id: ViewID.reloadButton,
-	          func: this.onReloadButtonClick
-	        },
-	        {
-	          id: ViewID.reload2Button,
-	          func: this.onReloadButtonClick
-	          // same as relaodButton
 	        },
 	        {
 	          id: ViewID.renumButton,
@@ -2401,6 +2390,7 @@
 	        if (eventDef.controllerFunc) {
 	          eventDef.controllerFunc.call(this.controller, eventDef, event);
 	        }
+	        this.updateUrlFromConfig();
 	      } else if (!id.endsWith("Select") && !id.endsWith("Input")) {
 	        UiUtils.console.log("handleEvent: " + type + ", " + id + ": No handler");
 	      }

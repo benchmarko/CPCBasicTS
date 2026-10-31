@@ -4,9 +4,11 @@ export declare class Model implements IModel {
     private initialConfig;
     private databases;
     private examples;
+    private propertyChangeCallback?;
     constructor(config: ConfigType);
     getProperty<T extends ConfigEntryType>(property: string): T;
     setProperty<T extends ConfigEntryType>(property: string, value: T): void;
+    setPropertyChangeCallback(callback: (() => void) | undefined): void;
     getAllProperties(): ConfigType;
     getAllInitialProperties(): ConfigType;
     getChangedProperties(): ConfigType;

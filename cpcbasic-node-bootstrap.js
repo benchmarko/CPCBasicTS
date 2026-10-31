@@ -13678,7 +13678,14 @@ class Model {
     return this.config[property];
   }
   setProperty(property, value) {
+    const previousValue = this.config[property];
     this.config[property] = value;
+    if (value !== previousValue && this.propertyChangeCallback) {
+      this.propertyChangeCallback();
+    }
+  }
+  setPropertyChangeCallback(callback) {
+    this.propertyChangeCallback = callback;
   }
   getAllProperties() {
     return this.config;

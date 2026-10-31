@@ -13,6 +13,7 @@ export class CommonEventHandler {
         this.model = this.options.model;
         this.view = this.options.view;
         this.controller = this.options.controller;
+        this.model.setPropertyChangeCallback(() => this.updateUrlFromConfig());
         this.createEventDefMap();
     }
     getOptions() {
@@ -192,22 +193,21 @@ export class CommonEventHandler {
             UiUtils.console.warn("Copy to clipboard not available");
         }
     }
-    static encodeUriParam(params) {
-        const parts = [];
-        for (const key in params) {
-            if (params.hasOwnProperty(key)) {
-                const value = params[key];
-                parts[parts.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value === null ? "" : value);
+    updateUrlFromConfig() {
+        const url = new URL(window.location.href), initial = this.model.getAllInitialProperties(), changed = this.model.getChangedProperties();
+        for (const name in initial) {
+            if (initial.hasOwnProperty(name)) {
+                url.searchParams.delete(name);
             }
         }
-        return parts.join("&");
-    }
-    onReloadButtonClick() {
-        this.setPopoversHiddenExcept(); // hide all popovers,
-        const changed = this.model.getChangedProperties();
-        let paras = CommonEventHandler.encodeUriParam(changed);
-        paras = paras.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
-        window.location.search = "?" + paras;
+        for (const name in changed) {
+            if (changed.hasOwnProperty(name)) {
+                url.searchParams.set(name, String(changed[name]));
+            }
+        }
+        if (url.href !== window.location.href) {
+            window.history.replaceState(window.history.state, "", url.href);
+        }
     }
     onVarSelectChange() {
         const par = this.view.getSelectValue("varSelect" /* ViewID.varSelect */), value = this.controller.getVariable(par), valueString = (value !== undefined) ? String(value) : "";
@@ -392,14 +392,6 @@ export class CommonEventHandler {
                 {
                     id: "redoButton2" /* ViewID.redoButton2 */,
                     func: this.onRedoButtonClick // same redo
-                },
-                {
-                    id: "reloadButton" /* ViewID.reloadButton */,
-                    func: this.onReloadButtonClick
-                },
-                {
-                    id: "reload2Button" /* ViewID.reload2Button */,
-                    func: this.onReloadButtonClick // same as relaodButton
                 },
                 {
                     id: "renumButton" /* ViewID.renumButton */,
@@ -713,6 +705,7 @@ export class CommonEventHandler {
                 if (eventDef.controllerFunc) {
                     eventDef.controllerFunc.call(this.controller, eventDef, event);
                 }
+                this.updateUrlFromConfig();
             }
             else if (!id.endsWith("Select") && !id.endsWith("Input")) { // do not print all messages; these are usually handled by change
                 UiUtils.console.log("handleEvent: " + type + ", " + id + ": No handler");

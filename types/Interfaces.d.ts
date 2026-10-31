@@ -87,6 +87,7 @@ export type ExamplesType = Record<string, Record<string, ExampleEntry>>;
 export interface IModel {
     getProperty<T extends ConfigEntryType>(property: string): T;
     setProperty<T extends ConfigEntryType>(property: string, value: T): void;
+    setPropertyChangeCallback(callback: (() => void) | undefined): void;
     getAllProperties(): ConfigType;
     getAllInitialProperties(): ConfigType;
     getChangedProperties(): ConfigType;
