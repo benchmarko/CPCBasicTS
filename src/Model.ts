@@ -13,6 +13,7 @@ export class Model implements IModel {
 	private initialConfig: ConfigType;
 	private databases: DatabasesType;
 	private examples: ExamplesType;
+	private propertyChangeCallback?: () => void;
 
 	constructor(config: ConfigType) {
 		this.config = config || {}; // store only a reference
@@ -26,7 +27,15 @@ export class Model implements IModel {
 		return this.config[property as any] as T; // keyof ConfigType?
 	}
 	setProperty<T extends ConfigEntryType>(property: string, value: T): void {
+		const previousValue = this.config[property as any] as ConfigEntryType | undefined;
+
 		this.config[property as any] = value;
+		if (value !== previousValue && this.propertyChangeCallback) {
+			this.propertyChangeCallback();
+		}
+	}
+	setPropertyChangeCallback(callback: (() => void) | undefined): void {
+		this.propertyChangeCallback = callback;
 	}
 	getAllProperties(): ConfigType {
 		return this.config;

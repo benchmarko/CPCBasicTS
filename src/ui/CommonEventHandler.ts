@@ -5,7 +5,7 @@
 import { ModelPropID } from "../Constants"; //TODO
 import { ViewID } from "./UiConstants";
 import { UiUtils } from "./UiUtils";
-import type { ConfigType, IModel } from "../Interfaces";
+import type { IModel } from "../Interfaces";
 import type { IController } from "./UiInterfaces";
 import { View } from "./View";
 
@@ -49,6 +49,7 @@ export class CommonEventHandler implements EventListenerObject {
 		this.view = this.options.view;
 		this.controller = this.options.controller;
 
+		this.model.setPropertyChangeCallback(() => this.updateUrlFromConfig());
 		this.createEventDefMap();
 	}
 
@@ -290,29 +291,26 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 	}
 
-	private static encodeUriParam(params: ConfigType) {
-		const parts = [];
+	private updateUrlFromConfig(): void {
+		const url = new URL(window.location.href),
+			initial = this.model.getAllInitialProperties(),
+			changed = this.model.getChangedProperties();
 
-		for (const key in params) {
-			if (params.hasOwnProperty(key)) {
-				const value = params[key];
-
-				parts[parts.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value === null ? "" : value);
+		for (const name in initial) {
+			if (initial.hasOwnProperty(name)) {
+				url.searchParams.delete(name);
 			}
 		}
-		return parts.join("&");
+		for (const name in changed) {
+			if (changed.hasOwnProperty(name)) {
+				url.searchParams.set(name, String(changed[name]));
+			}
+		}
+
+		if (url.href !== window.location.href) {
+			window.history.replaceState(window.history.state, "", url.href);
+		}
 	}
-
-	private onReloadButtonClick() {
-		this.setPopoversHiddenExcept(); // hide all popovers,
-
-		const changed = this.model.getChangedProperties();
-		let paras = CommonEventHandler.encodeUriParam(changed);
-
-		paras = paras.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
-		window.location.search = "?" + paras;
-	}
-
 
 	onVarSelectChange(): void {
 		const par = this.view.getSelectValue(ViewID.varSelect),
@@ -528,14 +526,6 @@ export class CommonEventHandler implements EventListenerObject {
 					{
 						id: ViewID.redoButton2,
 						func: this.onRedoButtonClick // same redo
-					},
-					{
-						id: ViewID.reloadButton,
-						func: this.onReloadButtonClick
-					},
-					{
-						id: ViewID.reload2Button,
-						func: this.onReloadButtonClick // same as relaodButton
 					},
 					{
 						id: ViewID.renumButton,
@@ -859,6 +849,7 @@ export class CommonEventHandler implements EventListenerObject {
 				if (eventDef.controllerFunc) {
 					eventDef.controllerFunc.call(this.controller, eventDef, event);
 				}
+				this.updateUrlFromConfig();
 			} else if (!id.endsWith("Select") && !id.endsWith("Input")) { // do not print all messages; these are usually handled by change
 				UiUtils.console.log("handleEvent: " + type + ", " + id + ": No handler");
 			}

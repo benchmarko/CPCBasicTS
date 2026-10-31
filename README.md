@@ -69,7 +69,7 @@ The build generates the distribution files in the `dist/` directory, including `
     - The selection field **layout** allows to select the keyboard layout AlphaNum, Alpha or Num.
     - The input field **Debug** allows to set the debug level.
        Debug messages can be seen in the Browser debugger or in the *Console Log* window.
-    - The **Reload** button reloads the page with the current settings put in URL parameters. (Please note that modifications of the BASIC program are not saved!)
+    - Changed settings are reflected in the URL so the current configuration can be bookmarked or shared. (Please note that modifications of the BASIC program are not saved!)
     - The **Help** button opens the CPCBasicTS readme in the browser.
   - The **View** button opens a popover with view settings. The components can be enabled and disabled.
     - For Example: The checkbox **Console Log** allows to see the console log.
