@@ -43,6 +43,11 @@ interface FileMetaAndData {
 	data: string
 }
 
+interface UserKeyType {
+	code: number
+	text: string
+}
+
 export interface ControllerOptions {
 	isHeadlessDirectInput?: boolean
 	onResultText?: (value: string) => void
@@ -62,6 +67,7 @@ export class Controller implements IController {
 	private readonly fnOnUserActionHandler: () => void;
 	private readonly fnWaitForContinueHandler: () => void;
 	private readonly fnEditLineCallbackHandler: () => boolean;
+	private readonly fnOnUserKeyClickHandler: (event: Event) => void;
 
 	private fnScript?: Function = undefined; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
 
@@ -127,12 +133,14 @@ export class Controller implements IController {
 		this.fnOnUserActionHandler = this.onUserAction.bind(this);
 		this.fnWaitForContinueHandler = this.fnWaitForContinue.bind(this);
 		this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
+		this.fnOnUserKeyClickHandler = this.onUserKeyClick.bind(this);
 
 		this.core = core;
 		const model = this.core.getModel();
 		this.model = model;
 		this.view = view;
 		this.options = options;
+		this.view.addEventListenerById("click", this.fnOnUserKeyClickHandler, ViewID.userKeys);
 
 		this.uiController = new UiController(core, view, this, this.fnOnUserActionHandler);
 
@@ -598,6 +606,7 @@ export class Controller implements IController {
 
 	setInputText(input: string, keepStack?: boolean): void {
 		this.view.setAreaValue(ViewID.inputText, input);
+		this.updateUserKeys(input);
 		if (!keepStack) {
 			this.fnInitUndoRedoButtons();
 		} else {
@@ -1923,6 +1932,8 @@ export class Controller implements IController {
 		const input = this.view.getAreaValue(ViewID.inputText),
 			bench = this.model.getProperty<number>(ModelPropID.bench);
 
+		this.updateUserKeys(input);
+
 		// keep variables; this.variables.removeAllVariables();
 		let	output: IOutput;
 
@@ -2600,6 +2611,96 @@ export class Controller implements IController {
 
 		if (keyDownHandler) {
 			keyDownHandler();
+		}
+	}
+
+	private static parseUserKeys(source: string): UserKeyType[] {
+		const keys: UserKeyType[] = [];
+
+		for (const [index, line] of source.split(/\r?\n/).entries()) {
+			const declaration = /^\s*(?:\d+\s*)?(?:REM\s+|'\s*)CPCBasic-keys:\s*(\[.*\])\s*$/i.exec(line);
+
+			if (!declaration) {
+				continue;
+			}
+
+			let items: unknown;
+
+			try {
+				items = JSON.parse(declaration[1]) as unknown;
+			} catch (error) {
+				UiUtils.console.warn("CPCBasic-keys at line " + (index + 1) + ": Invalid JSON", error);
+				continue;
+			}
+
+			if (!Array.isArray(items) || items.length % 2 !== 0) {
+				UiUtils.console.warn("CPCBasic-keys at line " + (index + 1) + ": Expected key/label pairs");
+				continue;
+			}
+
+			for (let i = 0; i < items.length; i += 2) {
+				const key = items[i] as unknown,
+					label = items[i + 1] as unknown;
+				let code: number,
+					text: string;
+
+				if (typeof key === "string" && key.length) {
+					code = key.charCodeAt(0);
+				} else if (typeof key === "number" && Number.isInteger(key) && key >= 0 && key <= 65535) {
+					code = key;
+				} else {
+					UiUtils.console.warn("CPCBasic-keys at line " + (index + 1) + ": Invalid key", key);
+					continue;
+				}
+
+				if (typeof label === "string") {
+					text = label;
+				} else if (typeof label === "number" && Number.isInteger(label) && label >= 0 && label <= 65535) {
+					text = String.fromCharCode(label);
+				} else {
+					UiUtils.console.warn("CPCBasic-keys at line " + (index + 1) + ": Invalid label", label);
+					continue;
+				}
+
+				keys.push({
+					code: code,
+					text: text || String.fromCharCode(code)
+				});
+			}
+		}
+		return keys;
+	}
+
+	private updateUserKeys(source: string): void {
+		const container = View.getElementById1(ViewID.userKeys),
+			keys = Controller.parseUserKeys(source);
+
+		while (container.firstChild) {
+			container.removeChild(container.firstChild);
+		}
+		for (const item of keys) {
+			const button = document.createElement("button"),
+				text = item.text || String.fromCharCode(item.code);
+
+			button.type = "button";
+			button.textContent = text;
+			button.setAttribute("data-key", String(item.code));
+			button.setAttribute("aria-label", text);
+			button.title = text + " (" + item.code + ")";
+			container.appendChild(button);
+		}
+		container.hidden = !keys.length;
+	}
+
+	private onUserKeyClick(event: Event): void {
+		const target = View.getEventTarget<HTMLElement>(event);
+
+		if (target.tagName === "BUTTON") {
+			const code = Number(target.getAttribute("data-key"));
+
+			if (Number.isInteger(code) && code >= 0 && code <= 65535) {
+				this.fnPutKeysInBuffer(String.fromCharCode(code));
+			}
 		}
 	}
 

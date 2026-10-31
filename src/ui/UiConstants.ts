@@ -112,6 +112,7 @@ export const enum ViewID { // eslint-disable-line no-shadow
 	variableArea = "variableArea",
 	varSelect = "varSelect",
 	varText = "varText",
+	userKeys = "userKeys",
 	viewArea = "viewArea",
 	viewButton = "viewButton",
 	window = "window" // for window.document

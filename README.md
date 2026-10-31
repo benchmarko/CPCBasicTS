@@ -94,6 +94,7 @@ The build generates the distribution files in the `dist/` directory, including `
 - The *CPC* window shows the output on a CPC screen.
   - The **Run** button compiles the BASIC program to JavaScript and runs it (simular to *RUN*).
     - If the focus is on the CPC screen, keystrokes will be detected by a running program or also in direct mode. An alternative way of input is the *virtual keyboard* below.
+    - Programs can also provide on-screen keys for input; see [Program Keys](#program-keys).
   - The **Break** button halts the program. This is an unconditional break. Pressing the ESC key once also halts the program, if not masked with *ON BREAK CONT*.
   - The **Continue** button continues the program (similar to *CONT*).
   - The **More** button opens a popover with more functions.
@@ -135,6 +136,15 @@ Several examples use CPCBasicTS mode 3 when available, e.g. [Art](https://benchm
 - Runs also on the command line with nodeJS:
   - Remote URL: `node ./dist/cpcbasic-node-bootstrap.js sound=false showCpc=false debug=0 databaseDirs=https://benchmarko.github.io/CPCBasicApps/apps database=apps example=math/euler`
   - Or with local examples: `node ./dist/cpcbasic-node-bootstrap.js sound=false showCpc=false debug=0 databaseDirs=./examples example=test/testpage` (The test page does not fully work.)
+
+### Program Keys
+
+Programs can declare on-screen keys for CPCBasicTS in a standalone BASIC comment. The value is a flat array of `key, text` pairs, where `key` is a single-character string or an integer CPC character
+codes from 0 to 255, `text` is the button text or a code which is converted to a button text letter. The button text can contain Unicode escapes, e.g. `\u21BB`. In JavaScript it must be written as `\\u21BB`.
+
+```basic
+REM CPCBasic-keys: ["a","a","d",""," ","Space",13,"Enter"]
+```
 
 ## Restrictions
 
