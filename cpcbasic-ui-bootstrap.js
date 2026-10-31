@@ -861,6 +861,7 @@
 	  ViewID2["variableArea"] = "variableArea";
 	  ViewID2["varSelect"] = "varSelect";
 	  ViewID2["varText"] = "varText";
+	  ViewID2["userKeys"] = "userKeys";
 	  ViewID2["viewArea"] = "viewArea";
 	  ViewID2["viewButton"] = "viewButton";
 	  ViewID2["window"] = "window";
@@ -17974,11 +17975,13 @@
 	    this.fnOnUserActionHandler = this.onUserAction.bind(this);
 	    this.fnWaitForContinueHandler = this.fnWaitForContinue.bind(this);
 	    this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
+	    this.fnOnUserKeyClickHandler = this.onUserKeyClick.bind(this);
 	    this.core = core;
 	    const model = this.core.getModel();
 	    this.model = model;
 	    this.view = view;
 	    this.options = options;
+	    this.view.addEventListenerById("click", this.fnOnUserKeyClickHandler, ViewID.userKeys);
 	    this.uiController = new UiController(core, view, this, this.fnOnUserActionHandler);
 	    this.canvas = this.setCanvasType(model.getProperty(ModelPropID.canvasType));
 	    this.variables = new Variables({
@@ -18321,6 +18324,7 @@
 	  }
 	  setInputText(input, keepStack) {
 	    this.view.setAreaValue(ViewID.inputText, input);
+	    this.updateUserKeys(input);
 	    if (!keepStack) {
 	      this.fnInitUndoRedoButtons();
 	    } else {
@@ -19332,6 +19336,7 @@
 	  }
 	  fnParse() {
 	    const input = this.view.getAreaValue(ViewID.inputText), bench = this.model.getProperty(ModelPropID.bench);
+	    this.updateUserKeys(input);
 	    let output;
 	    this.basicLexer.setOptions({
 	      keepWhiteSpace: false
@@ -19861,6 +19866,76 @@
 	    const options = this.keyboard.getOptions(), keyDownHandler = options.fnOnKeyDown;
 	    if (keyDownHandler) {
 	      keyDownHandler();
+	    }
+	  }
+	  static parseUserKeys(source) {
+	    const keys = [];
+	    for (const [index, line] of source.split(/\r?\n/).entries()) {
+	      const declaration = /^\s*(?:\d+\s*)?(?:REM\s+|'\s*)CPCBasic-keys:\s*(\[.*\])\s*$/i.exec(line);
+	      if (!declaration) {
+	        continue;
+	      }
+	      let items;
+	      try {
+	        items = JSON.parse(declaration[1]);
+	      } catch (error) {
+	        UiUtils.console.warn("CPCBasic-keys at line " + (index + 1) + ": Invalid JSON", error);
+	        continue;
+	      }
+	      if (!Array.isArray(items) || items.length % 2 !== 0) {
+	        UiUtils.console.warn("CPCBasic-keys at line " + (index + 1) + ": Expected key/label pairs");
+	        continue;
+	      }
+	      for (let i = 0; i < items.length; i += 2) {
+	        const key = items[i], label = items[i + 1];
+	        let code, text;
+	        if (typeof key === "string" && key.length) {
+	          code = key.charCodeAt(0);
+	        } else if (typeof key === "number" && Number.isInteger(key) && key >= 0 && key <= 65535) {
+	          code = key;
+	        } else {
+	          UiUtils.console.warn("CPCBasic-keys at line " + (index + 1) + ": Invalid key", key);
+	          continue;
+	        }
+	        if (typeof label === "string") {
+	          text = label;
+	        } else if (typeof label === "number" && Number.isInteger(label) && label >= 0 && label <= 65535) {
+	          text = String.fromCharCode(label);
+	        } else {
+	          UiUtils.console.warn("CPCBasic-keys at line " + (index + 1) + ": Invalid label", label);
+	          continue;
+	        }
+	        keys.push({
+	          code,
+	          text: text || String.fromCharCode(code)
+	        });
+	      }
+	    }
+	    return keys;
+	  }
+	  updateUserKeys(source) {
+	    const container = View.getElementById1(ViewID.userKeys), keys = _Controller.parseUserKeys(source);
+	    while (container.firstChild) {
+	      container.removeChild(container.firstChild);
+	    }
+	    for (const item of keys) {
+	      const button = document.createElement("button"), text = item.text || String.fromCharCode(item.code);
+	      button.type = "button";
+	      button.textContent = text;
+	      button.setAttribute("data-key", String(item.code));
+	      button.setAttribute("aria-label", text);
+	      button.title = text + " (" + item.code + ")";
+	      container.appendChild(button);
+	    }
+	    container.hidden = !keys.length;
+	  }
+	  onUserKeyClick(event) {
+	    const target = View.getEventTarget(event);
+	    if (target.tagName === "BUTTON") {
+	      const code = Number(target.getAttribute("data-key"));
+	      if (Number.isInteger(code) && code >= 0 && code <= 65535) {
+	        this.fnPutKeysInBuffer(String.fromCharCode(code));
+	      }
 	    }
 	  }
 	  startEnter() {

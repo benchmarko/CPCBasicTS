@@ -21,6 +21,7 @@ export declare class Controller implements IController {
     private readonly fnOnUserActionHandler;
     private readonly fnWaitForContinueHandler;
     private readonly fnEditLineCallbackHandler;
+    private readonly fnOnUserKeyClickHandler;
     private fnScript?;
     private timeoutHandlerActive;
     private nextLoopTimeOut;
@@ -161,6 +162,9 @@ export declare class Controller implements IController {
     startReset(): void;
     startScreenshot(): string;
     private fnPutKeysInBuffer;
+    private static parseUserKeys;
+    private updateUserKeys;
+    private onUserKeyClick;
     startEnter(): void;
     private static generateFunction;
     changeVariable(): void;

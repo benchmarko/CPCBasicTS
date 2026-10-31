@@ -112,6 +112,7 @@ export var ViewID;
     ViewID["variableArea"] = "variableArea";
     ViewID["varSelect"] = "varSelect";
     ViewID["varText"] = "varText";
+    ViewID["userKeys"] = "userKeys";
     ViewID["viewArea"] = "viewArea";
     ViewID["viewButton"] = "viewButton";
     ViewID["window"] = "window"; // for window.document

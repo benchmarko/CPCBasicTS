@@ -107,6 +107,7 @@ export declare const enum ViewID {
     variableArea = "variableArea",
     varSelect = "varSelect",
     varText = "varText",
+    userKeys = "userKeys",
     viewArea = "viewArea",
     viewButton = "viewButton",
     window = "window"
