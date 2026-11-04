@@ -827,7 +827,8 @@ export class Controller implements IController {
 
 		if (key === "\r") {
 			UiUtils.console.log("fnWaitInput:", input, "reason", stop.reason);
-			if (!inputParas.noCRLF) {
+			if (!inputParas.noCRLF && inputParas.command !== "input"
+    && inputParas.command !== "lineinput") {
 				this.vm.print(stream, "\r\n");
 			}
 			if (inputParas.fnInputCallback) {
