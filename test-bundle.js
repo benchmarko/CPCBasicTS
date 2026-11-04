@@ -25368,9 +25368,30 @@
 	  return hasNumbers;
 	}
 	function testParseExample(example) {
-	  const codeGeneratorJs = cpcBasic.codeGeneratorJs, codeGeneratorToken = cpcBasic.codeGeneratorToken, basicTokenizer = cpcBasic.basicTokenizer, script = example.script || "", input = testCheckMeta(script);
+	  const codeGeneratorJs = cpcBasic.codeGeneratorJs, codeGeneratorToken = cpcBasic.codeGeneratorToken, basicTokenizer = cpcBasic.basicTokenizer, script = example.script || "", input = testCheckMeta(script), firstLine = input.substring(0, input.indexOf("\n")) || input;
 	  let checks = "", output, fnScript;
-	  if (example.meta !== "D" && hasLineNumbers(input)) {
+	  if (example.meta === "D") {
+	    checks = "ignored";
+	    output = {
+	      text: "UNPARSED DATA FILE: " + example.key,
+	      error: void 0
+	    };
+	    cpcBasic.ignoredExamples += 1;
+	  } else if (firstLine.indexOf("(loco20)") >= 0) {
+	    checks = "ignored";
+	    output = {
+	      text: "LOCO20 EXAMPLE: " + example.key,
+	      error: void 0
+	    };
+	    cpcBasic.ignoredExamples += 1;
+	  } else if (!hasLineNumbers(input)) {
+	    checks = "ignored";
+	    output = {
+	      text: "NO LINE NUMBERS: " + example.key,
+	      error: void 0
+	    };
+	    cpcBasic.ignoredExamples += 1;
+	  } else {
 	    checks = "Js";
 	    const variables = cpcBasic.vmMock.testVariables1;
 	    variables.removeAllVariables();
@@ -25407,13 +25428,6 @@
 	    } else {
 	      Utils.console.error("There was an error when parsing file", example.key);
 	    }
-	  } else {
-	    checks = "ignored";
-	    output = {
-	      text: "UNPARSED DATA FILE: " + example.key,
-	      error: void 0
-	    };
-	    cpcBasic.ignoredExamples += 1;
 	  }
 	  if (Utils.debug > 0) {
 	    Utils.console.debug("testParseExample:", example.key, "inputLen:", input.length, "outputLen:", output.text.length);
