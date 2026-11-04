@@ -707,7 +707,8 @@ export class Controller {
         let inputOk = false;
         if (key === "\r") {
             UiUtils.console.log("fnWaitInput:", input, "reason", stop.reason);
-            if (!inputParas.noCRLF) {
+            if (!inputParas.noCRLF && inputParas.command !== "input"
+                && inputParas.command !== "lineinput") {
                 this.vm.print(stream, "\r\n");
             }
             if (inputParas.fnInputCallback) {
@@ -720,6 +721,10 @@ export class Controller {
                 this.removeKeyBoardHandler();
                 if (stop.reason === "waitInput") { // only for this reason
                     this.vm.vmStop("", 0, true); // no more wait
+                }
+                else if (stop.reason === "direct") {
+                    this.vm.vmStop("", 0, true);
+                    this.startMainLoop();
                 }
                 else {
                     this.startContinue();
@@ -2079,20 +2084,35 @@ export class Controller {
         this.vm.vmStop("break", 80);
         this.startMainLoop();
     }
+    restoreSuspendedState() {
+        const stop = this.vm.vmGetStopObject();
+        this.removeKeyBoardHandler();
+        Object.assign(stop, this.getStopObject());
+        this.setStopObject(this.noStop);
+        switch (stop.reason) {
+            case "waitInput":
+                this.vm.cursor(stop.paras.stream, 1);
+                this.keyboard.setOptions({
+                    fnOnKeyDown: this.fnWaitInputHandler
+                });
+                break;
+            case "waitKey":
+                this.keyboard.setOptions({
+                    fnOnKeyDown: this.fnWaitKeyHandler
+                });
+                break;
+        }
+    }
     startContinue() {
-        const vm = this.vm, stop = vm.vmGetStopObject(), savedStop = this.getStopObject();
+        const stop = this.vm.vmGetStopObject();
         this.view.setDisabled("runButton" /* ViewID.runButton */, true);
         this.view.setDisabled("stopButton" /* ViewID.stopButton */, false);
         this.view.setDisabled("continueButton" /* ViewID.continueButton */, true);
         if (stop.reason === "break" || stop.reason === "escape" || stop.reason === "stop" || stop.reason === "direct") {
-            if (savedStop.paras && !savedStop.paras.fnInputCallback) { // no keyboard callback? make sure no handler is set (especially for direct->continue)
-                this.removeKeyBoardHandler();
-            }
             if (stop.reason === "direct" || stop.reason === "escape") {
                 this.vm.cursor(stop.paras.stream, 0); // switch it off (for continue button)
             }
-            Object.assign(stop, savedStop); // fast hack
-            this.setStopObject(this.noStop);
+            this.restoreSuspendedState();
         }
         this.startMainLoop();
     }

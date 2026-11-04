@@ -1647,6 +1647,9 @@ export class CpcVm {
             inputOk = false;
         }
         this.cursor(stream, 0);
+        if (!inputParas.noCRLF) {
+            this.print(stream, "\r\n");
+        }
         if (!inputOk) {
             this.print(stream, "?Redo from start\r\n");
             inputParas.input = "";
@@ -1827,6 +1830,9 @@ export class CpcVm {
         }
         this.vmSetInputValues([input]);
         this.cursor(inputParas.stream, 0);
+        if (!inputParas.noCRLF) {
+            this.print(inputParas.stream, "\r\n");
+        }
         return true;
     }
     lineInput(stream, noCRLF, msg, varType) {

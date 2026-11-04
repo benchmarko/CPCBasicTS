@@ -158,6 +158,7 @@ export declare class Controller implements IController {
     startRun(): void;
     startParseRun(): void;
     startBreak(): void;
+    private restoreSuspendedState;
     startContinue(): void;
     startReset(): void;
     startScreenshot(): string;

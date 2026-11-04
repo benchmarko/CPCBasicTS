@@ -848,8 +848,8 @@ const allTests = {
         "0 ": 'CpcVm: Type mismatch in 0: LEN 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
     },
     lineInput: {
-        '0,undefined,"? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":null,"input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
-        '7,undefined,"? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":7,"message":"? ","noCRLF":null,"input":"abc1,7,e","line":0}} -- {"_key":"win7","pos":2}',
+        '0,undefined,"? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":null,"input":"abc1,7,e","line":0}} -- {"_key":"win0","vpos":1}',
+        '7,undefined,"? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":7,"message":"? ","noCRLF":null,"input":"abc1,7,e","line":0}} -- {"_key":"win7","vpos":1}',
         '6.4,";","? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":6,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win6","pos":2}',
         "8 ": "I am the printer!",
         '0,";","? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',

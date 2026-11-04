@@ -10034,6 +10034,9 @@
 	      inputOk = false;
 	    }
 	    this.cursor(stream, 0);
+	    if (!inputParas.noCRLF) {
+	      this.print(stream, "\r\n");
+	    }
 	    if (!inputOk) {
 	      this.print(stream, "?Redo from start\r\n");
 	      inputParas.input = "";
@@ -10200,6 +10203,9 @@
 	    }
 	    this.vmSetInputValues([input]);
 	    this.cursor(inputParas.stream, 0);
+	    if (!inputParas.noCRLF) {
+	      this.print(inputParas.stream, "\r\n");
+	    }
 	    return true;
 	  }
 	  lineInput(stream, noCRLF, msg, varType) {
@@ -17922,7 +17928,7 @@
 	    let inputOk = false;
 	    if (key === "\r") {
 	      UiUtils.console.log("fnWaitInput:", input, "reason", stop.reason);
-	      if (!inputParas.noCRLF) {
+	      if (!inputParas.noCRLF && inputParas.command !== "input" && inputParas.command !== "lineinput") {
 	        this.vm.print(stream, "\r\n");
 	      }
 	      if (inputParas.fnInputCallback) {
@@ -17934,6 +17940,9 @@
 	        this.removeKeyBoardHandler();
 	        if (stop.reason === "waitInput") {
 	          this.vm.vmStop("", 0, true);
+	        } else if (stop.reason === "direct") {
+	          this.vm.vmStop("", 0, true);
+	          this.startMainLoop();
 	        } else {
 	          this.startContinue();
 	        }
@@ -19241,20 +19250,35 @@
 	    this.vm.vmStop("break", 80);
 	    this.startMainLoop();
 	  }
+	  restoreSuspendedState() {
+	    const stop = this.vm.vmGetStopObject();
+	    this.removeKeyBoardHandler();
+	    Object.assign(stop, this.getStopObject());
+	    this.setStopObject(this.noStop);
+	    switch (stop.reason) {
+	      case "waitInput":
+	        this.vm.cursor(stop.paras.stream, 1);
+	        this.keyboard.setOptions({
+	          fnOnKeyDown: this.fnWaitInputHandler
+	        });
+	        break;
+	      case "waitKey":
+	        this.keyboard.setOptions({
+	          fnOnKeyDown: this.fnWaitKeyHandler
+	        });
+	        break;
+	    }
+	  }
 	  startContinue() {
-	    const vm = this.vm, stop = vm.vmGetStopObject(), savedStop = this.getStopObject();
+	    const stop = this.vm.vmGetStopObject();
 	    this.view.setDisabled(ViewID.runButton, true);
 	    this.view.setDisabled(ViewID.stopButton, false);
 	    this.view.setDisabled(ViewID.continueButton, true);
 	    if (stop.reason === "break" || stop.reason === "escape" || stop.reason === "stop" || stop.reason === "direct") {
-	      if (savedStop.paras && !savedStop.paras.fnInputCallback) {
-	        this.removeKeyBoardHandler();
-	      }
 	      if (stop.reason === "direct" || stop.reason === "escape") {
 	        this.vm.cursor(stop.paras.stream, 0);
 	      }
-	      Object.assign(stop, savedStop);
-	      this.setStopObject(this.noStop);
+	      this.restoreSuspendedState();
 	    }
 	    this.startMainLoop();
 	  }
