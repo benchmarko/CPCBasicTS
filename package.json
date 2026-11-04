@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.5.11",
+  "version": "0.5.12",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "./dist/cpcbasic-ui-bootstrap.js",
   "exports": {
