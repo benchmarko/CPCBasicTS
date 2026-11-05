@@ -12,6 +12,8 @@ import type { ICanvasVm, IKeyboard, IOutput, ISound, RenumOptions, VmBaseParas, 
 import { ProgramCompiler } from "./ProgramCompiler";
 import { ProgramRunner, type CompiledScript, type ProgramFileLoad, type ProgramFileLoadActions, type ProgramLoadContinuationActions, type ProgramLoadFile } from "./ProgramRunner";
 import { Random } from "./Random";
+import { RsxAmsdos } from "./RsxAmsdos";
+import { RsxCpcBasic } from "./RsxCpcBasic";
 import { RuntimeSettings } from "./RuntimeSettings";
 import { RunLoop } from "./RunLoop";
 import { SoundQueue } from "./SoundQueue";
@@ -93,7 +95,7 @@ export type RuntimeWaitInputResult =
 	| { status: "pending", reason: string }
 	| { status: "submitted" };
 
-export type RuntimeLoadContinuationActions = Omit<ProgramLoadContinuationActions, "vm" | "loadFileInMemory">;
+export type RuntimeLoadContinuationActions = Omit<ProgramLoadContinuationActions, "vm" | "loadFileInMemory" | "setStartLine">;
 export type RuntimeFileLoadActions = Omit<ProgramFileLoadActions, "vm">;
 
 export class Runtime {
@@ -128,6 +130,8 @@ export class Runtime {
 			variables: this.variables,
 			onClickKey: options.onClickKey
 		});
+		this.vm.vmRegisterRsx(new RsxAmsdos(), true);
+		this.vm.vmRegisterRsx(new RsxCpcBasic(), true);
 		this.suspendedState = new SuspendedState(this.vm.vmGetStopObject());
 		this.inputLine = new InputLine(options.keyboard, this.vm);
 		this.soundQueue = new SoundQueue(this.vm, options.sound);
@@ -213,6 +217,7 @@ export class Runtime {
 		ProgramRunner.continueLoad(input, file, {
 			...actions,
 			vm: this.vm,
+			setStartLine: (line) => this.vm.vmSetStartLine(line),
 			loadFileInMemory: (fileInput, meta) => this.vm.vmPutFileInMemory(fileInput, meta, false)
 		});
 	}
@@ -451,8 +456,14 @@ export class Runtime {
 		this.vm.vmStop("", 0, true);
 	}
 
-	editLine(paras: VmLineParas, line: string, onInput: () => boolean): void {
+	editLine(paras: VmLineParas, line: string | undefined, onInput: () => boolean, onMissing: (error: Error) => void): boolean {
+		if (line === undefined) {
+			onMissing(this.vm.vmComposeError(Error(), 8, String(paras.first || 0)));
+			this.vm.vmStop("stop", 60, true);
+			return false;
+		}
 		ProgramRunner.editLine(this.vm, paras, line, onInput);
+		return true;
 	}
 
 	renumProgram(

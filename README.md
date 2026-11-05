@@ -137,6 +137,19 @@ Several examples use CPCBasicTS mode 3 when available, e.g. [Art](https://benchm
   - Remote URL: `node ./dist/cpcbasic-node-bootstrap.js sound=false showCpc=false debug=0 databaseDirs=https://benchmarko.github.io/CPCBasicApps/apps database=apps example=math/euler`
   - Or with local examples: `node ./dist/cpcbasic-node-bootstrap.js sound=false showCpc=false debug=0 databaseDirs=./examples example=test/testpage` (The test page does not fully work.)
 
+For deterministic, non-interactive BASIC execution in Node.js, use the separate `cpcbasicts/node` API:
+
+```js
+const { compile } = require("cpcbasicts/node");
+
+const machine = compile("10 PRINT \"HELLO\"\n20 END").createHeadlessMachine();
+const result = machine.run();
+
+console.log(result.reason, machine.getOutput());
+```
+
+Each machine has its own runtime state. Compilation failures throw `HeadlessCompileError`; unsupported hardware and timing features are reported by the headless runtime rather than requiring browser APIs.
+
 ### Program Keys
 
 Programs can declare on-screen keys for CPCBasicTS in a standalone BASIC comment. The value is a flat array of `key, text` pairs, where `key` is a single-character string or an integer CPC character

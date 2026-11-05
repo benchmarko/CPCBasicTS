@@ -33,8 +33,6 @@ import { Variables } from "../Variables";
 import { View, SelectOptionElement, AreaInputElement } from "./View";
 import { DragElement, DragElementOptions } from "./DragElement";
 import { Random } from "../Random";
-import { RsxAmsdos } from "../RsxAmsdos";
-import { RsxCpcBasic } from "../RsxCpcBasic";
 import { UiController } from "./UiController";
 import { Z80Disass } from "../Z80Disass"; // test
 import type { ExecutionState } from "../ExecutionState";
@@ -210,9 +208,6 @@ export class Controller implements IController {
 		});
 		this.vm.setCanvas(this.canvas);
 		this.runtime.reset();
-
-		this.vm.vmRegisterRsx(new RsxAmsdos(), true);
-		this.vm.vmRegisterRsx(new RsxCpcBasic(), true);
 
 		if (model.getProperty<boolean>(ModelPropID.sound)) { // activate sound needs user action
 			this.setSoundActive(); // activate in waiting state
@@ -797,7 +792,6 @@ export class Controller implements IController {
 			parseRun: () => this.fnParseRun(),
 			parseChain: () => this.fnParseChain(),
 			onUnknownCommand: (value) => UiUtils.console.error("loadExample: Unknown command:", value),
-			setStartLine: (line) => this.vm.vmSetStartLine(line),
 			startMainLoop: () => this.startMainLoop(),
 			onWarning: (error) => UiUtils.console.warn(error),
 			onError: (message) => UiUtils.console.error(message),
@@ -1013,15 +1007,8 @@ export class Controller implements IController {
 		const input = this.getInputText(),
 			lineNumber = paras.first || 0,
 			lines = this.fnGetLinesInRange(input, lineNumber, lineNumber);
-
-		if (lines.length) {
-			this.runtime.editLine(paras, lines[0], this.fnEditLineCallbackHandler);
+		if (this.runtime.editLine(paras, lines[0], this.fnEditLineCallbackHandler, (error) => this.outputError(error))) {
 			this.fnWaitInput();
-		} else {
-			const error = this.vm.vmComposeError(Error(), 8, String(lineNumber)); // "Line does not exist"
-
-			this.outputError(error);
-			this.vm.vmStop("stop", 60, true);
 		}
 	}
 

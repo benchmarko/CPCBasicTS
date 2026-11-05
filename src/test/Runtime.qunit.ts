@@ -311,6 +311,17 @@ QUnit.module("Runtime", function () {
 		assert.strictEqual(runtime.vm.vmGetStopObject().reason, "");
 
 		events.length = 0;
+		const editStarted = runtime.editLine(
+			{ command: "edit", stream: 0, line: 0, first: 42 },
+			undefined,
+			() => true,
+			(error) => { events.push(["missing", error.name]); }
+		);
+		assert.strictEqual(editStarted, false);
+		assert.deepEqual(events, [["missing", "CpcVm"]]);
+		assert.strictEqual(runtime.vm.vmGetStopObject().reason, "stop");
+
+		events.length = 0;
 		runtime.printDirectoryEntries(["z.bas", "a.bas"], 2, true);
 		assert.deepEqual(events, FileHandler.formatDirectoryEntries(["z.bas", "a.bas"], true).map((text) => ["print", 2, text]));
 		assert.strictEqual(runtime.vm.vmGetStopObject().reason, "");

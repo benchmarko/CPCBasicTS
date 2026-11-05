@@ -8,6 +8,7 @@ import "./BasicLexer.qunit";
 import "./BasicParser.qunit";
 import "./BasicTokenizer.qunit";
 import "./BrowserHost.qunit";
+import "./Controller.qunit";
 import "./CodeGeneratorBasic.qunit";
 import "./CodeGeneratorJs.qunit";
 import "./CodeGeneratorToken.qunit";
