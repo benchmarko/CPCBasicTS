@@ -9,7 +9,6 @@ const startConfig = {
     arrayBounds: false,
     autorun: true,
     basicVersion: "1.1", // "1.1" or "1.0"
-    bench: 0, // debug: number of parse bench loops
     canvasType: "graphics", // "graphics", "text", "none"
     databaseDirs: "examples", // example base directories (comma separated)
     database: "examples", // examples, apps, saved

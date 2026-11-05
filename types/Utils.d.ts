@@ -1,9 +1,10 @@
-import type { CustomError } from "./Interfaces";
+import type { CustomError, Diagnostic } from "./Interfaces";
 export declare class Utils {
     static debug: number;
     static console: Console;
     static setDebug(debug: number): void;
     static hexEscape(str: string): string;
+    static escapeControlCharacters(input: string): string;
     static dateFormat(d: Date): string;
     static stringCapitalize(str: string): string;
     static numberWithCommas(x: number | string): string;
@@ -15,6 +16,7 @@ export declare class Utils {
     static supportReservedNames: boolean;
     static stringTrimEnd(str: string): string;
     static isCustomError(e: unknown): e is CustomError;
+    static createDiagnostic(error: Error, noSelection?: boolean, errCode?: number): Diagnostic;
     static split2(str: string, char: string): string[];
     static string2Uint8Array(data: string): Uint8Array;
     static uint8Array2string(data: Uint8Array): string;

@@ -23,15 +23,232 @@ export class FileHandler {
         }
         return this.diskImage;
     }
-    static fnLocalStorageName(name, defaultExtension) {
+    static getStorageName(name, defaultExtension) {
         // modify name so we do not clash with localstorage methods/properites
         if (name.indexOf(".") < 0) { // no dot inside name?
             name += "." + (defaultExtension || ""); // append dot or default extension
         }
         return name;
     }
+    static createExampleLoadRequest(key, database, metadata, autorun) {
+        const type = metadata === null || metadata === void 0 ? void 0 : metadata.charAt(0), loadOnly = type === "B" || type === "D" || type === "G";
+        return {
+            name: database === "storage" ? key : "/" + key,
+            command: autorun && !loadOnly ? "run" : "load"
+        };
+    }
+    static resolveExamplePath(name, currentKey) {
+        if (name.charAt(0) === "/") {
+            const absolute = name.substring(1);
+            return { name: absolute, memorizedExample: absolute };
+        }
+        const lastSlash = currentKey.lastIndexOf("/");
+        if (lastSlash >= 0) {
+            name = currentKey.substring(0, lastSlash) + "/" + name;
+            name = name.replace(/\w+\/\.\.\//, "");
+        }
+        return { name, memorizedExample: currentKey };
+    }
+    static prepareExampleLoad(name, currentKey, examples, databaseDir) {
+        const resolved = FileHandler.resolveExamplePath(name, currentKey), entry = examples[resolved.name], status = (entry === null || entry === void 0 ? void 0 : entry.loaded) ? "loaded" : resolved.name && entry ? "fetch" : "missing";
+        return {
+            name: resolved.name,
+            memorizedExample: resolved.memorizedExample,
+            entry,
+            url: status === "fetch" ? databaseDir + "/" + resolved.name + ".js" : resolved.name,
+            status
+        };
+    }
+    static prepareSave(file, getSource, encodeTokens) {
+        const type = file.typeString, extension = type === "P" || type === "T" ? "bas" : type === "B" ? "bin" : "", name = FileHandler.getStorageName(file.name, extension);
+        let data;
+        if (file.fileData.length || type === "B" || file.command === "openout") {
+            data = file.fileData.join("");
+            if (!file.length) {
+                file.length = data.length;
+            }
+        }
+        else {
+            data = getSource();
+            if (type === "T" || type === "P") {
+                data = encodeTokens(data, name);
+                if (data === "") {
+                    file.typeString = "A";
+                }
+                else if (type === "P") {
+                    data = DiskImage.unOrProtectData(data);
+                }
+            }
+            file.length = data.length;
+        }
+        return { name, data, storedData: FileHandler.joinMeta(file) + "," + data };
+    }
+    saveFile(file, getSource, encodeTokens) {
+        const prepared = FileHandler.prepareSave(file, getSource, encodeTokens);
+        this.options.storage.setItem(prepared.name, prepared.storedData);
+        this.options.updateStorageDatabase("set", prepared.name);
+        return prepared;
+    }
+    static loadFromStorage(storage, name) {
+        if (name.indexOf(".") >= 0) {
+            return storage.getItem(name);
+        }
+        for (const extension of FileHandler.defaultExtensions) {
+            const data = storage.getItem(FileHandler.getStorageName(name, extension));
+            if (data !== null) {
+                return data;
+            }
+        }
+        return null;
+    }
+    static splitMeta(input) {
+        if (input.indexOf(FileHandler.metaIdent) === 0) {
+            const index = input.indexOf(",");
+            if (index >= 0) {
+                const meta = input.substring(0, index).split(";");
+                return {
+                    meta: {
+                        typeString: meta[1],
+                        start: Number(meta[2]),
+                        length: Number(meta[3]),
+                        entry: Number(meta[4]),
+                        encoding: meta[5]
+                    },
+                    data: input.substring(index + 1)
+                };
+            }
+        }
+        return { meta: { typeString: "" }, data: input };
+    }
     static getMetaIdent() {
         return FileHandler.metaIdent;
+    }
+    static formatDirectoryEntries(entries, sort = false) {
+        const names = entries.map((entry) => {
+            const parts = entry.split(".");
+            return parts[0].padEnd(8, " ") + "." + (parts.length >= 2 ? parts[1] : "").padEnd(3, " ");
+        });
+        if (sort) {
+            names.sort();
+        }
+        return ["\r\nDrive A: user  0\r\n\r\n", ...names.map((name) => name + "  "), "\r\n\r\n999K free\r\n\r\n"];
+    }
+    static decodeStoredFile(input, options) {
+        const result = FileHandler.splitMeta(input), type = result.meta.typeString;
+        let data = result.data;
+        if (result.meta.encoding === "base64") {
+            data = options.atobFn(data);
+        }
+        if (type === "T") {
+            data = options.decodeTokenizedBasic(data);
+        }
+        else if (type === "P") {
+            data = options.decodeTokenizedBasic(DiskImage.unOrProtectData(data));
+        }
+        else if (type === "A") {
+            data = data.replace(/\x1a+$/, ""); // eslint-disable-line no-control-regex
+        }
+        else if (type === "G") {
+            data = FileHandler.asmGena3Convert(data);
+        }
+        else if (type === "S") {
+            data = options.applySnapshot(data);
+        }
+        else if (type === "X" || type === "Z") {
+            data = "1 ' " + options.importArchive(data, type).join(", ");
+        }
+        return { meta: result.meta, data };
+    }
+    static asmGena3Convert(data) {
+        const length = data.length;
+        let pos = 4, output = "";
+        while (pos < length) {
+            const line = data.charCodeAt(pos) + data.charCodeAt(pos + 1) * 256;
+            pos += 2;
+            const cr = data.indexOf("\r", pos), separator = data.indexOf("\x1c", pos), end = Math.min(cr < 0 ? length : cr, separator < 0 ? length : separator);
+            output += line + " " + data.substring(pos, end) + "\n";
+            pos = end + 1;
+        }
+        return output;
+    }
+    static prepareMaskRegExp(mask) {
+        mask = mask.replace(/([.+^$[\]\\(){}|-])/g, "\\$1");
+        mask = mask.replace(/\?/g, ".");
+        mask = mask.replace(/\*/g, ".*");
+        return new RegExp("^" + mask + "$");
+    }
+    static getStorageDirectoryEntries(storage, mask) {
+        const entries = [], regExp = mask ? FileHandler.prepareMaskRegExp(mask) : undefined;
+        for (let index = 0; index < storage.length; index += 1) {
+            const key = storage.key(index);
+            if (key === null) {
+                continue;
+            }
+            const data = storage.getItem(key);
+            if (data !== null && data.startsWith(FileHandler.metaIdent)) {
+                const matchKey = key.replace(/[\n\r]/g, "");
+                if (!regExp || regExp.test(matchKey)) {
+                    entries.push(key);
+                }
+            }
+        }
+        return entries;
+    }
+    static getDirectoryEntries(storage, examples, currentExample, mask) {
+        let fileMask = mask ? FileHandler.getStorageName(mask) : "";
+        const entries = FileHandler.getStorageDirectoryEntries(storage, fileMask), lastSlash = currentExample.lastIndexOf("/");
+        let path = "";
+        if (lastSlash >= 0) {
+            path = currentExample.substring(0, lastSlash) + "/";
+            fileMask = path + (fileMask || "*.*");
+        }
+        const regExp = fileMask ? FileHandler.prepareMaskRegExp(fileMask) : undefined, fileExists = {};
+        for (const entry of entries) {
+            fileExists[entry] = true;
+        }
+        for (const key in examples) {
+            if (examples.hasOwnProperty(key)) {
+                const example = examples[key], name = example.key, matchName = name + (name.indexOf(".") < 0 ? "." : "");
+                if (!regExp || regExp.test(matchName)) {
+                    const entry = name.substring(path.length);
+                    if (!fileExists[entry]) {
+                        fileExists[entry] = true;
+                        entries.push(entry);
+                    }
+                }
+            }
+        }
+        return entries;
+    }
+    eraseFiles(mask) {
+        const name = FileHandler.getStorageName(mask), entries = FileHandler.getStorageDirectoryEntries(this.options.storage, name), removed = [], missing = [];
+        for (const entry of entries) {
+            if (this.options.storage.getItem(entry) !== null) {
+                this.options.storage.removeItem(entry);
+                this.options.updateStorageDatabase("remove", entry);
+                removed.push(entry);
+            }
+            else {
+                missing.push(entry);
+            }
+        }
+        return { name, matched: entries.length > 0, removed, missing };
+    }
+    renameFile(oldName, newName) {
+        oldName = FileHandler.getStorageName(oldName);
+        newName = FileHandler.getStorageName(newName);
+        const item = this.options.storage.getItem(oldName);
+        if (item === null) {
+            return { status: "oldNotFound", oldName, newName };
+        }
+        if (this.options.storage.getItem(newName)) {
+            return { status: "newExists", oldName, newName };
+        }
+        this.options.storage.setItem(newName, item);
+        this.options.updateStorageDatabase("set", newName);
+        this.options.storage.removeItem(oldName);
+        this.options.updateStorageDatabase("remove", oldName);
+        return { status: "renamed", oldName, newName };
     }
     static joinMeta(meta) {
         return [
@@ -177,7 +394,7 @@ export class FileHandler {
                 break;
         }
         if (header) { // do we have a header? (means we should store it as a file in storage...)
-            const storageName = FileHandler.fnLocalStorageName(this.options.adaptFilename(name, "FILE")), meta = FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? Utils.uint8Array2string(data) : data;
+            const storageName = FileHandler.getStorageName(this.options.adaptFilename(name, "FILE")), meta = FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? Utils.uint8Array2string(data) : data;
             try {
                 this.options.storage.setItem(storageName, meta + "," + dataAsString);
                 this.options.updateStorageDatabase("set", storageName);
@@ -197,5 +414,6 @@ export class FileHandler {
     }
 }
 FileHandler.metaIdent = "CPCBasic";
+FileHandler.defaultExtensions = ["", "bas", "bin"];
 FileHandler.reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
 //# sourceMappingURL=FileHandler.js.map

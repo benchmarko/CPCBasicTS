@@ -265,7 +265,7 @@ export class NodeUtils {
             setTimeout: setTimeout
         };
         const controller = new Controller0(core, controllerOptions);
-        controller.onDatabaseSelectChange(); // trigger loading configured example
+        controller.loadDatabase();
     }
 }
 NodeUtils.currentScriptKey = "";

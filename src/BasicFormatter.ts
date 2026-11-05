@@ -30,6 +30,139 @@ type LinesType = Record<string, LineEntry>;
 type ChangesType = Record<number, RefsEntry>;
 
 export class BasicFormatter {
+	static parseLineNumber(line: string): number {
+		return parseInt(line, 10); // we do not check for linenumber in range 0...65535
+	}
+
+	static addLineNumbers(input: string): string {
+		const lineParts = input.split("\n");
+		let lastLine = 0;
+
+		for (let index = 0; index < lineParts.length; index += 1) {
+			let lineNumber = parseInt(lineParts[index], 10);
+
+			if (isNaN(lineNumber)) {
+				lineNumber = lastLine + 1;
+				lineParts[index] = String(lineNumber) + " " + lineParts[index];
+			}
+			lastLine = lineNumber;
+		}
+		return lineParts.join("\n");
+	}
+
+	static splitLines(input: string, implicitLines = false): string[] | undefined {
+		if (implicitLines) {
+			input = BasicFormatter.addLineNumbers(input);
+		}
+		const parts = input.split(/^(\s*\d+)/m),
+			lines: string[] = [];
+		if (parts[0] === "") {
+			parts.shift();
+		}
+		if (parts.length % 2 !== 0) {
+			return undefined;
+		}
+		for (let index = 0; index < parts.length; index += 2) {
+			let content = parts[index + 1];
+			if (content.endsWith("\n")) {
+				content = content.substring(0, content.length - 1);
+			}
+			lines.push(parts[index] + content);
+		}
+		return lines;
+	}
+
+	static mergeLines(lines1: readonly string[], lines2: readonly string[]): string {
+		const result: string[] = [];
+		let index1 = 0,
+			index2 = 0;
+		while (index1 < lines1.length && index2 < lines2.length) {
+			const line1 = lines1[index1],
+				line2 = lines2[index2],
+				number1 = parseInt(line1, 10),
+				number2 = parseInt(line2, 10);
+			if (number1 < number2) {
+				result.push(line1);
+				index1 += 1;
+			} else {
+				if (String(number2) !== line2) {
+					result.push(line2);
+				}
+				index2 += 1;
+				if (number1 === number2) {
+					index1 += 1;
+				}
+			}
+		}
+		const merged = result.concat(lines1.slice(index1), lines2.slice(index2));
+		if (merged.length >= 2 && merged[merged.length - 2] === "" && merged[merged.length - 1] === "") {
+			merged.pop();
+		}
+		return merged.join("\n");
+	}
+
+	static getLinesInRange(sourceLines: readonly string[], firstLine: number, lastLine: number): string[] {
+		const lines = sourceLines.slice();
+		while (lines.length && parseInt(lines[0], 10) < firstLine) {
+			lines.shift();
+		}
+		if (lines.length && lines[lines.length - 1] === "") {
+			lines.pop();
+		}
+		while (lines.length && parseInt(lines[lines.length - 1], 10) > lastLine) {
+			lines.pop();
+		}
+		return lines;
+	}
+
+	static getLinesInRangeFromScript(
+		script: string,
+		firstLine: number,
+		lastLine: number,
+		implicitLines = false,
+		onInvalid?: () => void
+	): string[] {
+		const lines = script ? BasicFormatter.splitLines(script, implicitLines) : [];
+		if (!lines) {
+			onInvalid?.();
+			return [];
+		}
+		return BasicFormatter.getLinesInRange(lines, firstLine, lastLine);
+	}
+
+	static mergeScripts(
+		script1: string,
+		script2: string,
+		implicitLines = false,
+		onInvalid?: () => void
+	): string {
+		const split = (script: string): string[] => {
+			const lines = BasicFormatter.splitLines(Utils.stringTrimEnd(script), implicitLines);
+			if (!lines) {
+				onInvalid?.();
+				return [];
+			}
+			return lines;
+		};
+		return BasicFormatter.mergeLines(split(script1), split(script2));
+	}
+
+	static formatListing(lines: readonly string[], stream: number): string[] {
+		return lines.map((line) => stream === 9 ? line : Utils.escapeControlCharacters(line));
+	}
+
+	static createDeleteScript(lines: readonly string[]): string | undefined {
+		const numbers: string[] = [];
+		for (const line of lines) {
+			const number = parseInt(line, 10);
+			if (isNaN(number)) {
+				return undefined;
+			}
+			numbers.push(String(number));
+		}
+		return numbers.join("\n");
+	}
+
 	private readonly options: BasicFormatterOptions;
 
 	private label = ""; // current label (line) for error messages
@@ -227,7 +360,13 @@ export class BasicFormatter {
 		return output;
 	}
 
+	private prepareParser(): void {
+		this.options.lexer.setOptions({ keepWhiteSpace: false });
+		this.options.parser.setOptions({ keepBrackets: false, keepColons: false, keepDataComma: false, keepTokens: false });
+	}
+
 	renumber(input: string, newLine: number, oldLine: number, step: number, keep: number): IOutput {
+		this.prepareParser();
 		const out: IOutput = {
 			text: ""
 		};
@@ -282,6 +421,7 @@ export class BasicFormatter {
 	}
 
 	removeUnusedLines(input: string): IOutput {
+		this.prepareParser();
 		const out: IOutput = {
 			text: ""
 		};

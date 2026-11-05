@@ -18,4 +18,6 @@ export { Utils } from "../Utils";
 export { Variables } from "../Variables";
 export { Z80Disass } from "../Z80Disass";
 export { ZipFile } from "../ZipFile";
+export type { Diagnostic, ExampleLoadOptions, IRuntimeController, RenumOptions, RuntimeCallbacks, RuntimeHost } from "../Interfaces";
+export type { ExecutionState } from "../ExecutionState";
 //# sourceMappingURL=main.d.ts.map

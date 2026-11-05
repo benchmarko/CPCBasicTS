@@ -86,6 +86,11 @@ export class CodeGeneratorJs {
 		Object.assign(this.options, options);
 	}
 
+	setBasicVersion(basicVersion: string): void {
+		this.options.parser.setOptions({ basicVersion });
+		this.options.lexer.setOptions({ keywords: this.options.parser.getKeywords() });
+	}
+
 	// ECMA 3 JS Keywords which must be avoided in dot notation for properties when using IE8
 	private static readonly jsKeywords = [
 		"do",
@@ -1843,8 +1848,33 @@ export class CodeGeneratorJs {
 		return this.sourceMap;
 	}
 
-	debugGetLabelsCount(): number {
-		return Object.keys(this.referencedLabelsCount).length;
+	private prepareProgramParser(): void {
+		this.options.lexer.setOptions({ keepWhiteSpace: false });
+		this.options.parser.setOptions({
+			keepBrackets: false,
+			keepColons: false,
+			keepDataComma: false,
+			keepTokens: false
+		});
+	}
+
+	generateProgram(input: string, variables: Variables): IOutput {
+		this.prepareProgramParser();
+		return this.generate(input, variables);
+	}
+
+	generateDirect(input: string, program: string, variables: Variables): IOutput {
+		this.prepareProgramParser();
+		if (program && (!isNaN(parseInt(program, 10)) || this.options.implicitLines)) {
+			const separator = program.endsWith("\n") ? "" : "\n",
+				commandStart = program.length + separator.length,
+				output = this.generate(program + separator + input, variables, true);
+			if (!output.error || !(output.error.pos < commandStart)) {
+				return output;
+			}
+			output.error.message = "[prg] " + output.error.message;
+		}
+		return this.generate(input, variables, true);
 	}
 
 	generate(input: string, variables: Variables, allowDirect?: boolean): IOutput {

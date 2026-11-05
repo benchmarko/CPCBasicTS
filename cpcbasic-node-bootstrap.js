@@ -10,6 +10,9 @@ const _Utils = class _Utils {
       return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
     });
   }
+  static escapeControlCharacters(input) {
+    return input.replace(/([\x00-\x1f])/g, "$1");
+  }
   static dateFormat(d) {
     return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);
   }
@@ -45,6 +48,20 @@ const _Utils = class _Utils {
   }
   static isCustomError(e) {
     return e.pos !== void 0;
+  }
+  static createDiagnostic(error, noSelection = false, errCode) {
+    const custom = error;
+    return {
+      name: error.name,
+      message: error.message,
+      shortMessage: _Utils.isCustomError(error) ? custom.shortMessage || error.message : error.message,
+      value: custom.value,
+      pos: custom.pos,
+      len: custom.len,
+      line: custom.line,
+      errCode: custom.errCode ?? errCode,
+      selectSource: custom.pos !== void 0 && !noSelection
+    };
   }
   static split2(str, char) {
     const index = str.indexOf(char);
@@ -111,7 +128,6 @@ var ModelPropID = /* @__PURE__ */ ((ModelPropID2) => {
   ModelPropID2["arrayBounds"] = "arrayBounds";
   ModelPropID2["autorun"] = "autorun";
   ModelPropID2["basicVersion"] = "basicVersion";
-  ModelPropID2["bench"] = "bench";
   ModelPropID2["canvasType"] = "canvasType";
   ModelPropID2["databaseDirs"] = "databaseDirs";
   ModelPropID2["database"] = "database";
@@ -163,6 +179,112 @@ class BasicFormatter {
       implicitLines: false
     };
     this.setOptions(options);
+  }
+  static parseLineNumber(line) {
+    return parseInt(line, 10);
+  }
+  static addLineNumbers(input) {
+    const lineParts = input.split("\n");
+    let lastLine = 0;
+    for (let index = 0; index < lineParts.length; index += 1) {
+      let lineNumber = parseInt(lineParts[index], 10);
+      if (isNaN(lineNumber)) {
+        lineNumber = lastLine + 1;
+        lineParts[index] = String(lineNumber) + " " + lineParts[index];
+      }
+      lastLine = lineNumber;
+    }
+    return lineParts.join("\n");
+  }
+  static splitLines(input, implicitLines = false) {
+    if (implicitLines) {
+      input = BasicFormatter.addLineNumbers(input);
+    }
+    const parts = input.split(/^(\s*\d+)/m), lines = [];
+    if (parts[0] === "") {
+      parts.shift();
+    }
+    if (parts.length % 2 !== 0) {
+      return void 0;
+    }
+    for (let index = 0; index < parts.length; index += 2) {
+      let content = parts[index + 1];
+      if (content.endsWith("\n")) {
+        content = content.substring(0, content.length - 1);
+      }
+      lines.push(parts[index] + content);
+    }
+    return lines;
+  }
+  static mergeLines(lines1, lines2) {
+    const result = [];
+    let index1 = 0, index2 = 0;
+    while (index1 < lines1.length && index2 < lines2.length) {
+      const line1 = lines1[index1], line2 = lines2[index2], number1 = parseInt(line1, 10), number2 = parseInt(line2, 10);
+      if (number1 < number2) {
+        result.push(line1);
+        index1 += 1;
+      } else {
+        if (String(number2) !== line2) {
+          result.push(line2);
+        }
+        index2 += 1;
+        if (number1 === number2) {
+          index1 += 1;
+        }
+      }
+    }
+    const merged = result.concat(lines1.slice(index1), lines2.slice(index2));
+    if (merged.length >= 2 && merged[merged.length - 2] === "" && merged[merged.length - 1] === "") {
+      merged.pop();
+    }
+    return merged.join("\n");
+  }
+  static getLinesInRange(sourceLines, firstLine, lastLine) {
+    const lines = sourceLines.slice();
+    while (lines.length && parseInt(lines[0], 10) < firstLine) {
+      lines.shift();
+    }
+    if (lines.length && lines[lines.length - 1] === "") {
+      lines.pop();
+    }
+    while (lines.length && parseInt(lines[lines.length - 1], 10) > lastLine) {
+      lines.pop();
+    }
+    return lines;
+  }
+  static getLinesInRangeFromScript(script, firstLine, lastLine, implicitLines = false, onInvalid) {
+    const lines = script ? BasicFormatter.splitLines(script, implicitLines) : [];
+    if (!lines) {
+      onInvalid?.();
+      return [];
+    }
+    return BasicFormatter.getLinesInRange(lines, firstLine, lastLine);
+  }
+  static mergeScripts(script1, script2, implicitLines = false, onInvalid) {
+    const split = (script) => {
+      const lines = BasicFormatter.splitLines(Utils.stringTrimEnd(script), implicitLines);
+      if (!lines) {
+        onInvalid?.();
+        return [];
+      }
+      return lines;
+    };
+    return BasicFormatter.mergeLines(split(script1), split(script2));
+  }
+  static formatListing(lines, stream) {
+    return lines.map((line) => stream === 9 ? line : Utils.escapeControlCharacters(line));
+  }
+  static createDeleteScript(lines) {
+    const numbers = [];
+    for (const line of lines) {
+      const number = parseInt(line, 10);
+      if (isNaN(number)) {
+        return void 0;
+      }
+      numbers.push(String(number));
+    }
+    return numbers.join("\n");
   }
   getOptions() {
     return this.options;
@@ -303,7 +425,12 @@ class BasicFormatter {
     const changes = this.fnRenumberLines(lines, refs, newLine, oldLine, step, keep), output = BasicFormatter.fnApplyChanges(input, changes);
     return output;
   }
+  prepareParser() {
+    this.options.lexer.setOptions({ keepWhiteSpace: false });
+    this.options.parser.setOptions({ keepBrackets: false, keepColons: false, keepDataComma: false, keepTokens: false });
+  }
   renumber(input, newLine, oldLine, step, keep) {
+    this.prepareParser();
     const out = {
       text: ""
     };
@@ -340,6 +467,7 @@ class BasicFormatter {
     return output;
   }
   removeUnusedLines(input) {
+    this.prepareParser();
     const out = {
       text: ""
     };
@@ -356,6 +484,4134 @@ class BasicFormatter {
       }
     }
     return out;
+  }
+}
+
+const ModelPropIDdatabase$1 = "database";
+class Model {
+  constructor(config) {
+    this.config = config || {};
+    this.initialConfig = Object.assign({}, this.config);
+    this.databases = {};
+    this.examples = {};
+  }
+  // {
+  getProperty(property) {
+    return this.config[property];
+  }
+  setProperty(property, value) {
+    const previousValue = this.config[property];
+    this.config[property] = value;
+    if (value !== previousValue && this.propertyChangeCallback) {
+      this.propertyChangeCallback();
+    }
+  }
+  setPropertyChangeCallback(callback) {
+    this.propertyChangeCallback = callback;
+  }
+  getAllProperties() {
+    return this.config;
+  }
+  getAllInitialProperties() {
+    return this.initialConfig;
+  }
+  getChangedProperties() {
+    const current = this.config, initial = this.initialConfig, changed = {};
+    for (const name in current) {
+      if (current.hasOwnProperty(name)) {
+        if (current[name] !== initial[name]) {
+          changed[name] = current[name];
+        }
+      }
+    }
+    return changed;
+  }
+  addDatabases(db) {
+    for (const par in db) {
+      if (db.hasOwnProperty(par)) {
+        const entry = db[par];
+        this.databases[par] = entry;
+        this.examples[par] = {};
+      }
+    }
+  }
+  getAllDatabases() {
+    return this.databases;
+  }
+  getDatabase() {
+    const database = this.getProperty(ModelPropIDdatabase$1);
+    return this.databases[database];
+  }
+  getAllExamples() {
+    const database = this.getProperty(ModelPropIDdatabase$1);
+    return this.examples[database];
+  }
+  getExample(key) {
+    const database = this.getProperty(ModelPropIDdatabase$1);
+    return this.examples[database][key];
+  }
+  setExample(example) {
+    const database = this.getProperty(ModelPropIDdatabase$1), key = example.key;
+    if (!this.examples[database][key]) {
+      if (Utils.debug > 1) {
+        Utils.console.debug("setExample: creating new example:", key);
+      }
+    }
+    this.examples[database][key] = example;
+  }
+  removeExample(key) {
+    const database = this.getProperty(ModelPropIDdatabase$1);
+    if (!this.examples[database][key]) {
+      Utils.console.warn("removeExample: example does not exist: " + key);
+    }
+    delete this.examples[database][key];
+  }
+}
+
+const ModelPropIDdatabase = "database";
+const ModelPropIDexample = "example";
+const ModelPropIDdatabaseDirs = "databaseDirs";
+class Core {
+  constructor(defaultConfig) {
+    this.addIndex = (dir, input) => {
+      if (typeof input === "function") {
+        input = {
+          [dir]: JSON.parse(Core.fnHereDoc(input).trim())
+        };
+      }
+      for (const value in input) {
+        const item = input[value];
+        for (let i = 0; i < item.length; i += 1) {
+          this.model.setExample(item[i]);
+        }
+      }
+    };
+    this.addItem = (key, input) => {
+      let inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
+      inputString = inputString.replace(/^\n/, "").replace(/\n$/, "");
+      if (!key) {
+        Utils.console.warn("addItem: no key!");
+        key = "unknown";
+      }
+      const implicitLines = this.model.getProperty(ModelPropID.implicitLines);
+      const linesOnLoad = this.model.getProperty(ModelPropID.linesOnLoad);
+      if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
+        inputString = BasicFormatter.addLineNumbers(inputString);
+      }
+      const example = this.model.getExample(key);
+      if (example) {
+        example.script = inputString;
+      }
+    };
+    this.addRsx = (key, RsxConstructor) => {
+      const example = this.model.getExample(key);
+      example.key = key;
+      example.rsx = new RsxConstructor();
+      example.loaded = true;
+      Utils.console.log("addItem:", key);
+      return key;
+    };
+    this.model = new Model(defaultConfig);
+  }
+  init() {
+    this.initDatabases();
+  }
+  getModel() {
+    return this.model;
+  }
+  setDebug(debug) {
+    Utils.setDebug(debug);
+  }
+  static getUniqueDbKey(name, databases) {
+    let key = name, index = 2;
+    while (databases[key]) {
+      key = name + index;
+      index += 1;
+    }
+    return key;
+  }
+  initDatabases() {
+    const model = this.model, databases = {}, databaseDirs = model.getProperty(ModelPropIDdatabaseDirs).split(",");
+    for (const databaseDir of databaseDirs) {
+      const parts1 = databaseDir.split("="), databaseSrc = parts1[0], assignedName = parts1.length > 1 ? parts1[1] : "", parts2 = databaseSrc.split("/"), name = assignedName || parts2[parts2.length - 1], key = Core.getUniqueDbKey(name, databases);
+      databases[key] = {
+        text: key,
+        title: databaseSrc,
+        src: databaseSrc
+      };
+    }
+    this.model.addDatabases(databases);
+  }
+  static fnHereDoc(fn) {
+    return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
+  }
+  parseArgs(args, config) {
+    for (const arg of args) {
+      const [name, ...valueParts] = arg.split("=");
+      const nameType = typeof config[name];
+      let value = valueParts.join("=");
+      if (value !== void 0) {
+        if (nameType === "boolean") {
+          value = value === "true";
+        } else if (nameType === "number") {
+          value = Number(value);
+        }
+        config[name] = value;
+      }
+    }
+    return config;
+  }
+  fnRedirectExamples(redirectExamples) {
+    const model = this.getModel();
+    const name = model.getProperty(ModelPropIDdatabase) + "/" + model.getProperty(ModelPropIDexample);
+    if (redirectExamples[name]) {
+      model.setProperty(ModelPropIDdatabase, redirectExamples[name].database);
+      model.setProperty(ModelPropIDexample, redirectExamples[name].example);
+    }
+  }
+}
+
+const cpcconfig = {
+  // eslint-disable-line no-unused-vars
+  databaseDirs: "./examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/LocoBasic/examples=locobasic,https://benchmarko.github.io/CPCBasicApps/rosetta,storage",
+  //databaseDirs: "./examples,../../CPCBasicApps/apps,../../LocoBasic/dist/examples=locobasic,../../CPCBasicApps/rosetta,storage", // local test
+  // just an example, not the full list of moved examples...
+  redirectExamples: {
+    "examples/art": {
+      database: "apps",
+      example: "demo/art"
+    },
+    "examples/blkedit": {
+      database: "apps",
+      example: "apps/blkedit"
+    }
+  }
+};
+
+const startConfig = {
+  arrayBounds: false,
+  autorun: true,
+  basicVersion: "1.1",
+  // "1.1" or "1.0"
+  canvasType: "graphics",
+  // "graphics", "text", "none"
+  databaseDirs: "examples",
+  // example base directories (comma separated)
+  database: "examples",
+  // examples, apps, saved
+  debug: 0,
+  example: "cpcbasic",
+  exampleIndex: "0index.js",
+  // example index for every databaseDir
+  implicitLines: false,
+  // allow implicit line numbers
+  input: "",
+  // keyboard input when starting the app
+  integerOverflow: false,
+  // check for integer overflow
+  kbdLayout: "alphanum",
+  // alphanum, alpha, num
+  linesOnLoad: true,
+  // add missing line numbers on load
+  dragElements: false,
+  palette: "color",
+  // "color", "green", "grey"
+  prettyBrackets: true,
+  // pretty print: brackets
+  prettyColons: true,
+  // pretty print: colons
+  prettyLowercaseVars: false,
+  // pretty print: lowercase variables
+  prettySpace: false,
+  // pretty print: spaces
+  processFileImports: true,
+  // open ZIP, DSK files on import
+  random: "cpc",
+  // cpc or minstd
+  selectDataFiles: false,
+  // select data files in example selection
+  showConsoleLog: false,
+  showCpc: true,
+  showDisass: false,
+  showExport: false,
+  showGallery: false,
+  showInput: true,
+  showInp2: false,
+  showKbd: false,
+  showKbdSettings: false,
+  showMore: false,
+  showOutput: false,
+  showPretty: false,
+  showRenum: false,
+  showResult: false,
+  showSettings: false,
+  showVariable: false,
+  showView: false,
+  sound: true,
+  speed: 100,
+  trace: false
+  // trace code
+};
+class cpcBasic {
+  static start(startupAdapter) {
+    Utils.console.log("CPCBasicTS started at", Utils.dateFormat(/* @__PURE__ */ new Date()));
+    const adapterConfig = startupAdapter.getConfigOverrides() || {};
+    Object.assign(startConfig, cpcconfig, adapterConfig);
+    const redirectExamples = startConfig.redirectExamples;
+    delete startConfig.redirectExamples;
+    const core = new Core(startConfig);
+    if (redirectExamples) {
+      core.fnRedirectExamples(redirectExamples);
+    }
+    if (!startupAdapter.isNodeRuntime()) {
+      const winFn = () => {
+        const ui = startupAdapter.getUI();
+        const win = window;
+        if (!ui) {
+          throw new Error("start: UI undefined!");
+        }
+        if (!win) {
+          throw new Error("start: window undefined!");
+        }
+        win.cpcBasic = {
+          addIndex: core.addIndex,
+          addItem: (key, input) => {
+            if (!key) {
+              key = ui.getCurrentDataKey();
+            }
+            core.addItem(key, input);
+          },
+          addRsx: (key, RsxConstructor) => {
+            if (!key) {
+              key = ui.getCurrentDataKey();
+            }
+            core.addRsx(key, RsxConstructor);
+          }
+        };
+        ui.onWindowLoadContinue(core);
+      };
+      winFn();
+    } else {
+      const nodeUtils = startupAdapter.getNodeUtils();
+      if (!nodeUtils) {
+        throw new Error("start: NodeUtils undefined!");
+      }
+      nodeUtils.nodeMain(core);
+    }
+  }
+}
+
+class BasicTokenizer {
+  constructor() {
+    this.pos = 0;
+    this.line = 0;
+    // will also be set in decode
+    this.lineEnd = 0;
+    this.input = "";
+    this.needSpace = false;
+    // hmm
+    this.debug = {
+      startPos: 0,
+      line: 0,
+      info: ""
+    };
+    // on sq?
+    /* eslint-disable no-invalid-this */
+    this.tokens = {
+      0: "",
+      // marker for "end of tokenised line"
+      1: ":",
+      // ":" statement seperator
+      2: this.fnIntVar,
+      // integer variable definition (defined with "%" suffix)
+      3: this.fnStringVar,
+      // string variable definition (defined with "$" suffix)
+      4: this.fnFpVar,
+      // floating point variable definition (defined with "!" suffix)
+      5: "var?",
+      6: "var?",
+      7: "var?",
+      // ??
+      8: "var?",
+      // ??
+      9: "var?",
+      // ??
+      10: "var?",
+      // ??
+      11: this.fnVar,
+      // integer variable definition (no suffix)
+      12: this.fnVar,
+      // string variable definition (no suffix)
+      13: this.fnVar,
+      // floating point or no type (no suffix)
+      14: "0",
+      // number constant "0"
+      15: "1",
+      // number constant "1"
+      16: "2",
+      // number constant "2"
+      17: "3",
+      // number constant "3"
+      18: "4",
+      // number constant "4"
+      19: "5",
+      // number constant "5"
+      20: "6",
+      // number constant "6"
+      21: "7",
+      // number constant "7"
+      22: "8",
+      // number constant "8"
+      23: "9",
+      // number constant "9"
+      24: "10",
+      // number constant "10"
+      25: this.fnNum8DecAsStr,
+      // 8-bit integer decimal value
+      26: this.fnNum16DecAsStr,
+      // 16-bit integer decimal value
+      27: this.fnNum16Bin,
+      // 16-bit integer binary value (with "&X" prefix)
+      28: this.fnNum16Hex,
+      // num16Hex: 16-bit integer hexadecimal value (with "&H" or "&" prefix)
+      29: this.fnNum16LineAddrAsStr,
+      // 16-bit BASIC program line memory address pointer
+      30: this.fnNum16DecAsStr,
+      // 16-bit integer BASIC line number
+      31: this.fnNumFp,
+      // floating point value
+      // 0x20-0x21 ASCII printable symbols
+      34: this.fnQuotedString,
+      // '"' quoted string value
+      // 0x23-0x7b ASCII printable symbols
+      124: this.fnRsx,
+      // "|" symbol; prefix for RSX commands
+      128: "AFTER",
+      129: "AUTO",
+      130: "BORDER",
+      131: "CALL",
+      132: "CAT",
+      133: "CHAIN",
+      134: "CLEAR",
+      135: "CLG",
+      136: "CLOSEIN",
+      137: "CLOSEOUT",
+      138: "CLS",
+      139: "CONT",
+      140: "DATA",
+      141: "DEF",
+      142: "DEFINT",
+      143: "DEFREAL",
+      144: "DEFSTR",
+      145: "DEG",
+      146: "DELETE",
+      147: "DIM",
+      148: "DRAW",
+      149: "DRAWR",
+      150: "EDIT",
+      151: "ELSE",
+      // always with 0x01 0x97
+      152: "END",
+      153: "ENT",
+      154: "ENV",
+      155: "ERASE",
+      156: "ERROR",
+      157: "EVERY",
+      158: "FOR",
+      159: "GOSUB",
+      160: "GOTO",
+      161: "IF",
+      162: "INK",
+      163: "INPUT",
+      164: "KEY",
+      165: "LET",
+      166: "LINE",
+      167: "LIST",
+      168: "LOAD",
+      169: "LOCATE",
+      170: "MEMORY",
+      171: "MERGE",
+      172: "MID$",
+      173: "MODE",
+      174: "MOVE",
+      175: "MOVER",
+      176: "NEXT",
+      177: "NEW",
+      178: "ON",
+      179: "ON BREAK",
+      180: "ON ERROR GOTO 0",
+      // (on error goto n > 0 is decoded with separate tokens)
+      181: "ON SQ",
+      182: "OPENIN",
+      183: "OPENOUT",
+      184: "ORIGIN",
+      185: "OUT",
+      186: "PAPER",
+      187: "PEN",
+      188: "PLOT",
+      189: "PLOTR",
+      190: "POKE",
+      191: "PRINT",
+      192: this.fnApostrophe,
+      // "'" symbol (same function as REM keyword); always with 0x01 0xC0
+      193: "RAD",
+      194: "RANDOMIZE",
+      195: "READ",
+      196: "RELEASE",
+      197: this.fnRem,
+      // REM
+      198: "RENUM",
+      199: "RESTORE",
+      200: "RESUME",
+      201: "RETURN",
+      202: "RUN",
+      203: "SAVE",
+      204: "SOUND",
+      205: "SPEED",
+      206: "STOP",
+      207: "SYMBOL",
+      208: "TAG",
+      209: "TAGOFF",
+      210: "TROFF",
+      211: "TRON",
+      212: "WAIT",
+      213: "WEND",
+      214: "WHILE",
+      215: "WIDTH",
+      216: "WINDOW",
+      217: "WRITE",
+      218: "ZONE",
+      219: "DI",
+      220: "EI",
+      221: "FILL",
+      // (v1.1)
+      222: "GRAPHICS",
+      // (v1.1)
+      223: "MASK",
+      // (v1.1)
+      224: "FRAME",
+      // (v1.1)
+      225: "CURSOR",
+      // (v1.1)
+      226: "<unused>",
+      227: "ERL",
+      228: "FN",
+      229: "SPC",
+      230: "STEP",
+      231: "SWAP",
+      232: "<unused>",
+      233: "<unused>",
+      234: "TAB",
+      235: "THEN",
+      236: "TO",
+      237: "USING",
+      238: ">",
+      // (greater than)
+      239: "=",
+      // (equal)
+      240: ">=",
+      // (greater or equal)
+      241: "<",
+      // (less than)
+      242: "<>",
+      // (not equal)
+      243: "<=",
+      // =<, <=, < = (less than or equal)
+      244: "+",
+      // (addition)
+      245: "-",
+      // (subtraction or unary minus)
+      246: "*",
+      // (multiplication)
+      247: "/",
+      // (division)
+      248: "^",
+      // (x to the power of y)
+      249: "\\",
+      // (integer division)
+      250: "AND",
+      251: "MOD",
+      252: "OR",
+      253: "XOR",
+      254: "NOT"
+      // 0xff: (prefix for additional keywords)
+    };
+    /* eslint-enable no-invalid-this */
+    this.tokensFF = {
+      // Functions with one argument
+      0: "ABS",
+      1: "ASC",
+      2: "ATN",
+      3: "CHR$",
+      4: "CINT",
+      5: "COS",
+      6: "CREAL",
+      7: "EXP",
+      8: "FIX",
+      9: "FRE",
+      10: "INKEY",
+      11: "INP",
+      12: "INT",
+      13: "JOY",
+      14: "LEN",
+      15: "LOG",
+      16: "LOG10",
+      17: "LOWER$",
+      18: "PEEK",
+      19: "REMAIN",
+      20: "SGN",
+      21: "SIN",
+      22: "SPACE$",
+      23: "SQ",
+      24: "SQR",
+      25: "STR$",
+      26: "TAN",
+      27: "UNT",
+      28: "UPPER$",
+      29: "VAL",
+      // Functions without arguments
+      64: "EOF",
+      65: "ERR",
+      66: "HIMEM",
+      67: "INKEY$",
+      68: "PI",
+      69: "RND",
+      70: "TIME",
+      71: "XPOS",
+      72: "YPOS",
+      73: "DERR",
+      // (v1.1)
+      // Functions with more arguments
+      113: "BIN$",
+      114: "DEC$",
+      // (v1.1)
+      115: "HEX$",
+      116: "INSTR",
+      117: "LEFT$",
+      118: "MAX",
+      119: "MIN",
+      120: "POS",
+      121: "RIGHT$",
+      122: "ROUND",
+      123: "STRING$",
+      124: "TEST",
+      125: "TESTR",
+      126: "COPYCHR$",
+      // (v1.1)
+      127: "VPOS"
+    };
+  }
+  fnNum8Dec() {
+    const num = this.input.charCodeAt(this.pos);
+    this.pos += 1;
+    return num;
+  }
+  fnNum16Dec() {
+    return this.fnNum8Dec() + this.fnNum8Dec() * 256;
+  }
+  fnNum32Dec() {
+    return this.fnNum16Dec() + this.fnNum16Dec() * 65536;
+  }
+  fnNum8DecAsStr() {
+    return String(this.fnNum8Dec());
+  }
+  fnNum16DecAsStr() {
+    return String(this.fnNum16Dec());
+  }
+  // line number pointer (can occur when loading snapshots)
+  fnNum16LineAddrAsStr() {
+    const prgStart = 368, lineAddr = this.fnNum16Dec() - prgStart, addr = lineAddr + 3, line = this.input.charCodeAt(addr) + this.input.charCodeAt(addr + 1) * 256;
+    return String(line);
+  }
+  fnNum16Bin() {
+    return "&X" + this.fnNum16Dec().toString(2);
+  }
+  fnNum16Hex() {
+    return "&" + this.fnNum16Dec().toString(16).toUpperCase();
+  }
+  // floating point numbers (little endian byte order)
+  // byte 0: mantissa (bits 7-0)
+  // byte 1: mantissa (bits 15-8)
+  // byte 2: mantissa (bits 23-16)
+  // byte 3: sign, mantissa (bits 30-24)
+  // byte 4: exponent
+  //
+  //
+  // examples:
+  // 0xa2,0xda,0x0f,0x49,0x82 (PI)
+  // 0x00,0x00,0x00,0x00,0x81 (1)
+  //
+  // 0x00,0x00,0x00,0x00,0x84      ; 10 (10^1)
+  // 0x00,0x00,0x00,0x48,0x87      ; 100 (10^2)
+  // 0x00,0x00,0x00,0x7A,0x8A      ; 1000 (10^3)
+  // 0x00,0x00,0x40,0x1c,0x8e      ; 10000 (10^4) (1E+4)
+  // 0x00,0x00,0x50,0x43,0x91      ; 100000 (10^5) (1E+5)
+  // 0x00,0x00,0x24,0x74,0x94      ; 1000000 (10^6) (1E+6)
+  // 0x00,0x80,0x96,0x18,0x98      ; 10000000 (10^7) (1E+7)
+  // 0x00,0x20,0xbc,0x3e,0x9b      ; 100000000 (10^8) (1E+8)
+  // 0x00,0x28,0x6b,0x6e,0x9e      ; 1000000000 (10^9) (1E+9)
+  // 0x00,0xf9,0x02,0x15,0xa2      ; 10000000000 (10^10) (1E+10)
+  // 0x40,0xb7,0x43,0x3a,0xa5      ; 100000000000 (10^11) (1E+11)
+  // 0x10,0xa5,0xd4,0x68,0xa8      ; 1000000000000 (10^12) (1E+12)
+  // 0x2a,0xe7,0x84,0x11,0xac      ; 10000000000000 (10^13) (1E+13)
+  // Check also: https://mfukar.github.io/2015/10/29/amstrad-fp.html
+  // Example PI: b=[0xa2,0xda,0x0f,0x49,0x82]; e=b[4]-128; m=(b[3] >= 128 ? -1 : +1) * (0x80000000 + ((b[3] & 0x7f) <<24) + (b[2] << 16) + (b[1] <<8) + b[0]); z=m*Math.pow(2,e-32);console.log(m,e,z)
+  fnNumFp() {
+    const value = this.fnNum32Dec();
+    let exponent = this.fnNum8Dec(), out;
+    if (!exponent) {
+      out = "0";
+    } else {
+      const mantissa = value >= 0 ? value + 2147483648 : value;
+      exponent -= 129;
+      const num = mantissa * Math.pow(2, exponent - 31);
+      out = Utils.toPrecision9(num);
+    }
+    return out;
+  }
+  fnGetBit7TerminatedString() {
+    const data = this.input;
+    let pos = this.pos;
+    while (data.charCodeAt(pos) <= 127 && pos < this.lineEnd) {
+      pos += 1;
+    }
+    const out = data.substring(this.pos, pos) + String.fromCharCode(data.charCodeAt(pos) & 127);
+    if (pos < this.lineEnd) {
+      this.pos = pos + 1;
+    }
+    return out;
+  }
+  fnVar() {
+    this.fnNum16Dec();
+    return this.fnGetBit7TerminatedString();
+  }
+  fnIntVar() {
+    return this.fnVar() + "%";
+  }
+  fnStringVar() {
+    return this.fnVar() + "$";
+  }
+  fnFpVar() {
+    return this.fnVar() + "!";
+  }
+  fnRsx() {
+    let name = this.fnGetBit7TerminatedString();
+    name = name.substring(1);
+    return "|" + name;
+  }
+  static fnControlsToUnicode(s) {
+    return s.replace(/[\x00-\x1F\x80-\x9F]/g, function(ch) {
+      return String.fromCharCode(ch.charCodeAt(0) + 256);
+    });
+  }
+  fnStringUntilEol() {
+    const out = BasicTokenizer.fnControlsToUnicode(this.input.substring(this.pos, this.lineEnd - 1));
+    this.pos = this.lineEnd;
+    return out;
+  }
+  fnApostrophe() {
+    return "'" + this.fnStringUntilEol();
+  }
+  fnRem() {
+    return "REM" + this.fnStringUntilEol();
+  }
+  fnQuotedString() {
+    const closingQuotes = this.input.indexOf('"', this.pos);
+    let out = "";
+    if (closingQuotes < 0 || closingQuotes >= this.lineEnd) {
+      out = BasicTokenizer.fnControlsToUnicode(this.fnStringUntilEol());
+    } else {
+      out = BasicTokenizer.fnControlsToUnicode(this.input.substring(this.pos, closingQuotes + 1));
+      this.pos = closingQuotes + 1;
+    }
+    out = '"' + out;
+    if (out.indexOf("\r") >= 0) {
+      Utils.console.log("BasicTokenizer line", this.line, ": string contains CR, replaced by CHR$(13)");
+      out = out.replace(/\r/g, '"+chr$(13)+"');
+    }
+    if (/\n\d/.test(out)) {
+      Utils.console.log("BasicTokenizer line", this.line, ": string contains LF<digit>, replaced by CHR$(10)<digit>");
+      out = out.replace(/\n(\d)/g, '"+chr$(10)+"$1');
+    }
+    return out;
+  }
+  debugPrintInfo() {
+    const debug = this.debug;
+    Utils.console.debug("BasicTokenizer Details:\n", debug.info);
+    debug.line = 0;
+    debug.info = "";
+  }
+  debugCollectInfo(tokenLine) {
+    const debug = this.debug, hex = this.input.substring(debug.startPos, this.pos).split("").map(function(s) {
+      return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
+    }).join(",");
+    if (this.line !== debug.line) {
+      if (debug.info) {
+        debug.info += "\n";
+      }
+      debug.line = this.line;
+      debug.info += debug.line + ": ";
+    }
+    debug.info += " [" + hex + "] " + tokenLine;
+  }
+  fnParseNextToken(input) {
+    const oldNeedSpace = this.needSpace;
+    let token = this.fnNum8Dec();
+    if (token === 1) {
+      if (this.pos < input.length) {
+        const nextToken = input.charCodeAt(this.pos);
+        if (nextToken === 151 || nextToken === 192) {
+          token = nextToken;
+          this.pos += 1;
+        }
+      }
+    }
+    this.needSpace = token >= 5 && token <= 13 || token === 124;
+    let tokenValue;
+    if (token === 255) {
+      token = this.fnNum8Dec();
+      tokenValue = this.tokensFF[token];
+    } else {
+      tokenValue = this.tokens[token];
+    }
+    let tstr;
+    if (tokenValue !== void 0) {
+      tstr = typeof tokenValue === "function" ? tokenValue.call(this) : tokenValue;
+      if (/[a-zA-Z.]$/.test(tstr) && token !== 228) {
+        this.needSpace = true;
+      }
+    } else {
+      tstr = String.fromCharCode(token);
+    }
+    if (oldNeedSpace) {
+      if (/^[a-zA-Z$%!]/.test(tstr) || token >= 2 && token <= 31) {
+        tstr = " " + tstr;
+      }
+    }
+    if (Utils.debug > 2) {
+      this.debugCollectInfo(tstr);
+    }
+    return tstr;
+  }
+  fnParseLineFragment() {
+    const input = this.input;
+    let out = "";
+    this.needSpace = false;
+    while (this.pos < this.lineEnd) {
+      this.debug.startPos = this.pos;
+      const tstr = this.fnParseNextToken(input);
+      out += tstr;
+    }
+    return out;
+  }
+  fnParseNextLine() {
+    const lineLength = this.fnNum16Dec();
+    if (!lineLength) {
+      return void 0;
+    }
+    this.line = this.fnNum16Dec();
+    this.lineEnd = this.pos - 4 + lineLength;
+    if (this.lineEnd > this.input.length) {
+      this.lineEnd = this.input.length;
+      Utils.console.warn("fnParseNextLine: pos=" + this.pos + ": EOF met!");
+    }
+    return this.line + " " + this.fnParseLineFragment();
+  }
+  fnParseProgram() {
+    let out = "", line;
+    while ((line = this.fnParseNextLine()) !== void 0) {
+      out += line + "\n";
+    }
+    return out;
+  }
+  decodeLineFragment(program, offset, length) {
+    this.input = program;
+    this.pos = offset;
+    this.line = 0;
+    this.lineEnd = this.pos + length;
+    const out = this.fnParseLineFragment();
+    if (Utils.debug > 2) {
+      this.debugPrintInfo();
+    }
+    return out;
+  }
+  decode(program) {
+    this.input = program;
+    this.pos = 0;
+    this.line = 0;
+    const out = this.fnParseProgram();
+    if (Utils.debug > 2) {
+      this.debugPrintInfo();
+    }
+    return out;
+  }
+}
+
+const _CodeGeneratorBasic = class _CodeGeneratorBasic {
+  // current line (label)
+  constructor(options) {
+    this.hasColons = false;
+    this.keepWhiteSpace = false;
+    this.line = 0;
+    /* eslint-disable no-invalid-this */
+    this.parseFunctions = {
+      // to call methods, use parseFunctions[].call(this,...)
+      "(": this.fnParenthesisOpen,
+      string: _CodeGeneratorBasic.string,
+      ustring: _CodeGeneratorBasic.ustring,
+      assign: this.assign,
+      expnumber: _CodeGeneratorBasic.expnumber,
+      binnumber: _CodeGeneratorBasic.binHexNumber,
+      hexnumber: _CodeGeneratorBasic.binHexNumber,
+      label: this.label,
+      "|": this.vertical,
+      afterGosub: this.afterEveryGosub,
+      chain: this.chainOrChainMerge,
+      chainMerge: this.chainOrChainMerge,
+      data: this.data,
+      def: this.def,
+      "else": this.fnElse,
+      elseComment: this.elseComment,
+      everyGosub: this.afterEveryGosub,
+      fn: this.fn,
+      "for": this.fnFor,
+      "if": this.fnIf,
+      input: this.inputLineInput,
+      lineInput: this.inputLineInput,
+      list: this.list,
+      mid$Assign: this.mid$Assign,
+      onBreakCont: this.onBreakOrError,
+      // 3 parts
+      onBreakGosub: this.onBreakOrError,
+      onBreakStop: this.onBreakOrError,
+      onErrorGoto: this.onBreakOrError,
+      onGosub: this.onGotoGosub,
+      onGoto: this.onGotoGosub,
+      onSqGosub: this.onSqGosub,
+      print: this.print,
+      rem: this.rem,
+      using: this.using,
+      write: this.write
+    };
+    this.options = {
+      quiet: false
+    };
+    this.setOptions(options);
+    this.keywords = options.parser.getKeywords();
+  }
+  getOptions() {
+    return this.options;
+  }
+  setOptions(options) {
+    Object.assign(this.options, options);
+  }
+  generatePretty(input, keepWhiteSpace, keepBrackets, keepColons) {
+    this.options.lexer.setOptions({ keepWhiteSpace });
+    this.options.parser.setOptions({ keepTokens: true, keepBrackets, keepColons, keepDataComma: true });
+    return this.generate(input);
+  }
+  composeError(error, message, value, pos) {
+    return Utils.composeError("CodeGeneratorBasic", error, message, value, pos, void 0, this.line);
+  }
+  static fnWs(node) {
+    return node.ws || "";
+  }
+  static fnSpace1(value) {
+    return (!value.length || value.startsWith(" ") ? "" : " ") + value;
+  }
+  static getUcKeyword(node) {
+    const type = node.type;
+    return _CodeGeneratorBasic.combinedKeywords[type] || type.toUpperCase();
+  }
+  fnParseArgs(args) {
+    const nodeArgs = [];
+    if (!args) {
+      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
+    }
+    for (let i = 0; i < args.length; i += 1) {
+      let value = this.parseNode(args[i]);
+      if (args[i].type === "'" || args[i].type === "else" || args[i].type === "elseComment") {
+        if (i > 0 && !nodeArgs[i - 1].endsWith(" ") && !nodeArgs[i - 1].endsWith(":")) {
+          value = _CodeGeneratorBasic.fnSpace1(value);
+        }
+      }
+      nodeArgs.push(value);
+    }
+    return nodeArgs;
+  }
+  combineArgsWithColon(args) {
+    if (!this.hasColons) {
+      for (let i = 1; i < args.length; i += 1) {
+        const arg = args[i].trim();
+        if (!arg.startsWith("ELSE") && !arg.startsWith("'") && arg !== "") {
+          args[i] = ":" + args[i];
+        }
+      }
+    }
+    return args.join("");
+  }
+  fnParenthesisOpen(node) {
+    return _CodeGeneratorBasic.fnWs(node) + node.value + (node.args ? this.fnParseArgs(node.args).join("") : "");
+  }
+  static string(node) {
+    return _CodeGeneratorBasic.fnWs(node) + '"' + node.value + '"';
+  }
+  static ustring(node) {
+    return _CodeGeneratorBasic.fnWs(node) + '"' + node.value;
+  }
+  assign(node) {
+    if (node.left.type !== "identifier") {
+      throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos);
+    }
+    return this.parseNode(node.left) + _CodeGeneratorBasic.fnWs(node) + node.value + this.parseNode(node.right);
+  }
+  static expnumber(node) {
+    return _CodeGeneratorBasic.fnWs(node) + Number(node.value).toExponential().toUpperCase().replace(/(\d+)$/, function(x) {
+      return x.length >= 2 ? x : x.padStart(2, "0");
+    });
+  }
+  static binHexNumber(node) {
+    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase();
+  }
+  label(node) {
+    this.line = Number(node.value);
+    const value = this.combineArgsWithColon(this.fnParseArgs(node.args));
+    return _CodeGeneratorBasic.fnWs(node) + node.value + (node.value !== "" ? _CodeGeneratorBasic.fnSpace1(value) : value);
+  }
+  // special keyword functions
+  vertical(node) {
+    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + this.fnParseArgs(node.args).join("");
+  }
+  afterEveryGosub(node) {
+    const nodeArgs = this.fnParseArgs(node.args);
+    nodeArgs[0] = _CodeGeneratorBasic.fnSpace1(nodeArgs[0]);
+    nodeArgs[nodeArgs.length - 2] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]);
+    nodeArgs[nodeArgs.length - 1] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]);
+    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + nodeArgs.join("");
+  }
+  chainOrChainMerge(node) {
+    const nodeArgs = this.fnParseArgs(node.args);
+    if (nodeArgs.length > 2) {
+      if (nodeArgs[nodeArgs.length - 2] === "DELETE") {
+        nodeArgs[nodeArgs.length - 1] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]);
+      }
+    }
+    return _CodeGeneratorBasic.fnWs(node) + _CodeGeneratorBasic.getUcKeyword(node) + (node.right ? _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) : "") + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
+  }
+  data(node) {
+    const nodeArgs = this.fnParseArgs(node.args);
+    for (let i = 0; i < nodeArgs.length; i += 1) {
+      const value2 = nodeArgs[i];
+      nodeArgs[i] = value2;
+    }
+    let args = nodeArgs.join("");
+    if (!this.keepWhiteSpace) {
+      args = Utils.stringTrimEnd(args);
+    }
+    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(args);
+  }
+  def(node) {
+    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + (node.right ? _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + this.fnParseArgs(node.args).join("") : "");
+  }
+  elseComment(node) {
+    if (!node.args) {
+      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
+    }
+    const args = node.args;
+    let value = "";
+    for (let i = 0; i < args.length; i += 1) {
+      const token = args[i];
+      if (token.value) {
+        if (this.keepWhiteSpace) {
+          value += _CodeGeneratorBasic.fnWs(token) + token.value;
+        } else {
+          value += _CodeGeneratorBasic.fnSpace1(_CodeGeneratorBasic.fnWs(token) + token.value);
+        }
+      }
+    }
+    return _CodeGeneratorBasic.fnWs(node) + "else".toUpperCase() + value;
+  }
+  fn(node) {
+    if (!node.right) {
+      return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase();
+    }
+    const nodeArgs = node.args ? this.fnParseArgs(node.args) : [];
+    let right = this.parseNode(node.right);
+    if (node.right.pos - node.pos > 2) {
+      right = _CodeGeneratorBasic.fnSpace1(right);
+    }
+    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + right + nodeArgs.join("");
+  }
+  fnFor(node) {
+    const nodeArgs = this.fnParseArgs(node.args);
+    for (let i = 0; i < nodeArgs.length; i += 1) {
+      if (i !== 1 && i !== 2) {
+        nodeArgs[i] = _CodeGeneratorBasic.fnSpace1(nodeArgs[i]);
+      }
+    }
+    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + nodeArgs.join("");
+  }
+  fnElse(node) {
+    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(this.fnParseArgs(node.args)));
+  }
+  fnIf(node) {
+    const nodeArgs = this.fnParseArgs(node.args), partName = nodeArgs.shift();
+    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + _CodeGeneratorBasic.fnSpace1(partName) + _CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(nodeArgs));
+  }
+  inputLineInput(node) {
+    const nodeArgs = node.args ? this.fnParseArgs(node.args) : [], name = node.right ? this.parseNode(node.right) : "";
+    return _CodeGeneratorBasic.fnWs(node) + _CodeGeneratorBasic.getUcKeyword(node) + _CodeGeneratorBasic.fnSpace1(name) + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
+  }
+  list(node) {
+    const nodeArgs = this.fnParseArgs(node.args);
+    if (nodeArgs.length && nodeArgs[0] === "") {
+      nodeArgs.shift();
+    }
+    if (nodeArgs.length && nodeArgs[nodeArgs.length - 1] === "#") {
+      nodeArgs.pop();
+    }
+    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
+  }
+  mid$Assign(node) {
+    return _CodeGeneratorBasic.fnWs(node) + _CodeGeneratorBasic.getUcKeyword(node) + this.fnParseArgs(node.args).join("");
+  }
+  onBreakOrError(node) {
+    return _CodeGeneratorBasic.fnWs(node) + "ON" + _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + _CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join(""));
+  }
+  onGotoGosub(node) {
+    const nodeArgs = this.fnParseArgs(node.args), expression = nodeArgs.shift(), instruction = nodeArgs.shift();
+    return _CodeGeneratorBasic.fnWs(node) + "ON" + _CodeGeneratorBasic.fnSpace1(expression) + _CodeGeneratorBasic.fnSpace1(instruction) + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
+  }
+  onSqGosub(node) {
+    const nodeArgs = this.fnParseArgs(node.args);
+    nodeArgs[nodeArgs.length - 2] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]);
+    nodeArgs[nodeArgs.length - 1] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]);
+    return _CodeGeneratorBasic.fnWs(node) + "ON" + _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + nodeArgs.join("");
+  }
+  print(node) {
+    const nodeArgs = this.fnParseArgs(node.args);
+    let value = "";
+    for (let i = 0; i < nodeArgs.length; i += 1) {
+      value += nodeArgs[i];
+    }
+    if (node.value !== "?") {
+      value = _CodeGeneratorBasic.fnSpace1(value);
+    }
+    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + value;
+  }
+  rem(node) {
+    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + this.fnParseArgs(node.args).join("");
+  }
+  using(node) {
+    const nodeArgs = this.fnParseArgs(node.args), template = nodeArgs.length ? nodeArgs.shift() || "" : "";
+    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(template) + nodeArgs.join("");
+  }
+  write(node) {
+    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + (node.args ? _CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join("")) : "");
+  }
+  /* eslint-enable no-invalid-this */
+  fnParseOther(node) {
+    const type = node.type;
+    let value = "";
+    if (node.left) {
+      value += this.parseNode(node.left);
+    }
+    value += _CodeGeneratorBasic.fnWs(node);
+    const keyType = this.keywords[type];
+    if (keyType) {
+      value += _CodeGeneratorBasic.getUcKeyword(node);
+    } else if (node.value) {
+      value += node.value;
+    }
+    let right = "";
+    if (node.right) {
+      right = this.parseNode(node.right);
+      const needSpace1 = this.keywords[right.toLowerCase()] || keyType;
+      value += needSpace1 ? _CodeGeneratorBasic.fnSpace1(right) : right;
+    }
+    if (node.args) {
+      const nodeArgs = this.fnParseArgs(node.args).join(""), needSpace2 = keyType && keyType.charAt(0) !== "f" && node.type !== "'";
+      value += needSpace2 ? _CodeGeneratorBasic.fnSpace1(nodeArgs) : nodeArgs;
+    }
+    return value;
+  }
+  static getLeftOrRightOperatorPrecedence(node) {
+    const precedence = _CodeGeneratorBasic.operatorPrecedence, operators = _CodeGeneratorBasic.operators;
+    let pr;
+    if (operators[node.type] && (node.left || node.right)) {
+      if (node.left) {
+        pr = precedence[node.type] || 0;
+      } else {
+        pr = precedence["p" + node.type] || precedence[node.type] || 0;
+      }
+    }
+    return pr;
+  }
+  parseOperator(node) {
+    const precedence = _CodeGeneratorBasic.operatorPrecedence, operators = _CodeGeneratorBasic.operators;
+    let value;
+    if (node.left) {
+      value = this.parseNode(node.left);
+      const p = precedence[node.type], pl = _CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(node.left);
+      if (pl !== void 0 && pl < p) {
+        value = "(" + value + ")";
+      }
+      const right = node.right;
+      let value2 = this.parseNode(right);
+      const pr = _CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(right);
+      if (pr !== void 0) {
+        if (pr < p) {
+          value2 = "(" + value2 + ")";
+        } else if (pr === p) {
+          const assoc = _CodeGeneratorBasic.operatorAssociativity[node.type];
+          if (assoc === "right") ; else if (assoc === "left") {
+            if (/(^|-|\/|\\|mod|=|<>|<|<=|>|>=)$/.test(node.type)) {
+              value2 = "(" + value2 + ")";
+            }
+          } else {
+            value2 = "(" + value2 + ")";
+          }
+        }
+      }
+      const operator = _CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
+      if (/^(and|or|xor|mod)$/.test(node.type)) {
+        value += _CodeGeneratorBasic.fnSpace1(operator) + _CodeGeneratorBasic.fnSpace1(value2);
+      } else {
+        value += operator + value2;
+      }
+    } else if (node.right) {
+      if (node.len === 0) {
+        value = "";
+      } else {
+        const right = node.right;
+        value = this.parseNode(right);
+        let pr;
+        if (right.left) {
+          pr = precedence[right.type] || 0;
+        } else {
+          pr = precedence["p" + right.type] || precedence[right.type] || 0;
+        }
+        const p = precedence["p" + node.type] || precedence[node.type] || 0;
+        if (p && pr && pr < p) {
+          value = "(" + value + ")";
+        }
+        value = _CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase() + (node.type === "not" ? _CodeGeneratorBasic.fnSpace1(value) : value);
+      }
+    } else {
+      value = this.fnParseOther(node);
+    }
+    return value;
+  }
+  parseNode(node) {
+    const type = node.type;
+    if (Utils.debug > 3) {
+      Utils.console.debug("evaluate: parseNode node=%o type=" + type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
+    }
+    let value;
+    if (_CodeGeneratorBasic.operators[type]) {
+      value = this.parseOperator(node);
+    } else if (this.parseFunctions[type]) {
+      value = this.parseFunctions[type].call(this, node);
+    } else {
+      if ((type === "identifier" || type === "letter") && this.options.lowercaseVars) {
+        node.value = node.value.toLowerCase();
+      }
+      value = this.fnParseOther(node);
+    }
+    return value;
+  }
+  evaluate(parseTree) {
+    let output = "";
+    for (let i = 0; i < parseTree.length; i += 1) {
+      if (Utils.debug > 2) {
+        Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
+      }
+      const line = this.parseNode(parseTree[i]);
+      if (line !== void 0 && line !== "") {
+        if (line !== null) {
+          if (output.length === 0) {
+            output = line;
+          } else {
+            output += line;
+          }
+        } else {
+          output = "";
+        }
+      }
+    }
+    return output;
+  }
+  generate(input) {
+    const out = {
+      text: ""
+    };
+    this.hasColons = Boolean(this.options.parser.getOptions().keepColons);
+    this.keepWhiteSpace = Boolean(this.options.lexer.getOptions().keepWhiteSpace);
+    this.keywords = this.options.parser.getKeywords();
+    this.line = 0;
+    try {
+      const tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);
+      out.text = output;
+    } catch (e) {
+      if (Utils.isCustomError(e)) {
+        out.error = e;
+        if (!this.options.quiet) {
+          Utils.console.warn(e);
+        }
+      } else {
+        out.error = e;
+        Utils.console.error(e);
+      }
+    }
+    return out;
+  }
+};
+_CodeGeneratorBasic.combinedKeywords = {
+  chainMerge: "CHAIN",
+  // "CHAIN MERGE"
+  clearInput: "CLEAR",
+  // "CLEAR INPUT"
+  graphicsPaper: "GRAPHICS",
+  // "GRAPHICS PAPER"
+  graphicsPen: "GRAPHICS",
+  // "GRAPHICS PEN"
+  keyDef: "KEY",
+  // "KEY DEF"
+  lineInput: "LINE",
+  // "LINE INPUT"
+  mid$Assign: "MID$",
+  onBreakCont: "ON",
+  // ""ON BREAK CONT"
+  onBreakGosub: "ON",
+  // ""ON BREAK GOSUB"
+  onBreakStop: "ON",
+  // ""ON BREAK STOP"
+  onErrorGoto: "ON",
+  // "ON ERROR GOTO"
+  resumeNext: "RESUME",
+  // "RESUME NEXT"
+  speedInk: "SPEED",
+  // "SPEED INK"
+  speedKey: "SPEED",
+  // "SPEED KEY"
+  speedWrite: "SPEED",
+  // "SPEED WRITE"
+  symbolAfter: "SYMBOL",
+  // "SYMBOL AFTER"
+  windowSwap: "WINDOW"
+  // "WINDOW SWAP"
+};
+_CodeGeneratorBasic.operators = {
+  "+": "+",
+  "-": "-",
+  "*": "*",
+  "/": "/",
+  "\\": "\\",
+  "^": "^",
+  and: "AND",
+  or: "OR",
+  xor: "XOR",
+  not: "NOT",
+  mod: "MOD",
+  ">": ">",
+  "<": "<",
+  ">=": ">=",
+  "<=": "<=",
+  "=": "=",
+  "<>": "<>",
+  "@": "@",
+  "#": "#"
+};
+_CodeGeneratorBasic.operatorPrecedence = {
+  "@": 95,
+  // prefix
+  "^": 90,
+  "p-": 80,
+  // prefix - (fast hack)
+  "p+": 80,
+  // prefix + (fast hack)
+  "*": 70,
+  "/": 70,
+  "\\": 60,
+  mod: 50,
+  "+": 40,
+  "-": 40,
+  "=": 30,
+  "<>": 30,
+  "<": 30,
+  "<=": 30,
+  ">": 30,
+  ">=": 30,
+  not: 23,
+  // prefix
+  and: 22,
+  or: 21,
+  xor: 20,
+  "#": 10
+  // priority?
+};
+_CodeGeneratorBasic.operatorAssociativity = {
+  "^": "right",
+  // right-associative
+  "*": "left",
+  // left-associative (commutative, so parens not needed for equal precedence)
+  "+": "left",
+  // left-associative (commutative, so parens not needed for equal precedence)
+  "/": "left",
+  // left-associative (non-commutative, so parens ARE needed for equal precedence)
+  "\\": "left",
+  // left-associative (non-commutative, so parens ARE needed)
+  mod: "left",
+  // left-associative (non-commutative)
+  "-": "left",
+  // left-associative (non-commutative, so parens ARE needed for equal precedence)
+  "=": "none",
+  // comparison operators are non-associative
+  "<>": "none",
+  "<": "none",
+  "<=": "none",
+  ">": "none",
+  ">=": "none",
+  and: "left",
+  or: "left",
+  xor: "left"
+};
+let CodeGeneratorBasic = _CodeGeneratorBasic;
+
+const _CodeGeneratorToken = class _CodeGeneratorToken {
+  // current line (label)
+  constructor(options) {
+    this.label = "0";
+    /* eslint-disable no-invalid-this */
+    this.parseFunctions = {
+      // to call methods, use parseFunctions[].call(this,...)
+      args: this.fnArgs,
+      range: this.range,
+      linerange: this.linerange,
+      string: _CodeGeneratorToken.string,
+      ustring: _CodeGeneratorToken.ustring,
+      "(eol)": _CodeGeneratorToken.fnEol,
+      // ignore newline "\n"
+      number: _CodeGeneratorToken.number,
+      expnumber: _CodeGeneratorToken.number,
+      // same handling as for number
+      binnumber: _CodeGeneratorToken.binnumber,
+      hexnumber: _CodeGeneratorToken.hexnumber,
+      identifier: this.identifier,
+      linenumber: _CodeGeneratorToken.linenumber,
+      label: this.fnLabel,
+      "|": this.vertical,
+      "else": this.fnElseOrApostrophe,
+      elseComment: this.elseComment,
+      onBreakCont: this.onBreakContOrGosubOrStop,
+      onBreakGosub: this.onBreakContOrGosubOrStop,
+      onBreakStop: this.onBreakContOrGosubOrStop,
+      onErrorGoto: this.onErrorGoto,
+      onSqGosub: this.onSqGosub,
+      "'": this.fnElseOrApostrophe
+    };
+    this.options = {
+      allowLineFragments: false,
+      // only for testing
+      implicitLines: false,
+      quiet: false
+    };
+    this.setOptions(options);
+  }
+  getOptions() {
+    return this.options;
+  }
+  setOptions(options) {
+    Object.assign(this.options, options);
+  }
+  generateProgram(input) {
+    this.options.lexer.setOptions({ keepWhiteSpace: true });
+    this.options.parser.setOptions({ keepTokens: true, keepBrackets: true, keepColons: true, keepDataComma: true });
+    return this.generate(input);
+  }
+  composeError(error, message, value, pos) {
+    return Utils.composeError("CodeGeneratorToken", error, message, value, pos, void 0, this.label);
+  }
+  static convUInt8ToString(n) {
+    return String.fromCharCode(n);
+  }
+  static convUInt16ToString(n) {
+    return String.fromCharCode(n & 255) + String.fromCharCode(n >> 8);
+  }
+  static convInt32ToString(n) {
+    return _CodeGeneratorToken.convUInt16ToString(n & 65535) + _CodeGeneratorToken.convUInt16ToString(n >> 16 & 65535);
+  }
+  static token2String(name) {
+    let token = _CodeGeneratorToken.tokens[name], result = "";
+    if (token === void 0) {
+      token = _CodeGeneratorToken.tokensFF[name];
+      if (token === void 0) {
+        Utils.console.error("token2String: Not a token: " + name);
+        return name;
+      }
+      result = _CodeGeneratorToken.convUInt8ToString(255);
+    }
+    return result + _CodeGeneratorToken.convUInt8ToString(token);
+  }
+  static getBit7TerminatedString(s) {
+    return s.substring(0, s.length - 1) + String.fromCharCode(s.charCodeAt(s.length - 1) | 128);
+  }
+  static fnGetWs(node) {
+    return node.ws || "";
+  }
+  fnParseArgs(args) {
+    const nodeArgs = [];
+    if (!args) {
+      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
+    }
+    for (let i = 0; i < args.length; i += 1) {
+      nodeArgs.push(this.parseNode(args[i]));
+    }
+    return nodeArgs;
+  }
+  fnArgs(node) {
+    return this.fnParseArgs(node.args).join(node.value);
+  }
+  range(node) {
+    return this.parseNode(node.left) + _CodeGeneratorToken.fnGetWs(node) + node.value + this.parseNode(node.right);
+  }
+  linerange(node) {
+    return this.parseNode(node.left) + _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(node.value) + this.parseNode(node.right);
+  }
+  static string(node) {
+    return _CodeGeneratorToken.fnGetWs(node) + '"' + node.value + '"';
+  }
+  static ustring(node) {
+    return _CodeGeneratorToken.fnGetWs(node) + '"' + node.value;
+  }
+  static fnEol() {
+    return "";
+  }
+  static floatToByteString(number) {
+    let mantissa = 0, exponent = 0, sign = 0;
+    if (number !== 0) {
+      if (number < 0) {
+        sign = 2147483648;
+        number = -number;
+      }
+      exponent = Math.ceil(Math.log(number) / Math.log(2));
+      mantissa = Math.round(number / Math.pow(2, exponent - 32)) & 2147483647;
+      if (mantissa === 0) {
+        exponent += 1;
+      }
+      exponent += 128;
+    }
+    return _CodeGeneratorToken.convInt32ToString(sign + mantissa) + _CodeGeneratorToken.convUInt8ToString(exponent);
+  }
+  static number(node) {
+    const numberString = node.value.toUpperCase(), number = Number(numberString);
+    let result = "";
+    if (number === Math.floor(number)) {
+      if (number >= 0 && number <= 9) {
+        result = _CodeGeneratorToken.token2String(numberString);
+      } else if (number >= 10 && number <= 255) {
+        result = _CodeGeneratorToken.token2String("_dec8") + _CodeGeneratorToken.convUInt8ToString(number);
+      } else if (number >= -32767 && number <= 32767) {
+        result = (number < 0 ? _CodeGeneratorToken.token2String("-") : "") + _CodeGeneratorToken.token2String("_dec16") + _CodeGeneratorToken.convUInt16ToString(number);
+      }
+    }
+    if (result === "") {
+      result = _CodeGeneratorToken.token2String("_float") + _CodeGeneratorToken.floatToByteString(number);
+    }
+    return _CodeGeneratorToken.fnGetWs(node) + result;
+  }
+  static binnumber(node) {
+    const valueString = node.value.slice(2), value = valueString.length ? parseInt(valueString, 2) : 0;
+    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_bin16") + _CodeGeneratorToken.convUInt16ToString(value);
+  }
+  static hexnumber(node) {
+    let valueString = node.value.slice(1);
+    if (valueString.charAt(0).toLowerCase() === "h") {
+      valueString = valueString.slice(1);
+    }
+    const value = valueString.length ? parseInt(valueString, 16) : 0;
+    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_hex16") + _CodeGeneratorToken.convUInt16ToString(value);
+  }
+  identifier(node) {
+    let name = node.value, mappedTypeName = _CodeGeneratorToken.varTypeMap[name.charAt(name.length - 1)] || "";
+    if (mappedTypeName) {
+      name = name.slice(0, -1);
+    } else {
+      mappedTypeName = "_anyVar";
+    }
+    const offset = 0;
+    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(mappedTypeName) + _CodeGeneratorToken.convUInt16ToString(offset) + _CodeGeneratorToken.getBit7TerminatedString(name) + (node.args ? this.fnParseArgs(node.args).join("") : "");
+  }
+  static linenumber(node) {
+    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_line16") + _CodeGeneratorToken.convUInt16ToString(Number(node.value));
+  }
+  fnLabel(node) {
+    if (node.value === "") {
+      if (this.options.implicitLines) {
+        node.value = String(Number(this.label) + 1);
+      } else if (!this.options.allowLineFragments) {
+        throw this.composeError(Error(), "Direct command found", node.value, node.pos);
+      }
+    }
+    this.label = node.value;
+    const line = Number(this.label), nodeArgs = this.fnParseArgs(node.args);
+    let value = nodeArgs.join("");
+    if (node.value !== "") {
+      if (value.charAt(0) === " ") {
+        value = value.substring(1);
+      }
+      value = _CodeGeneratorToken.convUInt16ToString(line) + value + _CodeGeneratorToken.token2String("_eol");
+      value = _CodeGeneratorToken.convUInt16ToString(value.length + 2) + value;
+    }
+    return value;
+  }
+  // special keyword functions
+  vertical(node) {
+    const rsxName = node.value.substring(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0;
+    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(node.type) + (rsxName.length ? _CodeGeneratorToken.convUInt8ToString(offset) : "") + _CodeGeneratorToken.getBit7TerminatedString(rsxName) + nodeArgs.join("");
+  }
+  fnElseOrApostrophe(node) {
+    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(":") + _CodeGeneratorToken.token2String(node.type) + this.fnParseArgs(node.args).join("");
+  }
+  elseComment(node) {
+    if (!node.args) {
+      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
+    }
+    const type = "else";
+    let value = _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(":") + _CodeGeneratorToken.token2String(type);
+    const args = node.args;
+    for (let i = 0; i < args.length; i += 1) {
+      const token = args[i];
+      let value2 = token.value;
+      if (value2) {
+        if (token.type === "linenumber") {
+          value2 = _CodeGeneratorToken.linenumber(token);
+        }
+        value += value2;
+      }
+    }
+    return value;
+  }
+  onBreakContOrGosubOrStop(node) {
+    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_onBreak") + (node.right && node.right.right ? this.parseNode(node.right.right) : "") + this.fnParseArgs(node.args).join("");
+  }
+  onErrorGoto(node) {
+    if (node.args && node.args.length && node.args[0].value === "0") {
+      return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_onErrorGoto0");
+    }
+    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("on") + this.parseNode(node.right) + this.fnParseArgs(node.args).join("");
+  }
+  onSqGosub(node) {
+    return _CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs(node.right.args).join("") + this.fnParseArgs(node.args).join("");
+  }
+  /* eslint-enable no-invalid-this */
+  fnParseOther(node) {
+    const type = node.type, isToken = _CodeGeneratorToken.tokens[type] !== void 0 || _CodeGeneratorToken.tokensFF[type] !== void 0;
+    let value = "";
+    if (node.left) {
+      value += this.parseNode(node.left);
+    }
+    value += _CodeGeneratorToken.fnGetWs(node);
+    if (isToken) {
+      value += _CodeGeneratorToken.token2String(type);
+    } else if (node.value) {
+      value += node.value;
+    }
+    if (node.right) {
+      value += this.parseNode(node.right);
+    }
+    if (node.args) {
+      value += this.fnParseArgs(node.args).join("");
+    }
+    return value;
+  }
+  parseNode(node) {
+    if (Utils.debug > 3) {
+      Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
+    }
+    const type = node.type;
+    let value;
+    if (node.len === 0 && type !== "label") {
+      value = "";
+    } else {
+      value = this.parseFunctions[type] ? this.parseFunctions[type].call(this, node) : this.fnParseOther(node);
+    }
+    if (Utils.debug > 2) {
+      Utils.console.debug("parseNode: type='" + type + "', value='" + node.value + "', ws='" + node.ws + "', resultValue='" + value + "'");
+    }
+    return value;
+  }
+  evaluate(parseTree) {
+    let output = "";
+    for (let i = 0; i < parseTree.length; i += 1) {
+      if (Utils.debug > 2) {
+        Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
+      }
+      const node = this.parseNode(parseTree[i]);
+      if (node !== void 0 && node !== "") {
+        if (node !== null) {
+          output += node;
+        } else {
+          output = "";
+        }
+      }
+    }
+    if (this.label) {
+      output += _CodeGeneratorToken.token2String("_eol") + _CodeGeneratorToken.token2String("_eol");
+    }
+    return output;
+  }
+  generate(input) {
+    const out = {
+      text: ""
+    };
+    this.label = "0";
+    try {
+      const tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);
+      out.text = output;
+    } catch (e) {
+      if (Utils.isCustomError(e)) {
+        out.error = e;
+        if (!this.options.quiet) {
+          Utils.console.warn(e);
+        }
+      } else {
+        out.error = e;
+        Utils.console.error(e);
+      }
+    }
+    return out;
+  }
+};
+_CodeGeneratorToken.tokens = {
+  _eol: 0,
+  // marker for "end of tokenised line"
+  ":": 1,
+  // ":" statement seperator
+  _intVar: 2,
+  // integer variable definition (defined with "%" suffix)  "(A-Z)+%"
+  _stringVar: 3,
+  // string variable definition (defined with "$" suffix)  "(A-Z)+\$"
+  _floatVar: 4,
+  // floating point variable definition (defined with "!" suffix) "(A-Z)+!"
+  // "": 0x05, // "var?"
+  // "": 0x06, // "var?"
+  // "": 0x07, // "var?"
+  // "": 0x08, // "var?"
+  // "": 0x09, // "var?"
+  // "": 0x0a, // "var?"
+  // "": 0x0b, // integer variable definition (no suffix)
+  // "": 0x0c, // string variable definition (no suffix)
+  _anyVar: 13,
+  // floating point or no type (no suffix)
+  0: 14,
+  // number constant "0"
+  1: 15,
+  // number constant "1"
+  2: 16,
+  // number constant "2"
+  3: 17,
+  // number constant "3"
+  4: 18,
+  // number constant "4"
+  5: 19,
+  // number constant "5"
+  6: 20,
+  // number constant "6"
+  7: 21,
+  // number constant "7"
+  8: 22,
+  // number constant "8"
+  9: 23,
+  // number constant "9"
+  10: 24,
+  // number constant "10" (not sure when this is used)
+  _dec8: 25,
+  // 8-bit integer decimal value
+  _dec16: 26,
+  // 16-bit integer decimal value
+  _bin16: 27,
+  // 16-bit integer binary value (with "&X" prefix)
+  _hex16: 28,
+  // num16Hex: 16-bit integer hexadecimal value (with "&H" or "&" prefix)
+  // "": 0x1d, // 16-bit BASIC program line memory address pointer (should not occur)
+  _line16: 30,
+  // 16-bit integer BASIC line number
+  _float: 31,
+  // floating point value
+  // 0x20-0x21 ASCII printable symbols (space, "!")
+  // "": 0x22, // '"' quoted string value
+  // 0x23-0x7b ASCII printable symbols
+  "#": 35,
+  // "#" character (stream)
+  "(": 40,
+  // "(" character
+  ")": 41,
+  // ")" character
+  ",": 44,
+  // "," character
+  "?": 63,
+  // "?" character (print)
+  "@": 64,
+  // "@" character (address of)
+  "[": 91,
+  // "[" character
+  "]": 93,
+  // "]" character
+  "|": 124,
+  // "|" symbol; prefix for RSX commands
+  after: 128,
+  afterGosub: 128,
+  auto: 129,
+  border: 130,
+  call: 131,
+  cat: 132,
+  chain: 133,
+  chainMerge: 133,
+  // 0xab85
+  clear: 134,
+  clearInput: 134,
+  // 0xa386
+  clg: 135,
+  closein: 136,
+  closeout: 137,
+  cls: 138,
+  cont: 139,
+  data: 140,
+  def: 141,
+  defint: 142,
+  defreal: 143,
+  defstr: 144,
+  deg: 145,
+  "delete": 146,
+  dim: 147,
+  draw: 148,
+  drawr: 149,
+  edit: 150,
+  "else": 151,
+  end: 152,
+  ent: 153,
+  env: 154,
+  erase: 155,
+  error: 156,
+  every: 157,
+  everyGosub: 157,
+  "for": 158,
+  gosub: 159,
+  "goto": 160,
+  "if": 161,
+  ink: 162,
+  input: 163,
+  key: 164,
+  keyDef: 164,
+  // 0x8da4
+  let: 165,
+  line: 166,
+  lineInput: 166,
+  // 0xa3a6
+  list: 167,
+  load: 168,
+  locate: 169,
+  memory: 170,
+  merge: 171,
+  mid$: 172,
+  mid$Assign: 172,
+  mode: 173,
+  move: 174,
+  mover: 175,
+  next: 176,
+  "new": 177,
+  on: 178,
+  _onBreak: 179,
+  // onBreakCont, onBreakGosub, onBreakStop
+  _onErrorGoto0: 180,
+  // "on error goto 0" (on error goto n > 0 is decoded with separate tokens)
+  onGosub: 178,
+  onGoto: 178,
+  _onSq: 181,
+  // "on sq" (onSqGosub)
+  openin: 182,
+  openout: 183,
+  origin: 184,
+  out: 185,
+  paper: 186,
+  pen: 187,
+  plot: 188,
+  plotr: 189,
+  poke: 190,
+  print: 191,
+  "'": 192,
+  // apostrophe "'" symbol (same function as REM keyword)
+  rad: 193,
+  randomize: 194,
+  read: 195,
+  release: 196,
+  rem: 197,
+  // rem
+  renum: 198,
+  restore: 199,
+  resume: 200,
+  resumeNext: 200,
+  // 0xb0c8
+  "return": 201,
+  run: 202,
+  save: 203,
+  sound: 204,
+  speedInk: 205,
+  // 0xa2cd
+  speedKey: 205,
+  // 0xa4cd,
+  speedWrite: 205,
+  // 0xd9cd
+  stop: 206,
+  swap: 231,
+  symbol: 207,
+  symbolAfter: 207,
+  // 0x80cf
+  tag: 208,
+  tagoff: 209,
+  troff: 210,
+  tron: 211,
+  wait: 212,
+  wend: 213,
+  "while": 214,
+  width: 215,
+  window: 216,
+  windowSwap: 216,
+  // 0xe7d8
+  write: 217,
+  zone: 218,
+  di: 219,
+  ei: 220,
+  fill: 221,
+  // (v1.1)
+  graphics: 222,
+  // (v1.1)
+  graphicsPaper: 222,
+  // 0xbade
+  graphicsPen: 222,
+  // 0xbbde
+  mask: 223,
+  // (v1.1)
+  frame: 224,
+  // (v1.1)
+  cursor: 225,
+  // (v1.1)
+  // "<unused>":         0xe2,
+  erl: 227,
+  fn: 228,
+  spc: 229,
+  step: 230,
+  // swap: 0xe7, only: windowSwap...
+  // "<unused>":         0xe8,
+  // "<unused>":         0xe9,
+  tab: 234,
+  then: 235,
+  to: 236,
+  using: 237,
+  ">": 238,
+  // (greater than)
+  "=": 239,
+  // (equal)
+  assign: 239,
+  // equal as assign
+  ">=": 240,
+  // (greater or equal)
+  "<": 241,
+  // (less than)
+  "<>": 242,
+  // (not equal)
+  "<=": 243,
+  // =<, <=, < = (less than or equal)
+  "+": 244,
+  // (addition)
+  "-": 245,
+  // (subtraction or unary minus)
+  "*": 246,
+  // (multiplication)
+  "/": 247,
+  // (division)
+  "^": 248,
+  // (x to the power of y)
+  "\\": 249,
+  // (integer division)
+  and: 250,
+  mod: 251,
+  or: 252,
+  xor: 253,
+  not: 254
+  // 0xff: (prefix for additional keywords)
+};
+_CodeGeneratorToken.tokensFF = {
+  // Functions with one argument
+  abs: 0,
+  asc: 1,
+  atn: 2,
+  chr$: 3,
+  cint: 4,
+  cos: 5,
+  creal: 6,
+  exp: 7,
+  fix: 8,
+  fre: 9,
+  inkey: 10,
+  inp: 11,
+  "int": 12,
+  joy: 13,
+  len: 14,
+  log: 15,
+  log10: 16,
+  lower$: 17,
+  peek: 18,
+  remain: 19,
+  sgn: 20,
+  sin: 21,
+  space$: 22,
+  sq: 23,
+  sqr: 24,
+  str$: 25,
+  tan: 26,
+  unt: 27,
+  upper$: 28,
+  val: 29,
+  // Functions without arguments
+  eof: 64,
+  err: 65,
+  himem: 66,
+  inkey$: 67,
+  pi: 68,
+  rnd: 69,
+  time: 70,
+  xpos: 71,
+  ypos: 72,
+  derr: 73,
+  // (v1.1)
+  // Functions with more arguments
+  bin$: 113,
+  dec$: 114,
+  // (v1.1)
+  hex$: 115,
+  instr: 116,
+  left$: 117,
+  max: 118,
+  min: 119,
+  pos: 120,
+  right$: 121,
+  round: 122,
+  string$: 123,
+  test: 124,
+  testr: 125,
+  copychr$: 126,
+  // (v1.1)
+  vpos: 127
+};
+_CodeGeneratorToken.varTypeMap = {
+  "!": "_floatVar",
+  "%": "_intVar",
+  $: "_stringVar"
+};
+let CodeGeneratorToken = _CodeGeneratorToken;
+
+const _DiskImage = class _DiskImage {
+  constructor(options) {
+    this.diskInfo = _DiskImage.getInitialDiskInfo();
+    this.options = {
+      data: "",
+      quiet: false
+    };
+    this.setOptions(options);
+  }
+  getOptions() {
+    return this.options;
+  }
+  setOptions(options) {
+    const currentData = this.options.data;
+    Object.assign(this.options, options);
+    if (this.options.data !== currentData) {
+      this.diskInfo.ident = "";
+      this.diskInfo.trackInfo.ident = "";
+    }
+  }
+  static getInitialDiskInfo() {
+    const diskInfo = {
+      ident: "",
+      creator: "",
+      tracks: 0,
+      heads: 0,
+      trackSize: 0,
+      trackInfo: {
+        ident: "",
+        sectorInfoList: []
+      },
+      trackSizes: [],
+      trackInfoPosList: [],
+      extended: false
+    };
+    return diskInfo;
+  }
+  getFormatDescriptor() {
+    const formatDescriptor = this.formatDescriptor;
+    if (!formatDescriptor) {
+      throw this.composeError(Error(), "getFormatDescriptor: formatDescriptor:", String(formatDescriptor));
+    }
+    return formatDescriptor;
+  }
+  composeError(error, message, value, pos) {
+    const len = 0;
+    return Utils.composeError("DiskImage", error, this.options.diskName + ": " + message, value, pos || 0, len);
+  }
+  static testDiskIdent(ident) {
+    const diskType = _DiskImage.diskInfoIdentMap[ident] || 0;
+    return diskType;
+  }
+  readUtf(pos, len) {
+    const out = this.options.data.substring(pos, pos + len);
+    if (out.length !== len) {
+      throw this.composeError(new Error(), "End of File", "", pos);
+    }
+    return out;
+  }
+  readUInt8(pos) {
+    const num = this.options.data.charCodeAt(pos);
+    if (isNaN(num)) {
+      throw this.composeError(new Error(), "End of File", String(num), pos);
+    }
+    return num;
+  }
+  readUInt16(pos) {
+    return this.readUInt8(pos) + this.readUInt8(pos + 1) * 256;
+  }
+  static uInt8ToString(value) {
+    return String.fromCharCode(value);
+  }
+  static uInt16ToString(value) {
+    return _DiskImage.uInt8ToString(value & 255) + _DiskImage.uInt8ToString(value >> 8 & 255);
+  }
+  static uInt24ToString(value) {
+    return _DiskImage.uInt16ToString(value & 65535) + _DiskImage.uInt8ToString(value >> 16);
+  }
+  readDiskInfo(diskInfo, pos) {
+    const ident = this.readUtf(pos, 8), diskType = _DiskImage.testDiskIdent(ident);
+    if (!diskType) {
+      throw this.composeError(Error(), "Ident not found", ident, pos);
+    }
+    diskInfo.extended = diskType === 2;
+    diskInfo.ident = ident + this.readUtf(pos + 8, 34 - 8);
+    if (diskInfo.ident.substring(34 - 11, 34 - 11 + 9) !== "Disk-Info") {
+      if (!this.options.quiet) {
+        Utils.console.warn(this.composeError({}, "Disk ident not found", diskInfo.ident.substring(34 - 11, 34 - 11 + 9), pos + 34 - 11).message);
+      }
+    }
+    diskInfo.creator = this.readUtf(pos + 34, 14);
+    diskInfo.tracks = this.readUInt8(pos + 48);
+    diskInfo.heads = this.readUInt8(pos + 49);
+    diskInfo.trackSize = this.readUInt16(pos + 50);
+    const trackSizes = [], trackInfoPosList = [], trackSizeCount = diskInfo.tracks * diskInfo.heads;
+    let trackInfoPos = _DiskImage.diskInfoSize;
+    pos += 52;
+    for (let i = 0; i < trackSizeCount; i += 1) {
+      trackInfoPosList.push(trackInfoPos);
+      const trackSize = diskInfo.trackSize || this.readUInt8(pos + i) * 256;
+      trackSizes.push(trackSize);
+      trackInfoPos += trackSize;
+    }
+    diskInfo.trackSizes = trackSizes;
+    diskInfo.trackInfoPosList = trackInfoPosList;
+    diskInfo.trackInfo.ident = "";
+    if (Utils.debug > 1) {
+      Utils.console.debug("readDiskInfo: extended=" + diskInfo.extended + ", tracks=" + diskInfo.tracks + ", heads=" + diskInfo.heads + ", trackSize=" + diskInfo.trackSize);
+    }
+  }
+  static createDiskInfoAsString(diskInfo) {
+    const diskInfoString = diskInfo.ident + diskInfo.creator + _DiskImage.uInt8ToString(diskInfo.tracks) + _DiskImage.uInt8ToString(diskInfo.heads) + _DiskImage.uInt16ToString(diskInfo.trackSize) + _DiskImage.uInt8ToString(0).repeat(204);
+    return diskInfoString;
+  }
+  readTrackInfo(trackInfo, pos) {
+    const trackInfoSize = _DiskImage.trackInfoSize, sectorInfoList = trackInfo.sectorInfoList, trackDataPos = pos + trackInfoSize;
+    trackInfo.ident = this.readUtf(pos, 12);
+    if (trackInfo.ident.substring(0, 10) !== "Track-Info") {
+      if (!this.options.quiet) {
+        Utils.console.warn(this.composeError({}, "Track ident not found", trackInfo.ident.substring(0, 10), pos).message);
+      }
+    }
+    trackInfo.track = this.readUInt8(pos + 16);
+    trackInfo.head = this.readUInt8(pos + 17);
+    trackInfo.dataRate = this.readUInt8(pos + 18);
+    trackInfo.recMode = this.readUInt8(pos + 19);
+    trackInfo.bps = this.readUInt8(pos + 20);
+    trackInfo.spt = this.readUInt8(pos + 21);
+    trackInfo.gap3 = this.readUInt8(pos + 22);
+    trackInfo.fill = this.readUInt8(pos + 23);
+    sectorInfoList.length = trackInfo.spt;
+    const sectorNum2Index = {};
+    trackInfo.sectorNum2Index = sectorNum2Index;
+    pos += 24;
+    let sectorPos = trackDataPos;
+    for (let i = 0; i < trackInfo.spt; i += 1) {
+      const sectorInfo = sectorInfoList[i] || {};
+      sectorInfoList[i] = sectorInfo;
+      sectorInfo.dataPos = sectorPos;
+      sectorInfo.track = this.readUInt8(pos);
+      sectorInfo.head = this.readUInt8(pos + 1);
+      sectorInfo.sector = this.readUInt8(pos + 2);
+      sectorInfo.bps = this.readUInt8(pos + 3);
+      sectorInfo.state1 = this.readUInt8(pos + 4);
+      sectorInfo.state2 = this.readUInt8(pos + 5);
+      const sectorSize = this.readUInt16(pos + 6) || 128 << trackInfo.bps;
+      sectorInfo.sectorSize = sectorSize;
+      sectorPos += sectorSize;
+      sectorNum2Index[sectorInfo.sector] = i;
+      pos += 8;
+    }
+  }
+  static createTrackInfoAsString(trackInfo) {
+    const sectorInfoList = trackInfo.sectorInfoList;
+    let trackInfoString = trackInfo.ident + _DiskImage.uInt8ToString(0).repeat(4) + _DiskImage.uInt8ToString(trackInfo.track) + _DiskImage.uInt8ToString(trackInfo.head) + _DiskImage.uInt8ToString(trackInfo.dataRate) + _DiskImage.uInt8ToString(trackInfo.recMode) + _DiskImage.uInt8ToString(trackInfo.bps) + _DiskImage.uInt8ToString(trackInfo.spt) + _DiskImage.uInt8ToString(trackInfo.gap3) + _DiskImage.uInt8ToString(trackInfo.fill);
+    for (let i = 0; i < trackInfo.spt; i += 1) {
+      const sectorInfo = sectorInfoList[i], sectorinfoString = _DiskImage.uInt8ToString(sectorInfo.track) + _DiskImage.uInt8ToString(sectorInfo.head) + _DiskImage.uInt8ToString(sectorInfo.sector) + _DiskImage.uInt8ToString(sectorInfo.bps) + _DiskImage.uInt8ToString(sectorInfo.state1) + _DiskImage.uInt8ToString(sectorInfo.state2) + _DiskImage.uInt16ToString(0);
+      trackInfoString += sectorinfoString;
+    }
+    trackInfoString += _DiskImage.uInt8ToString(0).repeat(_DiskImage.trackInfoSize - trackInfoString.length);
+    return trackInfoString;
+  }
+  seekTrack(diskInfo, track, head) {
+    if (!diskInfo.ident) {
+      this.readDiskInfo(diskInfo, 0);
+    }
+    const trackInfo = diskInfo.trackInfo;
+    if (trackInfo.ident && trackInfo.track === track && trackInfo.head === head) {
+      return;
+    }
+    const trackInfoPos = diskInfo.trackInfoPosList[track * diskInfo.heads + head];
+    if (trackInfoPos === void 0) {
+      throw this.composeError(new Error(), "Track not found", String(track));
+    }
+    this.readTrackInfo(trackInfo, trackInfoPos);
+  }
+  static sectorNum2Index(trackInfo, sector) {
+    const sectorIndex = trackInfo.sectorNum2Index[sector];
+    return sectorIndex;
+  }
+  static seekSector(sectorInfoList, sectorIndex) {
+    return sectorInfoList[sectorIndex];
+  }
+  readSector(trackInfo, sector) {
+    const sectorIndex = _DiskImage.sectorNum2Index(trackInfo, sector);
+    if (sectorIndex === void 0) {
+      throw this.composeError(Error(), "Track " + trackInfo.track + ": Sector not found", String(sector), 0);
+    }
+    const sectorInfo = _DiskImage.seekSector(trackInfo.sectorInfoList, sectorIndex), out = this.readUtf(sectorInfo.dataPos, sectorInfo.sectorSize);
+    return out;
+  }
+  writeSector(trackInfo, sector, sectorData) {
+    const sectorIndex = _DiskImage.sectorNum2Index(trackInfo, sector);
+    if (sectorIndex === void 0) {
+      throw this.composeError(Error(), "Track " + trackInfo.track + ": Sector not found", String(sector), 0);
+    }
+    const sectorInfo = _DiskImage.seekSector(trackInfo.sectorInfoList, sectorIndex), data = this.options.data;
+    if (sectorData.length !== sectorInfo.sectorSize) {
+      Utils.console.error(this.composeError({}, "sectordata.length " + sectorData.length + " <> sectorSize " + sectorInfo.sectorSize, String(0)));
+    }
+    this.options.data = data.substring(0, sectorInfo.dataPos) + sectorData + data.substring(sectorInfo.dataPos + sectorInfo.sectorSize);
+  }
+  // ...
+  composeFormatDescriptor(format) {
+    const derivedFormatDescriptor = _DiskImage.formatDescriptors[format];
+    if (!derivedFormatDescriptor) {
+      throw this.composeError(Error(), "Unknown format", format);
+    }
+    let formatDescriptor;
+    if (derivedFormatDescriptor.parentRef) {
+      const parentFormatDescriptor = this.composeFormatDescriptor(derivedFormatDescriptor.parentRef);
+      formatDescriptor = Object.assign({}, parentFormatDescriptor, derivedFormatDescriptor);
+    } else {
+      formatDescriptor = Object.assign({}, derivedFormatDescriptor);
+    }
+    return formatDescriptor;
+  }
+  determineFormat(diskInfo) {
+    const trackInfo = diskInfo.trackInfo, track = 0, head = 0;
+    this.seekTrack(diskInfo, track, head);
+    let firstSector = 255;
+    for (let i = 0; i < trackInfo.spt; i += 1) {
+      const sector = trackInfo.sectorInfoList[i].sector;
+      if (sector < firstSector) {
+        firstSector = sector;
+      }
+    }
+    let format = "";
+    if (firstSector === 193) {
+      format = "data";
+    } else if (firstSector === 65) {
+      format = "system";
+    } else if (firstSector === 145 && diskInfo.tracks === 80) {
+      format = "parados80";
+    } else if (firstSector === 1 && diskInfo.tracks === 80) {
+      format = "big780k";
+    } else {
+      throw this.composeError(Error(), "Unknown format with sector", String(firstSector));
+    }
+    if (diskInfo.heads > 1) {
+      format += _DiskImage.twoHeads;
+    }
+    if (Utils.debug > 1) {
+      Utils.console.debug("determineFormat: format=", format);
+    }
+    return format;
+  }
+  createImage(format) {
+    const formatDescriptor = this.composeFormatDescriptor(format), sectorInfoList = [], sectorSize = 128 << formatDescriptor.bps, sectorInfo = {
+      track: 0,
+      head: 0,
+      sector: 0,
+      bps: formatDescriptor.bps,
+      state1: 0,
+      state2: 0,
+      sectorSize,
+      dataPos: 0
+    }, trackInfo = {
+      ident: "Track-Info\r\n",
+      track: 0,
+      head: 0,
+      dataRate: 0,
+      recMode: 0,
+      bps: formatDescriptor.bps,
+      spt: formatDescriptor.spt,
+      gap3: formatDescriptor.gap3,
+      fill: formatDescriptor.fill,
+      sectorInfoList,
+      sectorNum2Index: {}
+    }, diskInfo = {
+      ident: "MV - CPCEMU Disk-File\r\nDisk-Info\r\n",
+      // 34
+      creator: (this.options.creator || "CpcBasicTS").padEnd(14, " "),
+      // 14
+      tracks: formatDescriptor.tracks,
+      heads: formatDescriptor.heads,
+      trackSize: _DiskImage.trackInfoSize + formatDescriptor.spt * sectorSize,
+      // eslint-disable-line no-bitwise
+      trackInfo,
+      trackSizes: [],
+      // only for extended DSK format
+      trackInfoPosList: [],
+      extended: false
+    }, emptySectorData = _DiskImage.uInt8ToString(formatDescriptor.fill).repeat(sectorSize);
+    for (let i = 0; i < trackInfo.spt; i += 1) {
+      const sectorInfoClone = {
+        ...sectorInfo
+      };
+      sectorInfoClone.sector = formatDescriptor.firstSector + i;
+      trackInfo.sectorNum2Index[sectorInfoClone.sector] = i;
+      sectorInfoList.push(sectorInfoClone);
+    }
+    let image = _DiskImage.createDiskInfoAsString(diskInfo), trackInfoPos = _DiskImage.diskInfoSize;
+    for (let track = 0; track < formatDescriptor.tracks; track += 1) {
+      for (let head = 0; head < formatDescriptor.heads; head += 1) {
+        trackInfo.track = track;
+        trackInfo.head = head;
+        diskInfo.trackInfoPosList.push(trackInfoPos);
+        for (let sector = 0; sector < trackInfo.spt; sector += 1) {
+          const sectorInfo2 = sectorInfoList[sector];
+          sectorInfo2.track = track;
+          sectorInfo2.head = head;
+          sectorInfo2.dataPos = trackInfoPos + _DiskImage.trackInfoSize + sector * sectorInfo2.sectorSize;
+        }
+        const trackAsString = _DiskImage.createTrackInfoAsString(trackInfo);
+        image += trackAsString;
+        for (let sector = 0; sector < formatDescriptor.spt; sector += 1) {
+          image += emptySectorData;
+        }
+        trackInfoPos += diskInfo.trackSize;
+      }
+    }
+    this.diskInfo = diskInfo;
+    this.formatDescriptor = formatDescriptor;
+    return image;
+  }
+  formatImage(format) {
+    const image = this.createImage(format);
+    this.options.data = image;
+    return image;
+  }
+  static fnRemoveHighBit7(str) {
+    let out = "";
+    for (let i = 0; i < str.length; i += 1) {
+      const char = str.charCodeAt(i);
+      out += String.fromCharCode(char & 127);
+    }
+    return out;
+  }
+  readDirectoryExtents(extents, pos, endPos) {
+    while (pos < endPos) {
+      const extent = {
+        user: this.readUInt8(pos),
+        name: this.readUtf(pos + 1, 8),
+        ext: this.readUtf(pos + 9, 3),
+        // extension with flags
+        extent: this.readUInt8(pos + 12),
+        lastRecBytes: this.readUInt8(pos + 13),
+        extentHi: this.readUInt8(pos + 14),
+        // used for what?
+        records: this.readUInt8(pos + 15),
+        blocks: []
+      };
+      pos += 16;
+      const blocks = extent.blocks;
+      for (let i = 0; i < 16; i += 1) {
+        const block = this.readUInt8(pos + i);
+        blocks.push(block);
+      }
+      pos += 16;
+      extents.push(extent);
+    }
+    return extents;
+  }
+  static createDirectoryExtentAsString(extent) {
+    let extentString = _DiskImage.uInt8ToString(extent.user) + extent.name + extent.ext + _DiskImage.uInt8ToString(extent.extent) + _DiskImage.uInt8ToString(extent.lastRecBytes) + _DiskImage.uInt8ToString(extent.extentHi) + _DiskImage.uInt8ToString(extent.records), blockString = "";
+    for (let i = 0; i < extent.blocks.length; i += 1) {
+      blockString += _DiskImage.uInt8ToString(extent.blocks[i]);
+    }
+    extentString += blockString;
+    return extentString;
+  }
+  static createSeveralDirectoryExtentsAsString(extents, first, last) {
+    let extentString = "";
+    for (let i = first; i < last; i += 1) {
+      extentString += _DiskImage.createDirectoryExtentAsString(extents[i]);
+    }
+    return extentString;
+  }
+  static fnSortByExtentNumber(a, b) {
+    return a.extent - b.extent;
+  }
+  // do not know if we need to sort the extents per file, but...
+  static sortFileExtents(dir) {
+    for (const name in dir) {
+      if (dir.hasOwnProperty(name)) {
+        const fileExtents = dir[name];
+        fileExtents.sort(_DiskImage.fnSortByExtentNumber);
+      }
+    }
+  }
+  static prepareDirectoryList(extents, fill, reFilePattern) {
+    const dir = {};
+    for (let i = 0; i < extents.length; i += 1) {
+      const extent = extents[i];
+      if (fill === null || extent.user !== fill) {
+        const name = _DiskImage.fnRemoveHighBit7(extent.name) + "." + _DiskImage.fnRemoveHighBit7(extent.ext);
+        if (!reFilePattern || reFilePattern.test(name)) {
+          if (!(name in dir)) {
+            dir[name] = [];
+          }
+          dir[name].push(extent);
+        }
+      }
+    }
+    _DiskImage.sortFileExtents(dir);
+    return dir;
+  }
+  static convertBlock2Sector(formatDescriptor, block) {
+    const spt = formatDescriptor.spt, blockSectors = formatDescriptor.bls / 512, logSec = block * blockSectors, pos = {
+      track: Math.floor(logSec / spt) + formatDescriptor.off,
+      head: 0,
+      // currently always 0
+      sector: logSec % spt + formatDescriptor.firstSector
+    };
+    return pos;
+  }
+  readAllDirectoryExtents(diskInfo, formatDescriptor, extents) {
+    const directorySectors = 4, off = formatDescriptor.off, firstSector = formatDescriptor.firstSector, trackInfo = diskInfo.trackInfo, sectorInfoList = trackInfo.sectorInfoList;
+    this.seekTrack(diskInfo, off, 0);
+    for (let i = 0; i < directorySectors; i += 1) {
+      const sectorIndex = _DiskImage.sectorNum2Index(trackInfo, firstSector + i);
+      if (sectorIndex === void 0) {
+        throw this.composeError(Error(), "Cannot read directory at track " + off + " sector", String(firstSector));
+      }
+      const sectorInfo = _DiskImage.seekSector(sectorInfoList, sectorIndex);
+      this.readDirectoryExtents(extents, sectorInfo.dataPos, sectorInfo.dataPos + sectorInfo.sectorSize);
+    }
+    return extents;
+  }
+  writeAllDirectoryExtents(diskInfo, formatDescriptor, extents) {
+    const directoryBlocks = 2, extentsPerBlock = extents.length / directoryBlocks;
+    for (let i = 0; i < directoryBlocks; i += 1) {
+      const blockData = _DiskImage.createSeveralDirectoryExtentsAsString(extents, i * extentsPerBlock, (i + 1) * extentsPerBlock);
+      this.writeBlock(diskInfo, formatDescriptor, i, blockData);
+    }
+  }
+  readDirectory() {
+    const diskInfo = this.diskInfo, format = this.determineFormat(diskInfo), formatDescriptor = this.composeFormatDescriptor(format), extents = [];
+    this.formatDescriptor = formatDescriptor;
+    this.readAllDirectoryExtents(diskInfo, formatDescriptor, extents);
+    return _DiskImage.prepareDirectoryList(extents, this.formatDescriptor.fill);
+  }
+  static nextSector(formatDescriptor, pos) {
+    pos.sector += 1;
+    if (pos.sector >= formatDescriptor.firstSector + formatDescriptor.spt) {
+      pos.track += 1;
+      pos.sector = formatDescriptor.firstSector;
+    }
+  }
+  readBlock(diskInfo, formatDescriptor, block) {
+    const blockSectors = formatDescriptor.bls / 512, pos = _DiskImage.convertBlock2Sector(formatDescriptor, block);
+    let out = "";
+    if (pos.track >= diskInfo.tracks) {
+      Utils.console.error(this.composeError({}, "Block " + block + ": Track out of range", String(pos.track)));
+    }
+    if (pos.head >= diskInfo.heads) {
+      Utils.console.error(this.composeError({}, "Block " + block + ": Head out of range", String(pos.track)));
+    }
+    for (let i = 0; i < blockSectors; i += 1) {
+      this.seekTrack(diskInfo, pos.track, pos.head);
+      out += this.readSector(diskInfo.trackInfo, pos.sector);
+      _DiskImage.nextSector(formatDescriptor, pos);
+    }
+    return out;
+  }
+  writeBlock(diskInfo, formatDescriptor, block, blockData) {
+    const blockSectors = formatDescriptor.bls / 512, sectorSize = 128 << formatDescriptor.bps, pos = _DiskImage.convertBlock2Sector(formatDescriptor, block);
+    if (pos.track >= diskInfo.tracks) {
+      Utils.console.error(this.composeError({}, "Block " + block + ": Track out of range", String(pos.track)));
+    }
+    if (pos.head >= diskInfo.heads) {
+      Utils.console.error(this.composeError({}, "Block " + block + ": Head out of range", String(pos.track)));
+    }
+    if (blockData.length !== blockSectors * sectorSize) {
+      Utils.console.error(this.composeError({}, "blockData.length " + blockData.length + " <> blockSize " + blockSectors * sectorSize, String(0)));
+    }
+    for (let i = 0; i < blockSectors; i += 1) {
+      this.seekTrack(diskInfo, pos.track, pos.head);
+      const sectorData = blockData.substring(i * sectorSize, (i + 1) * sectorSize);
+      this.writeSector(diskInfo.trackInfo, pos.sector, sectorData);
+      _DiskImage.nextSector(formatDescriptor, pos);
+    }
+  }
+  readExtents(diskInfo, formatDescriptor, fileExtents) {
+    const recPerBlock = formatDescriptor.bls / 128;
+    let out = "";
+    for (let i = 0; i < fileExtents.length; i += 1) {
+      const extent = fileExtents[i], blocks = extent.blocks;
+      let records = extent.records;
+      if (extent.extent > 0) {
+        if (recPerBlock > 8) {
+          records += extent.extent * 128;
+        }
+      }
+      for (let blockIndex = 0; blockIndex < blocks.length; blockIndex += 1) {
+        let block = this.readBlock(diskInfo, formatDescriptor, blocks[blockIndex]);
+        if (records < recPerBlock) {
+          block = block.substring(0, 128 * records);
+        }
+        out += block;
+        records -= recPerBlock;
+        if (records <= 0) {
+          break;
+        }
+      }
+    }
+    return out;
+  }
+  readFile(fileExtents) {
+    const diskInfo = this.diskInfo, formatDescriptor = this.getFormatDescriptor();
+    let out = this.readExtents(diskInfo, formatDescriptor, fileExtents);
+    const header = _DiskImage.parseAmsdosHeader(out);
+    let realLen;
+    if (header) {
+      const amsdosHeaderLength = 128;
+      realLen = header.length + amsdosHeaderLength;
+    }
+    if (realLen === void 0) {
+      const fileLen = out.length, lastRecPos = fileLen > 128 ? fileLen - 128 : 0, index = out.indexOf(String.fromCharCode(26), lastRecPos);
+      if (index >= 0) {
+        realLen = index;
+        if (Utils.debug > 0) {
+          Utils.console.debug("readFile: ASCII file length " + fileLen + " truncated to " + realLen);
+        }
+      }
+    }
+    if (realLen !== void 0) {
+      out = out.substring(0, realLen);
+    }
+    return out;
+  }
+  static getFreeExtents(extents, fill) {
+    const freeExtents = [];
+    for (let i = 0; i < extents.length; i += 1) {
+      if (extents[i].user === fill) {
+        freeExtents.push(i);
+      }
+    }
+    return freeExtents;
+  }
+  static getBlockMask(extents, fill, dsm, al0, al1) {
+    const blockMask = [];
+    for (let i = 0; i < dsm - 1; i += 1) {
+      blockMask[i] = false;
+    }
+    let mask = 128;
+    for (let i = 0; i < 8; i += 1) {
+      if (al0 & mask) {
+        blockMask[i] = true;
+      }
+      mask >>= 1;
+    }
+    mask = 128;
+    for (let i = 8; i < 16; i += 1) {
+      if (al1 & mask) {
+        blockMask[i] = true;
+      }
+      mask >>= 1;
+    }
+    for (let i = 0; i < extents.length; i += 1) {
+      const extent = extents[i], blockList = extent.blocks;
+      if (extent.user !== fill) {
+        for (let blockindex = 0; blockindex < blockList.length; blockindex += 1) {
+          const block = blockList[blockindex];
+          if (block) {
+            if (blockMask[block]) {
+              Utils.console.warn("getBlockMask: Block number already in use: ", block);
+            }
+            blockMask[block] = true;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+    return blockMask;
+  }
+  static getFreeBlocks(blockMask, dsm) {
+    const freeBlocks = [];
+    for (let i = 0; i < dsm; i += 1) {
+      if (!blockMask[i]) {
+        freeBlocks.push(i);
+      }
+    }
+    return freeBlocks;
+  }
+  static getFilenameAndExtension(filename) {
+    let [name1, ext1] = filename.split(".");
+    name1 = name1.substring(0, 8).toUpperCase().padEnd(8, " ");
+    ext1 = ext1.substring(0, 3).toUpperCase().padEnd(3, " ");
+    return [name1, ext1];
+  }
+  writeFile(filename, data) {
+    const diskInfo = this.diskInfo, formatDescriptor = this.getFormatDescriptor(), extents = [];
+    this.readAllDirectoryExtents(diskInfo, formatDescriptor, extents);
+    const fill = formatDescriptor.fill, freeExtents = _DiskImage.getFreeExtents(extents, formatDescriptor.fill), sectors = (formatDescriptor.tracks - formatDescriptor.off) * formatDescriptor.spt, ssize = 128 << formatDescriptor.bps, dsm = sectors * ssize / formatDescriptor.bls | 0, al0 = formatDescriptor.al0, al1 = formatDescriptor.al1, blockMask = _DiskImage.getBlockMask(extents, fill, dsm, al0, al1), freeBlocks = _DiskImage.getFreeBlocks(blockMask, dsm);
+    if (Utils.debug > 0) {
+      Utils.console.debug("writeFile: freeExtents=", freeExtents.length, ", freeBlocks=", freeBlocks);
+    }
+    if (!freeBlocks.length) {
+      Utils.console.warn("writeFile: " + filename + ": No space left!");
+      return false;
+    }
+    if (!freeExtents.length) {
+      Utils.console.warn("writeFile: " + filename + ": Directory full!");
+      return false;
+    }
+    const [name1, ext1] = _DiskImage.getFilenameAndExtension(filename), fileSize = data.length, bls = formatDescriptor.bls, requiredBlocks = (fileSize + bls - 1) / bls | 0;
+    if (requiredBlocks > freeBlocks.length) {
+      const requiredKB = requiredBlocks * bls / 1024 | 0, freeKB = freeBlocks.length * bls / 1024 | 0;
+      Utils.console.warn("writeFile: " + filename + ": Not enough space left (" + requiredKB + "K > " + freeKB + "K). Ignoring.");
+      return false;
+    }
+    const blocksPerExtent = 16, requiredExtents = (requiredBlocks + blocksPerExtent - 1) / blocksPerExtent | 0;
+    if (requiredExtents > freeExtents.length) {
+      Utils.console.warn("writeFile: " + filename + ": Directory full!");
+      return false;
+    }
+    let size = fileSize, extent, extentCnt = 0, blockCnt = 0;
+    while (size > 0) {
+      if (!extent || blockCnt >= 16) {
+        const records = (size + 128 - 1) / 128 | 0;
+        extent = extents[freeExtents[extentCnt]];
+        extent.user = 0;
+        extent.name = name1;
+        extent.ext = ext1;
+        extent.extent = extentCnt;
+        extent.lastRecBytes = 0;
+        extent.extentHi = 0;
+        extent.records = records > 128 ? 128 : records;
+        extent.blocks.length = 0;
+        for (let i = 0; i < 16; i += 1) {
+          extent.blocks[i] = 0;
+        }
+        extentCnt += 1;
+        blockCnt = 0;
+      }
+      const thisSize = size > bls ? bls : size;
+      let dataChunk = data.substring(fileSize - size, fileSize - size + thisSize);
+      if (thisSize < bls) {
+        dataChunk += _DiskImage.uInt8ToString(26);
+        const remain = bls - thisSize - 1;
+        dataChunk += _DiskImage.uInt8ToString(formatDescriptor.fill).repeat(remain);
+      }
+      const block = freeBlocks[(extentCnt - 1) * 16 + blockCnt];
+      this.writeBlock(diskInfo, formatDescriptor, block, dataChunk);
+      extent.blocks[blockCnt] = block;
+      blockCnt += 1;
+      size -= thisSize;
+    }
+    this.writeAllDirectoryExtents(diskInfo, formatDescriptor, extents);
+    return true;
+  }
+  static isSectorEmpty(data, index, size, fill) {
+    const endIndex = index + size <= data.length ? index + size : data.length - index;
+    let isEmpty = true;
+    for (let i = index; i < endIndex; i += 1) {
+      if (data.charCodeAt(i) !== fill) {
+        isEmpty = false;
+        break;
+      }
+    }
+    return isEmpty;
+  }
+  stripEmptyTracks() {
+    const diskInfo = this.diskInfo, format = this.determineFormat(diskInfo), formatDescriptor = this.composeFormatDescriptor(format), tracks = diskInfo.tracks, firstDataTrack = formatDescriptor.off, head = 0;
+    let data = this.options.data;
+    this.formatDescriptor = formatDescriptor;
+    for (let track = firstDataTrack; track < tracks; track += 1) {
+      this.seekTrack(diskInfo, track, head);
+      const trackInfo = diskInfo.trackInfo, fill = diskInfo.trackInfo.fill, sectorInfoList = trackInfo.sectorInfoList;
+      let isEmpty = true;
+      for (let i = 0; i < trackInfo.spt; i += 1) {
+        const sectorInfo = sectorInfoList[i];
+        if (!_DiskImage.isSectorEmpty(data, sectorInfo.dataPos, sectorInfo.sectorSize, fill)) {
+          isEmpty = false;
+          break;
+        }
+      }
+      if (isEmpty) {
+        diskInfo.tracks = track;
+        const trackDataPos = sectorInfoList[0].dataPos;
+        data = _DiskImage.createDiskInfoAsString(diskInfo) + data.substring(_DiskImage.diskInfoSize, trackDataPos - _DiskImage.trackInfoSize);
+        this.options.data = data;
+        break;
+      }
+    }
+    return data;
+  }
+  /* eslint-enable array-element-newline */
+  static unOrProtectData(data) {
+    const table1 = _DiskImage.protectTable[0], table2 = _DiskImage.protectTable[1];
+    let out = "";
+    for (let i = 0; i < data.length; i += 1) {
+      let byte = data.charCodeAt(i);
+      byte ^= table1[(i & 127) % table1.length] ^ table2[(i & 127) % table2.length];
+      out += String.fromCharCode(byte);
+    }
+    return out;
+  }
+  // ...
+  static computeChecksum(data) {
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 1) {
+      sum += data.charCodeAt(i);
+    }
+    return sum;
+  }
+  static hasAmsdosHeader(data) {
+    let hasHeader = false;
+    if (data.length >= 128) {
+      const computed = _DiskImage.computeChecksum(data.substring(0, 66)), sum = data.charCodeAt(67) + data.charCodeAt(68) * 256;
+      hasHeader = computed === sum;
+    }
+    return hasHeader;
+  }
+  static parseAmsdosHeader(data) {
+    const typeMap = {
+      0: "T",
+      // tokenized BASIC (T=not official)
+      1: "P",
+      // protected BASIC (also tokenized)
+      2: "B",
+      // Binary
+      8: "G",
+      // GENA3 Assember (G=not official)
+      22: "A"
+      // ASCII
+    };
+    let header;
+    if (_DiskImage.hasAmsdosHeader(data)) {
+      header = {
+        user: data.charCodeAt(0),
+        name: data.substring(1, 1 + 8),
+        ext: data.substring(9, 9 + 3),
+        typeNumber: data.charCodeAt(18),
+        start: data.charCodeAt(21) + data.charCodeAt(22) * 256,
+        pseudoLen: data.charCodeAt(24) + data.charCodeAt(25) * 256,
+        entry: data.charCodeAt(26) + data.charCodeAt(27) * 256,
+        length: data.charCodeAt(64) + data.charCodeAt(65) * 256 + data.charCodeAt(66) * 65536,
+        typeString: ""
+      };
+      header.typeString = typeMap[header.typeNumber] || typeMap[16];
+    }
+    return header;
+  }
+  static combineAmsdosHeader(header) {
+    const typeMap = {
+      T: 0,
+      // tokenized BASIC (T=not official)
+      P: 1,
+      // protected BASIC
+      B: 2,
+      // Binary
+      G: 8,
+      // GENA3 Assember (G=not official)
+      A: 22
+      // ASCII
+    };
+    let type = header.typeNumber;
+    if (header.typeString) {
+      type = typeMap[header.typeString];
+      if (type === void 0) {
+        type = typeMap.A;
+      }
+    }
+    let length = header.pseudoLen || header.length;
+    if (length > 65535) {
+      length = 65535;
+    }
+    const data1 = _DiskImage.uInt8ToString(header.user || 0) + (header.name || "").padEnd(8, " ") + (header.ext || "").padEnd(3, " ") + _DiskImage.uInt16ToString(0) + _DiskImage.uInt16ToString(0) + _DiskImage.uInt8ToString(0) + _DiskImage.uInt8ToString(0) + _DiskImage.uInt8ToString(type) + _DiskImage.uInt16ToString(0) + _DiskImage.uInt16ToString(header.start || 0) + _DiskImage.uInt8ToString(0) + _DiskImage.uInt16ToString(length) + _DiskImage.uInt16ToString(header.entry || 0) + "\0".repeat(36) + _DiskImage.uInt24ToString(header.length), checksum = _DiskImage.computeChecksum(data1), data = data1 + _DiskImage.uInt16ToString(checksum) + "\0".repeat(59);
+    return data;
+  }
+  static createAmsdosHeader(parameter) {
+    const header = {
+      user: 0,
+      name: "",
+      ext: "",
+      typeNumber: 0,
+      start: 0,
+      pseudoLen: 0,
+      entry: 0,
+      length: 0,
+      typeString: "",
+      ...parameter
+    };
+    return header;
+  }
+};
+_DiskImage.twoHeads = "2h";
+_DiskImage.formatDescriptors = {
+  data: {
+    tracks: 40,
+    // number of tracks (1-85)
+    heads: 1,
+    // number of heads/sides (1-2)
+    // head: 0, // head number?
+    bps: 2,
+    // Bytes per Sector (1-5)
+    spt: 9,
+    // Sectors per Track (1-18)
+    gap3: 78,
+    // gap between ID and data
+    fill: 229,
+    // filler byte
+    firstSector: 193,
+    // first sector number
+    bls: 1024,
+    // BLS: data block allocaton size (1024, 2048, 4096, 8192, 16384)
+    // bsh: 3, // log2 BLS - 7
+    // blm: 7, // BLS / 128 - 1
+    al0: 192,
+    // bit significant representation of reserved directory blocks 0..7 (0x80=0, 0xc00=0 and 1,,...)
+    al1: 0,
+    // bit significant representation of reserved directory blocks 8..15 (0x80=8,...)
+    off: 0
+    // number of reserved tracks (also the track where the directory starts)
+  },
+  data42t: {
+    parentRef: "data",
+    tracks: 42
+  },
+  // double sided data
+  data2h: {
+    parentRef: "data",
+    heads: 2
+  },
+  system: {
+    parentRef: "data",
+    firstSector: 65,
+    off: 2
+  },
+  // double sided system
+  system2h: {
+    parentRef: "system",
+    heads: 2
+  },
+  vortex: {
+    parentRef: "data",
+    tracks: 80,
+    heads: 2,
+    firstSector: 1
+  },
+  "3dos": {
+    parentRef: "data",
+    firstSector: 0
+  },
+  parados80: {
+    // 396K (https://www.cpcwiki.eu/imgs/0/0d/Parados.pdf)
+    parentRef: "data",
+    tracks: 80,
+    firstSector: 145,
+    spt: 10,
+    bls: 2048
+  },
+  big780k: {
+    parentRef: "data",
+    al0: 128,
+    // block 0 reserved
+    tracks: 80,
+    off: 1,
+    firstSector: 1
+  },
+  big780k2h: {
+    parentRef: "big780k",
+    heads: 2
+  }
+};
+_DiskImage.diskInfoIdentMap = {
+  "MV - CPC": 1,
+  EXTENDED: 2
+};
+_DiskImage.diskInfoSize = 256;
+_DiskImage.trackInfoSize = 256;
+// ...
+// see AMSDOS ROM, &D252
+/* eslint-disable array-element-newline */
+_DiskImage.protectTable = [
+  [226, 157, 219, 26, 66, 41, 57, 198, 179, 198, 144, 69, 138],
+  // 13 bytes
+  [73, 177, 54, 240, 46, 30, 6, 42, 40, 25, 234]
+  // 11 bytes
+];
+let DiskImage = _DiskImage;
+
+const _Snapshot = class _Snapshot {
+  constructor(options) {
+    this.pos = 0;
+    this.options = {
+      quiet: false
+    };
+    this.setOptions(options);
+  }
+  getOptions() {
+    return this.options;
+  }
+  setOptions(options) {
+    Object.assign(this.options, options);
+  }
+  composeError(error, message, value, pos) {
+    const len = 0;
+    return Utils.composeError("DiskImage", error, this.options.name + ": " + message, value, pos || 0, len);
+  }
+  static testSnapIdent(ident) {
+    return ident === "MV - SNA";
+  }
+  readUInt8() {
+    const num = this.options.data.charCodeAt(this.pos);
+    if (isNaN(num)) {
+      throw this.composeError(new Error(), "End of File", String(num), this.pos);
+    }
+    this.pos += 1;
+    return num;
+  }
+  readUInt16() {
+    return this.readUInt8() + this.readUInt8() * 256;
+  }
+  readUInt8Array(len) {
+    const arr = [];
+    for (let i = 0; i < len; i += 1) {
+      arr.push(this.readUInt8());
+    }
+    return arr;
+  }
+  readUtf(len) {
+    const out = this.options.data.substring(this.pos, this.pos + len);
+    if (out.length !== len) {
+      throw this.composeError(new Error(), "End of File", "", this.pos);
+    }
+    this.pos += len;
+    return out;
+  }
+  getSnapshotInfo() {
+    this.pos = 0;
+    const info = {
+      ident: this.readUtf(8),
+      unused1: this.readUtf(8),
+      version: this.readUInt8(),
+      z80: {
+        AF: this.readUInt16(),
+        BC: this.readUInt16(),
+        DE: this.readUInt16(),
+        HL: this.readUInt16(),
+        IR: this.readUInt16(),
+        IFF: this.readUInt16(),
+        IX: this.readUInt16(),
+        IY: this.readUInt16(),
+        SP: this.readUInt16(),
+        PC: this.readUInt16(),
+        M: this.readUInt8(),
+        AF2: this.readUInt16(),
+        BC2: this.readUInt16(),
+        DE2: this.readUInt16(),
+        HL2: this.readUInt16()
+      },
+      ga: {
+        inknum: this.readUInt8(),
+        inkval: this.readUInt8Array(17),
+        multi: this.readUInt8()
+      },
+      ramconf: this.readUInt8(),
+      crtc: {
+        index: this.readUInt8(),
+        reg: this.readUInt8Array(18)
+      },
+      romnum: this.readUInt8(),
+      ppi: {
+        portA: this.readUInt8(),
+        portB: this.readUInt8(),
+        portC: this.readUInt8(),
+        portCtl: this.readUInt8()
+      },
+      psg: {
+        index: this.readUInt8(),
+        reg: this.readUInt8Array(16)
+      },
+      memsize: this.readUInt8()
+    };
+    return info;
+  }
+  getMemory() {
+    return this.options.data.substring(256);
+  }
+  applyToVm(vm) {
+    const info = this.getSnapshotInfo(), memory = this.getMemory(), inks = info.ga.inkval;
+    vm.vmChangeMode(info.ga.multi & 3);
+    for (let index = 0; index < inks.length - 1; index += 1) {
+      vm.ink(index, _Snapshot.gaInk2Ink[inks[index]]);
+    }
+    vm.border(_Snapshot.gaInk2Ink[inks[inks.length - 1]]);
+    vm.vmSetRamSelect(info.ramconf);
+    for (let index = 0; index < info.crtc.reg.length; index += 1) {
+      vm.vmSetCrtcData(index, info.crtc.reg[index]);
+    }
+    return memory;
+  }
+};
+_Snapshot.gaInk2Ink = [13, 27, 19, 25, 1, 7, 10, 16, 28, 29, 24, 26, 6, 8, 15, 17, 30, 31, 18, 20, 0, 2, 9, 11, 4, 22, 21, 23, 3, 5, 12, 14];
+let Snapshot = _Snapshot;
+
+class ZipFile {
+  constructor(options) {
+    this.entryTable = {};
+    this.options = {};
+    this.setOptions(options, true);
+  }
+  getOptions() {
+    return this.options;
+  }
+  setOptions(options, force) {
+    const currentData = this.options.data;
+    Object.assign(this.options, options);
+    if (force || this.options.data !== currentData) {
+      this.data = this.options.data;
+      this.entryTable = this.readZipDirectory();
+    }
+  }
+  getZipDirectory() {
+    return this.entryTable;
+  }
+  composeError(error, message, value, pos) {
+    message = this.options.zipName + ": " + message;
+    return Utils.composeError("ZipFile", error, message, value, pos);
+  }
+  subArr(begin, length) {
+    const data = this.data, end = begin + length;
+    return data.slice ? data.slice(begin, end) : data.subarray(begin, end);
+  }
+  readUTF(offset, len) {
+    const callSize = 25e3;
+    let out = "";
+    while (len) {
+      const chunkLen = Math.min(len, callSize), nums = this.subArr(offset, chunkLen);
+      out += String.fromCharCode.apply(null, nums);
+      offset += chunkLen;
+      len -= chunkLen;
+    }
+    return out;
+  }
+  readUInt(i) {
+    const data = this.data;
+    return data[i + 3] << 24 | data[i + 2] << 16 | data[i + 1] << 8 | data[i];
+  }
+  readUShort(i) {
+    const data = this.data;
+    return data[i + 1] << 8 | data[i];
+  }
+  readEocd(eocdPos) {
+    const eocd = {
+      signature: this.readUInt(eocdPos),
+      entries: this.readUShort(eocdPos + 10),
+      // total number of central directory records
+      cdfhOffset: this.readUInt(eocdPos + 16),
+      // offset of start of central directory, relative to start of archive
+      cdSize: this.readUInt(eocdPos + 20)
+      // size of central directory (just for information)
+    };
+    return eocd;
+  }
+  readCdfh(pos) {
+    const cdfh = {
+      signature: this.readUInt(pos),
+      version: this.readUShort(pos + 6),
+      // version needed to extract (minimum)
+      flag: this.readUShort(pos + 8),
+      // General purpose bit flag
+      compressionMethod: this.readUShort(pos + 10),
+      // compression method
+      modificationTime: this.readUShort(pos + 12),
+      // File last modification time (DOS time)
+      crc: this.readUInt(pos + 16),
+      // CRC-32 of uncompressed data
+      compressedSize: this.readUInt(pos + 20),
+      // compressed size
+      size: this.readUInt(pos + 24),
+      // Uncompressed size
+      fileNameLength: this.readUShort(pos + 28),
+      // file name length
+      extraFieldLength: this.readUShort(pos + 30),
+      // extra field length
+      fileCommentLength: this.readUShort(pos + 32),
+      // file comment length
+      localOffset: this.readUInt(pos + 42),
+      // relative offset of local file header
+      // set later...
+      name: "",
+      isDirectory: false,
+      extra: [],
+      comment: "",
+      timestamp: 0,
+      dataStart: 0
+    };
+    return cdfh;
+  }
+  readZipDirectory() {
+    const eocdLen = 22, maxEocdCommentLen = 65535, eocdSignature = 101010256, cdfhSignature = 33639248, cdfhLen = 46, lfhSignature = 67324752, lfhLen = 30, data = this.data, entryTable = {};
+    let i = data.length - eocdLen + 1, eocd;
+    const n = Math.max(0, i - maxEocdCommentLen);
+    while (i >= n) {
+      i -= 1;
+      if (this.readUInt(i) === eocdSignature) {
+        eocd = this.readEocd(i);
+        if (this.readUInt(eocd.cdfhOffset) === cdfhSignature) {
+          break;
+        }
+      }
+    }
+    if (!eocd) {
+      throw this.composeError(Error(), "Zip: File ended abruptly: EOCD not found", "", i >= 0 ? i : 0);
+    }
+    const entries = eocd.entries;
+    let offset = eocd.cdfhOffset;
+    for (i = 0; i < entries; i += 1) {
+      const cdfh = this.readCdfh(offset);
+      if (cdfh.signature !== cdfhSignature) {
+        throw this.composeError(Error(), "Zip: Bad CDFH signature", "", offset);
+      }
+      if (!cdfh.fileNameLength) {
+        throw this.composeError(Error(), "Zip Entry name missing", "", offset);
+      }
+      offset += cdfhLen;
+      cdfh.name = this.readUTF(offset, cdfh.fileNameLength);
+      offset += cdfh.fileNameLength;
+      cdfh.isDirectory = cdfh.name.charAt(cdfh.name.length - 1) === "/";
+      cdfh.extra = this.subArr(offset, cdfh.extraFieldLength);
+      offset += cdfh.extraFieldLength;
+      cdfh.comment = this.readUTF(offset, cdfh.fileCommentLength);
+      offset += cdfh.fileCommentLength;
+      if ((cdfh.flag & 1) === 1) {
+        throw this.composeError(Error(), "Zip encrypted entries not supported", "", i);
+      }
+      const dostime = cdfh.modificationTime;
+      cdfh.timestamp = new Date((dostime >> 25 & 127) + 1980, (dostime >> 21 & 15) - 1, dostime >> 16 & 31, dostime >> 11 & 31, dostime >> 5 & 63, (dostime & 31) << 1).getTime();
+      if (this.readUInt(cdfh.localOffset) !== lfhSignature) {
+        Utils.console.error("Zip: readZipDirectory: LFH signature not found at offset", cdfh.localOffset);
+      }
+      const lfhExtrafieldLength = this.readUShort(cdfh.localOffset + 28);
+      cdfh.dataStart = cdfh.localOffset + lfhLen + cdfh.name.length + lfhExtrafieldLength;
+      entryTable[cdfh.name] = cdfh;
+    }
+    return entryTable;
+  }
+  static fnInflateConstruct(codes, lens2, n) {
+    let i;
+    for (i = 0; i <= 15; i += 1) {
+      codes.count[i] = 0;
+    }
+    for (i = 0; i < n; i += 1) {
+      codes.count[lens2[i]] += 1;
+    }
+    if (codes.count[0] === n) {
+      return 0;
+    }
+    let left = 1;
+    for (i = 1; i <= 15; i += 1) {
+      if ((left = (left << 1) - codes.count[i]) < 0) {
+        return left;
+      }
+    }
+    const offs = [
+      void 0,
+      0
+    ];
+    for (i = 1; i < 15; i += 1) {
+      offs[i + 1] = offs[i] + codes.count[i];
+    }
+    for (i = 0; i < n; i += 1) {
+      if (lens2[i] !== 0) {
+        codes.symbol[offs[lens2[i]]] = i;
+        offs[lens2[i]] += 1;
+      }
+    }
+    return left;
+  }
+  static fnConstructFixedHuffman(lens, lenCode, distCode) {
+    let symbol;
+    for (symbol = 0; symbol < 144; symbol += 1) {
+      lens[symbol] = 8;
+    }
+    for (; symbol < 256; symbol += 1) {
+      lens[symbol] = 9;
+    }
+    for (; symbol < 280; symbol += 1) {
+      lens[symbol] = 7;
+    }
+    for (; symbol < 288; symbol += 1) {
+      lens[symbol] = 8;
+    }
+    ZipFile.fnInflateConstruct(lenCode, lens, 288);
+    for (symbol = 0; symbol < 30; symbol += 1) {
+      lens[symbol] = 5;
+    }
+    ZipFile.fnInflateConstruct(distCode, lens, 30);
+  }
+  inflate(offset, compressedSize, finalSize) {
+    const startLens = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258], lExt = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0], dists = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577], dExt = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13], dynamicTableOrder = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15], that = this, data = this.data, bufEnd = offset + compressedSize, outBuf = new Uint8Array(finalSize);
+    let inCnt = offset, outCnt = 0, bitCnt = 0, bitBuf = 0, distCode, lenCode, lens;
+    const fnBits = function(need) {
+      let out = bitBuf;
+      while (bitCnt < need) {
+        if (inCnt === bufEnd) {
+          throw that.composeError(Error(), "Zip: inflate: Data overflow", that.options.zipName, -1);
+        }
+        out |= data[inCnt] << bitCnt;
+        inCnt += 1;
+        bitCnt += 8;
+      }
+      bitBuf = out >> need;
+      bitCnt -= need;
+      return out & (1 << need) - 1;
+    }, fnDecode = function(codes) {
+      let code = 0, first = 0, i = 0;
+      for (let j = 1; j <= 15; j += 1) {
+        code |= fnBits(1);
+        const count = codes.count[j];
+        if (code < first + count) {
+          return codes.symbol[i + (code - first)];
+        }
+        i += count;
+        first += count;
+        first <<= 1;
+        code <<= 1;
+      }
+      return null;
+    }, fnInflateStored = function() {
+      bitBuf = 0;
+      bitCnt = 0;
+      if (inCnt + 4 > bufEnd) {
+        throw that.composeError(Error(), "Zip: inflate: Data overflow", "", inCnt);
+      }
+      let len = that.readUShort(inCnt);
+      inCnt += 2;
+      if (data[inCnt] !== (~len & 255) || data[inCnt + 1] !== (~len >> 8 & 255)) {
+        throw that.composeError(Error(), "Zip: inflate: Bad length", "", inCnt);
+      }
+      inCnt += 2;
+      if (inCnt + len > bufEnd) {
+        throw that.composeError(Error(), "Zip: inflate: Data overflow", "", inCnt);
+      }
+      while (len) {
+        outBuf[outCnt] = data[inCnt];
+        outCnt += 1;
+        inCnt += 1;
+        len -= 1;
+      }
+    }, fnConstructDynamicHuffman = function() {
+      const nLen = fnBits(5) + 257, nDist = fnBits(5) + 1, nCode = fnBits(4) + 4;
+      if (nLen > 286 || nDist > 30) {
+        throw that.composeError(Error(), "Zip: inflate: length/distance code overflow", "", 0);
+      }
+      let i;
+      for (i = 0; i < nCode; i += 1) {
+        lens[dynamicTableOrder[i]] = fnBits(3);
+      }
+      for (; i < 19; i += 1) {
+        lens[dynamicTableOrder[i]] = 0;
+      }
+      if (ZipFile.fnInflateConstruct(lenCode, lens, 19) !== 0) {
+        throw that.composeError(Error(), "Zip: inflate: length codes incomplete", "", 0);
+      }
+      for (i = 0; i < nLen + nDist; ) {
+        let symbol = fnDecode(lenCode);
+        if (symbol < 16) {
+          lens[i] = symbol;
+          i += 1;
+        } else {
+          let len = 0;
+          if (symbol === 16) {
+            if (i === 0) {
+              throw that.composeError(Error(), "Zip: inflate: repeat lengths with no first length", "", 0);
+            }
+            len = lens[i - 1];
+            symbol = 3 + fnBits(2);
+          } else if (symbol === 17) {
+            symbol = 3 + fnBits(3);
+          } else {
+            symbol = 11 + fnBits(7);
+          }
+          if (i + symbol > nLen + nDist) {
+            throw that.composeError(Error(), "Zip: inflate: more lengths than specified", "", 0);
+          }
+          while (symbol) {
+            lens[i] = len;
+            symbol -= 1;
+            i += 1;
+          }
+        }
+      }
+      const err1 = ZipFile.fnInflateConstruct(lenCode, lens, nLen), err2 = ZipFile.fnInflateConstruct(distCode, lens.slice(nLen), nDist);
+      if (err1 < 0 || err1 > 0 && nLen - lenCode.count[0] !== 1 || (err2 < 0 || err2 > 0 && nDist - distCode.count[0] !== 1)) {
+        throw that.composeError(Error(), "Zip: inflate: bad literal or length codes", "", 0);
+      }
+    }, fnInflateHuffmann = function() {
+      let symbol;
+      do {
+        symbol = fnDecode(lenCode);
+        if (symbol < 256) {
+          outBuf[outCnt] = symbol;
+          outCnt += 1;
+        }
+        if (symbol > 256) {
+          symbol -= 257;
+          if (symbol > 28) {
+            throw that.composeError(Error(), "Zip: inflate: Invalid length/distance", "", 0);
+          }
+          let len = startLens[symbol] + fnBits(lExt[symbol]);
+          symbol = fnDecode(distCode);
+          const dist = dists[symbol] + fnBits(dExt[symbol]);
+          if (dist > outCnt) {
+            throw that.composeError(Error(), "Zip: inflate: distance out of range", "", 0);
+          }
+          while (len) {
+            outBuf[outCnt] = outBuf[outCnt - dist];
+            len -= 1;
+            outCnt += 1;
+          }
+        }
+      } while (symbol !== 256);
+    };
+    let last;
+    do {
+      last = fnBits(1);
+      const type = fnBits(2);
+      switch (type) {
+        case 0:
+          fnInflateStored();
+          break;
+        case 1:
+        case 2:
+          lenCode = {
+            count: [],
+            symbol: []
+          };
+          distCode = {
+            count: [],
+            symbol: []
+          };
+          lens = [];
+          if (type === 1) {
+            ZipFile.fnConstructFixedHuffman(lens, lenCode, distCode);
+          } else {
+            fnConstructDynamicHuffman();
+          }
+          fnInflateHuffmann();
+          break;
+        default:
+          throw this.composeError(Error(), "Zip: inflate: unsupported compression type" + type, "", 0);
+      }
+    } while (!last);
+    return outBuf;
+  }
+  readData(name) {
+    const cdfh = this.entryTable[name];
+    if (!cdfh) {
+      throw this.composeError(Error(), "Zip: readData: file does not exist:" + name, "", 0);
+    }
+    let dataUTF8 = "";
+    if (cdfh.compressionMethod === 0) {
+      dataUTF8 = this.readUTF(cdfh.dataStart, cdfh.size);
+    } else if (cdfh.compressionMethod === 8) {
+      const fileData = this.inflate(cdfh.dataStart, cdfh.compressedSize, cdfh.size), savedData = this.data;
+      this.data = fileData;
+      dataUTF8 = this.readUTF(0, fileData.length);
+      this.data = savedData;
+    } else {
+      throw this.composeError(Error(), "Zip: readData: compression method not supported:" + cdfh.compressionMethod, "", 0);
+    }
+    if (dataUTF8.length !== cdfh.size) {
+      Utils.console.error("Zip: readData: different length 2!");
+    }
+    return dataUTF8;
+  }
+}
+
+const _FileHandler = class _FileHandler {
+  constructor(options) {
+    this.processFileImports = true;
+    this.options = {};
+    this.setOptions(options);
+  }
+  setOptions(options) {
+    Object.assign(this.options, options);
+  }
+  getDiskImage() {
+    if (!this.diskImage) {
+      this.diskImage = new DiskImage({
+        data: ""
+        // will be set later
+      });
+    }
+    return this.diskImage;
+  }
+  static getStorageName(name, defaultExtension) {
+    if (name.indexOf(".") < 0) {
+      name += "." + (defaultExtension || "");
+    }
+    return name;
+  }
+  static createExampleLoadRequest(key, database, metadata, autorun) {
+    const type = metadata?.charAt(0), loadOnly = type === "B" || type === "D" || type === "G";
+    return {
+      name: database === "storage" ? key : "/" + key,
+      command: autorun && !loadOnly ? "run" : "load"
+    };
+  }
+  static resolveExamplePath(name, currentKey) {
+    if (name.charAt(0) === "/") {
+      const absolute = name.substring(1);
+      return { name: absolute, memorizedExample: absolute };
+    }
+    const lastSlash = currentKey.lastIndexOf("/");
+    if (lastSlash >= 0) {
+      name = currentKey.substring(0, lastSlash) + "/" + name;
+      name = name.replace(/\w+\/\.\.\//, "");
+    }
+    return { name, memorizedExample: currentKey };
+  }
+  static prepareExampleLoad(name, currentKey, examples, databaseDir) {
+    const resolved = _FileHandler.resolveExamplePath(name, currentKey), entry = examples[resolved.name], status = entry?.loaded ? "loaded" : resolved.name && entry ? "fetch" : "missing";
+    return {
+      name: resolved.name,
+      memorizedExample: resolved.memorizedExample,
+      entry,
+      url: status === "fetch" ? databaseDir + "/" + resolved.name + ".js" : resolved.name,
+      status
+    };
+  }
+  static prepareSave(file, getSource, encodeTokens) {
+    const type = file.typeString, extension = type === "P" || type === "T" ? "bas" : type === "B" ? "bin" : "", name = _FileHandler.getStorageName(file.name, extension);
+    let data;
+    if (file.fileData.length || type === "B" || file.command === "openout") {
+      data = file.fileData.join("");
+      if (!file.length) {
+        file.length = data.length;
+      }
+    } else {
+      data = getSource();
+      if (type === "T" || type === "P") {
+        data = encodeTokens(data, name);
+        if (data === "") {
+          file.typeString = "A";
+        } else if (type === "P") {
+          data = DiskImage.unOrProtectData(data);
+        }
+      }
+      file.length = data.length;
+    }
+    return { name, data, storedData: _FileHandler.joinMeta(file) + "," + data };
+  }
+  saveFile(file, getSource, encodeTokens) {
+    const prepared = _FileHandler.prepareSave(file, getSource, encodeTokens);
+    this.options.storage.setItem(prepared.name, prepared.storedData);
+    this.options.updateStorageDatabase("set", prepared.name);
+    return prepared;
+  }
+  static loadFromStorage(storage, name) {
+    if (name.indexOf(".") >= 0) {
+      return storage.getItem(name);
+    }
+    for (const extension of _FileHandler.defaultExtensions) {
+      const data = storage.getItem(_FileHandler.getStorageName(name, extension));
+      if (data !== null) {
+        return data;
+      }
+    }
+    return null;
+  }
+  static splitMeta(input) {
+    if (input.indexOf(_FileHandler.metaIdent) === 0) {
+      const index = input.indexOf(",");
+      if (index >= 0) {
+        const meta = input.substring(0, index).split(";");
+        return {
+          meta: {
+            typeString: meta[1],
+            start: Number(meta[2]),
+            length: Number(meta[3]),
+            entry: Number(meta[4]),
+            encoding: meta[5]
+          },
+          data: input.substring(index + 1)
+        };
+      }
+    }
+    return { meta: { typeString: "" }, data: input };
+  }
+  static getMetaIdent() {
+    return _FileHandler.metaIdent;
+  }
+  static formatDirectoryEntries(entries, sort = false) {
+    const names = entries.map((entry) => {
+      const parts = entry.split(".");
+      return parts[0].padEnd(8, " ") + "." + (parts.length >= 2 ? parts[1] : "").padEnd(3, " ");
+    });
+    if (sort) {
+      names.sort();
+    }
+    return ["\r\nDrive A: user  0\r\n\r\n", ...names.map((name) => name + "  "), "\r\n\r\n999K free\r\n\r\n"];
+  }
+  static decodeStoredFile(input, options) {
+    const result = _FileHandler.splitMeta(input), type = result.meta.typeString;
+    let data = result.data;
+    if (result.meta.encoding === "base64") {
+      data = options.atobFn(data);
+    }
+    if (type === "T") {
+      data = options.decodeTokenizedBasic(data);
+    } else if (type === "P") {
+      data = options.decodeTokenizedBasic(DiskImage.unOrProtectData(data));
+    } else if (type === "A") {
+      data = data.replace(/\x1a+$/, "");
+    } else if (type === "G") {
+      data = _FileHandler.asmGena3Convert(data);
+    } else if (type === "S") {
+      data = options.applySnapshot(data);
+    } else if (type === "X" || type === "Z") {
+      data = "1 ' " + options.importArchive(data, type).join(", ");
+    }
+    return { meta: result.meta, data };
+  }
+  static asmGena3Convert(data) {
+    const length = data.length;
+    let pos = 4, output = "";
+    while (pos < length) {
+      const line = data.charCodeAt(pos) + data.charCodeAt(pos + 1) * 256;
+      pos += 2;
+      const cr = data.indexOf("\r", pos), separator = data.indexOf("", pos), end = Math.min(cr < 0 ? length : cr, separator < 0 ? length : separator);
+      output += line + " " + data.substring(pos, end) + "\n";
+      pos = end + 1;
+    }
+    return output;
+  }
+  static prepareMaskRegExp(mask) {
+    mask = mask.replace(/([.+^$[\]\\(){}|-])/g, "\\$1");
+    mask = mask.replace(/\?/g, ".");
+    mask = mask.replace(/\*/g, ".*");
+    return new RegExp("^" + mask + "$");
+  }
+  static getStorageDirectoryEntries(storage, mask) {
+    const entries = [], regExp = mask ? _FileHandler.prepareMaskRegExp(mask) : void 0;
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key === null) {
+        continue;
+      }
+      const data = storage.getItem(key);
+      if (data !== null && data.startsWith(_FileHandler.metaIdent)) {
+        const matchKey = key.replace(/[\n\r]/g, "");
+        if (!regExp || regExp.test(matchKey)) {
+          entries.push(key);
+        }
+      }
+    }
+    return entries;
+  }
+  static getDirectoryEntries(storage, examples, currentExample, mask) {
+    let fileMask = mask ? _FileHandler.getStorageName(mask) : "";
+    const entries = _FileHandler.getStorageDirectoryEntries(storage, fileMask), lastSlash = currentExample.lastIndexOf("/");
+    let path = "";
+    if (lastSlash >= 0) {
+      path = currentExample.substring(0, lastSlash) + "/";
+      fileMask = path + (fileMask || "*.*");
+    }
+    const regExp = fileMask ? _FileHandler.prepareMaskRegExp(fileMask) : void 0, fileExists = {};
+    for (const entry of entries) {
+      fileExists[entry] = true;
+    }
+    for (const key in examples) {
+      if (examples.hasOwnProperty(key)) {
+        const example = examples[key], name = example.key, matchName = name + (name.indexOf(".") < 0 ? "." : "");
+        if (!regExp || regExp.test(matchName)) {
+          const entry = name.substring(path.length);
+          if (!fileExists[entry]) {
+            fileExists[entry] = true;
+            entries.push(entry);
+          }
+        }
+      }
+    }
+    return entries;
+  }
+  eraseFiles(mask) {
+    const name = _FileHandler.getStorageName(mask), entries = _FileHandler.getStorageDirectoryEntries(this.options.storage, name), removed = [], missing = [];
+    for (const entry of entries) {
+      if (this.options.storage.getItem(entry) !== null) {
+        this.options.storage.removeItem(entry);
+        this.options.updateStorageDatabase("remove", entry);
+        removed.push(entry);
+      } else {
+        missing.push(entry);
+      }
+    }
+    return { name, matched: entries.length > 0, removed, missing };
+  }
+  renameFile(oldName, newName) {
+    oldName = _FileHandler.getStorageName(oldName);
+    newName = _FileHandler.getStorageName(newName);
+    const item = this.options.storage.getItem(oldName);
+    if (item === null) {
+      return { status: "oldNotFound", oldName, newName };
+    }
+    if (this.options.storage.getItem(newName)) {
+      return { status: "newExists", oldName, newName };
+    }
+    this.options.storage.setItem(newName, item);
+    this.options.updateStorageDatabase("set", newName);
+    this.options.storage.removeItem(oldName);
+    this.options.updateStorageDatabase("remove", oldName);
+    return { status: "renamed", oldName, newName };
+  }
+  static joinMeta(meta) {
+    return [
+      _FileHandler.metaIdent,
+      meta.typeString,
+      meta.start,
+      meta.length,
+      meta.entry,
+      meta.encoding
+    ].join(";");
+  }
+  // eslint-disable-line no-control-regex
+  // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
+  processDskFile(data, name, imported) {
+    try {
+      const dsk = this.getDiskImage();
+      dsk.setOptions({
+        data,
+        diskName: name
+      });
+      const dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
+      for (let i = 0; i < diskFiles.length; i += 1) {
+        const fileName = diskFiles[i];
+        try {
+          data = dsk.readFile(dir[fileName]);
+          this.fnLoad2(data, fileName, "", imported);
+        } catch (e) {
+          Utils.console.error(e);
+          if (e instanceof Error) {
+            this.options.outputError(e, true);
+          }
+        }
+      }
+    } catch (e) {
+      Utils.console.error(e);
+      if (e instanceof Error) {
+        this.options.outputError(e, true);
+      }
+    }
+  }
+  processZipFile(uint8Array, name, imported) {
+    let zip;
+    try {
+      zip = new ZipFile({
+        data: uint8Array,
+        // rather data
+        zipName: name
+      });
+    } catch (e) {
+      Utils.console.error(e);
+      if (e instanceof Error) {
+        this.options.outputError(e, true);
+      }
+    }
+    if (zip) {
+      const zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
+      for (let i = 0; i < entries.length; i += 1) {
+        const name2 = entries[i];
+        if (name2.startsWith("__MACOSX/")) {
+          Utils.console.log("processZipFile: Ignoring file:", name2);
+        } else {
+          let data2;
+          try {
+            data2 = zip.readData(name2);
+          } catch (e) {
+            Utils.console.error(e);
+            if (e instanceof Error) {
+              this.options.outputError(e, true);
+            }
+          }
+          if (data2) {
+            this.fnLoad2(data2, name2, "", imported);
+          }
+        }
+      }
+    }
+  }
+  fnLoad2(data, name, type, imported) {
+    let header;
+    if (type === "" && !(data instanceof Uint8Array)) {
+      header = DiskImage.parseAmsdosHeader(data);
+      if (header) {
+        type = "H";
+        data = data.substring(128);
+      } else if (_FileHandler.reRegExpIsText.test(data)) {
+        type = "A";
+      } else if (Snapshot.testSnapIdent(data.substring(0, 8))) {
+        type = "S";
+      } else if (DiskImage.testDiskIdent(data.substring(0, 8))) {
+        type = "X";
+      }
+    }
+    switch (type) {
+      case "A":
+      // "text/plain"
+      case "B":
+        header = DiskImage.createAmsdosHeader({
+          typeString: type,
+          length: data.length
+        });
+        break;
+      case "H":
+        break;
+      case "S":
+        header = DiskImage.createAmsdosHeader({
+          typeString: type,
+          length: data.length
+        });
+        break;
+      case "X":
+        if (this.processFileImports) {
+          this.processDskFile(data, name, imported);
+        } else {
+          header = DiskImage.createAmsdosHeader({
+            typeString: type,
+            length: data.length
+          });
+        }
+        break;
+      case "Z":
+        if (this.processFileImports) {
+          this.processZipFile(data instanceof Uint8Array ? data : Utils.string2Uint8Array(data), name, imported);
+        } else {
+          header = DiskImage.createAmsdosHeader({
+            typeString: type,
+            length: data.length
+          });
+        }
+        break;
+      default:
+        Utils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
+        header = DiskImage.createAmsdosHeader({
+          typeString: "B",
+          length: data.length
+        });
+        break;
+    }
+    if (header) {
+      const storageName = _FileHandler.getStorageName(this.options.adaptFilename(name, "FILE")), meta = _FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? Utils.uint8Array2string(data) : data;
+      try {
+        this.options.storage.setItem(storageName, meta + "," + dataAsString);
+        this.options.updateStorageDatabase("set", storageName);
+        Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+        imported.push(name);
+      } catch (e) {
+        Utils.console.error(e);
+        if (e instanceof Error) {
+          if (e.name === "QuotaExceededError") {
+            e.shortMessage = storageName + ": Quota exceeded";
+          }
+          this.options.outputError(e, true);
+        }
+      }
+    }
+  }
+};
+_FileHandler.metaIdent = "CPCBasic";
+_FileHandler.defaultExtensions = ["", "bas", "bin"];
+_FileHandler.reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/);
+let FileHandler = _FileHandler;
+
+const randomCpcInitState = 1812433253;
+class RandomCpc {
+  constructor(seed) {
+    this.state = randomCpcInitState;
+    this.init(seed);
+  }
+  init(seed) {
+    this.state = randomCpcInitState;
+    seed || (seed = 0);
+    if (seed !== 0) {
+      this.randomizeMantissa(RandomCpc.encodeCpcMantissa(seed));
+    }
+  }
+  static encodeCpcMantissa(value) {
+    if (!Number.isFinite(value)) {
+      throw new Error("Seed must be a finite number");
+    }
+    let mantissa = 0, exponent = 0, sign = 0;
+    if (value !== 0) {
+      if (value < 0) {
+        sign = 2147483648;
+        value = -value;
+      }
+      exponent = Math.ceil(Math.log(value) / Math.log(2));
+      mantissa = Math.round(value / Math.pow(2, exponent - 32)) & 2147483647;
+    }
+    const signMantissa = sign + mantissa, result = [
+      signMantissa & 255,
+      signMantissa >> 8 & 255,
+      signMantissa >> 16 & 255,
+      signMantissa >> 24 & 255
+    ];
+    return result;
+  }
+  randomizeMantissa(bytes) {
+    const xorMask = ((bytes[1] << 8 | bytes[0]) << 16 | (bytes[3] << 8 | bytes[2])) >>> 0;
+    this.state = (this.state ^ xorMask) >>> 0;
+  }
+  static nextStateU32(state) {
+    const initLow = 35173, initHigh = 27655, mulLow = 62828, high = state >>> 16, low = state & 65535, highAcc = high * initLow + initLow, newHigh = highAcc & 65535, newLow = low * mulLow + initHigh + (highAcc >>> 16) & 65535;
+    return (newHigh << 16 | newLow) >>> 0;
+  }
+  random() {
+    this.state = RandomCpc.nextStateU32(this.state);
+    const high = this.state >>> 16, low = this.state & 65535;
+    return ((low << 16 | high) >>> 0) / 4294967296;
+  }
+}
+class RandomMinStd {
+  constructor(seed) {
+    this.init(seed);
+  }
+  // https://en.wikipedia.org/wiki/Jenkins_hash_function
+  static vmHashCode(s) {
+    let hash = 0;
+    for (let i = 0; i < s.length; i += 1) {
+      hash += s.charCodeAt(i);
+      hash += hash << 10;
+      hash ^= hash >> 6;
+    }
+    hash += hash << 3;
+    hash ^= hash >> 11;
+    hash += hash << 15;
+    return hash;
+  }
+  init(seed) {
+    seed = RandomMinStd.vmHashCode(String(seed));
+    this.x = seed || 2305125383;
+  }
+  random() {
+    const m = 2147483647, a = 16807, q = 127773, r = 2836;
+    let x = this.x;
+    x = a * (x % q) - r * (x / q | 0);
+    if (x <= 0) {
+      x += m;
+    }
+    this.x = x;
+    return x / m;
+  }
+}
+class Random {
+  constructor(useCpcRandom = true) {
+    if (useCpcRandom) {
+      this.rndGen = new RandomCpc();
+    } else {
+      this.rndGen = new RandomMinStd();
+    }
+  }
+  init(seed) {
+    return this.rndGen.init(seed);
+  }
+  random() {
+    return this.rndGen.random();
+  }
+}
+
+class Diff {
+  // Refer to http://www.xmailserver.org/diff2.pdf
+  static composeError(error, message, value, pos) {
+    return Utils.composeError("Diff", error, message, value, pos, void 0, 0);
+  }
+  static inRange(x, l, r) {
+    return l <= x && x <= r || r <= x && x <= l;
+  }
+  static fnEquals(a, b) {
+    return a === b;
+  }
+  // Accepts custom comparator
+  static customIndexOf(arr, item, start, fnEquals) {
+    for (let i2 = start; i2 < arr.length; i2 += 1) {
+      if (fnEquals(item, arr[i2])) {
+        return i2;
+      }
+    }
+    return -1;
+  }
+  /* can we use it here? need to define aA, aB, lcsAtoms, findMidSnake():
+  	private static lcs(startA: number, endA: number, startB: number, endB: number) {
+  		const N = endA - startA + 1,
+  			M = endB - startB + 1;
+  
+  		if (N > 0 && M > 0) {
+  			const middleSnake = findMidSnake(startA, endA, startB, endB),
+  				// A[x;u] == B[y,v] and is part of LCS
+  				x = middleSnake[0][0],
+  				y = middleSnake[0][1],
+  				u = middleSnake[1][0],
+  				v = middleSnake[1][1],
+  				D = middleSnake[2];
+  
+  			if (D > 1) {
+  				Diff.lcs(startA, x - 1, startB, y - 1);
+  				if (x <= u) {
+  					[].push.apply(lcsAtoms, aA.slice(x, u + 1));
+  				}
+  				lcs(u + 1, endA, v + 1, endB);
+  			} else if (M > N) {
+  				[].push.apply(lcsAtoms, aA.slice(startA, endA + 1));
+  			} else {
+  				[].push.apply(lcsAtoms, aB.slice(startB, endB + 1));
+  			}
+  		}
+  	}
+  	*/
+  // Longest Common Subsequence
+  // @param A - sequence of atoms - Array
+  // @param B - sequence of atoms - Array
+  // @param equals - optional comparator of atoms - returns true or false,
+  //                 if not specified, triple equals operator is used
+  // @returns Array - sequence of atoms, one of LCSs, edit script from A to B
+  static fnLCS(aA, aB, equals) {
+    const toPoint = function(x) {
+      return [
+        x,
+        x - this
+        // eslint-disable-line no-invalid-this
+      ];
+    }, findMidSnake = function(startA, endA, startB, endB) {
+      const iN = endA - startA + 1, iM = endB - startB + 1, max = iN + iM, delta = iN - iM, hhalfMaxCeil = (max + 1) / 2 | 0, oV = {}, oU = {};
+      let overlap, iD;
+      oV[1] = 0;
+      oU[delta - 1] = iN;
+      for (iD = 0; iD <= hhalfMaxCeil; iD += 1) {
+        for (let k = -iD; k <= iD && !overlap; k += 2) {
+          let x;
+          if (k === -iD || k !== iD && oV[k - 1] < oV[k + 1]) {
+            x = oV[k + 1];
+          } else {
+            x = oV[k - 1] + 1;
+          }
+          let y = x - k;
+          if (isNaN(y) || x > iN || y > iM) {
+            continue;
+          }
+          const xx = x;
+          while (x < iN && y < iM && equals(aA[startA + x], aB[startB + y])) {
+            x += 1;
+            y += 1;
+          }
+          oV[k] = x;
+          if ((delta & 1) === 1 && Diff.inRange(k, delta - (iD - 1), delta + (iD - 1))) {
+            if (oV[k] >= oU[k]) {
+              overlap = [
+                xx,
+                x
+              ].map(toPoint, k);
+            }
+          }
+        }
+        let SES;
+        if (overlap) {
+          SES = iD * 2 - 1;
+        }
+        for (let k = -iD; k <= iD && !overlap; k += 2) {
+          const K = k + delta;
+          let x;
+          if (k === iD || k !== -iD && oU[K - 1] < oU[K + 1]) {
+            x = oU[K - 1];
+          } else {
+            x = oU[K + 1] - 1;
+          }
+          let y = x - K;
+          if (isNaN(y) || x < 0 || y < 0) {
+            continue;
+          }
+          const xx = x;
+          while (x > 0 && y > 0 && equals(aA[startA + x - 1], aB[startB + y - 1])) {
+            x -= 1;
+            y -= 1;
+          }
+          oU[K] = x;
+          if (delta % 2 === 0 && Diff.inRange(K, -iD, iD)) {
+            if (oU[K] <= oV[K]) {
+              overlap = [
+                x,
+                xx
+              ].map(toPoint, K);
+            }
+          }
+        }
+        if (overlap) {
+          SES = SES || iD * 2;
+          for (let i = 0; i < 2; i += 1) {
+            for (let j = 0; j < 2; j += 1) {
+              overlap[i][j] += [
+                startA,
+                startB
+              ][j] - i;
+            }
+          }
+          return overlap.concat([
+            SES,
+            (max - SES) / 2
+          ]);
+        }
+      }
+      throw Diff.composeError(Error(), "Programming error in findMidSnake", "", 0);
+    }, lcsAtoms = [], lcs = function(startA, endA, startB, endB) {
+      const N = endA - startA + 1, M = endB - startB + 1;
+      if (N > 0 && M > 0) {
+        const middleSnake = findMidSnake(startA, endA, startB, endB), x = middleSnake[0][0], y = middleSnake[0][1], u = middleSnake[1][0], v = middleSnake[1][1], D = middleSnake[2];
+        if (D > 1) {
+          lcs(startA, x - 1, startB, y - 1);
+          if (x <= u) {
+            [].push.apply(lcsAtoms, aA.slice(x, u + 1));
+          }
+          lcs(u + 1, endA, v + 1, endB);
+        } else if (M > N) {
+          [].push.apply(lcsAtoms, aA.slice(startA, endA + 1));
+        } else {
+          [].push.apply(lcsAtoms, aB.slice(startB, endB + 1));
+        }
+      }
+    };
+    lcs(0, aA.length - 1, 0, aB.length - 1);
+    return lcsAtoms;
+  }
+  // Diff sequence
+  // @param A - sequence of atoms - Array
+  // @param B - sequence of atoms - Array
+  // [@param equals - optional comparator of atoms - returns true or false,
+  //                 if not specified, triple equals operator is used]
+  // @returns Array - sequence of objects in a form of:
+  //   - operation: one of "none", "add", "delete"
+  //   - atom: the atom found in either A or B
+  // Applying operations from diff sequence you should be able to transform A to B
+  static diff(aA, aB) {
+    const diff = [], fnEquals = Diff.fnEquals;
+    let i = 0, j = 0, iN = aA.length, iM = aB.length, iK = 0;
+    while (i < iN && j < iM && fnEquals(aA[i], aB[j])) {
+      i += 1;
+      j += 1;
+    }
+    while (i < iN && j < iM && fnEquals(aA[iN - 1], aB[iM - 1])) {
+      iN -= 1;
+      iM -= 1;
+      iK += 1;
+    }
+    [].push.apply(diff, aA.slice(0, i).map(function(atom2) {
+      return {
+        operation: "none",
+        atom: atom2
+      };
+    }));
+    const lcs = Diff.fnLCS(aA.slice(i, iN), aB.slice(j, iM), fnEquals);
+    for (let k = 0; k < lcs.length; k += 1) {
+      const atom = lcs[k], ni = Diff.customIndexOf(aA, atom, i, fnEquals), nj = Diff.customIndexOf(aB, atom, j, fnEquals);
+      [].push.apply(diff, aA.slice(i, ni).map(function(atom2) {
+        return {
+          operation: "delete",
+          atom: atom2
+        };
+      }));
+      [].push.apply(diff, aB.slice(j, nj).map(function(atom2) {
+        return {
+          operation: "add",
+          atom: atom2
+        };
+      }));
+      diff.push({
+        operation: "none",
+        atom
+      });
+      i = ni + 1;
+      j = nj + 1;
+    }
+    [].push.apply(diff, aA.slice(i, iN).map(function(atom2) {
+      return {
+        operation: "delete",
+        atom: atom2
+      };
+    }));
+    [].push.apply(diff, aB.slice(j, iM).map(function(atom2) {
+      return {
+        operation: "add",
+        atom: atom2
+      };
+    }));
+    [].push.apply(diff, aA.slice(iN, iN + iK).map(function(atom2) {
+      return {
+        operation: "none",
+        atom: atom2
+      };
+    }));
+    return diff;
+  }
+  static testDiff(text1, text2) {
+    const textParts1 = text1.split("\n"), textParts2 = text2.split("\n");
+    let diff = Diff.diff(textParts1, textParts2).map(function(o) {
+      let result = "";
+      if (o.operation === "add") {
+        result = "+ " + o.atom;
+      } else if (o.operation === "delete") {
+        result = "- " + o.atom;
+      }
+      return result;
+    }).join("\n");
+    diff = diff.replace(/\n\n+/g, "\n");
+    return diff;
   }
 }
 
@@ -2334,1078 +6590,6 @@ _BasicParser.brackets = {
 };
 let BasicParser = _BasicParser;
 
-class BasicTokenizer {
-  constructor() {
-    this.pos = 0;
-    this.line = 0;
-    // will also be set in decode
-    this.lineEnd = 0;
-    this.input = "";
-    this.needSpace = false;
-    // hmm
-    this.debug = {
-      startPos: 0,
-      line: 0,
-      info: ""
-    };
-    // on sq?
-    /* eslint-disable no-invalid-this */
-    this.tokens = {
-      0: "",
-      // marker for "end of tokenised line"
-      1: ":",
-      // ":" statement seperator
-      2: this.fnIntVar,
-      // integer variable definition (defined with "%" suffix)
-      3: this.fnStringVar,
-      // string variable definition (defined with "$" suffix)
-      4: this.fnFpVar,
-      // floating point variable definition (defined with "!" suffix)
-      5: "var?",
-      6: "var?",
-      7: "var?",
-      // ??
-      8: "var?",
-      // ??
-      9: "var?",
-      // ??
-      10: "var?",
-      // ??
-      11: this.fnVar,
-      // integer variable definition (no suffix)
-      12: this.fnVar,
-      // string variable definition (no suffix)
-      13: this.fnVar,
-      // floating point or no type (no suffix)
-      14: "0",
-      // number constant "0"
-      15: "1",
-      // number constant "1"
-      16: "2",
-      // number constant "2"
-      17: "3",
-      // number constant "3"
-      18: "4",
-      // number constant "4"
-      19: "5",
-      // number constant "5"
-      20: "6",
-      // number constant "6"
-      21: "7",
-      // number constant "7"
-      22: "8",
-      // number constant "8"
-      23: "9",
-      // number constant "9"
-      24: "10",
-      // number constant "10"
-      25: this.fnNum8DecAsStr,
-      // 8-bit integer decimal value
-      26: this.fnNum16DecAsStr,
-      // 16-bit integer decimal value
-      27: this.fnNum16Bin,
-      // 16-bit integer binary value (with "&X" prefix)
-      28: this.fnNum16Hex,
-      // num16Hex: 16-bit integer hexadecimal value (with "&H" or "&" prefix)
-      29: this.fnNum16LineAddrAsStr,
-      // 16-bit BASIC program line memory address pointer
-      30: this.fnNum16DecAsStr,
-      // 16-bit integer BASIC line number
-      31: this.fnNumFp,
-      // floating point value
-      // 0x20-0x21 ASCII printable symbols
-      34: this.fnQuotedString,
-      // '"' quoted string value
-      // 0x23-0x7b ASCII printable symbols
-      124: this.fnRsx,
-      // "|" symbol; prefix for RSX commands
-      128: "AFTER",
-      129: "AUTO",
-      130: "BORDER",
-      131: "CALL",
-      132: "CAT",
-      133: "CHAIN",
-      134: "CLEAR",
-      135: "CLG",
-      136: "CLOSEIN",
-      137: "CLOSEOUT",
-      138: "CLS",
-      139: "CONT",
-      140: "DATA",
-      141: "DEF",
-      142: "DEFINT",
-      143: "DEFREAL",
-      144: "DEFSTR",
-      145: "DEG",
-      146: "DELETE",
-      147: "DIM",
-      148: "DRAW",
-      149: "DRAWR",
-      150: "EDIT",
-      151: "ELSE",
-      // always with 0x01 0x97
-      152: "END",
-      153: "ENT",
-      154: "ENV",
-      155: "ERASE",
-      156: "ERROR",
-      157: "EVERY",
-      158: "FOR",
-      159: "GOSUB",
-      160: "GOTO",
-      161: "IF",
-      162: "INK",
-      163: "INPUT",
-      164: "KEY",
-      165: "LET",
-      166: "LINE",
-      167: "LIST",
-      168: "LOAD",
-      169: "LOCATE",
-      170: "MEMORY",
-      171: "MERGE",
-      172: "MID$",
-      173: "MODE",
-      174: "MOVE",
-      175: "MOVER",
-      176: "NEXT",
-      177: "NEW",
-      178: "ON",
-      179: "ON BREAK",
-      180: "ON ERROR GOTO 0",
-      // (on error goto n > 0 is decoded with separate tokens)
-      181: "ON SQ",
-      182: "OPENIN",
-      183: "OPENOUT",
-      184: "ORIGIN",
-      185: "OUT",
-      186: "PAPER",
-      187: "PEN",
-      188: "PLOT",
-      189: "PLOTR",
-      190: "POKE",
-      191: "PRINT",
-      192: this.fnApostrophe,
-      // "'" symbol (same function as REM keyword); always with 0x01 0xC0
-      193: "RAD",
-      194: "RANDOMIZE",
-      195: "READ",
-      196: "RELEASE",
-      197: this.fnRem,
-      // REM
-      198: "RENUM",
-      199: "RESTORE",
-      200: "RESUME",
-      201: "RETURN",
-      202: "RUN",
-      203: "SAVE",
-      204: "SOUND",
-      205: "SPEED",
-      206: "STOP",
-      207: "SYMBOL",
-      208: "TAG",
-      209: "TAGOFF",
-      210: "TROFF",
-      211: "TRON",
-      212: "WAIT",
-      213: "WEND",
-      214: "WHILE",
-      215: "WIDTH",
-      216: "WINDOW",
-      217: "WRITE",
-      218: "ZONE",
-      219: "DI",
-      220: "EI",
-      221: "FILL",
-      // (v1.1)
-      222: "GRAPHICS",
-      // (v1.1)
-      223: "MASK",
-      // (v1.1)
-      224: "FRAME",
-      // (v1.1)
-      225: "CURSOR",
-      // (v1.1)
-      226: "<unused>",
-      227: "ERL",
-      228: "FN",
-      229: "SPC",
-      230: "STEP",
-      231: "SWAP",
-      232: "<unused>",
-      233: "<unused>",
-      234: "TAB",
-      235: "THEN",
-      236: "TO",
-      237: "USING",
-      238: ">",
-      // (greater than)
-      239: "=",
-      // (equal)
-      240: ">=",
-      // (greater or equal)
-      241: "<",
-      // (less than)
-      242: "<>",
-      // (not equal)
-      243: "<=",
-      // =<, <=, < = (less than or equal)
-      244: "+",
-      // (addition)
-      245: "-",
-      // (subtraction or unary minus)
-      246: "*",
-      // (multiplication)
-      247: "/",
-      // (division)
-      248: "^",
-      // (x to the power of y)
-      249: "\\",
-      // (integer division)
-      250: "AND",
-      251: "MOD",
-      252: "OR",
-      253: "XOR",
-      254: "NOT"
-      // 0xff: (prefix for additional keywords)
-    };
-    /* eslint-enable no-invalid-this */
-    this.tokensFF = {
-      // Functions with one argument
-      0: "ABS",
-      1: "ASC",
-      2: "ATN",
-      3: "CHR$",
-      4: "CINT",
-      5: "COS",
-      6: "CREAL",
-      7: "EXP",
-      8: "FIX",
-      9: "FRE",
-      10: "INKEY",
-      11: "INP",
-      12: "INT",
-      13: "JOY",
-      14: "LEN",
-      15: "LOG",
-      16: "LOG10",
-      17: "LOWER$",
-      18: "PEEK",
-      19: "REMAIN",
-      20: "SGN",
-      21: "SIN",
-      22: "SPACE$",
-      23: "SQ",
-      24: "SQR",
-      25: "STR$",
-      26: "TAN",
-      27: "UNT",
-      28: "UPPER$",
-      29: "VAL",
-      // Functions without arguments
-      64: "EOF",
-      65: "ERR",
-      66: "HIMEM",
-      67: "INKEY$",
-      68: "PI",
-      69: "RND",
-      70: "TIME",
-      71: "XPOS",
-      72: "YPOS",
-      73: "DERR",
-      // (v1.1)
-      // Functions with more arguments
-      113: "BIN$",
-      114: "DEC$",
-      // (v1.1)
-      115: "HEX$",
-      116: "INSTR",
-      117: "LEFT$",
-      118: "MAX",
-      119: "MIN",
-      120: "POS",
-      121: "RIGHT$",
-      122: "ROUND",
-      123: "STRING$",
-      124: "TEST",
-      125: "TESTR",
-      126: "COPYCHR$",
-      // (v1.1)
-      127: "VPOS"
-    };
-  }
-  fnNum8Dec() {
-    const num = this.input.charCodeAt(this.pos);
-    this.pos += 1;
-    return num;
-  }
-  fnNum16Dec() {
-    return this.fnNum8Dec() + this.fnNum8Dec() * 256;
-  }
-  fnNum32Dec() {
-    return this.fnNum16Dec() + this.fnNum16Dec() * 65536;
-  }
-  fnNum8DecAsStr() {
-    return String(this.fnNum8Dec());
-  }
-  fnNum16DecAsStr() {
-    return String(this.fnNum16Dec());
-  }
-  // line number pointer (can occur when loading snapshots)
-  fnNum16LineAddrAsStr() {
-    const prgStart = 368, lineAddr = this.fnNum16Dec() - prgStart, addr = lineAddr + 3, line = this.input.charCodeAt(addr) + this.input.charCodeAt(addr + 1) * 256;
-    return String(line);
-  }
-  fnNum16Bin() {
-    return "&X" + this.fnNum16Dec().toString(2);
-  }
-  fnNum16Hex() {
-    return "&" + this.fnNum16Dec().toString(16).toUpperCase();
-  }
-  // floating point numbers (little endian byte order)
-  // byte 0: mantissa (bits 7-0)
-  // byte 1: mantissa (bits 15-8)
-  // byte 2: mantissa (bits 23-16)
-  // byte 3: sign, mantissa (bits 30-24)
-  // byte 4: exponent
-  //
-  //
-  // examples:
-  // 0xa2,0xda,0x0f,0x49,0x82 (PI)
-  // 0x00,0x00,0x00,0x00,0x81 (1)
-  //
-  // 0x00,0x00,0x00,0x00,0x84      ; 10 (10^1)
-  // 0x00,0x00,0x00,0x48,0x87      ; 100 (10^2)
-  // 0x00,0x00,0x00,0x7A,0x8A      ; 1000 (10^3)
-  // 0x00,0x00,0x40,0x1c,0x8e      ; 10000 (10^4) (1E+4)
-  // 0x00,0x00,0x50,0x43,0x91      ; 100000 (10^5) (1E+5)
-  // 0x00,0x00,0x24,0x74,0x94      ; 1000000 (10^6) (1E+6)
-  // 0x00,0x80,0x96,0x18,0x98      ; 10000000 (10^7) (1E+7)
-  // 0x00,0x20,0xbc,0x3e,0x9b      ; 100000000 (10^8) (1E+8)
-  // 0x00,0x28,0x6b,0x6e,0x9e      ; 1000000000 (10^9) (1E+9)
-  // 0x00,0xf9,0x02,0x15,0xa2      ; 10000000000 (10^10) (1E+10)
-  // 0x40,0xb7,0x43,0x3a,0xa5      ; 100000000000 (10^11) (1E+11)
-  // 0x10,0xa5,0xd4,0x68,0xa8      ; 1000000000000 (10^12) (1E+12)
-  // 0x2a,0xe7,0x84,0x11,0xac      ; 10000000000000 (10^13) (1E+13)
-  // Check also: https://mfukar.github.io/2015/10/29/amstrad-fp.html
-  // Example PI: b=[0xa2,0xda,0x0f,0x49,0x82]; e=b[4]-128; m=(b[3] >= 128 ? -1 : +1) * (0x80000000 + ((b[3] & 0x7f) <<24) + (b[2] << 16) + (b[1] <<8) + b[0]); z=m*Math.pow(2,e-32);console.log(m,e,z)
-  fnNumFp() {
-    const value = this.fnNum32Dec();
-    let exponent = this.fnNum8Dec(), out;
-    if (!exponent) {
-      out = "0";
-    } else {
-      const mantissa = value >= 0 ? value + 2147483648 : value;
-      exponent -= 129;
-      const num = mantissa * Math.pow(2, exponent - 31);
-      out = Utils.toPrecision9(num);
-    }
-    return out;
-  }
-  fnGetBit7TerminatedString() {
-    const data = this.input;
-    let pos = this.pos;
-    while (data.charCodeAt(pos) <= 127 && pos < this.lineEnd) {
-      pos += 1;
-    }
-    const out = data.substring(this.pos, pos) + String.fromCharCode(data.charCodeAt(pos) & 127);
-    if (pos < this.lineEnd) {
-      this.pos = pos + 1;
-    }
-    return out;
-  }
-  fnVar() {
-    this.fnNum16Dec();
-    return this.fnGetBit7TerminatedString();
-  }
-  fnIntVar() {
-    return this.fnVar() + "%";
-  }
-  fnStringVar() {
-    return this.fnVar() + "$";
-  }
-  fnFpVar() {
-    return this.fnVar() + "!";
-  }
-  fnRsx() {
-    let name = this.fnGetBit7TerminatedString();
-    name = name.substring(1);
-    return "|" + name;
-  }
-  static fnControlsToUnicode(s) {
-    return s.replace(/[\x00-\x1F\x80-\x9F]/g, function(ch) {
-      return String.fromCharCode(ch.charCodeAt(0) + 256);
-    });
-  }
-  fnStringUntilEol() {
-    const out = BasicTokenizer.fnControlsToUnicode(this.input.substring(this.pos, this.lineEnd - 1));
-    this.pos = this.lineEnd;
-    return out;
-  }
-  fnApostrophe() {
-    return "'" + this.fnStringUntilEol();
-  }
-  fnRem() {
-    return "REM" + this.fnStringUntilEol();
-  }
-  fnQuotedString() {
-    const closingQuotes = this.input.indexOf('"', this.pos);
-    let out = "";
-    if (closingQuotes < 0 || closingQuotes >= this.lineEnd) {
-      out = BasicTokenizer.fnControlsToUnicode(this.fnStringUntilEol());
-    } else {
-      out = BasicTokenizer.fnControlsToUnicode(this.input.substring(this.pos, closingQuotes + 1));
-      this.pos = closingQuotes + 1;
-    }
-    out = '"' + out;
-    if (out.indexOf("\r") >= 0) {
-      Utils.console.log("BasicTokenizer line", this.line, ": string contains CR, replaced by CHR$(13)");
-      out = out.replace(/\r/g, '"+chr$(13)+"');
-    }
-    if (/\n\d/.test(out)) {
-      Utils.console.log("BasicTokenizer line", this.line, ": string contains LF<digit>, replaced by CHR$(10)<digit>");
-      out = out.replace(/\n(\d)/g, '"+chr$(10)+"$1');
-    }
-    return out;
-  }
-  debugPrintInfo() {
-    const debug = this.debug;
-    Utils.console.debug("BasicTokenizer Details:\n", debug.info);
-    debug.line = 0;
-    debug.info = "";
-  }
-  debugCollectInfo(tokenLine) {
-    const debug = this.debug, hex = this.input.substring(debug.startPos, this.pos).split("").map(function(s) {
-      return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
-    }).join(",");
-    if (this.line !== debug.line) {
-      if (debug.info) {
-        debug.info += "\n";
-      }
-      debug.line = this.line;
-      debug.info += debug.line + ": ";
-    }
-    debug.info += " [" + hex + "] " + tokenLine;
-  }
-  fnParseNextToken(input) {
-    const oldNeedSpace = this.needSpace;
-    let token = this.fnNum8Dec();
-    if (token === 1) {
-      if (this.pos < input.length) {
-        const nextToken = input.charCodeAt(this.pos);
-        if (nextToken === 151 || nextToken === 192) {
-          token = nextToken;
-          this.pos += 1;
-        }
-      }
-    }
-    this.needSpace = token >= 5 && token <= 13 || token === 124;
-    let tokenValue;
-    if (token === 255) {
-      token = this.fnNum8Dec();
-      tokenValue = this.tokensFF[token];
-    } else {
-      tokenValue = this.tokens[token];
-    }
-    let tstr;
-    if (tokenValue !== void 0) {
-      tstr = typeof tokenValue === "function" ? tokenValue.call(this) : tokenValue;
-      if (/[a-zA-Z.]$/.test(tstr) && token !== 228) {
-        this.needSpace = true;
-      }
-    } else {
-      tstr = String.fromCharCode(token);
-    }
-    if (oldNeedSpace) {
-      if (/^[a-zA-Z$%!]/.test(tstr) || token >= 2 && token <= 31) {
-        tstr = " " + tstr;
-      }
-    }
-    if (Utils.debug > 2) {
-      this.debugCollectInfo(tstr);
-    }
-    return tstr;
-  }
-  fnParseLineFragment() {
-    const input = this.input;
-    let out = "";
-    this.needSpace = false;
-    while (this.pos < this.lineEnd) {
-      this.debug.startPos = this.pos;
-      const tstr = this.fnParseNextToken(input);
-      out += tstr;
-    }
-    return out;
-  }
-  fnParseNextLine() {
-    const lineLength = this.fnNum16Dec();
-    if (!lineLength) {
-      return void 0;
-    }
-    this.line = this.fnNum16Dec();
-    this.lineEnd = this.pos - 4 + lineLength;
-    if (this.lineEnd > this.input.length) {
-      this.lineEnd = this.input.length;
-      Utils.console.warn("fnParseNextLine: pos=" + this.pos + ": EOF met!");
-    }
-    return this.line + " " + this.fnParseLineFragment();
-  }
-  fnParseProgram() {
-    let out = "", line;
-    while ((line = this.fnParseNextLine()) !== void 0) {
-      out += line + "\n";
-    }
-    return out;
-  }
-  decodeLineFragment(program, offset, length) {
-    this.input = program;
-    this.pos = offset;
-    this.line = 0;
-    this.lineEnd = this.pos + length;
-    const out = this.fnParseLineFragment();
-    if (Utils.debug > 2) {
-      this.debugPrintInfo();
-    }
-    return out;
-  }
-  decode(program) {
-    this.input = program;
-    this.pos = 0;
-    this.line = 0;
-    const out = this.fnParseProgram();
-    if (Utils.debug > 2) {
-      this.debugPrintInfo();
-    }
-    return out;
-  }
-}
-
-const _CodeGeneratorBasic = class _CodeGeneratorBasic {
-  // current line (label)
-  constructor(options) {
-    this.hasColons = false;
-    this.keepWhiteSpace = false;
-    this.line = 0;
-    /* eslint-disable no-invalid-this */
-    this.parseFunctions = {
-      // to call methods, use parseFunctions[].call(this,...)
-      "(": this.fnParenthesisOpen,
-      string: _CodeGeneratorBasic.string,
-      ustring: _CodeGeneratorBasic.ustring,
-      assign: this.assign,
-      expnumber: _CodeGeneratorBasic.expnumber,
-      binnumber: _CodeGeneratorBasic.binHexNumber,
-      hexnumber: _CodeGeneratorBasic.binHexNumber,
-      label: this.label,
-      "|": this.vertical,
-      afterGosub: this.afterEveryGosub,
-      chain: this.chainOrChainMerge,
-      chainMerge: this.chainOrChainMerge,
-      data: this.data,
-      def: this.def,
-      "else": this.fnElse,
-      elseComment: this.elseComment,
-      everyGosub: this.afterEveryGosub,
-      fn: this.fn,
-      "for": this.fnFor,
-      "if": this.fnIf,
-      input: this.inputLineInput,
-      lineInput: this.inputLineInput,
-      list: this.list,
-      mid$Assign: this.mid$Assign,
-      onBreakCont: this.onBreakOrError,
-      // 3 parts
-      onBreakGosub: this.onBreakOrError,
-      onBreakStop: this.onBreakOrError,
-      onErrorGoto: this.onBreakOrError,
-      onGosub: this.onGotoGosub,
-      onGoto: this.onGotoGosub,
-      onSqGosub: this.onSqGosub,
-      print: this.print,
-      rem: this.rem,
-      using: this.using,
-      write: this.write
-    };
-    this.options = {
-      quiet: false
-    };
-    this.setOptions(options);
-    this.keywords = options.parser.getKeywords();
-  }
-  getOptions() {
-    return this.options;
-  }
-  setOptions(options) {
-    Object.assign(this.options, options);
-  }
-  composeError(error, message, value, pos) {
-    return Utils.composeError("CodeGeneratorBasic", error, message, value, pos, void 0, this.line);
-  }
-  static fnWs(node) {
-    return node.ws || "";
-  }
-  static fnSpace1(value) {
-    return (!value.length || value.startsWith(" ") ? "" : " ") + value;
-  }
-  static getUcKeyword(node) {
-    const type = node.type;
-    return _CodeGeneratorBasic.combinedKeywords[type] || type.toUpperCase();
-  }
-  fnParseArgs(args) {
-    const nodeArgs = [];
-    if (!args) {
-      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
-    }
-    for (let i = 0; i < args.length; i += 1) {
-      let value = this.parseNode(args[i]);
-      if (args[i].type === "'" || args[i].type === "else" || args[i].type === "elseComment") {
-        if (i > 0 && !nodeArgs[i - 1].endsWith(" ") && !nodeArgs[i - 1].endsWith(":")) {
-          value = _CodeGeneratorBasic.fnSpace1(value);
-        }
-      }
-      nodeArgs.push(value);
-    }
-    return nodeArgs;
-  }
-  combineArgsWithColon(args) {
-    if (!this.hasColons) {
-      for (let i = 1; i < args.length; i += 1) {
-        const arg = args[i].trim();
-        if (!arg.startsWith("ELSE") && !arg.startsWith("'") && arg !== "") {
-          args[i] = ":" + args[i];
-        }
-      }
-    }
-    return args.join("");
-  }
-  fnParenthesisOpen(node) {
-    return _CodeGeneratorBasic.fnWs(node) + node.value + (node.args ? this.fnParseArgs(node.args).join("") : "");
-  }
-  static string(node) {
-    return _CodeGeneratorBasic.fnWs(node) + '"' + node.value + '"';
-  }
-  static ustring(node) {
-    return _CodeGeneratorBasic.fnWs(node) + '"' + node.value;
-  }
-  assign(node) {
-    if (node.left.type !== "identifier") {
-      throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos);
-    }
-    return this.parseNode(node.left) + _CodeGeneratorBasic.fnWs(node) + node.value + this.parseNode(node.right);
-  }
-  static expnumber(node) {
-    return _CodeGeneratorBasic.fnWs(node) + Number(node.value).toExponential().toUpperCase().replace(/(\d+)$/, function(x) {
-      return x.length >= 2 ? x : x.padStart(2, "0");
-    });
-  }
-  static binHexNumber(node) {
-    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase();
-  }
-  label(node) {
-    this.line = Number(node.value);
-    const value = this.combineArgsWithColon(this.fnParseArgs(node.args));
-    return _CodeGeneratorBasic.fnWs(node) + node.value + (node.value !== "" ? _CodeGeneratorBasic.fnSpace1(value) : value);
-  }
-  // special keyword functions
-  vertical(node) {
-    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + this.fnParseArgs(node.args).join("");
-  }
-  afterEveryGosub(node) {
-    const nodeArgs = this.fnParseArgs(node.args);
-    nodeArgs[0] = _CodeGeneratorBasic.fnSpace1(nodeArgs[0]);
-    nodeArgs[nodeArgs.length - 2] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]);
-    nodeArgs[nodeArgs.length - 1] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]);
-    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + nodeArgs.join("");
-  }
-  chainOrChainMerge(node) {
-    const nodeArgs = this.fnParseArgs(node.args);
-    if (nodeArgs.length > 2) {
-      if (nodeArgs[nodeArgs.length - 2] === "DELETE") {
-        nodeArgs[nodeArgs.length - 1] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]);
-      }
-    }
-    return _CodeGeneratorBasic.fnWs(node) + _CodeGeneratorBasic.getUcKeyword(node) + (node.right ? _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) : "") + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-  }
-  data(node) {
-    const nodeArgs = this.fnParseArgs(node.args);
-    for (let i = 0; i < nodeArgs.length; i += 1) {
-      const value2 = nodeArgs[i];
-      nodeArgs[i] = value2;
-    }
-    let args = nodeArgs.join("");
-    if (!this.keepWhiteSpace) {
-      args = Utils.stringTrimEnd(args);
-    }
-    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(args);
-  }
-  def(node) {
-    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + (node.right ? _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + this.fnParseArgs(node.args).join("") : "");
-  }
-  elseComment(node) {
-    if (!node.args) {
-      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
-    }
-    const args = node.args;
-    let value = "";
-    for (let i = 0; i < args.length; i += 1) {
-      const token = args[i];
-      if (token.value) {
-        if (this.keepWhiteSpace) {
-          value += _CodeGeneratorBasic.fnWs(token) + token.value;
-        } else {
-          value += _CodeGeneratorBasic.fnSpace1(_CodeGeneratorBasic.fnWs(token) + token.value);
-        }
-      }
-    }
-    return _CodeGeneratorBasic.fnWs(node) + "else".toUpperCase() + value;
-  }
-  fn(node) {
-    if (!node.right) {
-      return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase();
-    }
-    const nodeArgs = node.args ? this.fnParseArgs(node.args) : [];
-    let right = this.parseNode(node.right);
-    if (node.right.pos - node.pos > 2) {
-      right = _CodeGeneratorBasic.fnSpace1(right);
-    }
-    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + right + nodeArgs.join("");
-  }
-  fnFor(node) {
-    const nodeArgs = this.fnParseArgs(node.args);
-    for (let i = 0; i < nodeArgs.length; i += 1) {
-      if (i !== 1 && i !== 2) {
-        nodeArgs[i] = _CodeGeneratorBasic.fnSpace1(nodeArgs[i]);
-      }
-    }
-    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + nodeArgs.join("");
-  }
-  fnElse(node) {
-    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(this.fnParseArgs(node.args)));
-  }
-  fnIf(node) {
-    const nodeArgs = this.fnParseArgs(node.args), partName = nodeArgs.shift();
-    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + _CodeGeneratorBasic.fnSpace1(partName) + _CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(nodeArgs));
-  }
-  inputLineInput(node) {
-    const nodeArgs = node.args ? this.fnParseArgs(node.args) : [], name = node.right ? this.parseNode(node.right) : "";
-    return _CodeGeneratorBasic.fnWs(node) + _CodeGeneratorBasic.getUcKeyword(node) + _CodeGeneratorBasic.fnSpace1(name) + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-  }
-  list(node) {
-    const nodeArgs = this.fnParseArgs(node.args);
-    if (nodeArgs.length && nodeArgs[0] === "") {
-      nodeArgs.shift();
-    }
-    if (nodeArgs.length && nodeArgs[nodeArgs.length - 1] === "#") {
-      nodeArgs.pop();
-    }
-    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-  }
-  mid$Assign(node) {
-    return _CodeGeneratorBasic.fnWs(node) + _CodeGeneratorBasic.getUcKeyword(node) + this.fnParseArgs(node.args).join("");
-  }
-  onBreakOrError(node) {
-    return _CodeGeneratorBasic.fnWs(node) + "ON" + _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + _CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join(""));
-  }
-  onGotoGosub(node) {
-    const nodeArgs = this.fnParseArgs(node.args), expression = nodeArgs.shift(), instruction = nodeArgs.shift();
-    return _CodeGeneratorBasic.fnWs(node) + "ON" + _CodeGeneratorBasic.fnSpace1(expression) + _CodeGeneratorBasic.fnSpace1(instruction) + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-  }
-  onSqGosub(node) {
-    const nodeArgs = this.fnParseArgs(node.args);
-    nodeArgs[nodeArgs.length - 2] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]);
-    nodeArgs[nodeArgs.length - 1] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]);
-    return _CodeGeneratorBasic.fnWs(node) + "ON" + _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + nodeArgs.join("");
-  }
-  print(node) {
-    const nodeArgs = this.fnParseArgs(node.args);
-    let value = "";
-    for (let i = 0; i < nodeArgs.length; i += 1) {
-      value += nodeArgs[i];
-    }
-    if (node.value !== "?") {
-      value = _CodeGeneratorBasic.fnSpace1(value);
-    }
-    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + value;
-  }
-  rem(node) {
-    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + this.fnParseArgs(node.args).join("");
-  }
-  using(node) {
-    const nodeArgs = this.fnParseArgs(node.args), template = nodeArgs.length ? nodeArgs.shift() || "" : "";
-    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(template) + nodeArgs.join("");
-  }
-  write(node) {
-    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + (node.args ? _CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join("")) : "");
-  }
-  /* eslint-enable no-invalid-this */
-  fnParseOther(node) {
-    const type = node.type;
-    let value = "";
-    if (node.left) {
-      value += this.parseNode(node.left);
-    }
-    value += _CodeGeneratorBasic.fnWs(node);
-    const keyType = this.keywords[type];
-    if (keyType) {
-      value += _CodeGeneratorBasic.getUcKeyword(node);
-    } else if (node.value) {
-      value += node.value;
-    }
-    let right = "";
-    if (node.right) {
-      right = this.parseNode(node.right);
-      const needSpace1 = this.keywords[right.toLowerCase()] || keyType;
-      value += needSpace1 ? _CodeGeneratorBasic.fnSpace1(right) : right;
-    }
-    if (node.args) {
-      const nodeArgs = this.fnParseArgs(node.args).join(""), needSpace2 = keyType && keyType.charAt(0) !== "f" && node.type !== "'";
-      value += needSpace2 ? _CodeGeneratorBasic.fnSpace1(nodeArgs) : nodeArgs;
-    }
-    return value;
-  }
-  static getLeftOrRightOperatorPrecedence(node) {
-    const precedence = _CodeGeneratorBasic.operatorPrecedence, operators = _CodeGeneratorBasic.operators;
-    let pr;
-    if (operators[node.type] && (node.left || node.right)) {
-      if (node.left) {
-        pr = precedence[node.type] || 0;
-      } else {
-        pr = precedence["p" + node.type] || precedence[node.type] || 0;
-      }
-    }
-    return pr;
-  }
-  parseOperator(node) {
-    const precedence = _CodeGeneratorBasic.operatorPrecedence, operators = _CodeGeneratorBasic.operators;
-    let value;
-    if (node.left) {
-      value = this.parseNode(node.left);
-      const p = precedence[node.type], pl = _CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(node.left);
-      if (pl !== void 0 && pl < p) {
-        value = "(" + value + ")";
-      }
-      const right = node.right;
-      let value2 = this.parseNode(right);
-      const pr = _CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(right);
-      if (pr !== void 0) {
-        if (pr < p) {
-          value2 = "(" + value2 + ")";
-        } else if (pr === p) {
-          const assoc = _CodeGeneratorBasic.operatorAssociativity[node.type];
-          if (assoc === "right") ; else if (assoc === "left") {
-            if (/(^|-|\/|\\|mod|=|<>|<|<=|>|>=)$/.test(node.type)) {
-              value2 = "(" + value2 + ")";
-            }
-          } else {
-            value2 = "(" + value2 + ")";
-          }
-        }
-      }
-      const operator = _CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
-      if (/^(and|or|xor|mod)$/.test(node.type)) {
-        value += _CodeGeneratorBasic.fnSpace1(operator) + _CodeGeneratorBasic.fnSpace1(value2);
-      } else {
-        value += operator + value2;
-      }
-    } else if (node.right) {
-      if (node.len === 0) {
-        value = "";
-      } else {
-        const right = node.right;
-        value = this.parseNode(right);
-        let pr;
-        if (right.left) {
-          pr = precedence[right.type] || 0;
-        } else {
-          pr = precedence["p" + right.type] || precedence[right.type] || 0;
-        }
-        const p = precedence["p" + node.type] || precedence[node.type] || 0;
-        if (p && pr && pr < p) {
-          value = "(" + value + ")";
-        }
-        value = _CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase() + (node.type === "not" ? _CodeGeneratorBasic.fnSpace1(value) : value);
-      }
-    } else {
-      value = this.fnParseOther(node);
-    }
-    return value;
-  }
-  parseNode(node) {
-    const type = node.type;
-    if (Utils.debug > 3) {
-      Utils.console.debug("evaluate: parseNode node=%o type=" + type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
-    }
-    let value;
-    if (_CodeGeneratorBasic.operators[type]) {
-      value = this.parseOperator(node);
-    } else if (this.parseFunctions[type]) {
-      value = this.parseFunctions[type].call(this, node);
-    } else {
-      if ((type === "identifier" || type === "letter") && this.options.lowercaseVars) {
-        node.value = node.value.toLowerCase();
-      }
-      value = this.fnParseOther(node);
-    }
-    return value;
-  }
-  evaluate(parseTree) {
-    let output = "";
-    for (let i = 0; i < parseTree.length; i += 1) {
-      if (Utils.debug > 2) {
-        Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
-      }
-      const line = this.parseNode(parseTree[i]);
-      if (line !== void 0 && line !== "") {
-        if (line !== null) {
-          if (output.length === 0) {
-            output = line;
-          } else {
-            output += line;
-          }
-        } else {
-          output = "";
-        }
-      }
-    }
-    return output;
-  }
-  generate(input) {
-    const out = {
-      text: ""
-    };
-    this.hasColons = Boolean(this.options.parser.getOptions().keepColons);
-    this.keepWhiteSpace = Boolean(this.options.lexer.getOptions().keepWhiteSpace);
-    this.keywords = this.options.parser.getKeywords();
-    this.line = 0;
-    try {
-      const tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);
-      out.text = output;
-    } catch (e) {
-      if (Utils.isCustomError(e)) {
-        out.error = e;
-        if (!this.options.quiet) {
-          Utils.console.warn(e);
-        }
-      } else {
-        out.error = e;
-        Utils.console.error(e);
-      }
-    }
-    return out;
-  }
-};
-_CodeGeneratorBasic.combinedKeywords = {
-  chainMerge: "CHAIN",
-  // "CHAIN MERGE"
-  clearInput: "CLEAR",
-  // "CLEAR INPUT"
-  graphicsPaper: "GRAPHICS",
-  // "GRAPHICS PAPER"
-  graphicsPen: "GRAPHICS",
-  // "GRAPHICS PEN"
-  keyDef: "KEY",
-  // "KEY DEF"
-  lineInput: "LINE",
-  // "LINE INPUT"
-  mid$Assign: "MID$",
-  onBreakCont: "ON",
-  // ""ON BREAK CONT"
-  onBreakGosub: "ON",
-  // ""ON BREAK GOSUB"
-  onBreakStop: "ON",
-  // ""ON BREAK STOP"
-  onErrorGoto: "ON",
-  // "ON ERROR GOTO"
-  resumeNext: "RESUME",
-  // "RESUME NEXT"
-  speedInk: "SPEED",
-  // "SPEED INK"
-  speedKey: "SPEED",
-  // "SPEED KEY"
-  speedWrite: "SPEED",
-  // "SPEED WRITE"
-  symbolAfter: "SYMBOL",
-  // "SYMBOL AFTER"
-  windowSwap: "WINDOW"
-  // "WINDOW SWAP"
-};
-_CodeGeneratorBasic.operators = {
-  "+": "+",
-  "-": "-",
-  "*": "*",
-  "/": "/",
-  "\\": "\\",
-  "^": "^",
-  and: "AND",
-  or: "OR",
-  xor: "XOR",
-  not: "NOT",
-  mod: "MOD",
-  ">": ">",
-  "<": "<",
-  ">=": ">=",
-  "<=": "<=",
-  "=": "=",
-  "<>": "<>",
-  "@": "@",
-  "#": "#"
-};
-_CodeGeneratorBasic.operatorPrecedence = {
-  "@": 95,
-  // prefix
-  "^": 90,
-  "p-": 80,
-  // prefix - (fast hack)
-  "p+": 80,
-  // prefix + (fast hack)
-  "*": 70,
-  "/": 70,
-  "\\": 60,
-  mod: 50,
-  "+": 40,
-  "-": 40,
-  "=": 30,
-  "<>": 30,
-  "<": 30,
-  "<=": 30,
-  ">": 30,
-  ">=": 30,
-  not: 23,
-  // prefix
-  and: 22,
-  or: 21,
-  xor: 20,
-  "#": 10
-  // priority?
-};
-_CodeGeneratorBasic.operatorAssociativity = {
-  "^": "right",
-  // right-associative
-  "*": "left",
-  // left-associative (commutative, so parens not needed for equal precedence)
-  "+": "left",
-  // left-associative (commutative, so parens not needed for equal precedence)
-  "/": "left",
-  // left-associative (non-commutative, so parens ARE needed for equal precedence)
-  "\\": "left",
-  // left-associative (non-commutative, so parens ARE needed)
-  mod: "left",
-  // left-associative (non-commutative)
-  "-": "left",
-  // left-associative (non-commutative, so parens ARE needed for equal precedence)
-  "=": "none",
-  // comparison operators are non-associative
-  "<>": "none",
-  "<": "none",
-  "<=": "none",
-  ">": "none",
-  ">=": "none",
-  and: "left",
-  or: "left",
-  xor: "left"
-};
-let CodeGeneratorBasic = _CodeGeneratorBasic;
-
 const _CodeGeneratorJs = class _CodeGeneratorJs {
   constructor(options) {
     this.line = "0";
@@ -3566,6 +6750,10 @@ const _CodeGeneratorJs = class _CodeGeneratorJs {
   }
   setOptions(options) {
     Object.assign(this.options, options);
+  }
+  setBasicVersion(basicVersion) {
+    this.options.parser.setOptions({ basicVersion });
+    this.options.lexer.setOptions({ keywords: this.options.parser.getKeywords() });
   }
   reset() {
     const stack = this.stack;
@@ -4767,8 +7955,29 @@ const _CodeGeneratorJs = class _CodeGeneratorJs {
   getSourceMap() {
     return this.sourceMap;
   }
-  debugGetLabelsCount() {
-    return Object.keys(this.referencedLabelsCount).length;
+  prepareProgramParser() {
+    this.options.lexer.setOptions({ keepWhiteSpace: false });
+    this.options.parser.setOptions({
+      keepBrackets: false,
+      keepColons: false,
+      keepDataComma: false,
+      keepTokens: false
+    });
+  }
+  generateProgram(input, variables) {
+    this.prepareProgramParser();
+    return this.generate(input, variables);
+  }
+  generateDirect(input, program, variables) {
+    this.prepareProgramParser();
+    if (program && (!isNaN(parseInt(program, 10)) || this.options.implicitLines)) {
+      const separator = program.endsWith("\n") ? "" : "\n", commandStart = program.length + separator.length, output = this.generate(program + separator + input, variables, true);
+      if (!output.error || !(output.error.pos < commandStart)) {
+        return output;
+      }
+      output.error.message = "[prg] " + output.error.message;
+    }
+    return this.generate(input, variables, true);
   }
   generate(input, variables, allowDirect) {
     const out = {
@@ -4874,635 +8083,6 @@ _CodeGeneratorJs.varTypeMap = {
   // or "S"?
 };
 let CodeGeneratorJs = _CodeGeneratorJs;
-
-const _CodeGeneratorToken = class _CodeGeneratorToken {
-  // current line (label)
-  constructor(options) {
-    this.label = "0";
-    /* eslint-disable no-invalid-this */
-    this.parseFunctions = {
-      // to call methods, use parseFunctions[].call(this,...)
-      args: this.fnArgs,
-      range: this.range,
-      linerange: this.linerange,
-      string: _CodeGeneratorToken.string,
-      ustring: _CodeGeneratorToken.ustring,
-      "(eol)": _CodeGeneratorToken.fnEol,
-      // ignore newline "\n"
-      number: _CodeGeneratorToken.number,
-      expnumber: _CodeGeneratorToken.number,
-      // same handling as for number
-      binnumber: _CodeGeneratorToken.binnumber,
-      hexnumber: _CodeGeneratorToken.hexnumber,
-      identifier: this.identifier,
-      linenumber: _CodeGeneratorToken.linenumber,
-      label: this.fnLabel,
-      "|": this.vertical,
-      "else": this.fnElseOrApostrophe,
-      elseComment: this.elseComment,
-      onBreakCont: this.onBreakContOrGosubOrStop,
-      onBreakGosub: this.onBreakContOrGosubOrStop,
-      onBreakStop: this.onBreakContOrGosubOrStop,
-      onErrorGoto: this.onErrorGoto,
-      onSqGosub: this.onSqGosub,
-      "'": this.fnElseOrApostrophe
-    };
-    this.options = {
-      allowLineFragments: false,
-      // only for testing
-      implicitLines: false,
-      quiet: false
-    };
-    this.setOptions(options);
-  }
-  getOptions() {
-    return this.options;
-  }
-  setOptions(options) {
-    Object.assign(this.options, options);
-  }
-  composeError(error, message, value, pos) {
-    return Utils.composeError("CodeGeneratorToken", error, message, value, pos, void 0, this.label);
-  }
-  static convUInt8ToString(n) {
-    return String.fromCharCode(n);
-  }
-  static convUInt16ToString(n) {
-    return String.fromCharCode(n & 255) + String.fromCharCode(n >> 8);
-  }
-  static convInt32ToString(n) {
-    return _CodeGeneratorToken.convUInt16ToString(n & 65535) + _CodeGeneratorToken.convUInt16ToString(n >> 16 & 65535);
-  }
-  static token2String(name) {
-    let token = _CodeGeneratorToken.tokens[name], result = "";
-    if (token === void 0) {
-      token = _CodeGeneratorToken.tokensFF[name];
-      if (token === void 0) {
-        Utils.console.error("token2String: Not a token: " + name);
-        return name;
-      }
-      result = _CodeGeneratorToken.convUInt8ToString(255);
-    }
-    return result + _CodeGeneratorToken.convUInt8ToString(token);
-  }
-  static getBit7TerminatedString(s) {
-    return s.substring(0, s.length - 1) + String.fromCharCode(s.charCodeAt(s.length - 1) | 128);
-  }
-  static fnGetWs(node) {
-    return node.ws || "";
-  }
-  fnParseArgs(args) {
-    const nodeArgs = [];
-    if (!args) {
-      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
-    }
-    for (let i = 0; i < args.length; i += 1) {
-      nodeArgs.push(this.parseNode(args[i]));
-    }
-    return nodeArgs;
-  }
-  fnArgs(node) {
-    return this.fnParseArgs(node.args).join(node.value);
-  }
-  range(node) {
-    return this.parseNode(node.left) + _CodeGeneratorToken.fnGetWs(node) + node.value + this.parseNode(node.right);
-  }
-  linerange(node) {
-    return this.parseNode(node.left) + _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(node.value) + this.parseNode(node.right);
-  }
-  static string(node) {
-    return _CodeGeneratorToken.fnGetWs(node) + '"' + node.value + '"';
-  }
-  static ustring(node) {
-    return _CodeGeneratorToken.fnGetWs(node) + '"' + node.value;
-  }
-  static fnEol() {
-    return "";
-  }
-  static floatToByteString(number) {
-    let mantissa = 0, exponent = 0, sign = 0;
-    if (number !== 0) {
-      if (number < 0) {
-        sign = 2147483648;
-        number = -number;
-      }
-      exponent = Math.ceil(Math.log(number) / Math.log(2));
-      mantissa = Math.round(number / Math.pow(2, exponent - 32)) & 2147483647;
-      if (mantissa === 0) {
-        exponent += 1;
-      }
-      exponent += 128;
-    }
-    return _CodeGeneratorToken.convInt32ToString(sign + mantissa) + _CodeGeneratorToken.convUInt8ToString(exponent);
-  }
-  static number(node) {
-    const numberString = node.value.toUpperCase(), number = Number(numberString);
-    let result = "";
-    if (number === Math.floor(number)) {
-      if (number >= 0 && number <= 9) {
-        result = _CodeGeneratorToken.token2String(numberString);
-      } else if (number >= 10 && number <= 255) {
-        result = _CodeGeneratorToken.token2String("_dec8") + _CodeGeneratorToken.convUInt8ToString(number);
-      } else if (number >= -32767 && number <= 32767) {
-        result = (number < 0 ? _CodeGeneratorToken.token2String("-") : "") + _CodeGeneratorToken.token2String("_dec16") + _CodeGeneratorToken.convUInt16ToString(number);
-      }
-    }
-    if (result === "") {
-      result = _CodeGeneratorToken.token2String("_float") + _CodeGeneratorToken.floatToByteString(number);
-    }
-    return _CodeGeneratorToken.fnGetWs(node) + result;
-  }
-  static binnumber(node) {
-    const valueString = node.value.slice(2), value = valueString.length ? parseInt(valueString, 2) : 0;
-    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_bin16") + _CodeGeneratorToken.convUInt16ToString(value);
-  }
-  static hexnumber(node) {
-    let valueString = node.value.slice(1);
-    if (valueString.charAt(0).toLowerCase() === "h") {
-      valueString = valueString.slice(1);
-    }
-    const value = valueString.length ? parseInt(valueString, 16) : 0;
-    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_hex16") + _CodeGeneratorToken.convUInt16ToString(value);
-  }
-  identifier(node) {
-    let name = node.value, mappedTypeName = _CodeGeneratorToken.varTypeMap[name.charAt(name.length - 1)] || "";
-    if (mappedTypeName) {
-      name = name.slice(0, -1);
-    } else {
-      mappedTypeName = "_anyVar";
-    }
-    const offset = 0;
-    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(mappedTypeName) + _CodeGeneratorToken.convUInt16ToString(offset) + _CodeGeneratorToken.getBit7TerminatedString(name) + (node.args ? this.fnParseArgs(node.args).join("") : "");
-  }
-  static linenumber(node) {
-    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_line16") + _CodeGeneratorToken.convUInt16ToString(Number(node.value));
-  }
-  fnLabel(node) {
-    if (node.value === "") {
-      if (this.options.implicitLines) {
-        node.value = String(Number(this.label) + 1);
-      } else if (!this.options.allowLineFragments) {
-        throw this.composeError(Error(), "Direct command found", node.value, node.pos);
-      }
-    }
-    this.label = node.value;
-    const line = Number(this.label), nodeArgs = this.fnParseArgs(node.args);
-    let value = nodeArgs.join("");
-    if (node.value !== "") {
-      if (value.charAt(0) === " ") {
-        value = value.substring(1);
-      }
-      value = _CodeGeneratorToken.convUInt16ToString(line) + value + _CodeGeneratorToken.token2String("_eol");
-      value = _CodeGeneratorToken.convUInt16ToString(value.length + 2) + value;
-    }
-    return value;
-  }
-  // special keyword functions
-  vertical(node) {
-    const rsxName = node.value.substring(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0;
-    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(node.type) + (rsxName.length ? _CodeGeneratorToken.convUInt8ToString(offset) : "") + _CodeGeneratorToken.getBit7TerminatedString(rsxName) + nodeArgs.join("");
-  }
-  fnElseOrApostrophe(node) {
-    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(":") + _CodeGeneratorToken.token2String(node.type) + this.fnParseArgs(node.args).join("");
-  }
-  elseComment(node) {
-    if (!node.args) {
-      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
-    }
-    const type = "else";
-    let value = _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(":") + _CodeGeneratorToken.token2String(type);
-    const args = node.args;
-    for (let i = 0; i < args.length; i += 1) {
-      const token = args[i];
-      let value2 = token.value;
-      if (value2) {
-        if (token.type === "linenumber") {
-          value2 = _CodeGeneratorToken.linenumber(token);
-        }
-        value += value2;
-      }
-    }
-    return value;
-  }
-  onBreakContOrGosubOrStop(node) {
-    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_onBreak") + (node.right && node.right.right ? this.parseNode(node.right.right) : "") + this.fnParseArgs(node.args).join("");
-  }
-  onErrorGoto(node) {
-    if (node.args && node.args.length && node.args[0].value === "0") {
-      return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_onErrorGoto0");
-    }
-    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("on") + this.parseNode(node.right) + this.fnParseArgs(node.args).join("");
-  }
-  onSqGosub(node) {
-    return _CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs(node.right.args).join("") + this.fnParseArgs(node.args).join("");
-  }
-  /* eslint-enable no-invalid-this */
-  fnParseOther(node) {
-    const type = node.type, isToken = _CodeGeneratorToken.tokens[type] !== void 0 || _CodeGeneratorToken.tokensFF[type] !== void 0;
-    let value = "";
-    if (node.left) {
-      value += this.parseNode(node.left);
-    }
-    value += _CodeGeneratorToken.fnGetWs(node);
-    if (isToken) {
-      value += _CodeGeneratorToken.token2String(type);
-    } else if (node.value) {
-      value += node.value;
-    }
-    if (node.right) {
-      value += this.parseNode(node.right);
-    }
-    if (node.args) {
-      value += this.fnParseArgs(node.args).join("");
-    }
-    return value;
-  }
-  parseNode(node) {
-    if (Utils.debug > 3) {
-      Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
-    }
-    const type = node.type;
-    let value;
-    if (node.len === 0 && type !== "label") {
-      value = "";
-    } else {
-      value = this.parseFunctions[type] ? this.parseFunctions[type].call(this, node) : this.fnParseOther(node);
-    }
-    if (Utils.debug > 2) {
-      Utils.console.debug("parseNode: type='" + type + "', value='" + node.value + "', ws='" + node.ws + "', resultValue='" + value + "'");
-    }
-    return value;
-  }
-  evaluate(parseTree) {
-    let output = "";
-    for (let i = 0; i < parseTree.length; i += 1) {
-      if (Utils.debug > 2) {
-        Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
-      }
-      const node = this.parseNode(parseTree[i]);
-      if (node !== void 0 && node !== "") {
-        if (node !== null) {
-          output += node;
-        } else {
-          output = "";
-        }
-      }
-    }
-    if (this.label) {
-      output += _CodeGeneratorToken.token2String("_eol") + _CodeGeneratorToken.token2String("_eol");
-    }
-    return output;
-  }
-  generate(input) {
-    const out = {
-      text: ""
-    };
-    this.label = "0";
-    try {
-      const tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);
-      out.text = output;
-    } catch (e) {
-      if (Utils.isCustomError(e)) {
-        out.error = e;
-        if (!this.options.quiet) {
-          Utils.console.warn(e);
-        }
-      } else {
-        out.error = e;
-        Utils.console.error(e);
-      }
-    }
-    return out;
-  }
-};
-_CodeGeneratorToken.tokens = {
-  _eol: 0,
-  // marker for "end of tokenised line"
-  ":": 1,
-  // ":" statement seperator
-  _intVar: 2,
-  // integer variable definition (defined with "%" suffix)  "(A-Z)+%"
-  _stringVar: 3,
-  // string variable definition (defined with "$" suffix)  "(A-Z)+\$"
-  _floatVar: 4,
-  // floating point variable definition (defined with "!" suffix) "(A-Z)+!"
-  // "": 0x05, // "var?"
-  // "": 0x06, // "var?"
-  // "": 0x07, // "var?"
-  // "": 0x08, // "var?"
-  // "": 0x09, // "var?"
-  // "": 0x0a, // "var?"
-  // "": 0x0b, // integer variable definition (no suffix)
-  // "": 0x0c, // string variable definition (no suffix)
-  _anyVar: 13,
-  // floating point or no type (no suffix)
-  0: 14,
-  // number constant "0"
-  1: 15,
-  // number constant "1"
-  2: 16,
-  // number constant "2"
-  3: 17,
-  // number constant "3"
-  4: 18,
-  // number constant "4"
-  5: 19,
-  // number constant "5"
-  6: 20,
-  // number constant "6"
-  7: 21,
-  // number constant "7"
-  8: 22,
-  // number constant "8"
-  9: 23,
-  // number constant "9"
-  10: 24,
-  // number constant "10" (not sure when this is used)
-  _dec8: 25,
-  // 8-bit integer decimal value
-  _dec16: 26,
-  // 16-bit integer decimal value
-  _bin16: 27,
-  // 16-bit integer binary value (with "&X" prefix)
-  _hex16: 28,
-  // num16Hex: 16-bit integer hexadecimal value (with "&H" or "&" prefix)
-  // "": 0x1d, // 16-bit BASIC program line memory address pointer (should not occur)
-  _line16: 30,
-  // 16-bit integer BASIC line number
-  _float: 31,
-  // floating point value
-  // 0x20-0x21 ASCII printable symbols (space, "!")
-  // "": 0x22, // '"' quoted string value
-  // 0x23-0x7b ASCII printable symbols
-  "#": 35,
-  // "#" character (stream)
-  "(": 40,
-  // "(" character
-  ")": 41,
-  // ")" character
-  ",": 44,
-  // "," character
-  "?": 63,
-  // "?" character (print)
-  "@": 64,
-  // "@" character (address of)
-  "[": 91,
-  // "[" character
-  "]": 93,
-  // "]" character
-  "|": 124,
-  // "|" symbol; prefix for RSX commands
-  after: 128,
-  afterGosub: 128,
-  auto: 129,
-  border: 130,
-  call: 131,
-  cat: 132,
-  chain: 133,
-  chainMerge: 133,
-  // 0xab85
-  clear: 134,
-  clearInput: 134,
-  // 0xa386
-  clg: 135,
-  closein: 136,
-  closeout: 137,
-  cls: 138,
-  cont: 139,
-  data: 140,
-  def: 141,
-  defint: 142,
-  defreal: 143,
-  defstr: 144,
-  deg: 145,
-  "delete": 146,
-  dim: 147,
-  draw: 148,
-  drawr: 149,
-  edit: 150,
-  "else": 151,
-  end: 152,
-  ent: 153,
-  env: 154,
-  erase: 155,
-  error: 156,
-  every: 157,
-  everyGosub: 157,
-  "for": 158,
-  gosub: 159,
-  "goto": 160,
-  "if": 161,
-  ink: 162,
-  input: 163,
-  key: 164,
-  keyDef: 164,
-  // 0x8da4
-  let: 165,
-  line: 166,
-  lineInput: 166,
-  // 0xa3a6
-  list: 167,
-  load: 168,
-  locate: 169,
-  memory: 170,
-  merge: 171,
-  mid$: 172,
-  mid$Assign: 172,
-  mode: 173,
-  move: 174,
-  mover: 175,
-  next: 176,
-  "new": 177,
-  on: 178,
-  _onBreak: 179,
-  // onBreakCont, onBreakGosub, onBreakStop
-  _onErrorGoto0: 180,
-  // "on error goto 0" (on error goto n > 0 is decoded with separate tokens)
-  onGosub: 178,
-  onGoto: 178,
-  _onSq: 181,
-  // "on sq" (onSqGosub)
-  openin: 182,
-  openout: 183,
-  origin: 184,
-  out: 185,
-  paper: 186,
-  pen: 187,
-  plot: 188,
-  plotr: 189,
-  poke: 190,
-  print: 191,
-  "'": 192,
-  // apostrophe "'" symbol (same function as REM keyword)
-  rad: 193,
-  randomize: 194,
-  read: 195,
-  release: 196,
-  rem: 197,
-  // rem
-  renum: 198,
-  restore: 199,
-  resume: 200,
-  resumeNext: 200,
-  // 0xb0c8
-  "return": 201,
-  run: 202,
-  save: 203,
-  sound: 204,
-  speedInk: 205,
-  // 0xa2cd
-  speedKey: 205,
-  // 0xa4cd,
-  speedWrite: 205,
-  // 0xd9cd
-  stop: 206,
-  swap: 231,
-  symbol: 207,
-  symbolAfter: 207,
-  // 0x80cf
-  tag: 208,
-  tagoff: 209,
-  troff: 210,
-  tron: 211,
-  wait: 212,
-  wend: 213,
-  "while": 214,
-  width: 215,
-  window: 216,
-  windowSwap: 216,
-  // 0xe7d8
-  write: 217,
-  zone: 218,
-  di: 219,
-  ei: 220,
-  fill: 221,
-  // (v1.1)
-  graphics: 222,
-  // (v1.1)
-  graphicsPaper: 222,
-  // 0xbade
-  graphicsPen: 222,
-  // 0xbbde
-  mask: 223,
-  // (v1.1)
-  frame: 224,
-  // (v1.1)
-  cursor: 225,
-  // (v1.1)
-  // "<unused>":         0xe2,
-  erl: 227,
-  fn: 228,
-  spc: 229,
-  step: 230,
-  // swap: 0xe7, only: windowSwap...
-  // "<unused>":         0xe8,
-  // "<unused>":         0xe9,
-  tab: 234,
-  then: 235,
-  to: 236,
-  using: 237,
-  ">": 238,
-  // (greater than)
-  "=": 239,
-  // (equal)
-  assign: 239,
-  // equal as assign
-  ">=": 240,
-  // (greater or equal)
-  "<": 241,
-  // (less than)
-  "<>": 242,
-  // (not equal)
-  "<=": 243,
-  // =<, <=, < = (less than or equal)
-  "+": 244,
-  // (addition)
-  "-": 245,
-  // (subtraction or unary minus)
-  "*": 246,
-  // (multiplication)
-  "/": 247,
-  // (division)
-  "^": 248,
-  // (x to the power of y)
-  "\\": 249,
-  // (integer division)
-  and: 250,
-  mod: 251,
-  or: 252,
-  xor: 253,
-  not: 254
-  // 0xff: (prefix for additional keywords)
-};
-_CodeGeneratorToken.tokensFF = {
-  // Functions with one argument
-  abs: 0,
-  asc: 1,
-  atn: 2,
-  chr$: 3,
-  cint: 4,
-  cos: 5,
-  creal: 6,
-  exp: 7,
-  fix: 8,
-  fre: 9,
-  inkey: 10,
-  inp: 11,
-  "int": 12,
-  joy: 13,
-  len: 14,
-  log: 15,
-  log10: 16,
-  lower$: 17,
-  peek: 18,
-  remain: 19,
-  sgn: 20,
-  sin: 21,
-  space$: 22,
-  sq: 23,
-  sqr: 24,
-  str$: 25,
-  tan: 26,
-  unt: 27,
-  upper$: 28,
-  val: 29,
-  // Functions without arguments
-  eof: 64,
-  err: 65,
-  himem: 66,
-  inkey$: 67,
-  pi: 68,
-  rnd: 69,
-  time: 70,
-  xpos: 71,
-  ypos: 72,
-  derr: 73,
-  // (v1.1)
-  // Functions with more arguments
-  bin$: 113,
-  dec$: 114,
-  // (v1.1)
-  hex$: 115,
-  instr: 116,
-  left$: 117,
-  max: 118,
-  min: 119,
-  pos: 120,
-  right$: 121,
-  round: 122,
-  string$: 123,
-  test: 124,
-  testr: 125,
-  copychr$: 126,
-  // (v1.1)
-  vpos: 127
-};
-_CodeGeneratorToken.varTypeMap = {
-  "!": "_floatVar",
-  "%": "_intVar",
-  $: "_stringVar"
-};
-let CodeGeneratorToken = _CodeGeneratorToken;
 
 class CpcVmRsx {
   constructor() {
@@ -7396,33 +9976,34 @@ const _CpcVm = class _CpcVm {
       // unused
     });
   }
-  vmLoadCallback(input, meta) {
-    const inFile = this.inFile;
-    let putInMemory = false;
-    if (input !== null && meta) {
-      if (meta.typeString === "B" || meta.typeString === "S" || inFile.start !== void 0) {
-        const start = inFile.start !== void 0 ? inFile.start : Number(meta.start);
-        let length = Number(meta.length);
-        if (isNaN(length)) {
-          length = input.length;
-        }
-        if (Utils.debug > 1) {
-          Utils.console.debug("vmLoadCallback:", inFile.name + ": putting data in memory", start, "-", start + length);
-        }
-        if (meta.typeString === "S") {
-          for (let i = 0; i < length; i += 1) {
-            this.vmSetMem(start + i, input.charCodeAt(i));
-          }
-          const addr = this.screenPage << 14;
-          this.vmCopyToScreen(addr, addr);
-        } else {
-          for (let i = 0; i < length; i += 1) {
-            this.poke(start + i & 65535, input.charCodeAt(i));
-          }
-        }
-        putInMemory = true;
+  vmPutFileInMemory(input, meta, includeSnapshot) {
+    const inFile = this.inFile, shouldPutInMemory = input !== null && meta && (meta.typeString === "B" || includeSnapshot && meta.typeString === "S" || inFile.start !== void 0);
+    if (!shouldPutInMemory || input === null || !meta) {
+      return false;
+    }
+    const start = inFile.start !== void 0 ? inFile.start : Number(meta.start);
+    let length = Number(meta.length);
+    if (isNaN(length)) {
+      length = input.length;
+    }
+    if (Utils.debug > 1) {
+      Utils.console.debug("vmPutFileInMemory:", inFile.name + ": putting data in memory", start, "-", start + length);
+    }
+    if (meta.typeString === "S") {
+      for (let i = 0; i < length; i += 1) {
+        this.vmSetMem(start + i, input.charCodeAt(i));
+      }
+      const addr = this.screenPage << 14;
+      this.vmCopyToScreen(addr, addr);
+    } else {
+      for (let i = 0; i < length; i += 1) {
+        this.poke(start + i & 65535, input.charCodeAt(i));
       }
     }
+    return true;
+  }
+  vmLoadCallback(input, meta) {
+    const putInMemory = this.vmPutFileInMemory(input, meta, true);
     this.closein();
     return putInMemory;
   }
@@ -8356,13 +10937,13 @@ const _CpcVm = class _CpcVm {
     return Math.sign(n) * Number(Math.round(Number(Math.abs(n) + "e" + decimals)) + "e" + (decimals >= 0 ? "-" + decimals : "+" + -decimals));
   }
   vmRunCallback(input, meta) {
-    const inFile = this.inFile, putInMemory = input !== null && meta && (meta.typeString === "B" || inFile.start !== void 0);
+    const inFile = this.inFile, line = inFile.line, putInMemory = input !== null && meta && (meta.typeString === "B" || inFile.start !== void 0);
     if (input !== null) {
       const lineParas = {
         command: "run",
         stream: 0,
         // unused
-        first: inFile.line,
+        first: line,
         last: 0,
         // unused
         line: this.line
@@ -9124,1635 +11705,417 @@ _CpcVm.stopPriority = {
 };
 let CpcVm = _CpcVm;
 
-const _DiskImage = class _DiskImage {
-  constructor(options) {
-    this.diskInfo = _DiskImage.getInitialDiskInfo();
-    this.options = {
-      data: "",
-      quiet: false
-    };
-    this.setOptions(options);
-  }
-  getOptions() {
-    return this.options;
-  }
-  setOptions(options) {
-    const currentData = this.options.data;
-    Object.assign(this.options, options);
-    if (this.options.data !== currentData) {
-      this.diskInfo.ident = "";
-      this.diskInfo.trackInfo.ident = "";
-    }
-  }
-  static getInitialDiskInfo() {
-    const diskInfo = {
-      ident: "",
-      creator: "",
-      tracks: 0,
-      heads: 0,
-      trackSize: 0,
-      trackInfo: {
-        ident: "",
-        sectorInfoList: []
-      },
-      trackSizes: [],
-      trackInfoPosList: [],
-      extended: false
-    };
-    return diskInfo;
-  }
-  getFormatDescriptor() {
-    const formatDescriptor = this.formatDescriptor;
-    if (!formatDescriptor) {
-      throw this.composeError(Error(), "getFormatDescriptor: formatDescriptor:", String(formatDescriptor));
-    }
-    return formatDescriptor;
-  }
-  composeError(error, message, value, pos) {
-    const len = 0;
-    return Utils.composeError("DiskImage", error, this.options.diskName + ": " + message, value, pos || 0, len);
-  }
-  static testDiskIdent(ident) {
-    const diskType = _DiskImage.diskInfoIdentMap[ident] || 0;
-    return diskType;
-  }
-  readUtf(pos, len) {
-    const out = this.options.data.substring(pos, pos + len);
-    if (out.length !== len) {
-      throw this.composeError(new Error(), "End of File", "", pos);
-    }
-    return out;
-  }
-  readUInt8(pos) {
-    const num = this.options.data.charCodeAt(pos);
-    if (isNaN(num)) {
-      throw this.composeError(new Error(), "End of File", String(num), pos);
-    }
-    return num;
-  }
-  readUInt16(pos) {
-    return this.readUInt8(pos) + this.readUInt8(pos + 1) * 256;
-  }
-  static uInt8ToString(value) {
-    return String.fromCharCode(value);
-  }
-  static uInt16ToString(value) {
-    return _DiskImage.uInt8ToString(value & 255) + _DiskImage.uInt8ToString(value >> 8 & 255);
-  }
-  static uInt24ToString(value) {
-    return _DiskImage.uInt16ToString(value & 65535) + _DiskImage.uInt8ToString(value >> 16);
-  }
-  readDiskInfo(diskInfo, pos) {
-    const ident = this.readUtf(pos, 8), diskType = _DiskImage.testDiskIdent(ident);
-    if (!diskType) {
-      throw this.composeError(Error(), "Ident not found", ident, pos);
-    }
-    diskInfo.extended = diskType === 2;
-    diskInfo.ident = ident + this.readUtf(pos + 8, 34 - 8);
-    if (diskInfo.ident.substring(34 - 11, 34 - 11 + 9) !== "Disk-Info") {
-      if (!this.options.quiet) {
-        Utils.console.warn(this.composeError({}, "Disk ident not found", diskInfo.ident.substring(34 - 11, 34 - 11 + 9), pos + 34 - 11).message);
-      }
-    }
-    diskInfo.creator = this.readUtf(pos + 34, 14);
-    diskInfo.tracks = this.readUInt8(pos + 48);
-    diskInfo.heads = this.readUInt8(pos + 49);
-    diskInfo.trackSize = this.readUInt16(pos + 50);
-    const trackSizes = [], trackInfoPosList = [], trackSizeCount = diskInfo.tracks * diskInfo.heads;
-    let trackInfoPos = _DiskImage.diskInfoSize;
-    pos += 52;
-    for (let i = 0; i < trackSizeCount; i += 1) {
-      trackInfoPosList.push(trackInfoPos);
-      const trackSize = diskInfo.trackSize || this.readUInt8(pos + i) * 256;
-      trackSizes.push(trackSize);
-      trackInfoPos += trackSize;
-    }
-    diskInfo.trackSizes = trackSizes;
-    diskInfo.trackInfoPosList = trackInfoPosList;
-    diskInfo.trackInfo.ident = "";
-    if (Utils.debug > 1) {
-      Utils.console.debug("readDiskInfo: extended=" + diskInfo.extended + ", tracks=" + diskInfo.tracks + ", heads=" + diskInfo.heads + ", trackSize=" + diskInfo.trackSize);
-    }
-  }
-  static createDiskInfoAsString(diskInfo) {
-    const diskInfoString = diskInfo.ident + diskInfo.creator + _DiskImage.uInt8ToString(diskInfo.tracks) + _DiskImage.uInt8ToString(diskInfo.heads) + _DiskImage.uInt16ToString(diskInfo.trackSize) + _DiskImage.uInt8ToString(0).repeat(204);
-    return diskInfoString;
-  }
-  readTrackInfo(trackInfo, pos) {
-    const trackInfoSize = _DiskImage.trackInfoSize, sectorInfoList = trackInfo.sectorInfoList, trackDataPos = pos + trackInfoSize;
-    trackInfo.ident = this.readUtf(pos, 12);
-    if (trackInfo.ident.substring(0, 10) !== "Track-Info") {
-      if (!this.options.quiet) {
-        Utils.console.warn(this.composeError({}, "Track ident not found", trackInfo.ident.substring(0, 10), pos).message);
-      }
-    }
-    trackInfo.track = this.readUInt8(pos + 16);
-    trackInfo.head = this.readUInt8(pos + 17);
-    trackInfo.dataRate = this.readUInt8(pos + 18);
-    trackInfo.recMode = this.readUInt8(pos + 19);
-    trackInfo.bps = this.readUInt8(pos + 20);
-    trackInfo.spt = this.readUInt8(pos + 21);
-    trackInfo.gap3 = this.readUInt8(pos + 22);
-    trackInfo.fill = this.readUInt8(pos + 23);
-    sectorInfoList.length = trackInfo.spt;
-    const sectorNum2Index = {};
-    trackInfo.sectorNum2Index = sectorNum2Index;
-    pos += 24;
-    let sectorPos = trackDataPos;
-    for (let i = 0; i < trackInfo.spt; i += 1) {
-      const sectorInfo = sectorInfoList[i] || {};
-      sectorInfoList[i] = sectorInfo;
-      sectorInfo.dataPos = sectorPos;
-      sectorInfo.track = this.readUInt8(pos);
-      sectorInfo.head = this.readUInt8(pos + 1);
-      sectorInfo.sector = this.readUInt8(pos + 2);
-      sectorInfo.bps = this.readUInt8(pos + 3);
-      sectorInfo.state1 = this.readUInt8(pos + 4);
-      sectorInfo.state2 = this.readUInt8(pos + 5);
-      const sectorSize = this.readUInt16(pos + 6) || 128 << trackInfo.bps;
-      sectorInfo.sectorSize = sectorSize;
-      sectorPos += sectorSize;
-      sectorNum2Index[sectorInfo.sector] = i;
-      pos += 8;
-    }
-  }
-  static createTrackInfoAsString(trackInfo) {
-    const sectorInfoList = trackInfo.sectorInfoList;
-    let trackInfoString = trackInfo.ident + _DiskImage.uInt8ToString(0).repeat(4) + _DiskImage.uInt8ToString(trackInfo.track) + _DiskImage.uInt8ToString(trackInfo.head) + _DiskImage.uInt8ToString(trackInfo.dataRate) + _DiskImage.uInt8ToString(trackInfo.recMode) + _DiskImage.uInt8ToString(trackInfo.bps) + _DiskImage.uInt8ToString(trackInfo.spt) + _DiskImage.uInt8ToString(trackInfo.gap3) + _DiskImage.uInt8ToString(trackInfo.fill);
-    for (let i = 0; i < trackInfo.spt; i += 1) {
-      const sectorInfo = sectorInfoList[i], sectorinfoString = _DiskImage.uInt8ToString(sectorInfo.track) + _DiskImage.uInt8ToString(sectorInfo.head) + _DiskImage.uInt8ToString(sectorInfo.sector) + _DiskImage.uInt8ToString(sectorInfo.bps) + _DiskImage.uInt8ToString(sectorInfo.state1) + _DiskImage.uInt8ToString(sectorInfo.state2) + _DiskImage.uInt16ToString(0);
-      trackInfoString += sectorinfoString;
-    }
-    trackInfoString += _DiskImage.uInt8ToString(0).repeat(_DiskImage.trackInfoSize - trackInfoString.length);
-    return trackInfoString;
-  }
-  seekTrack(diskInfo, track, head) {
-    if (!diskInfo.ident) {
-      this.readDiskInfo(diskInfo, 0);
-    }
-    const trackInfo = diskInfo.trackInfo;
-    if (trackInfo.ident && trackInfo.track === track && trackInfo.head === head) {
-      return;
-    }
-    const trackInfoPos = diskInfo.trackInfoPosList[track * diskInfo.heads + head];
-    if (trackInfoPos === void 0) {
-      throw this.composeError(new Error(), "Track not found", String(track));
-    }
-    this.readTrackInfo(trackInfo, trackInfoPos);
-  }
-  static sectorNum2Index(trackInfo, sector) {
-    const sectorIndex = trackInfo.sectorNum2Index[sector];
-    return sectorIndex;
-  }
-  static seekSector(sectorInfoList, sectorIndex) {
-    return sectorInfoList[sectorIndex];
-  }
-  readSector(trackInfo, sector) {
-    const sectorIndex = _DiskImage.sectorNum2Index(trackInfo, sector);
-    if (sectorIndex === void 0) {
-      throw this.composeError(Error(), "Track " + trackInfo.track + ": Sector not found", String(sector), 0);
-    }
-    const sectorInfo = _DiskImage.seekSector(trackInfo.sectorInfoList, sectorIndex), out = this.readUtf(sectorInfo.dataPos, sectorInfo.sectorSize);
-    return out;
-  }
-  writeSector(trackInfo, sector, sectorData) {
-    const sectorIndex = _DiskImage.sectorNum2Index(trackInfo, sector);
-    if (sectorIndex === void 0) {
-      throw this.composeError(Error(), "Track " + trackInfo.track + ": Sector not found", String(sector), 0);
-    }
-    const sectorInfo = _DiskImage.seekSector(trackInfo.sectorInfoList, sectorIndex), data = this.options.data;
-    if (sectorData.length !== sectorInfo.sectorSize) {
-      Utils.console.error(this.composeError({}, "sectordata.length " + sectorData.length + " <> sectorSize " + sectorInfo.sectorSize, String(0)));
-    }
-    this.options.data = data.substring(0, sectorInfo.dataPos) + sectorData + data.substring(sectorInfo.dataPos + sectorInfo.sectorSize);
-  }
-  // ...
-  composeFormatDescriptor(format) {
-    const derivedFormatDescriptor = _DiskImage.formatDescriptors[format];
-    if (!derivedFormatDescriptor) {
-      throw this.composeError(Error(), "Unknown format", format);
-    }
-    let formatDescriptor;
-    if (derivedFormatDescriptor.parentRef) {
-      const parentFormatDescriptor = this.composeFormatDescriptor(derivedFormatDescriptor.parentRef);
-      formatDescriptor = Object.assign({}, parentFormatDescriptor, derivedFormatDescriptor);
-    } else {
-      formatDescriptor = Object.assign({}, derivedFormatDescriptor);
-    }
-    return formatDescriptor;
-  }
-  determineFormat(diskInfo) {
-    const trackInfo = diskInfo.trackInfo, track = 0, head = 0;
-    this.seekTrack(diskInfo, track, head);
-    let firstSector = 255;
-    for (let i = 0; i < trackInfo.spt; i += 1) {
-      const sector = trackInfo.sectorInfoList[i].sector;
-      if (sector < firstSector) {
-        firstSector = sector;
-      }
-    }
-    let format = "";
-    if (firstSector === 193) {
-      format = "data";
-    } else if (firstSector === 65) {
-      format = "system";
-    } else if (firstSector === 145 && diskInfo.tracks === 80) {
-      format = "parados80";
-    } else if (firstSector === 1 && diskInfo.tracks === 80) {
-      format = "big780k";
-    } else {
-      throw this.composeError(Error(), "Unknown format with sector", String(firstSector));
-    }
-    if (diskInfo.heads > 1) {
-      format += _DiskImage.twoHeads;
-    }
-    if (Utils.debug > 1) {
-      Utils.console.debug("determineFormat: format=", format);
-    }
-    return format;
-  }
-  createImage(format) {
-    const formatDescriptor = this.composeFormatDescriptor(format), sectorInfoList = [], sectorSize = 128 << formatDescriptor.bps, sectorInfo = {
-      track: 0,
-      head: 0,
-      sector: 0,
-      bps: formatDescriptor.bps,
-      state1: 0,
-      state2: 0,
-      sectorSize,
-      dataPos: 0
-    }, trackInfo = {
-      ident: "Track-Info\r\n",
-      track: 0,
-      head: 0,
-      dataRate: 0,
-      recMode: 0,
-      bps: formatDescriptor.bps,
-      spt: formatDescriptor.spt,
-      gap3: formatDescriptor.gap3,
-      fill: formatDescriptor.fill,
-      sectorInfoList,
-      sectorNum2Index: {}
-    }, diskInfo = {
-      ident: "MV - CPCEMU Disk-File\r\nDisk-Info\r\n",
-      // 34
-      creator: (this.options.creator || "CpcBasicTS").padEnd(14, " "),
-      // 14
-      tracks: formatDescriptor.tracks,
-      heads: formatDescriptor.heads,
-      trackSize: _DiskImage.trackInfoSize + formatDescriptor.spt * sectorSize,
-      // eslint-disable-line no-bitwise
-      trackInfo,
-      trackSizes: [],
-      // only for extended DSK format
-      trackInfoPosList: [],
-      extended: false
-    }, emptySectorData = _DiskImage.uInt8ToString(formatDescriptor.fill).repeat(sectorSize);
-    for (let i = 0; i < trackInfo.spt; i += 1) {
-      const sectorInfoClone = {
-        ...sectorInfo
-      };
-      sectorInfoClone.sector = formatDescriptor.firstSector + i;
-      trackInfo.sectorNum2Index[sectorInfoClone.sector] = i;
-      sectorInfoList.push(sectorInfoClone);
-    }
-    let image = _DiskImage.createDiskInfoAsString(diskInfo), trackInfoPos = _DiskImage.diskInfoSize;
-    for (let track = 0; track < formatDescriptor.tracks; track += 1) {
-      for (let head = 0; head < formatDescriptor.heads; head += 1) {
-        trackInfo.track = track;
-        trackInfo.head = head;
-        diskInfo.trackInfoPosList.push(trackInfoPos);
-        for (let sector = 0; sector < trackInfo.spt; sector += 1) {
-          const sectorInfo2 = sectorInfoList[sector];
-          sectorInfo2.track = track;
-          sectorInfo2.head = head;
-          sectorInfo2.dataPos = trackInfoPos + _DiskImage.trackInfoSize + sector * sectorInfo2.sectorSize;
-        }
-        const trackAsString = _DiskImage.createTrackInfoAsString(trackInfo);
-        image += trackAsString;
-        for (let sector = 0; sector < formatDescriptor.spt; sector += 1) {
-          image += emptySectorData;
-        }
-        trackInfoPos += diskInfo.trackSize;
-      }
-    }
-    this.diskInfo = diskInfo;
-    this.formatDescriptor = formatDescriptor;
-    return image;
-  }
-  formatImage(format) {
-    const image = this.createImage(format);
-    this.options.data = image;
-    return image;
-  }
-  static fnRemoveHighBit7(str) {
-    let out = "";
-    for (let i = 0; i < str.length; i += 1) {
-      const char = str.charCodeAt(i);
-      out += String.fromCharCode(char & 127);
-    }
-    return out;
-  }
-  readDirectoryExtents(extents, pos, endPos) {
-    while (pos < endPos) {
-      const extent = {
-        user: this.readUInt8(pos),
-        name: this.readUtf(pos + 1, 8),
-        ext: this.readUtf(pos + 9, 3),
-        // extension with flags
-        extent: this.readUInt8(pos + 12),
-        lastRecBytes: this.readUInt8(pos + 13),
-        extentHi: this.readUInt8(pos + 14),
-        // used for what?
-        records: this.readUInt8(pos + 15),
-        blocks: []
-      };
-      pos += 16;
-      const blocks = extent.blocks;
-      for (let i = 0; i < 16; i += 1) {
-        const block = this.readUInt8(pos + i);
-        blocks.push(block);
-      }
-      pos += 16;
-      extents.push(extent);
-    }
-    return extents;
-  }
-  static createDirectoryExtentAsString(extent) {
-    let extentString = _DiskImage.uInt8ToString(extent.user) + extent.name + extent.ext + _DiskImage.uInt8ToString(extent.extent) + _DiskImage.uInt8ToString(extent.lastRecBytes) + _DiskImage.uInt8ToString(extent.extentHi) + _DiskImage.uInt8ToString(extent.records), blockString = "";
-    for (let i = 0; i < extent.blocks.length; i += 1) {
-      blockString += _DiskImage.uInt8ToString(extent.blocks[i]);
-    }
-    extentString += blockString;
-    return extentString;
-  }
-  static createSeveralDirectoryExtentsAsString(extents, first, last) {
-    let extentString = "";
-    for (let i = first; i < last; i += 1) {
-      extentString += _DiskImage.createDirectoryExtentAsString(extents[i]);
-    }
-    return extentString;
-  }
-  static fnSortByExtentNumber(a, b) {
-    return a.extent - b.extent;
-  }
-  // do not know if we need to sort the extents per file, but...
-  static sortFileExtents(dir) {
-    for (const name in dir) {
-      if (dir.hasOwnProperty(name)) {
-        const fileExtents = dir[name];
-        fileExtents.sort(_DiskImage.fnSortByExtentNumber);
-      }
-    }
-  }
-  static prepareDirectoryList(extents, fill, reFilePattern) {
-    const dir = {};
-    for (let i = 0; i < extents.length; i += 1) {
-      const extent = extents[i];
-      if (fill === null || extent.user !== fill) {
-        const name = _DiskImage.fnRemoveHighBit7(extent.name) + "." + _DiskImage.fnRemoveHighBit7(extent.ext);
-        if (!reFilePattern || reFilePattern.test(name)) {
-          if (!(name in dir)) {
-            dir[name] = [];
-          }
-          dir[name].push(extent);
-        }
-      }
-    }
-    _DiskImage.sortFileExtents(dir);
-    return dir;
-  }
-  static convertBlock2Sector(formatDescriptor, block) {
-    const spt = formatDescriptor.spt, blockSectors = formatDescriptor.bls / 512, logSec = block * blockSectors, pos = {
-      track: Math.floor(logSec / spt) + formatDescriptor.off,
-      head: 0,
-      // currently always 0
-      sector: logSec % spt + formatDescriptor.firstSector
-    };
-    return pos;
-  }
-  readAllDirectoryExtents(diskInfo, formatDescriptor, extents) {
-    const directorySectors = 4, off = formatDescriptor.off, firstSector = formatDescriptor.firstSector, trackInfo = diskInfo.trackInfo, sectorInfoList = trackInfo.sectorInfoList;
-    this.seekTrack(diskInfo, off, 0);
-    for (let i = 0; i < directorySectors; i += 1) {
-      const sectorIndex = _DiskImage.sectorNum2Index(trackInfo, firstSector + i);
-      if (sectorIndex === void 0) {
-        throw this.composeError(Error(), "Cannot read directory at track " + off + " sector", String(firstSector));
-      }
-      const sectorInfo = _DiskImage.seekSector(sectorInfoList, sectorIndex);
-      this.readDirectoryExtents(extents, sectorInfo.dataPos, sectorInfo.dataPos + sectorInfo.sectorSize);
-    }
-    return extents;
-  }
-  writeAllDirectoryExtents(diskInfo, formatDescriptor, extents) {
-    const directoryBlocks = 2, extentsPerBlock = extents.length / directoryBlocks;
-    for (let i = 0; i < directoryBlocks; i += 1) {
-      const blockData = _DiskImage.createSeveralDirectoryExtentsAsString(extents, i * extentsPerBlock, (i + 1) * extentsPerBlock);
-      this.writeBlock(diskInfo, formatDescriptor, i, blockData);
-    }
-  }
-  readDirectory() {
-    const diskInfo = this.diskInfo, format = this.determineFormat(diskInfo), formatDescriptor = this.composeFormatDescriptor(format), extents = [];
-    this.formatDescriptor = formatDescriptor;
-    this.readAllDirectoryExtents(diskInfo, formatDescriptor, extents);
-    return _DiskImage.prepareDirectoryList(extents, this.formatDescriptor.fill);
-  }
-  static nextSector(formatDescriptor, pos) {
-    pos.sector += 1;
-    if (pos.sector >= formatDescriptor.firstSector + formatDescriptor.spt) {
-      pos.track += 1;
-      pos.sector = formatDescriptor.firstSector;
-    }
-  }
-  readBlock(diskInfo, formatDescriptor, block) {
-    const blockSectors = formatDescriptor.bls / 512, pos = _DiskImage.convertBlock2Sector(formatDescriptor, block);
-    let out = "";
-    if (pos.track >= diskInfo.tracks) {
-      Utils.console.error(this.composeError({}, "Block " + block + ": Track out of range", String(pos.track)));
-    }
-    if (pos.head >= diskInfo.heads) {
-      Utils.console.error(this.composeError({}, "Block " + block + ": Head out of range", String(pos.track)));
-    }
-    for (let i = 0; i < blockSectors; i += 1) {
-      this.seekTrack(diskInfo, pos.track, pos.head);
-      out += this.readSector(diskInfo.trackInfo, pos.sector);
-      _DiskImage.nextSector(formatDescriptor, pos);
-    }
-    return out;
-  }
-  writeBlock(diskInfo, formatDescriptor, block, blockData) {
-    const blockSectors = formatDescriptor.bls / 512, sectorSize = 128 << formatDescriptor.bps, pos = _DiskImage.convertBlock2Sector(formatDescriptor, block);
-    if (pos.track >= diskInfo.tracks) {
-      Utils.console.error(this.composeError({}, "Block " + block + ": Track out of range", String(pos.track)));
-    }
-    if (pos.head >= diskInfo.heads) {
-      Utils.console.error(this.composeError({}, "Block " + block + ": Head out of range", String(pos.track)));
-    }
-    if (blockData.length !== blockSectors * sectorSize) {
-      Utils.console.error(this.composeError({}, "blockData.length " + blockData.length + " <> blockSize " + blockSectors * sectorSize, String(0)));
-    }
-    for (let i = 0; i < blockSectors; i += 1) {
-      this.seekTrack(diskInfo, pos.track, pos.head);
-      const sectorData = blockData.substring(i * sectorSize, (i + 1) * sectorSize);
-      this.writeSector(diskInfo.trackInfo, pos.sector, sectorData);
-      _DiskImage.nextSector(formatDescriptor, pos);
-    }
-  }
-  readExtents(diskInfo, formatDescriptor, fileExtents) {
-    const recPerBlock = formatDescriptor.bls / 128;
-    let out = "";
-    for (let i = 0; i < fileExtents.length; i += 1) {
-      const extent = fileExtents[i], blocks = extent.blocks;
-      let records = extent.records;
-      if (extent.extent > 0) {
-        if (recPerBlock > 8) {
-          records += extent.extent * 128;
-        }
-      }
-      for (let blockIndex = 0; blockIndex < blocks.length; blockIndex += 1) {
-        let block = this.readBlock(diskInfo, formatDescriptor, blocks[blockIndex]);
-        if (records < recPerBlock) {
-          block = block.substring(0, 128 * records);
-        }
-        out += block;
-        records -= recPerBlock;
-        if (records <= 0) {
-          break;
-        }
-      }
-    }
-    return out;
-  }
-  readFile(fileExtents) {
-    const diskInfo = this.diskInfo, formatDescriptor = this.getFormatDescriptor();
-    let out = this.readExtents(diskInfo, formatDescriptor, fileExtents);
-    const header = _DiskImage.parseAmsdosHeader(out);
-    let realLen;
-    if (header) {
-      const amsdosHeaderLength = 128;
-      realLen = header.length + amsdosHeaderLength;
-    }
-    if (realLen === void 0) {
-      const fileLen = out.length, lastRecPos = fileLen > 128 ? fileLen - 128 : 0, index = out.indexOf(String.fromCharCode(26), lastRecPos);
-      if (index >= 0) {
-        realLen = index;
-        if (Utils.debug > 0) {
-          Utils.console.debug("readFile: ASCII file length " + fileLen + " truncated to " + realLen);
-        }
-      }
-    }
-    if (realLen !== void 0) {
-      out = out.substring(0, realLen);
-    }
-    return out;
-  }
-  static getFreeExtents(extents, fill) {
-    const freeExtents = [];
-    for (let i = 0; i < extents.length; i += 1) {
-      if (extents[i].user === fill) {
-        freeExtents.push(i);
-      }
-    }
-    return freeExtents;
-  }
-  static getBlockMask(extents, fill, dsm, al0, al1) {
-    const blockMask = [];
-    for (let i = 0; i < dsm - 1; i += 1) {
-      blockMask[i] = false;
-    }
-    let mask = 128;
-    for (let i = 0; i < 8; i += 1) {
-      if (al0 & mask) {
-        blockMask[i] = true;
-      }
-      mask >>= 1;
-    }
-    mask = 128;
-    for (let i = 8; i < 16; i += 1) {
-      if (al1 & mask) {
-        blockMask[i] = true;
-      }
-      mask >>= 1;
-    }
-    for (let i = 0; i < extents.length; i += 1) {
-      const extent = extents[i], blockList = extent.blocks;
-      if (extent.user !== fill) {
-        for (let blockindex = 0; blockindex < blockList.length; blockindex += 1) {
-          const block = blockList[blockindex];
-          if (block) {
-            if (blockMask[block]) {
-              Utils.console.warn("getBlockMask: Block number already in use: ", block);
-            }
-            blockMask[block] = true;
-          } else {
-            break;
-          }
-        }
-      }
-    }
-    return blockMask;
-  }
-  static getFreeBlocks(blockMask, dsm) {
-    const freeBlocks = [];
-    for (let i = 0; i < dsm; i += 1) {
-      if (!blockMask[i]) {
-        freeBlocks.push(i);
-      }
-    }
-    return freeBlocks;
-  }
-  static getFilenameAndExtension(filename) {
-    let [name1, ext1] = filename.split(".");
-    name1 = name1.substring(0, 8).toUpperCase().padEnd(8, " ");
-    ext1 = ext1.substring(0, 3).toUpperCase().padEnd(3, " ");
-    return [name1, ext1];
-  }
-  writeFile(filename, data) {
-    const diskInfo = this.diskInfo, formatDescriptor = this.getFormatDescriptor(), extents = [];
-    this.readAllDirectoryExtents(diskInfo, formatDescriptor, extents);
-    const fill = formatDescriptor.fill, freeExtents = _DiskImage.getFreeExtents(extents, formatDescriptor.fill), sectors = (formatDescriptor.tracks - formatDescriptor.off) * formatDescriptor.spt, ssize = 128 << formatDescriptor.bps, dsm = sectors * ssize / formatDescriptor.bls | 0, al0 = formatDescriptor.al0, al1 = formatDescriptor.al1, blockMask = _DiskImage.getBlockMask(extents, fill, dsm, al0, al1), freeBlocks = _DiskImage.getFreeBlocks(blockMask, dsm);
-    if (Utils.debug > 0) {
-      Utils.console.debug("writeFile: freeExtents=", freeExtents.length, ", freeBlocks=", freeBlocks);
-    }
-    if (!freeBlocks.length) {
-      Utils.console.warn("writeFile: " + filename + ": No space left!");
-      return false;
-    }
-    if (!freeExtents.length) {
-      Utils.console.warn("writeFile: " + filename + ": Directory full!");
-      return false;
-    }
-    const [name1, ext1] = _DiskImage.getFilenameAndExtension(filename), fileSize = data.length, bls = formatDescriptor.bls, requiredBlocks = (fileSize + bls - 1) / bls | 0;
-    if (requiredBlocks > freeBlocks.length) {
-      const requiredKB = requiredBlocks * bls / 1024 | 0, freeKB = freeBlocks.length * bls / 1024 | 0;
-      Utils.console.warn("writeFile: " + filename + ": Not enough space left (" + requiredKB + "K > " + freeKB + "K). Ignoring.");
-      return false;
-    }
-    const blocksPerExtent = 16, requiredExtents = (requiredBlocks + blocksPerExtent - 1) / blocksPerExtent | 0;
-    if (requiredExtents > freeExtents.length) {
-      Utils.console.warn("writeFile: " + filename + ": Directory full!");
-      return false;
-    }
-    let size = fileSize, extent, extentCnt = 0, blockCnt = 0;
-    while (size > 0) {
-      if (!extent || blockCnt >= 16) {
-        const records = (size + 128 - 1) / 128 | 0;
-        extent = extents[freeExtents[extentCnt]];
-        extent.user = 0;
-        extent.name = name1;
-        extent.ext = ext1;
-        extent.extent = extentCnt;
-        extent.lastRecBytes = 0;
-        extent.extentHi = 0;
-        extent.records = records > 128 ? 128 : records;
-        extent.blocks.length = 0;
-        for (let i = 0; i < 16; i += 1) {
-          extent.blocks[i] = 0;
-        }
-        extentCnt += 1;
-        blockCnt = 0;
-      }
-      const thisSize = size > bls ? bls : size;
-      let dataChunk = data.substring(fileSize - size, fileSize - size + thisSize);
-      if (thisSize < bls) {
-        dataChunk += _DiskImage.uInt8ToString(26);
-        const remain = bls - thisSize - 1;
-        dataChunk += _DiskImage.uInt8ToString(formatDescriptor.fill).repeat(remain);
-      }
-      const block = freeBlocks[(extentCnt - 1) * 16 + blockCnt];
-      this.writeBlock(diskInfo, formatDescriptor, block, dataChunk);
-      extent.blocks[blockCnt] = block;
-      blockCnt += 1;
-      size -= thisSize;
-    }
-    this.writeAllDirectoryExtents(diskInfo, formatDescriptor, extents);
-    return true;
-  }
-  static isSectorEmpty(data, index, size, fill) {
-    const endIndex = index + size <= data.length ? index + size : data.length - index;
-    let isEmpty = true;
-    for (let i = index; i < endIndex; i += 1) {
-      if (data.charCodeAt(i) !== fill) {
-        isEmpty = false;
-        break;
-      }
-    }
-    return isEmpty;
-  }
-  stripEmptyTracks() {
-    const diskInfo = this.diskInfo, format = this.determineFormat(diskInfo), formatDescriptor = this.composeFormatDescriptor(format), tracks = diskInfo.tracks, firstDataTrack = formatDescriptor.off, head = 0;
-    let data = this.options.data;
-    this.formatDescriptor = formatDescriptor;
-    for (let track = firstDataTrack; track < tracks; track += 1) {
-      this.seekTrack(diskInfo, track, head);
-      const trackInfo = diskInfo.trackInfo, fill = diskInfo.trackInfo.fill, sectorInfoList = trackInfo.sectorInfoList;
-      let isEmpty = true;
-      for (let i = 0; i < trackInfo.spt; i += 1) {
-        const sectorInfo = sectorInfoList[i];
-        if (!_DiskImage.isSectorEmpty(data, sectorInfo.dataPos, sectorInfo.sectorSize, fill)) {
-          isEmpty = false;
-          break;
-        }
-      }
-      if (isEmpty) {
-        diskInfo.tracks = track;
-        const trackDataPos = sectorInfoList[0].dataPos;
-        data = _DiskImage.createDiskInfoAsString(diskInfo) + data.substring(_DiskImage.diskInfoSize, trackDataPos - _DiskImage.trackInfoSize);
-        this.options.data = data;
-        break;
-      }
-    }
-    return data;
-  }
-  /* eslint-enable array-element-newline */
-  static unOrProtectData(data) {
-    const table1 = _DiskImage.protectTable[0], table2 = _DiskImage.protectTable[1];
-    let out = "";
-    for (let i = 0; i < data.length; i += 1) {
-      let byte = data.charCodeAt(i);
-      byte ^= table1[(i & 127) % table1.length] ^ table2[(i & 127) % table2.length];
-      out += String.fromCharCode(byte);
-    }
-    return out;
-  }
-  // ...
-  static computeChecksum(data) {
-    let sum = 0;
-    for (let i = 0; i < data.length; i += 1) {
-      sum += data.charCodeAt(i);
-    }
-    return sum;
-  }
-  static hasAmsdosHeader(data) {
-    let hasHeader = false;
-    if (data.length >= 128) {
-      const computed = _DiskImage.computeChecksum(data.substring(0, 66)), sum = data.charCodeAt(67) + data.charCodeAt(68) * 256;
-      hasHeader = computed === sum;
-    }
-    return hasHeader;
-  }
-  static parseAmsdosHeader(data) {
-    const typeMap = {
-      0: "T",
-      // tokenized BASIC (T=not official)
-      1: "P",
-      // protected BASIC (also tokenized)
-      2: "B",
-      // Binary
-      8: "G",
-      // GENA3 Assember (G=not official)
-      22: "A"
-      // ASCII
-    };
-    let header;
-    if (_DiskImage.hasAmsdosHeader(data)) {
-      header = {
-        user: data.charCodeAt(0),
-        name: data.substring(1, 1 + 8),
-        ext: data.substring(9, 9 + 3),
-        typeNumber: data.charCodeAt(18),
-        start: data.charCodeAt(21) + data.charCodeAt(22) * 256,
-        pseudoLen: data.charCodeAt(24) + data.charCodeAt(25) * 256,
-        entry: data.charCodeAt(26) + data.charCodeAt(27) * 256,
-        length: data.charCodeAt(64) + data.charCodeAt(65) * 256 + data.charCodeAt(66) * 65536,
-        typeString: ""
-      };
-      header.typeString = typeMap[header.typeNumber] || typeMap[16];
-    }
-    return header;
-  }
-  static combineAmsdosHeader(header) {
-    const typeMap = {
-      T: 0,
-      // tokenized BASIC (T=not official)
-      P: 1,
-      // protected BASIC
-      B: 2,
-      // Binary
-      G: 8,
-      // GENA3 Assember (G=not official)
-      A: 22
-      // ASCII
-    };
-    let type = header.typeNumber;
-    if (header.typeString) {
-      type = typeMap[header.typeString];
-      if (type === void 0) {
-        type = typeMap.A;
-      }
-    }
-    let length = header.pseudoLen || header.length;
-    if (length > 65535) {
-      length = 65535;
-    }
-    const data1 = _DiskImage.uInt8ToString(header.user || 0) + (header.name || "").padEnd(8, " ") + (header.ext || "").padEnd(3, " ") + _DiskImage.uInt16ToString(0) + _DiskImage.uInt16ToString(0) + _DiskImage.uInt8ToString(0) + _DiskImage.uInt8ToString(0) + _DiskImage.uInt8ToString(type) + _DiskImage.uInt16ToString(0) + _DiskImage.uInt16ToString(header.start || 0) + _DiskImage.uInt8ToString(0) + _DiskImage.uInt16ToString(length) + _DiskImage.uInt16ToString(header.entry || 0) + "\0".repeat(36) + _DiskImage.uInt24ToString(header.length), checksum = _DiskImage.computeChecksum(data1), data = data1 + _DiskImage.uInt16ToString(checksum) + "\0".repeat(59);
-    return data;
-  }
-  static createAmsdosHeader(parameter) {
-    const header = {
-      user: 0,
-      name: "",
-      ext: "",
-      typeNumber: 0,
-      start: 0,
-      pseudoLen: 0,
-      entry: 0,
-      length: 0,
-      typeString: "",
-      ...parameter
-    };
-    return header;
-  }
-};
-_DiskImage.twoHeads = "2h";
-_DiskImage.formatDescriptors = {
-  data: {
-    tracks: 40,
-    // number of tracks (1-85)
-    heads: 1,
-    // number of heads/sides (1-2)
-    // head: 0, // head number?
-    bps: 2,
-    // Bytes per Sector (1-5)
-    spt: 9,
-    // Sectors per Track (1-18)
-    gap3: 78,
-    // gap between ID and data
-    fill: 229,
-    // filler byte
-    firstSector: 193,
-    // first sector number
-    bls: 1024,
-    // BLS: data block allocaton size (1024, 2048, 4096, 8192, 16384)
-    // bsh: 3, // log2 BLS - 7
-    // blm: 7, // BLS / 128 - 1
-    al0: 192,
-    // bit significant representation of reserved directory blocks 0..7 (0x80=0, 0xc00=0 and 1,,...)
-    al1: 0,
-    // bit significant representation of reserved directory blocks 8..15 (0x80=8,...)
-    off: 0
-    // number of reserved tracks (also the track where the directory starts)
-  },
-  data42t: {
-    parentRef: "data",
-    tracks: 42
-  },
-  // double sided data
-  data2h: {
-    parentRef: "data",
-    heads: 2
-  },
-  system: {
-    parentRef: "data",
-    firstSector: 65,
-    off: 2
-  },
-  // double sided system
-  system2h: {
-    parentRef: "system",
-    heads: 2
-  },
-  vortex: {
-    parentRef: "data",
-    tracks: 80,
-    heads: 2,
-    firstSector: 1
-  },
-  "3dos": {
-    parentRef: "data",
-    firstSector: 0
-  },
-  parados80: {
-    // 396K (https://www.cpcwiki.eu/imgs/0/0d/Parados.pdf)
-    parentRef: "data",
-    tracks: 80,
-    firstSector: 145,
-    spt: 10,
-    bls: 2048
-  },
-  big780k: {
-    parentRef: "data",
-    al0: 128,
-    // block 0 reserved
-    tracks: 80,
-    off: 1,
-    firstSector: 1
-  },
-  big780k2h: {
-    parentRef: "big780k",
-    heads: 2
-  }
-};
-_DiskImage.diskInfoIdentMap = {
-  "MV - CPC": 1,
-  EXTENDED: 2
-};
-_DiskImage.diskInfoSize = 256;
-_DiskImage.trackInfoSize = 256;
-// ...
-// see AMSDOS ROM, &D252
-/* eslint-disable array-element-newline */
-_DiskImage.protectTable = [
-  [226, 157, 219, 26, 66, 41, 57, 198, 179, 198, 144, 69, 138],
-  // 13 bytes
-  [73, 177, 54, 240, 46, 30, 6, 42, 40, 25, 234]
-  // 11 bytes
-];
-let DiskImage = _DiskImage;
-
-class Snapshot {
-  constructor(options) {
-    this.pos = 0;
-    this.options = {
-      quiet: false
-    };
-    this.setOptions(options);
-  }
-  getOptions() {
-    return this.options;
-  }
-  setOptions(options) {
-    Object.assign(this.options, options);
-  }
-  composeError(error, message, value, pos) {
-    const len = 0;
-    return Utils.composeError("DiskImage", error, this.options.name + ": " + message, value, pos || 0, len);
-  }
-  static testSnapIdent(ident) {
-    return ident === "MV - SNA";
-  }
-  readUInt8() {
-    const num = this.options.data.charCodeAt(this.pos);
-    if (isNaN(num)) {
-      throw this.composeError(new Error(), "End of File", String(num), this.pos);
-    }
-    this.pos += 1;
-    return num;
-  }
-  readUInt16() {
-    return this.readUInt8() + this.readUInt8() * 256;
-  }
-  readUInt8Array(len) {
-    const arr = [];
-    for (let i = 0; i < len; i += 1) {
-      arr.push(this.readUInt8());
-    }
-    return arr;
-  }
-  readUtf(len) {
-    const out = this.options.data.substring(this.pos, this.pos + len);
-    if (out.length !== len) {
-      throw this.composeError(new Error(), "End of File", "", this.pos);
-    }
-    this.pos += len;
-    return out;
-  }
-  getSnapshotInfo() {
-    this.pos = 0;
-    const info = {
-      ident: this.readUtf(8),
-      unused1: this.readUtf(8),
-      version: this.readUInt8(),
-      z80: {
-        AF: this.readUInt16(),
-        BC: this.readUInt16(),
-        DE: this.readUInt16(),
-        HL: this.readUInt16(),
-        IR: this.readUInt16(),
-        IFF: this.readUInt16(),
-        IX: this.readUInt16(),
-        IY: this.readUInt16(),
-        SP: this.readUInt16(),
-        PC: this.readUInt16(),
-        M: this.readUInt8(),
-        AF2: this.readUInt16(),
-        BC2: this.readUInt16(),
-        DE2: this.readUInt16(),
-        HL2: this.readUInt16()
-      },
-      ga: {
-        inknum: this.readUInt8(),
-        inkval: this.readUInt8Array(17),
-        multi: this.readUInt8()
-      },
-      ramconf: this.readUInt8(),
-      crtc: {
-        index: this.readUInt8(),
-        reg: this.readUInt8Array(18)
-      },
-      romnum: this.readUInt8(),
-      ppi: {
-        portA: this.readUInt8(),
-        portB: this.readUInt8(),
-        portC: this.readUInt8(),
-        portCtl: this.readUInt8()
-      },
-      psg: {
-        index: this.readUInt8(),
-        reg: this.readUInt8Array(16)
-      },
-      memsize: this.readUInt8()
-    };
-    return info;
-  }
-  getMemory() {
-    return this.options.data.substring(256);
-  }
-}
-
-class ZipFile {
-  constructor(options) {
-    this.entryTable = {};
-    this.options = {};
-    this.setOptions(options, true);
-  }
-  getOptions() {
-    return this.options;
-  }
-  setOptions(options, force) {
-    const currentData = this.options.data;
-    Object.assign(this.options, options);
-    if (force || this.options.data !== currentData) {
-      this.data = this.options.data;
-      this.entryTable = this.readZipDirectory();
-    }
-  }
-  getZipDirectory() {
-    return this.entryTable;
-  }
-  composeError(error, message, value, pos) {
-    message = this.options.zipName + ": " + message;
-    return Utils.composeError("ZipFile", error, message, value, pos);
-  }
-  subArr(begin, length) {
-    const data = this.data, end = begin + length;
-    return data.slice ? data.slice(begin, end) : data.subarray(begin, end);
-  }
-  readUTF(offset, len) {
-    const callSize = 25e3;
-    let out = "";
-    while (len) {
-      const chunkLen = Math.min(len, callSize), nums = this.subArr(offset, chunkLen);
-      out += String.fromCharCode.apply(null, nums);
-      offset += chunkLen;
-      len -= chunkLen;
-    }
-    return out;
-  }
-  readUInt(i) {
-    const data = this.data;
-    return data[i + 3] << 24 | data[i + 2] << 16 | data[i + 1] << 8 | data[i];
-  }
-  readUShort(i) {
-    const data = this.data;
-    return data[i + 1] << 8 | data[i];
-  }
-  readEocd(eocdPos) {
-    const eocd = {
-      signature: this.readUInt(eocdPos),
-      entries: this.readUShort(eocdPos + 10),
-      // total number of central directory records
-      cdfhOffset: this.readUInt(eocdPos + 16),
-      // offset of start of central directory, relative to start of archive
-      cdSize: this.readUInt(eocdPos + 20)
-      // size of central directory (just for information)
-    };
-    return eocd;
-  }
-  readCdfh(pos) {
-    const cdfh = {
-      signature: this.readUInt(pos),
-      version: this.readUShort(pos + 6),
-      // version needed to extract (minimum)
-      flag: this.readUShort(pos + 8),
-      // General purpose bit flag
-      compressionMethod: this.readUShort(pos + 10),
-      // compression method
-      modificationTime: this.readUShort(pos + 12),
-      // File last modification time (DOS time)
-      crc: this.readUInt(pos + 16),
-      // CRC-32 of uncompressed data
-      compressedSize: this.readUInt(pos + 20),
-      // compressed size
-      size: this.readUInt(pos + 24),
-      // Uncompressed size
-      fileNameLength: this.readUShort(pos + 28),
-      // file name length
-      extraFieldLength: this.readUShort(pos + 30),
-      // extra field length
-      fileCommentLength: this.readUShort(pos + 32),
-      // file comment length
-      localOffset: this.readUInt(pos + 42),
-      // relative offset of local file header
-      // set later...
-      name: "",
-      isDirectory: false,
-      extra: [],
-      comment: "",
-      timestamp: 0,
-      dataStart: 0
-    };
-    return cdfh;
-  }
-  readZipDirectory() {
-    const eocdLen = 22, maxEocdCommentLen = 65535, eocdSignature = 101010256, cdfhSignature = 33639248, cdfhLen = 46, lfhSignature = 67324752, lfhLen = 30, data = this.data, entryTable = {};
-    let i = data.length - eocdLen + 1, eocd;
-    const n = Math.max(0, i - maxEocdCommentLen);
-    while (i >= n) {
-      i -= 1;
-      if (this.readUInt(i) === eocdSignature) {
-        eocd = this.readEocd(i);
-        if (this.readUInt(eocd.cdfhOffset) === cdfhSignature) {
-          break;
-        }
-      }
-    }
-    if (!eocd) {
-      throw this.composeError(Error(), "Zip: File ended abruptly: EOCD not found", "", i >= 0 ? i : 0);
-    }
-    const entries = eocd.entries;
-    let offset = eocd.cdfhOffset;
-    for (i = 0; i < entries; i += 1) {
-      const cdfh = this.readCdfh(offset);
-      if (cdfh.signature !== cdfhSignature) {
-        throw this.composeError(Error(), "Zip: Bad CDFH signature", "", offset);
-      }
-      if (!cdfh.fileNameLength) {
-        throw this.composeError(Error(), "Zip Entry name missing", "", offset);
-      }
-      offset += cdfhLen;
-      cdfh.name = this.readUTF(offset, cdfh.fileNameLength);
-      offset += cdfh.fileNameLength;
-      cdfh.isDirectory = cdfh.name.charAt(cdfh.name.length - 1) === "/";
-      cdfh.extra = this.subArr(offset, cdfh.extraFieldLength);
-      offset += cdfh.extraFieldLength;
-      cdfh.comment = this.readUTF(offset, cdfh.fileCommentLength);
-      offset += cdfh.fileCommentLength;
-      if ((cdfh.flag & 1) === 1) {
-        throw this.composeError(Error(), "Zip encrypted entries not supported", "", i);
-      }
-      const dostime = cdfh.modificationTime;
-      cdfh.timestamp = new Date((dostime >> 25 & 127) + 1980, (dostime >> 21 & 15) - 1, dostime >> 16 & 31, dostime >> 11 & 31, dostime >> 5 & 63, (dostime & 31) << 1).getTime();
-      if (this.readUInt(cdfh.localOffset) !== lfhSignature) {
-        Utils.console.error("Zip: readZipDirectory: LFH signature not found at offset", cdfh.localOffset);
-      }
-      const lfhExtrafieldLength = this.readUShort(cdfh.localOffset + 28);
-      cdfh.dataStart = cdfh.localOffset + lfhLen + cdfh.name.length + lfhExtrafieldLength;
-      entryTable[cdfh.name] = cdfh;
-    }
-    return entryTable;
-  }
-  static fnInflateConstruct(codes, lens2, n) {
-    let i;
-    for (i = 0; i <= 15; i += 1) {
-      codes.count[i] = 0;
-    }
-    for (i = 0; i < n; i += 1) {
-      codes.count[lens2[i]] += 1;
-    }
-    if (codes.count[0] === n) {
-      return 0;
-    }
-    let left = 1;
-    for (i = 1; i <= 15; i += 1) {
-      if ((left = (left << 1) - codes.count[i]) < 0) {
-        return left;
-      }
-    }
-    const offs = [
-      void 0,
-      0
-    ];
-    for (i = 1; i < 15; i += 1) {
-      offs[i + 1] = offs[i] + codes.count[i];
-    }
-    for (i = 0; i < n; i += 1) {
-      if (lens2[i] !== 0) {
-        codes.symbol[offs[lens2[i]]] = i;
-        offs[lens2[i]] += 1;
-      }
-    }
-    return left;
-  }
-  static fnConstructFixedHuffman(lens, lenCode, distCode) {
-    let symbol;
-    for (symbol = 0; symbol < 144; symbol += 1) {
-      lens[symbol] = 8;
-    }
-    for (; symbol < 256; symbol += 1) {
-      lens[symbol] = 9;
-    }
-    for (; symbol < 280; symbol += 1) {
-      lens[symbol] = 7;
-    }
-    for (; symbol < 288; symbol += 1) {
-      lens[symbol] = 8;
-    }
-    ZipFile.fnInflateConstruct(lenCode, lens, 288);
-    for (symbol = 0; symbol < 30; symbol += 1) {
-      lens[symbol] = 5;
-    }
-    ZipFile.fnInflateConstruct(distCode, lens, 30);
-  }
-  inflate(offset, compressedSize, finalSize) {
-    const startLens = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258], lExt = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0], dists = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577], dExt = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13], dynamicTableOrder = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15], that = this, data = this.data, bufEnd = offset + compressedSize, outBuf = new Uint8Array(finalSize);
-    let inCnt = offset, outCnt = 0, bitCnt = 0, bitBuf = 0, distCode, lenCode, lens;
-    const fnBits = function(need) {
-      let out = bitBuf;
-      while (bitCnt < need) {
-        if (inCnt === bufEnd) {
-          throw that.composeError(Error(), "Zip: inflate: Data overflow", that.options.zipName, -1);
-        }
-        out |= data[inCnt] << bitCnt;
-        inCnt += 1;
-        bitCnt += 8;
-      }
-      bitBuf = out >> need;
-      bitCnt -= need;
-      return out & (1 << need) - 1;
-    }, fnDecode = function(codes) {
-      let code = 0, first = 0, i = 0;
-      for (let j = 1; j <= 15; j += 1) {
-        code |= fnBits(1);
-        const count = codes.count[j];
-        if (code < first + count) {
-          return codes.symbol[i + (code - first)];
-        }
-        i += count;
-        first += count;
-        first <<= 1;
-        code <<= 1;
-      }
-      return null;
-    }, fnInflateStored = function() {
-      bitBuf = 0;
-      bitCnt = 0;
-      if (inCnt + 4 > bufEnd) {
-        throw that.composeError(Error(), "Zip: inflate: Data overflow", "", inCnt);
-      }
-      let len = that.readUShort(inCnt);
-      inCnt += 2;
-      if (data[inCnt] !== (~len & 255) || data[inCnt + 1] !== (~len >> 8 & 255)) {
-        throw that.composeError(Error(), "Zip: inflate: Bad length", "", inCnt);
-      }
-      inCnt += 2;
-      if (inCnt + len > bufEnd) {
-        throw that.composeError(Error(), "Zip: inflate: Data overflow", "", inCnt);
-      }
-      while (len) {
-        outBuf[outCnt] = data[inCnt];
-        outCnt += 1;
-        inCnt += 1;
-        len -= 1;
-      }
-    }, fnConstructDynamicHuffman = function() {
-      const nLen = fnBits(5) + 257, nDist = fnBits(5) + 1, nCode = fnBits(4) + 4;
-      if (nLen > 286 || nDist > 30) {
-        throw that.composeError(Error(), "Zip: inflate: length/distance code overflow", "", 0);
-      }
-      let i;
-      for (i = 0; i < nCode; i += 1) {
-        lens[dynamicTableOrder[i]] = fnBits(3);
-      }
-      for (; i < 19; i += 1) {
-        lens[dynamicTableOrder[i]] = 0;
-      }
-      if (ZipFile.fnInflateConstruct(lenCode, lens, 19) !== 0) {
-        throw that.composeError(Error(), "Zip: inflate: length codes incomplete", "", 0);
-      }
-      for (i = 0; i < nLen + nDist; ) {
-        let symbol = fnDecode(lenCode);
-        if (symbol < 16) {
-          lens[i] = symbol;
-          i += 1;
-        } else {
-          let len = 0;
-          if (symbol === 16) {
-            if (i === 0) {
-              throw that.composeError(Error(), "Zip: inflate: repeat lengths with no first length", "", 0);
-            }
-            len = lens[i - 1];
-            symbol = 3 + fnBits(2);
-          } else if (symbol === 17) {
-            symbol = 3 + fnBits(3);
-          } else {
-            symbol = 11 + fnBits(7);
-          }
-          if (i + symbol > nLen + nDist) {
-            throw that.composeError(Error(), "Zip: inflate: more lengths than specified", "", 0);
-          }
-          while (symbol) {
-            lens[i] = len;
-            symbol -= 1;
-            i += 1;
-          }
-        }
-      }
-      const err1 = ZipFile.fnInflateConstruct(lenCode, lens, nLen), err2 = ZipFile.fnInflateConstruct(distCode, lens.slice(nLen), nDist);
-      if (err1 < 0 || err1 > 0 && nLen - lenCode.count[0] !== 1 || (err2 < 0 || err2 > 0 && nDist - distCode.count[0] !== 1)) {
-        throw that.composeError(Error(), "Zip: inflate: bad literal or length codes", "", 0);
-      }
-    }, fnInflateHuffmann = function() {
-      let symbol;
-      do {
-        symbol = fnDecode(lenCode);
-        if (symbol < 256) {
-          outBuf[outCnt] = symbol;
-          outCnt += 1;
-        }
-        if (symbol > 256) {
-          symbol -= 257;
-          if (symbol > 28) {
-            throw that.composeError(Error(), "Zip: inflate: Invalid length/distance", "", 0);
-          }
-          let len = startLens[symbol] + fnBits(lExt[symbol]);
-          symbol = fnDecode(distCode);
-          const dist = dists[symbol] + fnBits(dExt[symbol]);
-          if (dist > outCnt) {
-            throw that.composeError(Error(), "Zip: inflate: distance out of range", "", 0);
-          }
-          while (len) {
-            outBuf[outCnt] = outBuf[outCnt - dist];
-            len -= 1;
-            outCnt += 1;
-          }
-        }
-      } while (symbol !== 256);
-    };
-    let last;
+class InputLine {
+  constructor(keyboard, vm) {
+    this.keyboard = keyboard;
+    this.vm = vm;
+  }
+  submit(paras) {
+    if (!paras.noCRLF && paras.command !== "input" && paras.command !== "lineinput") {
+      this.vm.print(paras.stream, "\r\n");
+    }
+    return paras.fnInputCallback ? paras.fnInputCallback() : true;
+  }
+  readAndSubmit(paras, onReturn) {
+    const edited = this.read(paras.input, paras.stream);
+    paras.input = edited.input;
+    if (edited.submitted) {
+      onReturn?.(edited.input);
+      return this.submit(paras);
+    }
+    return false;
+  }
+  read(input, stream) {
+    let key;
     do {
-      last = fnBits(1);
-      const type = fnBits(2);
-      switch (type) {
-        case 0:
-          fnInflateStored();
+      key = this.keyboard.getKeyFromBuffer();
+      switch (key) {
+        case "":
+        case "\r":
           break;
-        case 1:
-        case 2:
-          lenCode = {
-            count: [],
-            symbol: []
-          };
-          distCode = {
-            count: [],
-            symbol: []
-          };
-          lens = [];
-          if (type === 1) {
-            ZipFile.fnConstructFixedHuffman(lens, lenCode, distCode);
+        case "":
+          key = "\x07";
+          break;
+        case "\x7F":
+          if (input.length) {
+            input = input.slice(0, -1);
+            key = "\b";
           } else {
-            fnConstructDynamicHuffman();
+            key = "\x07";
           }
-          fnInflateHuffmann();
+          break;
+        case "\xE0": {
+          const copied = this.vm.copychr$(stream);
+          input += copied;
+          key = copied.length ? "	" : "\x07";
+          break;
+        }
+        case "\xF0":
+          key = input.length ? "\x07" : "\v";
+          break;
+        case "\xF1":
+          key = input.length ? "\x07" : "\n";
+          break;
+        case "\xF2":
+          key = input.length ? "\x07" : "\b";
+          break;
+        case "\xF3":
+          key = input.length ? "\x07" : "	";
+          break;
+        case "\xF4":
+        case "\xF5":
+        case "\xF6":
+        case "\xF7":
+        case "\xF8":
+        case "\xF9":
+        case "\xFA":
+        case "\xFB":
+          key = "";
           break;
         default:
-          throw this.composeError(Error(), "Zip: inflate: unsupported compression type" + type, "", 0);
+          input += key;
+          if (key < " ") {
+            key = "" + key;
+          }
+          break;
       }
-    } while (!last);
-    return outBuf;
-  }
-  readData(name) {
-    const cdfh = this.entryTable[name];
-    if (!cdfh) {
-      throw this.composeError(Error(), "Zip: readData: file does not exist:" + name, "", 0);
-    }
-    let dataUTF8 = "";
-    if (cdfh.compressionMethod === 0) {
-      dataUTF8 = this.readUTF(cdfh.dataStart, cdfh.size);
-    } else if (cdfh.compressionMethod === 8) {
-      const fileData = this.inflate(cdfh.dataStart, cdfh.compressedSize, cdfh.size), savedData = this.data;
-      this.data = fileData;
-      dataUTF8 = this.readUTF(0, fileData.length);
-      this.data = savedData;
-    } else {
-      throw this.composeError(Error(), "Zip: readData: compression method not supported:" + cdfh.compressionMethod, "", 0);
-    }
-    if (dataUTF8.length !== cdfh.size) {
-      Utils.console.error("Zip: readData: different length 2!");
-    }
-    return dataUTF8;
+      if (key && key !== "\r") {
+        this.vm.print(stream, key);
+      }
+    } while (key !== "" && key !== "\r");
+    return { input, submitted: key === "\r" };
   }
 }
 
-const _FileHandler = class _FileHandler {
+class ExecutionStateReporter {
+  constructor(onChange) {
+    this.onChange = onChange;
+  }
+  report(state) {
+    const previous = this.previous;
+    if (previous && previous.reason === state.reason && previous.line === state.line && previous.isRunning === state.isRunning) {
+      return;
+    }
+    this.previous = { ...state };
+    this.onChange?.({ ...state });
+  }
+}
+
+class ProgramCompiler {
   constructor(options) {
-    this.processFileImports = true;
-    this.options = {};
-    this.setOptions(options);
+    this.options = options;
   }
-  setOptions(options) {
-    Object.assign(this.options, options);
-  }
-  getDiskImage() {
-    if (!this.diskImage) {
-      this.diskImage = new DiskImage({
-        data: ""
-        // will be set later
-      });
+  compile(input, variables) {
+    const options = this.options, output = options.generator.generateProgram(input, variables);
+    if (output.error) {
+      return output;
     }
-    return this.diskImage;
-  }
-  static fnLocalStorageName(name, defaultExtension) {
-    if (name.indexOf(".") < 0) {
-      name += "." + (defaultExtension || "");
-    }
-    return name;
-  }
-  static getMetaIdent() {
-    return _FileHandler.metaIdent;
-  }
-  static joinMeta(meta) {
-    return [
-      _FileHandler.metaIdent,
-      meta.typeString,
-      meta.start,
-      meta.length,
-      meta.entry,
-      meta.encoding
-    ].join(";");
-  }
-  // eslint-disable-line no-control-regex
-  // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-  processDskFile(data, name, imported) {
+    options.vm.vmSetSourceMap(options.generator.getSourceMap());
+    const tokens = options.encodeTokens(input);
+    options.onTokenized?.(input.length, tokens.length);
     try {
-      const dsk = this.getDiskImage();
-      dsk.setOptions({
-        data,
-        diskName: name
+      options.vm.vmPutProgramInMem(tokens);
+    } catch (error) {
+      options.onMemoryError(error);
+    }
+    return output;
+  }
+}
+
+class ProgramRunner {
+  constructor(options) {
+    this.options = options;
+  }
+  static compile(script) {
+    return new Function("o", script);
+  }
+  static listProgram(vm, lines, stream) {
+    for (const line of BasicFormatter.formatListing(lines, stream)) {
+      vm.print(stream, line, "\r\n");
+    }
+    vm.vmGoto(0);
+    vm.vmStop("end", 0, true);
+  }
+  static editLine(vm, paras, line, onInput) {
+    vm.print(paras.stream, line);
+    vm.cursor(paras.stream, 1);
+    const input = {
+      command: paras.command,
+      line: paras.line,
+      stream: paras.stream,
+      message: "",
+      fnInputCallback: onInput,
+      input: line
+    };
+    vm.vmStop("waitInput", 45, true, input);
+  }
+  static renumberProgram(vm, source, paras, renumber, setSource, onError) {
+    const output = renumber(source, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
+    if (output.error) {
+      onError(output.error);
+    } else {
+      setSource(output.text);
+    }
+    vm.vmGoto(0);
+    vm.vmStop("end", 0, true);
+    return output;
+  }
+  static commitEditedLine(vm, paras, source, merge, setSource, onProgramEdited) {
+    setSource(merge(source, paras.input));
+    vm.vmSetStartLine(0);
+    vm.vmGoto(0);
+    onProgramEdited?.();
+    vm.cursor(paras.stream, 0);
+    vm.vmStop("end", 90);
+    return true;
+  }
+  static newProgram(vm, clearSource, clearVariables, invalidate) {
+    clearSource();
+    clearVariables();
+    vm.vmGoto(0);
+    vm.vmStop("end", 0, true);
+    invalidate();
+  }
+  static resetProgram(vm, clearVariables, resetDevices, clearOutput, invalidate) {
+    clearVariables();
+    vm.vmReset();
+    resetDevices();
+    vm.vmStop("end", 0, true);
+    clearOutput();
+    invalidate();
+  }
+  static prepareChainMergeLoad(vm, file, deleteLines) {
+    if (file.command === "chainMerge" && file.first && file.last) {
+      deleteLines({
+        first: file.first,
+        last: file.last,
+        command: "CHAIN MERGE",
+        stream: 0,
+        line: vm.line
       });
-      const dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
-      for (let i = 0; i < diskFiles.length; i += 1) {
-        const fileName = diskFiles[i];
-        try {
-          data = dsk.readFile(dir[fileName]);
-          this.fnLoad2(data, fileName, "", imported);
-        } catch (e) {
-          Utils.console.error(e);
-          if (e instanceof Error) {
-            this.options.outputError(e, true);
-          }
-        }
-      }
-    } catch (e) {
-      Utils.console.error(e);
-      if (e instanceof Error) {
-        this.options.outputError(e, true);
-      }
+      vm.vmStop("fileLoad", 90);
     }
   }
-  processZipFile(uint8Array, name, imported) {
-    let zip;
-    try {
-      zip = new ZipFile({
-        data: uint8Array,
-        // rather data
-        zipName: name
-      });
-    } catch (e) {
-      Utils.console.error(e);
-      if (e instanceof Error) {
-        this.options.outputError(e, true);
+  static closeSavedFile(vm, file, data, onWarning) {
+    if (file.fnFileCallback) {
+      try {
+        file.fnFileCallback(data);
+      } catch (error) {
+        onWarning(error);
       }
     }
-    if (zip) {
-      const zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
-      for (let i = 0; i < entries.length; i += 1) {
-        const name2 = entries[i];
-        if (name2.startsWith("__MACOSX/")) {
-          Utils.console.log("processZipFile: Ignoring file:", name2);
-        } else {
-          let data2;
-          try {
-            data2 = zip.readData(name2);
-          } catch (e) {
-            Utils.console.error(e);
-            if (e instanceof Error) {
-              this.options.outputError(e, true);
-            }
-          }
-          if (data2) {
-            this.fnLoad2(data2, name2, "", imported);
-          }
-        }
-      }
-    }
+    vm.vmResetOutFileHandling();
   }
-  fnLoad2(data, name, type, imported) {
-    let header;
-    if (type === "" && !(data instanceof Uint8Array)) {
-      header = DiskImage.parseAmsdosHeader(data);
-      if (header) {
-        type = "H";
-        data = data.substring(128);
-      } else if (_FileHandler.reRegExpIsText.test(data)) {
-        type = "A";
-      } else if (Snapshot.testSnapIdent(data.substring(0, 8))) {
-        type = "S";
-      } else if (DiskImage.testDiskIdent(data.substring(0, 8))) {
-        type = "X";
-      }
+  static dispatchFileSave(vm, file, save, onSaved, onNotOpen, onWarning) {
+    if (file.open) {
+      const data = save(file);
+      onSaved(file.name);
+      ProgramRunner.closeSavedFile(vm, file, data, onWarning);
+    } else {
+      onNotOpen();
     }
-    switch (type) {
-      case "A":
-      // "text/plain"
-      case "B":
-        header = DiskImage.createAmsdosHeader({
-          typeString: type,
-          length: data.length
-        });
+    vm.vmStop("", 0, true);
+  }
+  static dispatchFileLoad(file, actions) {
+    if (file.open) {
+      ProgramRunner.prepareChainMergeLoad(actions.vm, file, actions.deleteLines);
+      actions.logFile(file);
+      const input = actions.loadFromStorage(file.name);
+      if (input !== null) {
+        actions.onStorageLoad(input);
+      } else {
+        actions.loadExample();
+      }
+    } else {
+      actions.onNotOpen(file.name);
+    }
+    actions.setNextDelay(actions.vm.vmGetTimeUntilFrame());
+  }
+  static applyLoad(request, actions) {
+    let startLine = 0;
+    switch (request.command) {
+      case "openin":
         break;
-      case "H":
+      case "chainMerge":
+        actions.setSource(actions.merge(actions.getSource(), request.input));
+        actions.clearResult();
+        startLine = request.line;
+        actions.invalidate();
+        actions.parseChain();
         break;
-      case "S":
-        header = DiskImage.createAmsdosHeader({
-          typeString: type,
-          length: data.length
-        });
-        break;
-      case "X":
-        if (this.processFileImports) {
-          this.processDskFile(data, name, imported);
-        } else {
-          header = DiskImage.createAmsdosHeader({
-            typeString: type,
-            length: data.length
-          });
+      case "load":
+        if (!request.inMemory) {
+          actions.setSource(request.input);
+          actions.clearResult();
+          actions.invalidate();
+          actions.vm.vmStop("end", 90);
         }
         break;
-      case "Z":
-        if (this.processFileImports) {
-          this.processZipFile(data instanceof Uint8Array ? data : Utils.string2Uint8Array(data), name, imported);
+      case "merge":
+        actions.setSource(actions.merge(actions.getSource(), request.input));
+        actions.clearResult();
+        actions.invalidate();
+        actions.removeVariables();
+        actions.vm.vmStop("end", 90);
+        break;
+      case "chain":
+        actions.setSource(request.input);
+        actions.clearResult();
+        startLine = request.line;
+        actions.invalidate();
+        actions.parseChain();
+        break;
+      case "run":
+        if (!request.inMemory) {
+          actions.setSource(request.input);
+          actions.clearResult();
+          startLine = request.line;
+          if (!request.isSnapshot) {
+            actions.reset();
+          }
+          actions.parseRun();
         } else {
-          header = DiskImage.createAmsdosHeader({
-            typeString: type,
-            length: data.length
-          });
+          actions.reset();
+          actions.vm.clear();
+          actions.loadFileInMemory();
         }
         break;
       default:
-        Utils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
-        header = DiskImage.createAmsdosHeader({
-          typeString: "B",
-          length: data.length
-        });
+        actions.onUnknownCommand(request.command);
         break;
     }
-    if (header) {
-      const storageName = _FileHandler.fnLocalStorageName(this.options.adaptFilename(name, "FILE")), meta = _FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? Utils.uint8Array2string(data) : data;
+    return startLine;
+  }
+  static continueLoad(input, file, actions) {
+    const { decode, decodeTokenizedBasic, loadFileInMemory, setStartLine, startMainLoop, onWarning, onError, ...loadActions } = actions;
+    let data, putInMemory = false;
+    if (input !== null && input !== void 0) {
+      data = decode(input);
+      input = data.data;
+    }
+    const command = file.command, line = file.line || 0, name = file.name;
+    if (file.fnFileCallback) {
       try {
-        this.options.storage.setItem(storageName, meta + "," + dataAsString);
-        this.options.updateStorageDatabase("set", storageName);
-        Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
-        imported.push(name);
-      } catch (e) {
-        Utils.console.error(e);
-        if (e instanceof Error) {
-          if (e.name === "QuotaExceededError") {
-            e.shortMessage = storageName + ": Quota exceeded";
-          }
-          this.options.outputError(e, true);
-        }
+        putInMemory = Boolean(file.fnFileCallback(input, data?.meta));
+      } catch (error) {
+        onWarning(error);
       }
     }
-  }
-};
-_FileHandler.metaIdent = "CPCBasic";
-_FileHandler.reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/);
-let FileHandler = _FileHandler;
-
-const randomCpcInitState = 1812433253;
-class RandomCpc {
-  constructor(seed) {
-    this.state = randomCpcInitState;
-    this.init(seed);
-  }
-  init(seed) {
-    this.state = randomCpcInitState;
-    seed || (seed = 0);
-    if (seed !== 0) {
-      this.randomizeMantissa(RandomCpc.encodeCpcMantissa(seed));
+    if (input === void 0) {
+      onError("loadFileContinue: File " + name + ": input undefined!");
+      actions.vm.vmStop("stop", 60, true);
+      startMainLoop();
+      return;
     }
-  }
-  static encodeCpcMantissa(value) {
-    if (!Number.isFinite(value)) {
-      throw new Error("Seed must be a finite number");
+    if (input === null) {
+      startMainLoop();
+      return;
     }
-    let mantissa = 0, exponent = 0, sign = 0;
-    if (value !== 0) {
-      if (value < 0) {
-        sign = 2147483648;
-        value = -value;
-      }
-      exponent = Math.ceil(Math.log(value) / Math.log(2));
-      mantissa = Math.round(value / Math.pow(2, exponent - 32)) & 2147483647;
+    if (data?.meta.typeString === "S" && putInMemory) {
+      input = decodeTokenizedBasic(input.substring(368));
+      putInMemory = false;
     }
-    const signMantissa = sign + mantissa, result = [
-      signMantissa & 255,
-      signMantissa >> 8 & 255,
-      signMantissa >> 16 & 255,
-      signMantissa >> 24 & 255
-    ];
-    return result;
+    const startLine = ProgramRunner.applyLoad({ command, input, line, inMemory: putInMemory, isSnapshot: data?.meta.typeString === "S" }, {
+      ...loadActions,
+      loadFileInMemory: () => loadFileInMemory(input, data?.meta)
+    });
+    setStartLine(startLine);
+    startMainLoop();
   }
-  randomizeMantissa(bytes) {
-    const xorMask = ((bytes[1] << 8 | bytes[0]) << 16 | (bytes[3] << 8 | bytes[2])) >>> 0;
-    this.state = (this.state ^ xorMask) >>> 0;
-  }
-  static nextStateU32(state) {
-    const initLow = 35173, initHigh = 27655, mulLow = 62828, high = state >>> 16, low = state & 65535, highAcc = high * initLow + initLow, newHigh = highAcc & 65535, newLow = low * mulLow + initHigh + (highAcc >>> 16) & 65535;
-    return (newHigh << 16 | newLow) >>> 0;
-  }
-  random() {
-    this.state = RandomCpc.nextStateU32(this.state);
-    const high = this.state >>> 16, low = this.state & 65535;
-    return ((low << 16 | high) >>> 0) / 4294967296;
-  }
-}
-class RandomMinStd {
-  constructor(seed) {
-    this.init(seed);
-  }
-  // https://en.wikipedia.org/wiki/Jenkins_hash_function
-  static vmHashCode(s) {
-    let hash = 0;
-    for (let i = 0; i < s.length; i += 1) {
-      hash += s.charCodeAt(i);
-      hash += hash << 10;
-      hash ^= hash >> 6;
+  static enterDirectMode(vm, onInput) {
+    const stream = 0, message = "Ready\r\n";
+    vm.tagoff(stream);
+    vm.vmResetControlBuffer();
+    if (vm.pos(stream) > 1) {
+      vm.print(stream, "\r\n");
     }
-    hash += hash << 3;
-    hash ^= hash >> 11;
-    hash += hash << 15;
-    return hash;
+    vm.print(stream, message);
+    vm.cursor(stream, 1, 1);
+    vm.vmStop("direct", 0, true, {
+      command: "direct",
+      stream,
+      message,
+      fnInputCallback: onInput,
+      input: "",
+      line: vm.line
+    });
   }
-  init(seed) {
-    seed = RandomMinStd.vmHashCode(String(seed));
-    this.x = seed || 2305125383;
-  }
-  random() {
-    const m = 2147483647, a = 16807, q = 127773, r = 2836;
-    let x = this.x;
-    x = a * (x % q) - r * (x / q | 0);
-    if (x <= 0) {
-      x += m;
-    }
-    this.x = x;
-    return x / m;
-  }
-}
-class Random {
-  constructor(useCpcRandom = true) {
-    if (useCpcRandom) {
-      this.rndGen = new RandomCpc();
+  static finishInput(vm, reason, startMainLoop, continueExecution) {
+    if (reason === "waitInput") {
+      vm.vmStop("", 0, true);
+    } else if (reason === "direct") {
+      vm.vmStop("", 0, true);
+      startMainLoop();
     } else {
-      this.rndGen = new RandomMinStd();
+      continueExecution();
     }
   }
-  init(seed) {
-    return this.rndGen.init(seed);
+  invalidate() {
+    this.script = void 0;
   }
-  random() {
-    return this.rndGen.random();
+  setScript(script) {
+    this.script = script;
+  }
+  start(source, vm, line = 0, beforeCompile) {
+    if (line === 0) {
+      vm.vmResetData();
+    }
+    beforeCompile?.();
+    if (!this.script) {
+      try {
+        this.script = ProgramRunner.compile(source);
+      } catch (error) {
+        (this.options.logger || Utils.console).error(error);
+        if (error instanceof Error) {
+          this.options.onJsError?.(error);
+          error.shortMessage = "JS " + String(error);
+          this.options.outputError(error, true);
+        }
+        this.script = void 0;
+      }
+    }
+    vm.vmReset4Run();
+    if (!this.script) {
+      return false;
+    }
+    vm.vmStop("", 0, true);
+    vm.vmGoto(0);
+    vm.vmSetStartLine(line);
+    return true;
+  }
+  execute(vm) {
+    const script = this.script;
+    if (script) {
+      this.run(() => script(vm));
+    }
+  }
+  run(execute) {
+    const options = this.options, logger = options.logger || Utils.console;
+    try {
+      execute();
+    } catch (error) {
+      if (!(error instanceof Error)) {
+        logger.error(error);
+        return;
+      }
+      if (error.name === "CpcVm" || error.name === "Variables") {
+        let customError = error;
+        if (customError.errCode !== void 0) {
+          customError = options.composeError(customError, customError.errCode, customError.value);
+        }
+        if (!customError.hidden) {
+          logger.warn(customError);
+          options.outputError(customError, !customError.pos);
+        } else {
+          logger.log(customError.message);
+        }
+      } else {
+        logger.error(error);
+        options.onJsError?.(error);
+        options.composeError(error, 2, "JS " + String(error));
+        options.outputError(error, true);
+      }
+    }
   }
 }
 
@@ -10871,6 +12234,168 @@ _RsxCpcBasic.rsxCommands = {
   }
 };
 let RsxCpcBasic = _RsxCpcBasic;
+
+class RuntimeSettings {
+  constructor(options) {
+    this.options = options;
+  }
+  setImplicitLines(value) {
+    this.options.codeGeneratorJs.setOptions({ implicitLines: value });
+    this.options.getCodeGeneratorToken()?.setOptions({ implicitLines: value });
+  }
+  setIntegerOverflow(value) {
+    this.options.codeGeneratorJs.setOptions({ integerOverflow: value });
+  }
+  setTrace(value) {
+    this.options.codeGeneratorJs.setOptions({ trace: value });
+  }
+  setPrettyLowercaseVars(value) {
+    this.options.getCodeGeneratorBasic().setOptions({ lowercaseVars: value });
+  }
+  setArrayBounds(value) {
+    const variables = this.options.variables;
+    variables.setOptions({ arrayBounds: value });
+    this.options.vm.vmGoto(0);
+    this.options.vm.vmStop("end", 0, true);
+    if (Object.keys(variables.getAllVariables()).length) {
+      variables.removeAllVariables();
+      this.options.onVariablesCleared?.();
+    }
+  }
+  static getLoopDelay(speed) {
+    return 1e3 - speed * 10;
+  }
+}
+
+class RunLoop {
+  constructor(options) {
+    this.options = options;
+    this.active = false;
+    this.runHandler = () => this.run();
+    this.nextDelay = 0;
+  }
+  get isRunning() {
+    return this.active;
+  }
+  start() {
+    if (!this.active) {
+      this.active = true;
+      this.options.setTimeout(this.runHandler, 0);
+    }
+    this.options.onStateChange();
+  }
+  run() {
+    const options = this.options, stop = options.vm.vmGetStopObject();
+    this.nextDelay = options.getInitialDelay();
+    if (!stop.reason) {
+      options.execute();
+    }
+    if (Object.prototype.hasOwnProperty.call(options.handlers, stop.reason)) {
+      options.handlers[stop.reason](stop.paras);
+    } else {
+      options.onUnknownReason(stop.reason);
+      options.vm.vmStop("error", 50);
+    }
+    if (stop.reason && stop.reason !== "waitSound" && stop.reason !== "waitKey" && stop.reason !== "waitInput") {
+      this.active = false;
+      options.onStateChange();
+      options.onExit();
+    } else {
+      options.setTimeout(this.runHandler, this.nextDelay);
+    }
+    options.onStateChange();
+  }
+}
+
+class SoundQueue {
+  constructor(vm, sound) {
+    this.vm = vm;
+    this.sound = sound;
+  }
+  poll(activated = true) {
+    const stop = this.vm.vmGetStopObject();
+    this.vm.vmLoopCondition();
+    if (activated) {
+      const queue = this.vm.vmGetSoundData();
+      while (queue.length && this.sound.testCanQueue(queue[0].state)) {
+        const data = queue[0];
+        queue.shift();
+        this.sound.sound(data);
+      }
+      if (!queue.length && stop.reason === "waitSound") {
+        this.vm.vmStop("", 0, true);
+      }
+    }
+    return this.vm.vmGetTimeUntilFrame();
+  }
+}
+
+class SuspendedState {
+  constructor(initial) {
+    this.initial = SuspendedState.copy(initial);
+    this.saved = SuspendedState.copy(initial);
+  }
+  static copy(stop) {
+    return { ...stop, paras: { ...stop.paras } };
+  }
+  save(stop) {
+    if (stop.reason !== "break" && stop.reason !== "escape") {
+      this.saved = SuspendedState.copy(stop);
+    }
+  }
+  get() {
+    return SuspendedState.copy(this.saved);
+  }
+  reset() {
+    this.saved = SuspendedState.copy(this.initial);
+  }
+  restore(stop) {
+    Object.assign(stop, this.get());
+    this.reset();
+  }
+  restoreForContinue(vm, stop, beforeRestore) {
+    if (stop.reason !== "break" && stop.reason !== "escape" && stop.reason !== "stop" && stop.reason !== "direct") {
+      return false;
+    }
+    if (stop.reason === "direct" || stop.reason === "escape") {
+      vm.cursor(stop.paras.stream, 0);
+    }
+    beforeRestore?.();
+    this.restore(stop);
+    return true;
+  }
+  escape(vm, keyboard) {
+    const stop = vm.vmGetStopObject(), stream = 0;
+    if (vm.vmOnBreakContSet()) {
+      return "ignored";
+    }
+    if (stop.reason === "direct" || vm.vmOnBreakHandlerActive()) {
+      stop.paras.input = "";
+      vm.print(stream, "*Break*\r\n");
+      return "input";
+    }
+    if (stop.reason !== "escape") {
+      vm.cursor(stream, 1);
+      keyboard.clearInput();
+      this.save(stop);
+      vm.vmStop("escape", 85, false, { command: "escape", stream, first: 0, last: 0, line: vm.line });
+      return "suspended";
+    }
+    vm.cursor(stream, 0);
+    const saved = this.get();
+    if (saved.reason === "waitInput") {
+      vm.vmGoto(saved.paras.line);
+    }
+    if (!vm.vmEscape()) {
+      vm.vmStop("", 0, true);
+      this.reset();
+      return "continued";
+    }
+    vm.vmStop("stop", 0, true);
+    vm.print(stream, "Break in " + vm.line + "\r\n");
+    return "stopped";
+  }
+}
 
 class ArrayProxy {
   constructor(len) {
@@ -11027,282 +12552,404 @@ class Variables {
   }
 }
 
-class Diff {
-  // Refer to http://www.xmailserver.org/diff2.pdf
-  static composeError(error, message, value, pos) {
-    return Utils.composeError("Diff", error, message, value, pos, void 0, 0);
-  }
-  static inRange(x, l, r) {
-    return l <= x && x <= r || r <= x && x <= l;
-  }
-  static fnEquals(a, b) {
-    return a === b;
-  }
-  // Accepts custom comparator
-  static customIndexOf(arr, item, start, fnEquals) {
-    for (let i2 = start; i2 < arr.length; i2 += 1) {
-      if (fnEquals(item, arr[i2])) {
-        return i2;
-      }
-    }
-    return -1;
-  }
-  /* can we use it here? need to define aA, aB, lcsAtoms, findMidSnake():
-  	private static lcs(startA: number, endA: number, startB: number, endB: number) {
-  		const N = endA - startA + 1,
-  			M = endB - startB + 1;
-  
-  		if (N > 0 && M > 0) {
-  			const middleSnake = findMidSnake(startA, endA, startB, endB),
-  				// A[x;u] == B[y,v] and is part of LCS
-  				x = middleSnake[0][0],
-  				y = middleSnake[0][1],
-  				u = middleSnake[1][0],
-  				v = middleSnake[1][1],
-  				D = middleSnake[2];
-  
-  			if (D > 1) {
-  				Diff.lcs(startA, x - 1, startB, y - 1);
-  				if (x <= u) {
-  					[].push.apply(lcsAtoms, aA.slice(x, u + 1));
-  				}
-  				lcs(u + 1, endA, v + 1, endB);
-  			} else if (M > N) {
-  				[].push.apply(lcsAtoms, aA.slice(startA, endA + 1));
-  			} else {
-  				[].push.apply(lcsAtoms, aB.slice(startB, endB + 1));
-  			}
-  		}
-  	}
-  	*/
-  // Longest Common Subsequence
-  // @param A - sequence of atoms - Array
-  // @param B - sequence of atoms - Array
-  // @param equals - optional comparator of atoms - returns true or false,
-  //                 if not specified, triple equals operator is used
-  // @returns Array - sequence of atoms, one of LCSs, edit script from A to B
-  static fnLCS(aA, aB, equals) {
-    const toPoint = function(x) {
-      return [
-        x,
-        x - this
-        // eslint-disable-line no-invalid-this
-      ];
-    }, findMidSnake = function(startA, endA, startB, endB) {
-      const iN = endA - startA + 1, iM = endB - startB + 1, max = iN + iM, delta = iN - iM, hhalfMaxCeil = (max + 1) / 2 | 0, oV = {}, oU = {};
-      let overlap, iD;
-      oV[1] = 0;
-      oU[delta - 1] = iN;
-      for (iD = 0; iD <= hhalfMaxCeil; iD += 1) {
-        for (let k = -iD; k <= iD && !overlap; k += 2) {
-          let x;
-          if (k === -iD || k !== iD && oV[k - 1] < oV[k + 1]) {
-            x = oV[k + 1];
-          } else {
-            x = oV[k - 1] + 1;
-          }
-          let y = x - k;
-          if (isNaN(y) || x > iN || y > iM) {
-            continue;
-          }
-          const xx = x;
-          while (x < iN && y < iM && equals(aA[startA + x], aB[startB + y])) {
-            x += 1;
-            y += 1;
-          }
-          oV[k] = x;
-          if ((delta & 1) === 1 && Diff.inRange(k, delta - (iD - 1), delta + (iD - 1))) {
-            if (oV[k] >= oU[k]) {
-              overlap = [
-                xx,
-                x
-              ].map(toPoint, k);
-            }
-          }
-        }
-        let SES;
-        if (overlap) {
-          SES = iD * 2 - 1;
-        }
-        for (let k = -iD; k <= iD && !overlap; k += 2) {
-          const K = k + delta;
-          let x;
-          if (k === iD || k !== -iD && oU[K - 1] < oU[K + 1]) {
-            x = oU[K - 1];
-          } else {
-            x = oU[K + 1] - 1;
-          }
-          let y = x - K;
-          if (isNaN(y) || x < 0 || y < 0) {
-            continue;
-          }
-          const xx = x;
-          while (x > 0 && y > 0 && equals(aA[startA + x - 1], aB[startB + y - 1])) {
-            x -= 1;
-            y -= 1;
-          }
-          oU[K] = x;
-          if (delta % 2 === 0 && Diff.inRange(K, -iD, iD)) {
-            if (oU[K] <= oV[K]) {
-              overlap = [
-                x,
-                xx
-              ].map(toPoint, K);
-            }
-          }
-        }
-        if (overlap) {
-          SES = SES || iD * 2;
-          for (let i = 0; i < 2; i += 1) {
-            for (let j = 0; j < 2; j += 1) {
-              overlap[i][j] += [
-                startA,
-                startB
-              ][j] - i;
-            }
-          }
-          return overlap.concat([
-            SES,
-            (max - SES) / 2
-          ]);
-        }
-      }
-      throw Diff.composeError(Error(), "Programming error in findMidSnake", "", 0);
-    }, lcsAtoms = [], lcs = function(startA, endA, startB, endB) {
-      const N = endA - startA + 1, M = endB - startB + 1;
-      if (N > 0 && M > 0) {
-        const middleSnake = findMidSnake(startA, endA, startB, endB), x = middleSnake[0][0], y = middleSnake[0][1], u = middleSnake[1][0], v = middleSnake[1][1], D = middleSnake[2];
-        if (D > 1) {
-          lcs(startA, x - 1, startB, y - 1);
-          if (x <= u) {
-            [].push.apply(lcsAtoms, aA.slice(x, u + 1));
-          }
-          lcs(u + 1, endA, v + 1, endB);
-        } else if (M > N) {
-          [].push.apply(lcsAtoms, aA.slice(startA, endA + 1));
-        } else {
-          [].push.apply(lcsAtoms, aB.slice(startB, endB + 1));
-        }
-      }
+class Runtime {
+  constructor(options) {
+    this.onVariablesCleared = options.onVariablesCleared;
+    this.executionStateReporter = new ExecutionStateReporter(options.onExecutionState);
+    this.programHost = options.programHost;
+    this.keyboard = options.keyboard;
+    this.variables = new Variables({ arrayBounds: options.arrayBounds });
+    this.vm = new CpcVm({
+      canvas: options.canvas,
+      keyboard: options.keyboard,
+      random: options.random,
+      sound: options.sound,
+      variables: this.variables,
+      onClickKey: options.onClickKey
+    });
+    this.vm.vmRegisterRsx(new RsxAmsdos(), true);
+    this.vm.vmRegisterRsx(new RsxCpcBasic(), true);
+    this.suspendedState = new SuspendedState(this.vm.vmGetStopObject());
+    this.inputLine = new InputLine(options.keyboard, this.vm);
+    this.soundQueue = new SoundQueue(this.vm, options.sound);
+    this.programRunner = new ProgramRunner({
+      composeError: this.vm.vmComposeError.bind(this.vm),
+      outputError: options.outputError,
+      onJsError: options.onJsError,
+      logger: options.logger
+    });
+    this.basicParser = new BasicParser({ basicVersion: options.basicVersion });
+    this.basicLexer = new BasicLexer({ keywords: this.basicParser.getKeywords() });
+    this.codeGeneratorJs = new CodeGeneratorJs({
+      lexer: this.basicLexer,
+      parser: this.basicParser,
+      trace: options.trace,
+      implicitLines: options.implicitLines,
+      integerOverflow: options.integerOverflow
+    });
+    this.programCompiler = new ProgramCompiler({
+      generator: this.codeGeneratorJs,
+      vm: this.vm,
+      encodeTokens: options.encodeTokens,
+      onTokenized: options.onTokenized,
+      onMemoryError: options.onMemoryError
+    });
+    this.runtimeSettings = new RuntimeSettings({
+      codeGeneratorJs: this.codeGeneratorJs,
+      variables: this.variables,
+      vm: this.vm,
+      getCodeGeneratorBasic: options.getCodeGeneratorBasic,
+      getCodeGeneratorToken: options.getCodeGeneratorToken,
+      onVariablesCleared: options.onVariablesCleared
+    });
+    const handlers = {
+      timer: () => this.vm.vmStop("", 0, true),
+      waitFrame: () => this.handleWaitFrame(),
+      onError: () => this.vm.vmStop("", 0, true),
+      error: Runtime.noop,
+      stop: Runtime.noop,
+      break: Runtime.noop,
+      escape: Runtime.noop,
+      end: Runtime.noop,
+      ...options.handlers
     };
-    lcs(0, aA.length - 1, 0, aB.length - 1);
-    return lcsAtoms;
+    this.runLoop = new RunLoop({
+      vm: this.vm,
+      execute: () => this.programRunner.execute(this.vm),
+      handlers,
+      getInitialDelay: options.getInitialDelay,
+      setTimeout: options.setTimeout,
+      onExit: options.onExit,
+      onStateChange: () => this.executionStateReporter.report(this.getExecutionState()),
+      onUnknownReason: options.onUnknownReason
+    });
   }
-  // Diff sequence
-  // @param A - sequence of atoms - Array
-  // @param B - sequence of atoms - Array
-  // [@param equals - optional comparator of atoms - returns true or false,
-  //                 if not specified, triple equals operator is used]
-  // @returns Array - sequence of objects in a form of:
-  //   - operation: one of "none", "add", "delete"
-  //   - atom: the atom found in either A or B
-  // Applying operations from diff sequence you should be able to transform A to B
-  static diff(aA, aB) {
-    const diff = [], fnEquals = Diff.fnEquals;
-    let i = 0, j = 0, iN = aA.length, iM = aB.length, iK = 0;
-    while (i < iN && j < iM && fnEquals(aA[i], aB[j])) {
-      i += 1;
-      j += 1;
-    }
-    while (i < iN && j < iM && fnEquals(aA[iN - 1], aB[iM - 1])) {
-      iN -= 1;
-      iM -= 1;
-      iK += 1;
-    }
-    [].push.apply(diff, aA.slice(0, i).map(function(atom2) {
-      return {
-        operation: "none",
-        atom: atom2
-      };
-    }));
-    const lcs = Diff.fnLCS(aA.slice(i, iN), aB.slice(j, iM), fnEquals);
-    for (let k = 0; k < lcs.length; k += 1) {
-      const atom = lcs[k], ni = Diff.customIndexOf(aA, atom, i, fnEquals), nj = Diff.customIndexOf(aB, atom, j, fnEquals);
-      [].push.apply(diff, aA.slice(i, ni).map(function(atom2) {
-        return {
-          operation: "delete",
-          atom: atom2
-        };
-      }));
-      [].push.apply(diff, aB.slice(j, nj).map(function(atom2) {
-        return {
-          operation: "add",
-          atom: atom2
-        };
-      }));
-      diff.push({
-        operation: "none",
-        atom
-      });
-      i = ni + 1;
-      j = nj + 1;
-    }
-    [].push.apply(diff, aA.slice(i, iN).map(function(atom2) {
-      return {
-        operation: "delete",
-        atom: atom2
-      };
-    }));
-    [].push.apply(diff, aB.slice(j, iM).map(function(atom2) {
-      return {
-        operation: "add",
-        atom: atom2
-      };
-    }));
-    [].push.apply(diff, aA.slice(iN, iN + iK).map(function(atom2) {
-      return {
-        operation: "none",
-        atom: atom2
-      };
-    }));
-    return diff;
+  getExecutionState() {
+    return {
+      reason: this.vm.vmGetStopObject().reason,
+      line: this.vm.line,
+      isRunning: this.runLoop.isRunning
+    };
   }
-  static testDiff(text1, text2) {
-    const textParts1 = text1.split("\n"), textParts2 = text2.split("\n");
-    let diff = Diff.diff(textParts1, textParts2).map(function(o) {
-      let result = "";
-      if (o.operation === "add") {
-        result = "+ " + o.atom;
-      } else if (o.operation === "delete") {
-        result = "- " + o.atom;
+  startMainLoop() {
+    this.runLoop.start();
+  }
+  setNextDelay(delay) {
+    this.runLoop.nextDelay = delay;
+  }
+  static noop() {
+  }
+  reset() {
+    this.vm.vmReset();
+  }
+  continueLoad(input, file, actions) {
+    ProgramRunner.continueLoad(input, file, {
+      ...actions,
+      vm: this.vm,
+      setStartLine: (line) => this.vm.vmSetStartLine(line),
+      loadFileInMemory: (fileInput, meta) => this.vm.vmPutFileInMemory(fileInput, meta, false)
+    });
+  }
+  dispatchFileLoad(file, actions) {
+    ProgramRunner.dispatchFileLoad(file, {
+      ...actions,
+      vm: this.vm,
+      onStorageLoad: (input) => this.completeStorageLoad(input, actions.onStorageLoad)
+    });
+  }
+  completeStorageLoad(input, continueLoad) {
+    this.vm.vmStop("", 0, true);
+    continueLoad(input);
+  }
+  completeExampleLoad(input, rsx, continueLoad) {
+    this.vm.vmStop("", 0, true);
+    if (rsx) {
+      this.vm.vmRegisterRsx(rsx, false);
+    }
+    continueLoad(input);
+  }
+  failExampleLoad(example, outputError, continueLoad) {
+    this.vm.vmStop("", 0, true);
+    const error = this.vm.vmComposeError(Error(), 32, example + " not found");
+    if (error.hidden) {
+      this.vm.vmStop("", 0, true);
+    }
+    outputError(error, true);
+    continueLoad(null);
+  }
+  dispatchFileSave(file, save, onSaved, onNotOpen, onWarning) {
+    ProgramRunner.dispatchFileSave(this.vm, file, save, onSaved, onNotOpen, onWarning);
+  }
+  finishInput(reason, startMainLoop, continueExecution) {
+    ProgramRunner.finishInput(this.vm, reason, startMainLoop, continueExecution);
+  }
+  handleWaitSound(activated = true) {
+    this.runLoop.nextDelay = this.soundQueue.poll(activated);
+  }
+  handleWaitFrame() {
+    this.vm.vmStop("", 0, true);
+    this.runLoop.nextDelay = this.vm.vmGetTimeUntilFrame();
+  }
+  handleWaitKey(isSoundActivated = () => true, onKey) {
+    const key = this.keyboard.getKeyFromBuffer();
+    if (key !== "") {
+      onKey?.(key);
+      this.vm.vmStop("", 0, true);
+    } else {
+      this.handleWaitSound(isSoundActivated());
+    }
+    return key;
+  }
+  handleWaitInput(actions) {
+    const stop = this.vm.vmGetStopObject(), inputParas = stop.paras;
+    if (!inputParas || inputParas.input === void 0 || inputParas.stream === void 0) {
+      actions.onInvalid(this.vm.vmComposeError(Error(), 32, "Programming Error: fnWaitInput"));
+      return { status: "invalid" };
+    }
+    if (!this.inputLine.readAndSubmit(inputParas, actions.onInputReturn)) {
+      return { status: "pending", reason: stop.reason };
+    }
+    actions.onInputSubmitted?.();
+    this.finishInput(stop.reason, actions.startMainLoop, actions.continueExecution);
+    return { status: "submitted" };
+  }
+  enterDirectMode(onInput) {
+    ProgramRunner.enterDirectMode(this.vm, onInput);
+  }
+  resetSuspendedState() {
+    this.suspendedState.reset();
+  }
+  beginControl(reason, beforeStop) {
+    const priority = reason === "break" ? 80 : reason === "reset" ? 99 : 95;
+    if (reason === "break") {
+      this.saveSuspendedState();
+    } else if (reason !== "parse") {
+      this.resetSuspendedState();
+    }
+    beforeStop?.();
+    this.vm.vmStop(reason, priority);
+  }
+  beginRenumber(options = {}) {
+    this.vm.vmStop("renumLines", 85, false, {
+      command: "renum",
+      stream: 0,
+      newLine: options.newLine,
+      oldLine: options.oldLine,
+      step: options.step,
+      keep: options.keep,
+      line: this.vm.line
+    });
+  }
+  deleteProgramLines(paras, lines, applyDeletion, onInvalid) {
+    if (lines.length) {
+      const deletion = BasicFormatter.createDeleteScript(lines);
+      if (deletion === void 0) {
+        onInvalid(this.vm.vmComposeError(Error(), 21, paras.command));
+      } else {
+        applyDeletion(deletion);
       }
-      return result;
-    }).join("\n");
-    diff = diff.replace(/\n\n+/g, "\n");
-    return diff;
+    }
+    this.vm.vmGoto(0);
+    this.vm.vmStop("end", 0, true);
+  }
+  eraseFiles(fileHandler, paras, onRemoved, onMissing) {
+    const result = fileHandler.eraseFiles(paras.fileMask || "");
+    if (!result.matched) {
+      this.vm.print(paras.stream, result.name + " not found\r\n");
+    }
+    for (const name of result.removed) {
+      onRemoved(name);
+    }
+    for (const name of result.missing) {
+      this.vm.print(paras.stream, name + " not found\r\n");
+      onMissing(name);
+    }
+    this.vm.vmStop("", 0, true);
+    return result;
+  }
+  renameFile(fileHandler, paras) {
+    const result = fileHandler.renameFile(paras.oldName, paras.newName);
+    if (result.status === "newExists") {
+      this.vm.print(paras.stream, result.oldName + " already exists\r\n");
+    } else if (result.status === "oldNotFound") {
+      this.vm.print(paras.stream, result.oldName + " not found\r\n");
+    }
+    this.vm.vmStop("", 0, true);
+    return result;
+  }
+  saveSuspendedState() {
+    this.suspendedState.save(this.vm.vmGetStopObject());
+  }
+  handleEscape(keyboard) {
+    return this.suspendedState.escape(this.vm, keyboard);
+  }
+  restoreForContinue(beforeRestore) {
+    return this.suspendedState.restoreForContinue(this.vm, this.vm.vmGetStopObject(), beforeRestore);
+  }
+  continueProgram(startMainLoop, beforeRestore, onContinueState) {
+    const restored = this.restoreForContinue(beforeRestore);
+    onContinueState?.(restored);
+    startMainLoop();
+  }
+  compileProgram(source) {
+    return this.programCompiler.compile(source, this.variables);
+  }
+  parseProgram() {
+    return this.compileHostProgram(false).output;
+  }
+  setArrayBounds(value) {
+    this.runtimeSettings.setArrayBounds(value);
+  }
+  setImplicitLines(value) {
+    this.runtimeSettings.setImplicitLines(value);
+  }
+  setPrettyLowercaseVars(value) {
+    this.runtimeSettings.setPrettyLowercaseVars(value);
+  }
+  setIntegerOverflow(value) {
+    this.runtimeSettings.setIntegerOverflow(value);
+  }
+  setTrace(value) {
+    this.runtimeSettings.setTrace(value);
+  }
+  setBasicVersion(value) {
+    this.codeGeneratorJs.setBasicVersion(value);
+  }
+  static getLoopDelay(speed) {
+    return RuntimeSettings.getLoopDelay(speed);
+  }
+  listProgram(lines, stream) {
+    ProgramRunner.listProgram(this.vm, lines, stream);
+  }
+  printDirectoryEntries(entries, stream, sort) {
+    for (const text of FileHandler.formatDirectoryEntries(entries, sort)) {
+      this.vm.print(stream, text);
+    }
+    this.vm.vmStop("", 0, true);
+  }
+  editLine(paras, line, onInput, onMissing) {
+    if (line === void 0) {
+      onMissing(this.vm.vmComposeError(Error(), 8, String(paras.first || 0)));
+      this.vm.vmStop("stop", 60, true);
+      return false;
+    }
+    ProgramRunner.editLine(this.vm, paras, line, onInput);
+    return true;
+  }
+  renumProgram(source, paras, renumber, setSource, onError) {
+    return ProgramRunner.renumberProgram(this.vm, source, paras, renumber, setSource, onError);
+  }
+  commitEditedLine(paras, source, merge, setSource, onProgramEdited) {
+    return ProgramRunner.commitEditedLine(this.vm, paras, source, merge, setSource, onProgramEdited);
+  }
+  compileDirectProgram(input, source) {
+    return this.codeGeneratorJs.generateDirect(input, source, this.variables);
+  }
+  readDirectInput() {
+    const inputParas = this.vm.vmGetStopObject().paras, input = inputParas.input.trim();
+    inputParas.input = "";
+    if (input !== "") {
+      this.vm.cursor(inputParas.stream, 0);
+    }
+    return {
+      input,
+      stream: inputParas.stream,
+      message: inputParas.message,
+      isProgramLine: input !== "" && !Number.isNaN(BasicFormatter.parseLineNumber(input))
+    };
+  }
+  executeDirectCommand(input, source, line, stream, inputMessage, actions) {
+    const output = this.compileDirectProgram(input, source);
+    let outputText = output.error ? actions.outputError(output.error) : output.text;
+    if (outputText && outputText.length > 0) {
+      outputText += "\n";
+    }
+    actions.setOutputText(outputText);
+    if (!output.error) {
+      try {
+        this.prepareDirectProgram(outputText, line);
+      } catch (error) {
+        actions.onPrepareError(error);
+      }
+    } else {
+      this.vm.print(stream, inputMessage);
+      this.vm.cursor(stream, 1);
+    }
+    return output;
+  }
+  insertDirectProgramLine(source, input, stream, merge, setSource, onProgramEdited) {
+    setSource(merge(source, input));
+    this.vm.vmSetStartLine(0);
+    this.vm.vmGoto(0);
+    onProgramEdited?.();
+    this.vm.cursor(stream, 1);
+  }
+  prepareDirectProgram(source, line) {
+    this.vm.vmSetStartLine(line);
+    this.vm.vmGoto("direct");
+    this.programRunner.setScript(ProgramRunner.compile(source));
+    this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
+  }
+  compileAndStartProgram(options) {
+    const result = this.compileHostProgram(options.clearVariables);
+    if (!result.output.error) {
+      this.startProgram(result.source, 0, options.clearBeforeRun);
+    }
+    return result.output;
+  }
+  resetProgram(resetDevices, clearOutput, invalidate) {
+    ProgramRunner.resetProgram(this.vm, () => this.removeAllVariables(), resetDevices, clearOutput, invalidate);
+  }
+  newProgram(clearSource, invalidate) {
+    ProgramRunner.newProgram(this.vm, clearSource, () => this.removeAllVariables(), invalidate);
+  }
+  removeAllVariables() {
+    if (Object.keys(this.variables.getAllVariables()).length) {
+      this.variables.removeAllVariables();
+      this.onVariablesCleared?.();
+    }
+  }
+  startProgram(source, line, clearBeforeRun) {
+    if (clearBeforeRun) {
+      this.vm.clear();
+    }
+    const started = this.programRunner.start(source, this.vm, line, this.programHost.beforeProgramStart);
+    this.programHost.afterProgramStart?.();
+    return started;
+  }
+  compileHostProgram(clearVariables) {
+    if (clearVariables) {
+      this.removeAllVariables();
+    }
+    const source = this.programHost.getSource();
+    this.programHost.beforeCompileProgram?.(source);
+    const output = this.compileProgram(source), compiledSource = this.programHost.prepareCompileOutput(output);
+    return { output, source: compiledSource };
+  }
+  invalidateProgram() {
+    this.programRunner.invalidate();
+  }
+  setProgramScript(script) {
+    this.programRunner.setScript(script);
   }
 }
 
-const _Controller0 = class _Controller0 {
-  //private z80Disass?: Z80Disass;
+class Controller0 {
   constructor(core, options) {
     this.inScript = "";
     this.outScript = "";
-    this.fnScript = void 0;
-    // eslint-disable-line @typescript-eslint/no-unsafe-function-type
-    this.timeoutHandlerActive = false;
-    this.nextLoopTimeOut = 0;
-    // next timeout for the main loop
     this.initialLoopTimeout = 0;
     /* eslint-disable no-invalid-this */
     this.handlers = {
-      timer: this.fnTimer,
       waitKey: this.fnWaitKey,
-      waitFrame: this.fnWaitFrame,
       waitSound: this.fnWaitSound,
       waitInput: this.fnWaitInput,
       fileCat: this.fnFileCat,
       fileDir: this.fnFileDir,
       fileEra: this.fnFileEra,
       fileRen: this.fnFileRen,
-      error: _Controller0.fnDummy,
-      onError: this.fnOnError,
-      stop: _Controller0.fnDummy,
-      "break": _Controller0.fnDummy,
-      escape: _Controller0.fnDummy,
       renumLines: this.fnRenumLines,
       deleteLines: this.fnDeleteLines,
-      end: _Controller0.fnDummy,
       editLine: this.fnEditLine,
       list: this.fnList,
       fileLoad: this.fnFileLoad,
@@ -11313,58 +12960,55 @@ const _Controller0 = class _Controller0 {
       parseRun: this.fnParseRun,
       reset: this.fnReset
     };
-    this.fnRunLoopHandler = this.fnRunLoop.bind(this);
     this.fnDirectInputHandler = this.fnDirectInput.bind(this);
     this.fnPutKeyInBufferHandler = this.fnPutKeysInBuffer.bind(this);
     this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
     this.core = core;
     const model = this.core.getModel();
     this.options = options;
-    this.variables = new Variables({
-      arrayBounds: model.getProperty(ModelPropID.arrayBounds)
-    });
     this.fnSpeed();
     const random = new Random(model.getProperty(ModelPropID.random) === "cpc");
-    this.vm = new CpcVm({
+    this.runtime = new Runtime({
       canvas: this.options.canvas,
       keyboard: this.options.keyboard,
-      random,
       sound: this.options.sound,
-      variables: this.variables,
-      onClickKey: this.fnPutKeyInBufferHandler
-    });
-    this.vm.setCanvas(this.options.canvas);
-    this.vm.vmReset();
-    this.vm.vmRegisterRsx(new RsxAmsdos(), true);
-    this.vm.vmRegisterRsx(new RsxCpcBasic(), true);
-    this.noStop = Object.assign({}, this.vm.vmGetStopObject());
-    this.savedStop = {
-      reason: "",
-      priority: 0,
-      paras: {
-        command: "",
-        stream: 0,
-        line: 0,
-        first: 0,
-        // unused
-        last: 0
-        // unused
-      }
-    };
-    this.setStopObject(this.noStop);
-    this.basicParser = new BasicParser({
-      basicVersion: model.getProperty(ModelPropID.basicVersion)
-    });
-    this.basicLexer = new BasicLexer({
-      keywords: this.basicParser.getKeywords()
-    });
-    this.codeGeneratorJs = new CodeGeneratorJs({
-      lexer: this.basicLexer,
-      parser: this.basicParser,
+      random,
+      arrayBounds: model.getProperty(ModelPropID.arrayBounds),
+      basicVersion: model.getProperty(ModelPropID.basicVersion),
       trace: model.getProperty(ModelPropID.trace),
       implicitLines: model.getProperty(ModelPropID.implicitLines),
-      integerOverflow: model.getProperty(ModelPropID.integerOverflow)
+      integerOverflow: model.getProperty(ModelPropID.integerOverflow),
+      onClickKey: this.fnPutKeyInBufferHandler,
+      encodeTokens: (input) => this.encodeTokenizedBasic(input),
+      outputError: this.outputError.bind(this),
+      logger: Utils.console,
+      getCodeGeneratorBasic: () => this.getCodeGeneratorBasic(),
+      getCodeGeneratorToken: () => this.codeGeneratorToken,
+      onTokenized: (sourceLength, tokenLength) => {
+        if (Utils.debug) {
+          Utils.console.debug("parse: input length:", sourceLength, ", tokenized length:", tokenLength);
+        }
+      },
+      onMemoryError: (error) => Utils.console.error("vmPutProgramInMem", error),
+      programHost: {
+        getSource: () => this.getInputText(),
+        prepareCompileOutput: (output) => this.presentCompileOutput(output),
+        beforeProgramStart: () => this.beforeProgramStart(),
+        afterProgramStart: () => this.afterProgramStart()
+      },
+      handlers: Object.fromEntries(Object.entries(this.handlers).map(([reason, handler]) => [reason, handler.bind(this)])),
+      getInitialDelay: () => this.initialLoopTimeout,
+      setTimeout: (callback, delay) => this.options.setTimeout(callback, delay),
+      onExit: () => this.exitLoop(),
+      onExecutionState: options.onExecutionState,
+      onUnknownReason: (reason) => Utils.console.warn("runLoop: Unknown run mode:", reason)
     });
+    this.variables = this.runtime.variables;
+    this.vm = this.runtime.vm;
+    this.basicParser = this.runtime.basicParser;
+    this.basicLexer = this.runtime.basicLexer;
+    this.vm.setCanvas(this.options.canvas);
+    this.runtime.reset();
     this.hasStorageDatabase = this.getHasStorageDatabase();
     this.storage = this.options.storage;
   }
@@ -11383,177 +13027,6 @@ const _Controller0 = class _Controller0 {
     }
     return hasStorageDatabase;
   }
-  /*
-  private initDatabases() {
-  	return getHasStorageDatabase
-  }
-  */
-  // private onUserAction(/* event, id */) {
-  // 	this.uiController.deactivateUserAction(); // deactivate user action
-  // 	this.sound.setActivatedByUser();
-  // 	this.setSoundActive();
-  // }
-  // private setDatabaseSelectOptions() {
-  // 	const items: SelectOptionElement[] = [],
-  // 		databases = this.core.getModel().getAllDatabases(),
-  // 		database = this.core.getModel().getProperty<string>(ModelPropID.database);
-  // 	for (const value in databases) {
-  // 		if (databases.hasOwnProperty(value)) {
-  // 			const db = databases[value],
-  // 				item: SelectOptionElement = {
-  // 					value: value,
-  // 					text: db.text,
-  // 					title: db.title,
-  // 					selected: value === database
-  // 				};
-  // 			items.push(item);
-  // 		}
-  // 	}
-  // 	this.view.setSelectOptions(ViewID.databaseSelect, items);
-  // }
-  // private static getPathFromExample(example: string) {
-  // 	const index = example.lastIndexOf("/");
-  // 	let path = "";
-  // 	if (index >= 0) {
-  // 		path = example.substring(0, index);
-  // 	}
-  // 	return path;
-  // }
-  // private static getNameFromExample(example: string) {
-  // 	const index = example.lastIndexOf("/");
-  // 	let name = example;
-  // 	if (index >= 0) {
-  // 		name = example.substring(index + 1);
-  // 	}
-  // 	return name;
-  // }
-  // private setDirectorySelectOptions() {
-  // 	const items: SelectOptionElement[] = [],
-  // 		allExamples = this.core.getModel().getAllExamples(),
-  // 		examplePath = Controller0.getPathFromExample(this.core.getModel().getProperty<string>(ModelPropID.example)),
-  // 		directorySeen: Record<string, boolean> = {};
-  // 	for (const key in allExamples) {
-  // 		if (allExamples.hasOwnProperty(key)) {
-  // 			const exampleEntry = allExamples[key],
-  // 				value = Controller0.getPathFromExample(exampleEntry.key);
-  // 			if (!directorySeen[value]) {
-  // 				const item: SelectOptionElement = {
-  // 					value: value,
-  // 					text: value,
-  // 					title: value,
-  // 					selected: value === examplePath
-  // 				};
-  // 				items.push(item);
-  // 				directorySeen[value] = true;
-  // 			}
-  // 		}
-  // 	}
-  // 	this.view.setSelectOptions(ViewID.directorySelect, items);
-  // }
-  // setExampleSelectOptions(): void {
-  // 	const maxTitleLength = 160,
-  // 		maxTextLength = 60, // (32 visible?)
-  // 		items: SelectOptionElement[] = [],
-  // 		exampleName = Controller0.getNameFromExample(this.core.getModel().getProperty<string>(ModelPropID.example)),
-  // 		allExamples = this.core.getModel().getAllExamples(),
-  // 		directoryName = this.view.getSelectValue(ViewID.directorySelect),
-  // 		selectDataFiles = this.core.getModel().getProperty<boolean>(ModelPropID.selectDataFiles);
-  // 	let exampleSelected = false;
-  // 	for (const key in allExamples) {
-  // 		if (allExamples.hasOwnProperty(key) && (Controller0.getPathFromExample(key) === directoryName)) {
-  // 			const exampleEntry = allExamples[key],
-  // 				exampleName2 = Controller0.getNameFromExample(exampleEntry.key);
-  // 			if (selectDataFiles || (exampleEntry.meta !== "D")) { // skip data files
-  // 				const title = (exampleName2 + ": " + exampleEntry.title).substring(0, maxTitleLength),
-  // 					item: SelectOptionElement = {
-  // 						value: exampleName2,
-  // 						title: title,
-  // 						text: title.substring(0, maxTextLength),
-  // 						selected: exampleName2 === exampleName
-  // 					};
-  // 				if (item.selected) {
-  // 					exampleSelected = true;
-  // 				}
-  // 				items.push(item);
-  // 			}
-  // 		}
-  // 	}
-  // 	if (!exampleSelected && items.length) {
-  // 		items[0].selected = true; // if example is not found, select first element
-  // 	}
-  // 	this.view.setSelectOptions(ViewID.exampleSelect, items);
-  // }
-  // setGalleryAreaInputs(): void {
-  // 	const database = this.core.getModel().getDatabase(),
-  // 		directory = this.view.getSelectValue(ViewID.directorySelect),
-  // 		options = this.view.getSelectOptions(ViewID.exampleSelect),
-  // 		inputs: AreaInputElement[] = [];
-  // 	for (let i = 0; i < options.length; i += 1) {
-  // 		const item = options[i],
-  // 			input: AreaInputElement = {
-  // 				value: item.value,
-  // 				title: item.title,
-  // 				checked: item.selected,
-  // 				imgUrl: database.src + "/" + directory + "/img/" + item.value + ".png"
-  // 			};
-  // 		inputs.push(input);
-  // 	}
-  // 	this.view.setAreaInputList(ViewID.galleryAreaItems, inputs);
-  // }
-  // private static fnSortByStringProperties(a: SelectOptionElement, b: SelectOptionElement) {
-  // 	const x = a.value,
-  // 		y = b.value;
-  // 	if (x < y) {
-  // 		return -1;
-  // 	} else if (x > y) {
-  // 		return 1;
-  // 	}
-  // 	return 0;
-  // }
-  // private setVarSelectOptions(select: ViewID, variables: Variables) {
-  // 	const maxVarLength = 35,
-  // 		varNames = variables.getAllVariableNames(),
-  // 		items: SelectOptionElement[] = [];
-  // 	for (let i = 0; i < varNames.length; i += 1) {
-  // 		const key = varNames[i],
-  // 			value = variables.getVariable(key),
-  // 			title = key + "=" + value;
-  // 		let strippedTitle = title.substring(0, maxVarLength); // limit length
-  // 		if (title !== strippedTitle) {
-  // 			strippedTitle += " ...";
-  // 		}
-  // 		const item: SelectOptionElement = {
-  // 			value: key,
-  // 			text: strippedTitle,
-  // 			title: strippedTitle,
-  // 			selected: false
-  // 		};
-  // 		items.push(item);
-  // 	}
-  // 	items.sort(Controller0.fnSortByStringProperties);
-  // 	this.view.setSelectOptions(select, items);
-  // }
-  // private static readonly exportEditorText = "<editor>";
-  // setExportSelectOptions(select: ViewID): void {
-  // 	const dirList = this.fnGetStorageDirectoryEntries(),
-  // 		items: SelectOptionElement[] = [],
-  // 		editorText = Controller0.exportEditorText;
-  // 	dirList.sort(); // we sort keys without editorText
-  // 	dirList.unshift(editorText);
-  // 	for (let i = 0; i < dirList.length; i += 1) {
-  // 		const key = dirList[i],
-  // 			title = key,
-  // 			item: SelectOptionElement = {
-  // 				value: key,
-  // 				text: title,
-  // 				title: title,
-  // 				selected: title === editorText
-  // 			};
-  // 		items.push(item);
-  // 	}
-  // 	// sort already done
-  // 	this.view.setSelectOptions(select, items);
-  // }
   updateStorageDatabase(action, key) {
     if (!this.hasStorageDatabase) {
       return;
@@ -11582,7 +13055,7 @@ const _Controller0 = class _Controller0 {
           exampleChanged = true;
         }
         if (!example) {
-          const dataString = storage.getItem(key) || "", data = _Controller0.splitMeta(dataString);
+          const dataString = storage.getItem(key) || "", data = FileHandler.splitMeta(dataString);
           example = {
             key,
             title: "",
@@ -11604,526 +13077,90 @@ const _Controller0 = class _Controller0 {
       this.core.getModel().setProperty(ModelPropID.database, database);
     }
   }
-  // private removeKeyBoardHandler() {
-  // 	this.keyboard.setOptions({
-  // 		fnOnKeyDown: undefined
-  // 	});
-  // }
   getInputText() {
-    const example = this.core.getModel().getProperty(ModelPropID.example);
-    const exampleEntry = this.core.getModel().getExample(example);
-    return String(exampleEntry.script);
+    return this.inScript;
   }
-  setInputText(input, _keepStack) {
+  getVariableNames() {
+    return this.variables.getAllVariableNames();
+  }
+  getVariable(name) {
+    return this.variables.getVariable(name);
+  }
+  setInputText(input, keepStack) {
     this.inScript = input;
-    if (Utils.debug > 0) {
-      Utils.console.debug("inScript.length=", this.inScript.length);
-    }
+    this.options.onInputText?.(input, keepStack);
   }
-  // setInputText(input: string, keepStack?: boolean): void {
-  // 	this.view.setAreaValue(ViewID.inputText, input);
-  // 	if (!keepStack) {
-  // 		this.fnInitUndoRedoButtons();
-  // 	} else {
-  // 		this.fnUpdateUndoRedoButtons();
-  // 	}
-  // }
   invalidateScript() {
-    this.fnScript = void 0;
+    this.runtime.invalidateProgram();
   }
-  // private fnWaitForContinue() {
-  // 	const stream = 0,
-  // 		key = this.keyboard.getKeyFromBuffer();
-  // 	if (key !== "") {
-  // 		this.vm.cursor(stream, 0);
-  // 		this.removeKeyBoardHandler();
-  // 		this.startContinue();
-  // 	}
-  // }
-  // private fnOnEscape() {
-  // 	const stop = this.vm.vmGetStopObject(),
-  // 		stream = 0;
-  // 	if (this.vm.vmOnBreakContSet()) {
-  // 		// ignore break
-  // 	} else if (stop.reason === "direct" || this.vm.vmOnBreakHandlerActive()) {
-  // 		(stop.paras as VmInputParas).input = "";
-  // 		const msg = "*Break*\r\n";
-  // 		this.vm.print(stream, msg);
-  // 	} else if (stop.reason !== "escape") { // first escape?
-  // 		this.vm.cursor(stream, 1);
-  // 		this.keyboard.clearInput();
-  // 		this.keyboard.setOptions({
-  // 			fnOnKeyDown: this.fnWaitForContinueHandler
-  // 		});
-  // 		this.setStopObject(stop);
-  // 		this.vm.vmStop("escape", 85, false, {
-  // 			command: "escape",
-  // 			stream: stream,
-  // 			first: 0, // unused
-  // 			last: 0, // unused
-  // 			line: this.vm.line
-  // 		});
-  // 	} else { // second escape
-  // 		this.removeKeyBoardHandler();
-  // 		this.vm.cursor(stream, 0);
-  // 		const savedStop = this.getStopObject();
-  // 		if (savedStop.reason === "waitInput") { // sepcial handling: set line to repeat input
-  // 			this.vm.vmGoto((savedStop.paras as VmInputParas).line);
-  // 		}
-  // 		if (!this.vm.vmEscape()) {
-  // 			this.vm.vmStop("", 0, true); // continue program, in break handler?
-  // 			this.setStopObject(this.noStop);
-  // 		} else {
-  // 			this.vm.vmStop("stop", 0, true); // stop
-  // 			const msg = "Break in " + this.vm.line + "\r\n";
-  // 			this.vm.print(stream, msg);
-  // 		}
-  // 	}
-  // 	this.startMainLoop();
-  // }
   fnWaitSound() {
-    const stop = this.vm.vmGetStopObject();
-    this.vm.vmLoopCondition();
-    const soundDataList = this.vm.vmGetSoundData();
-    while (soundDataList.length && this.options.sound.testCanQueue(soundDataList[0].state)) {
-      const soundData = soundDataList.shift();
-      this.options.sound.sound(soundData);
-    }
-    if (!soundDataList.length) {
-      if (stop.reason === "waitSound") {
-        this.vm.vmStop("", 0, true);
-      }
-    }
-    this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame();
+    this.runtime.handleWaitSound();
   }
-  // private fnWaitSound() { // rather fnEvent
-  // 	const stop = this.vm.vmGetStopObject();
-  // 	this.vm.vmLoopCondition(); // update nextFrameTime, timers, inks; schedule sound: free queue
-  // 	if (this.sound.isActivatedByUser()) { // only if activated
-  // 		const soundDataList = this.vm.vmGetSoundData();
-  // 		while (soundDataList.length && this.sound.testCanQueue(soundDataList[0].state)) {
-  // 			const soundData = soundDataList.shift() as SoundData;
-  // 			this.sound.sound(soundData);
-  // 		}
-  // 		if (!soundDataList.length) {
-  // 			if (stop.reason === "waitSound") { // only for this reason
-  // 				this.vm.vmStop("", 0, true); // no more wait
-  // 			}
-  // 		}
-  // 	}
-  // 	this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
-  // }
   fnWaitKey() {
-    return "";
+    return this.runtime.handleWaitKey();
   }
-  // private fnWaitKey() {
-  // 	const key = this.keyboard.getKeyFromBuffer();
-  // 	if (key !== "") { // do we have a key from the buffer already?
-  // 		Utils.console.log("Wait for key:", key);
-  // 		this.vm.vmStop("", 0, true);
-  // 		this.removeKeyBoardHandler();
-  // 	} else {
-  // 		this.fnWaitSound(); // sound and blinking events
-  // 		// wait until keypress handler (for call &bb18)
-  // 		this.keyboard.setOptions({
-  // 			fnOnKeyDown: this.fnWaitKeyHandler
-  // 		});
-  // 	}
-  // 	return key;
-  // }
   fnWaitInput() {
-    const stop = this.vm.vmGetStopObject(), inputParas = stop.paras, stream = inputParas.stream;
-    let input = inputParas.input, key = "";
-    if (input === void 0 || stream === void 0) {
-      this.outputError(this.vm.vmComposeError(Error(), 32, "Programming Error: fnWaitInput"), true);
+    const result = this.runtime.handleWaitInput({
+      onInvalid: (error) => this.outputError(error, true),
+      startMainLoop: () => this.startMainLoop(),
+      continueExecution: () => this.startContinue()
+    });
+    if (result.status === "invalid") {
       return;
     }
-    input += "abc";
-    inputParas.input = input;
-    let inputOk = false;
-    key += "\r";
-    if (key === "\r") {
-      Utils.console.log("fnWaitInput:", input, "reason", stop.reason);
-      if (!inputParas.noCRLF) {
-        this.vm.print(stream, "\r\n");
-      }
-      if (inputParas.fnInputCallback) {
-        inputOk = inputParas.fnInputCallback();
-      } else {
-        inputOk = true;
-      }
-      if (inputOk) {
-        if (stop.reason === "waitInput") {
-          this.vm.vmStop("", 0, true);
-        } else {
-          this.startContinue();
-        }
-      }
+    if (result.status === "pending" && result.reason === "waitInput") {
+      this.fnWaitSound();
     }
-    if (!inputOk) {
-      if (stop.reason === "waitInput") {
-        this.fnWaitSound();
-      }
-    }
-  }
-  // private fnWaitInput() { // eslint-disable-line complexity
-  // 	const stop = this.vm.vmGetStopObject(),
-  // 		inputParas = stop.paras as VmInputParas,
-  // 		stream = inputParas.stream;
-  // 	let input = inputParas.input,
-  // 		key: string;
-  // 	if (input === undefined || stream === undefined) {
-  // 		this.outputError(this.vm.vmComposeError(Error(), 32, "Programming Error: fnWaitInput"), true);
-  // 		return;
-  // 	}
-  // 	do {
-  // 		key = this.keyboard.getKeyFromBuffer(); // (inkey$ could insert frame if checked too often)
-  // 		// chr13 shows as empty string!
-  // 		switch (key) {
-  // 		case "": // no key?
-  // 			break;
-  // 		case "\r": // cr (\x0d)
-  // 			break;
-  // 		case "\x10": // DLE (clear character under cursor)
-  // 			key = "\x07"; // currently ignore (BEL)
-  // 			break;
-  // 		case "\x7f": // del
-  // 			if (input.length) {
-  // 				input = input.slice(0, -1);
-  // 				key = "\x08\x10"; // use BS and DLE
-  // 			} else {
-  // 				key = "\x07"; // ignore BS, use BEL
-  // 			}
-  // 			break;
-  // 		case "\xe0": // copy
-  // 			key = this.vm.copychr$(stream);
-  // 			if (key.length) {
-  // 				input += key;
-  // 				key = "\x09"; // TAB
-  // 			} else {
-  // 				key = "\x07"; // ignore (BEL)
-  // 			}
-  // 			break;
-  // 		case "\xf0": // cursor up
-  // 			if (!input.length) {
-  // 				key = "\x0b"; // VT
-  // 			} else {
-  // 				key = "\x07"; // ignore (BEL)
-  // 			}
-  // 			break;
-  // 		case "\xf1": // cursor down
-  // 			if (!input.length) {
-  // 				key = "\x0a"; // LF
-  // 			} else {
-  // 				key = "\x07"; // ignore (BEL)
-  // 			}
-  // 			break;
-  // 		case "\xf2": // cursor left
-  // 			if (!input.length) {
-  // 				key = "\x08"; // BS
-  // 			} else {
-  // 				key = "\x07"; // ignore (BEL) TODO
-  // 			}
-  // 			break;
-  // 		case "\xf3": // cursor right
-  // 			if (!input.length) {
-  // 				key = "\x09"; // TAB
-  // 			} else {
-  // 				key = "\x07"; // ignore (BEL) TODO
-  // 			}
-  // 			break;
-  // 		case "\xf4": // shift+cursor up
-  // 			key = ""; // currently ignore
-  // 			break;
-  // 		case "\xf5": // shift+cursor down
-  // 			key = ""; // currently ignore
-  // 			break;
-  // 		case "\xf6": // shift+cursor left
-  // 			key = ""; // currently ignore
-  // 			break;
-  // 		case "\xf7": // shift+cursor right
-  // 			key = ""; // currently ignore
-  // 			break;
-  // 		case "\xf8": // ctrl+cursor up
-  // 			key = ""; // currently ignore
-  // 			break;
-  // 		case "\xf9": // ctrl+cursor down
-  // 			key = ""; // currently ignore
-  // 			break;
-  // 		case "\xfa": // ctrl+cursor left
-  // 			key = ""; // currently ignore
-  // 			break;
-  // 		case "\xfb": // ctrl+cursor right
-  // 			key = ""; // currently ignore
-  // 			break;
-  // 		default:
-  // 			input += key;
-  // 			if (key < "\x20") { // control code
-  // 				key = "\x01" + key; // print control code (do not execute)
-  // 			}
-  // 			break;
-  // 		}
-  // 		if (key && key !== "\r") {
-  // 			this.vm.print(stream, key);
-  // 		}
-  // 	} while (key !== "" && key !== "\r"); // get all keys until CR or no more key
-  // 	inputParas.input = input;
-  // 	let inputOk = false;
-  // 	if (key === "\r") {
-  // 		Utils.console.log("fnWaitInput:", input, "reason", stop.reason);
-  // 		if (!inputParas.noCRLF) {
-  // 			this.vm.print(stream, "\r\n");
-  // 		}
-  // 		if (inputParas.fnInputCallback) {
-  // 			inputOk = inputParas.fnInputCallback();
-  // 		} else {
-  // 			inputOk = true;
-  // 		}
-  // 		if (inputOk) {
-  // 			this.removeKeyBoardHandler();
-  // 			if (stop.reason === "waitInput") { // only for this reason
-  // 				this.vm.vmStop("", 0, true); // no more wait
-  // 			} else {
-  // 				this.startContinue();
-  // 			}
-  // 		}
-  // 	}
-  // 	if (!inputOk) {
-  // 		if (stop.reason === "waitInput") { // only for this reason
-  // 			this.fnWaitSound(); // sound and blinking events
-  // 		}
-  // 		// make sure the handler is set
-  // 		this.keyboard.setOptions({
-  // 			fnOnKeyDown: this.fnWaitInputHandler
-  // 		});
-  // 	}
-  // }
-  static parseLineNumber(line) {
-    return parseInt(line, 10);
+    this.updateResultText();
   }
   static addLineNumbers(input) {
-    const lineParts = input.split("\n");
-    let lastLine = 0;
-    for (let i = 0; i < lineParts.length; i += 1) {
-      let lineNum = parseInt(lineParts[i], 10);
-      if (isNaN(lineNum)) {
-        lineNum = lastLine + 1;
-        lineParts[i] = String(lastLine + 1) + " " + lineParts[i];
-      }
-      lastLine = lineNum;
-    }
-    return lineParts.join("\n");
-  }
-  splitLines(input) {
-    if (this.core.getModel().getProperty(ModelPropID.implicitLines)) {
-      input = _Controller0.addLineNumbers(input);
-    }
-    const lineParts = input.split(/^(\s*\d+)/m), lines = [];
-    if (lineParts[0] === "") {
-      lineParts.shift();
-    }
-    if (lineParts.length % 2 !== 0) {
-      Utils.console.warn("splitLines: No line numbers?");
-      const error = this.vm.vmComposeError(Error(), 21, "split");
-      this.outputError(error, true);
-      return lines;
-    }
-    for (let i = 0; i < lineParts.length; i += 2) {
-      const number = lineParts[i];
-      let content = lineParts[i + 1];
-      if (content.endsWith("\n")) {
-        content = content.substring(0, content.length - 1);
-      }
-      lines.push(number + content);
-    }
-    return lines;
+    return BasicFormatter.addLineNumbers(input);
   }
   // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
   mergeScripts(script1, script2) {
-    const lines1 = this.splitLines(Utils.stringTrimEnd(script1)), lines2 = this.splitLines(Utils.stringTrimEnd(script2));
-    let result = [], lineNumber1, lineNumber2;
-    while (lines1.length && lines2.length) {
-      lineNumber1 = lineNumber1 || _Controller0.parseLineNumber(lines1[0]);
-      lineNumber2 = lineNumber2 || _Controller0.parseLineNumber(lines2[0]);
-      if (lineNumber1 < lineNumber2) {
-        result.push(lines1.shift());
-        lineNumber1 = 0;
-      } else {
-        const line2 = lines2.shift();
-        if (String(lineNumber2) !== line2) {
-          result.push(line2);
-        }
-        if (lineNumber1 === lineNumber2) {
-          lines1.shift();
-          lineNumber1 = 0;
-        }
-        lineNumber2 = 0;
-      }
-    }
-    result = result.concat(lines1, lines2);
-    if (result.length >= 2) {
-      if (result[result.length - 2] === "" && result[result.length - 1] === "") {
-        result.pop();
-      }
-    }
-    return result.join("\n");
+    return BasicFormatter.mergeScripts(
+      script1,
+      script2,
+      this.core.getModel().getProperty(ModelPropID.implicitLines),
+      () => this.reportSplitLinesError()
+    );
   }
   // get line range from a script with sorted line numbers
   fnGetLinesInRange(script, firstLine, lastLine) {
-    const lines = script ? this.splitLines(script) : [];
-    while (lines.length && _Controller0.parseLineNumber(lines[0]) < firstLine) {
-      lines.shift();
-    }
-    if (lines.length && lines[lines.length - 1] === "") {
-      lines.pop();
-    }
-    while (lines.length && _Controller0.parseLineNumber(lines[lines.length - 1]) > lastLine) {
-      lines.pop();
-    }
-    return lines;
+    return BasicFormatter.getLinesInRangeFromScript(
+      script,
+      firstLine,
+      lastLine,
+      this.core.getModel().getProperty(ModelPropID.implicitLines),
+      () => this.reportSplitLinesError()
+    );
   }
-  static fnPrepareMaskRegExp(mask) {
-    mask = mask.replace(/([.+^$[\]\\(){}|-])/g, "\\$1");
-    mask = mask.replace(/\?/g, ".");
-    mask = mask.replace(/\*/g, ".*");
-    return new RegExp("^" + mask + "$");
-  }
-  fnGetExampleDirectoryEntries(mask) {
-    const dir = [], allExamples = this.core.getModel().getAllExamples();
-    let regExp;
-    if (mask) {
-      regExp = _Controller0.fnPrepareMaskRegExp(mask);
-    }
-    for (const key in allExamples) {
-      if (allExamples.hasOwnProperty(key)) {
-        const example = allExamples[key], key2 = example.key, matchKey2 = key2 + (key2.indexOf(".") < 0 ? "." : "");
-        if (!regExp || regExp.test(matchKey2)) {
-          dir.push(key2);
-        }
-      }
-    }
-    return dir;
+  reportSplitLinesError() {
+    Utils.console.warn("splitLines: No line numbers?");
+    this.outputError(this.vm.vmComposeError(Error(), 21, "split"), true);
   }
   fnGetStorageDirectoryEntries(mask) {
-    const storage = this.getStorage(), metaIdent = FileHandler.getMetaIdent(), dir = [];
-    let regExp;
-    if (mask) {
-      regExp = _Controller0.fnPrepareMaskRegExp(mask);
-    }
-    for (let i = 0; i < storage.length; i += 1) {
-      const key = storage.key(i);
-      if (key !== null && storage[key].startsWith(metaIdent)) {
-        const keywithOutNl = key.replace(/[\n\r]/g, "");
-        if (!regExp || regExp.test(keywithOutNl)) {
-          dir.push(key);
-        }
-      }
-    }
-    return dir;
-  }
-  fnPrintDirectoryEntries(stream, dir, sort) {
-    for (let i = 0; i < dir.length; i += 1) {
-      const parts = dir[i].split(".");
-      dir[i] = parts[0].padEnd(8, " ") + "." + (parts.length >= 2 ? parts[1] : "").padEnd(3, " ");
-    }
-    if (sort) {
-      dir.sort();
-    }
-    this.vm.print(stream, "\r\nDrive A: user  0\r\n\r\n");
-    for (let i = 0; i < dir.length; i += 1) {
-      const key = dir[i] + "  ";
-      this.vm.print(stream, key);
-    }
-    this.vm.print(stream, "\r\n\r\n999K free\r\n\r\n");
+    return FileHandler.getStorageDirectoryEntries(this.getStorage(), mask);
   }
   fnFileCat(paras) {
     const stream = paras.stream, dirList = this.fnGetStorageDirectoryEntries();
-    this.fnPrintDirectoryEntries(stream, dirList, true);
-    this.vm.vmStop("", 0, true);
+    this.runtime.printDirectoryEntries(dirList, stream, true);
   }
   fnFileDir(paras) {
-    const stream = paras.stream, example = this.core.getModel().getProperty(ModelPropID.example), lastSlash = example.lastIndexOf("/");
-    let fileMask = paras.fileMask ? _Controller0.fnLocalStorageName(paras.fileMask) : "";
-    const dirList = this.fnGetStorageDirectoryEntries(fileMask);
-    let path = "";
-    if (lastSlash >= 0) {
-      path = example.substring(0, lastSlash) + "/";
-      fileMask = path + (fileMask ? fileMask : "*.*");
-    }
-    const fileExists = {};
-    for (let i = 0; i < dirList.length; i += 1) {
-      fileExists[dirList[i]] = true;
-    }
-    const dirListEx = this.fnGetExampleDirectoryEntries(fileMask);
-    for (let i = 0; i < dirListEx.length; i += 1) {
-      const file = dirListEx[i].substring(path.length);
-      if (!fileExists[file]) {
-        fileExists[file] = true;
-        dirList.push(file);
-      }
-    }
-    this.fnPrintDirectoryEntries(stream, dirList, false);
-    this.vm.vmStop("", 0, true);
+    const stream = paras.stream, example = this.core.getModel().getProperty(ModelPropID.example), dirList = FileHandler.getDirectoryEntries(this.getStorage(), this.core.getModel().getAllExamples(), example, paras.fileMask);
+    this.runtime.printDirectoryEntries(dirList, stream, false);
   }
   fnFileEra(paras) {
-    const stream = paras.stream, storage = this.getStorage(), fileMask = _Controller0.fnLocalStorageName(paras.fileMask || ""), dir = this.fnGetStorageDirectoryEntries(fileMask);
-    if (!dir.length) {
-      this.vm.print(stream, fileMask + " not found\r\n");
-    }
-    for (let i = 0; i < dir.length; i += 1) {
-      const name = dir[i];
-      if (storage.getItem(name) !== null) {
-        storage.removeItem(name);
-        this.updateStorageDatabase("remove", name);
-        if (Utils.debug > 0) {
-          Utils.console.debug("fnEraseFile: name=" + name + ": removed from localStorage");
-        }
-      } else {
-        this.vm.print(stream, name + " not found\r\n");
-        Utils.console.warn("fnEraseFile: file not found in localStorage:", name);
+    this.runtime.eraseFiles(this.getFileHandler(), paras, (name) => {
+      if (Utils.debug > 0) {
+        Utils.console.debug("fnEraseFile: name=" + name + ": removed from localStorage");
       }
-    }
-    this.vm.vmStop("", 0, true);
+    }, (name) => {
+      Utils.console.warn("fnEraseFile: file not found in localStorage:", name);
+    });
   }
   fnFileRen(paras) {
-    const stream = paras.stream, storage = this.getStorage(), newName = _Controller0.fnLocalStorageName(paras.newName), oldName = _Controller0.fnLocalStorageName(paras.oldName), item = storage.getItem(oldName);
-    if (item !== null) {
-      if (!storage.getItem(newName)) {
-        storage.setItem(newName, item);
-        this.updateStorageDatabase("set", newName);
-        storage.removeItem(oldName);
-        this.updateStorageDatabase("remove", oldName);
-      } else {
-        this.vm.print(stream, oldName + " already exists\r\n");
-      }
-    } else {
-      this.vm.print(stream, oldName + " not found\r\n");
-    }
-    this.vm.vmStop("", 0, true);
-  }
-  // Hisoft Devpac GENA3 Z80 Assember (http://www.cpcwiki.eu/index.php/Hisoft_Devpac)
-  static asmGena3Convert(data) {
-    const fnUInt16 = function(pos2) {
-      return data.charCodeAt(pos2) + data.charCodeAt(pos2 + 1) * 256;
-    }, length = data.length;
-    let pos = 0, out = "";
-    pos += 4;
-    while (pos < length) {
-      const lineNum = fnUInt16(pos);
-      pos += 2;
-      let index1 = data.indexOf("\r", pos);
-      if (index1 < 0) {
-        index1 = length;
-      }
-      let index2 = data.indexOf("", pos);
-      if (index2 < 0) {
-        index2 = length;
-      }
-      index1 = Math.min(index1, index2);
-      out += lineNum + " " + data.substring(pos, index1) + "\n";
-      pos = index1 + 1;
-    }
-    return out;
+    this.runtime.renameFile(this.getFileHandler(), paras);
   }
   getBasicFormatter() {
     if (!this.basicFormatter) {
@@ -12165,12 +13202,7 @@ const _Controller0 = class _Controller0 {
     return basicTokenizer.decode(input);
   }
   encodeTokenizedBasic(input, name = "test") {
-    const codeGeneratorToken = this.getCodeGeneratorToken();
-    this.basicLexer.setOptions({
-      keepWhiteSpace: true
-    });
-    this.basicParser.setOptions(_Controller0.codeGenTokenBasicParserOptions);
-    const output = codeGeneratorToken.generate(input);
+    const output = this.getCodeGeneratorToken().generateProgram(input);
     if (output.error) {
       this.outputError(output.error);
     } else if (Utils.debug > 1) {
@@ -12185,152 +13217,47 @@ const _Controller0 = class _Controller0 {
     return output.text;
   }
   prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons) {
-    const codeGeneratorBasic = this.getCodeGeneratorBasic(), keepDataComma = true;
-    this.basicLexer.setOptions({
-      keepWhiteSpace
-    });
-    this.basicParser.setOptions({
-      keepTokens: true,
-      keepBrackets,
-      keepColons,
-      keepDataComma
-    });
-    const output = codeGeneratorBasic.generate(input);
+    const output = this.getCodeGeneratorBasic().generatePretty(input, keepWhiteSpace, keepBrackets, keepColons);
     if (output.error) {
       this.outputError(output.error);
     }
     return output.text;
   }
-  applyGaInks(inkval) {
-    for (let i = 0; i < inkval.length - 1; i += 1) {
-      this.vm.ink(i, _Controller0.gaInk2Ink[inkval[i]]);
-    }
-    this.vm.border(_Controller0.gaInk2Ink[inkval[inkval.length - 1]]);
-  }
-  applyCrtcRegs(reg) {
-    for (let i = 0; i < reg.length; i += 1) {
-      this.vm.vmSetCrtcData(i, reg[i]);
-    }
-  }
   applySnapshot(input) {
     const snapshot = new Snapshot({
       name: "",
       data: input
-    }), info = snapshot.getSnapshotInfo(), mode = info.ga.multi & 3, mem = snapshot.getMemory();
-    this.vm.vmChangeMode(mode);
-    this.applyGaInks(info.ga.inkval);
-    this.vm.vmSetRamSelect(info.ramconf);
-    this.applyCrtcRegs(info.crtc.reg);
-    return mem;
+    });
+    return snapshot.applyToVm(this.vm);
   }
   loadFileContinue(input) {
     const inFile = this.vm.vmGetInFileObject();
-    let data;
-    if (input !== null && input !== void 0) {
-      data = _Controller0.splitMeta(input);
-      input = data.data;
-      if (data.meta.encoding === "base64") {
-        input = this.options.atobFn(input);
-      }
-      const type = data.meta.typeString;
-      if (type === "T") {
-        input = this.decodeTokenizedBasic(input);
-      } else if (type === "P") {
-        input = DiskImage.unOrProtectData(input);
-        input = this.decodeTokenizedBasic(input);
-      } else if (type === "B") ; else if (type === "A") {
-        input = input.replace(/\x1a+$/, "");
-      } else if (type === "G") {
-        input = _Controller0.asmGena3Convert(input);
-      } else if (type === "S") {
-        input = this.applySnapshot(input);
-      } else if (type === "X") {
-        const fileHandler = this.getFileHandler(), imported = [];
-        fileHandler.fnLoad2(input, inFile.name, type, imported);
-        input = "1 ' " + imported.join(", ");
-      } else if (type === "Z") {
-        const fileHandler = this.getFileHandler(), imported = [];
-        fileHandler.fnLoad2(input, inFile.name, type, imported);
-        input = "1 ' " + imported.join(", ");
-      }
-    }
-    const command = inFile.command, inFileLine = inFile.line || 0;
-    let putInMemory = false, startLine = 0;
-    if (inFile.fnFileCallback) {
-      try {
-        putInMemory = inFile.fnFileCallback(input, data && data.meta);
-      } catch (e) {
-        Utils.console.warn(e);
-      }
-    }
-    if (input === void 0) {
-      Utils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
-      this.vm.vmStop("stop", 60, true);
-      this.startMainLoop();
-      return;
-    }
-    if (input === null) {
-      this.startMainLoop();
-      return;
-    }
-    if (data && data.meta.typeString === "S" && putInMemory) {
-      input = this.decodeTokenizedBasic(input.substring(368));
-      putInMemory = false;
-    }
-    switch (command) {
-      case "openin":
-        break;
-      case "chainMerge":
-        input = this.mergeScripts(this.getInputText(), input);
-        this.setInputText(input);
-        this.setResultText("");
-        startLine = inFileLine;
-        this.invalidateScript();
-        this.fnParseChain();
-        break;
-      case "load":
-        if (!putInMemory) {
-          this.setInputText(input);
-          this.setResultText("");
-          this.invalidateScript();
-          this.vm.vmStop("end", 90);
+    this.runtime.continueLoad(input, inFile, {
+      decode: (storedInput) => FileHandler.decodeStoredFile(storedInput, {
+        atobFn: (value) => this.options.atobFn(value),
+        decodeTokenizedBasic: (value) => this.decodeTokenizedBasic(value),
+        applySnapshot: (value) => this.applySnapshot(value),
+        importArchive: (value, type) => {
+          const imported = [];
+          this.getFileHandler().fnLoad2(value, inFile.name, type, imported);
+          return imported;
         }
-        break;
-      case "merge":
-        input = this.mergeScripts(this.getInputText(), input);
-        this.setInputText(input);
-        this.setResultText("");
-        this.invalidateScript();
-        this.fnRemoveAllVariables();
-        this.vm.vmStop("end", 90);
-        break;
-      case "chain":
-        this.setInputText(input);
-        this.setResultText("");
-        startLine = inFileLine;
-        this.invalidateScript();
-        this.fnParseChain();
-        break;
-      case "run":
-        if (!putInMemory) {
-          this.setInputText(input);
-          this.setResultText("");
-          startLine = inFileLine;
-          if (!data || data.meta.typeString !== "S") {
-            this.fnReset();
-          }
-          this.fnParseRun();
-        } else {
-          this.fnReset();
-          this.vm.clear();
-        }
-        break;
-      default:
-        Utils.console.error("loadExample: Unknown command:", command);
-        break;
-    }
-    this.vm.vmSetStartLine(startLine);
-    this.startMainLoop();
+      }),
+      getSource: () => this.getInputText(),
+      setSource: (source) => this.setInputText(source),
+      clearResult: () => this.setResultText(""),
+      merge: (source, loaded) => this.mergeScripts(source, loaded),
+      invalidate: () => this.invalidateScript(),
+      removeVariables: () => this.fnRemoveAllVariables(),
+      reset: () => this.fnReset(),
+      parseRun: () => this.fnParseRun(),
+      parseChain: () => this.fnParseChain(),
+      onUnknownCommand: (value) => Utils.console.error("loadExample: Unknown command:", value),
+      startMainLoop: () => this.startMainLoop(),
+      onWarning: (error) => Utils.console.warn(error),
+      onError: (message) => Utils.console.error(message),
+      decodeTokenizedBasic: (value) => this.decodeTokenizedBasic(value)
+    });
   }
   createFnExampleLoaded(example, url, inFile) {
     return (_sFullUrl, key, suppressLog) => {
@@ -12342,371 +13269,172 @@ const _Controller0 = class _Controller0 {
         Utils.console.log("Example loaded:", url, exampleEntry.meta);
       }
       this.core.getModel().setProperty(ModelPropID.example, inFile.memorizedExample);
-      this.vm.vmStop("", 0, true);
-      if (exampleEntry.rsx) {
-        this.vm.vmRegisterRsx(exampleEntry.rsx, false);
-      }
       const input = exampleEntry.script;
-      this.loadFileContinue(input);
+      this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => this.loadFileContinue(loadedInput));
     };
   }
   createFnExampleError(example, url, inFile) {
     return () => {
       Utils.console.log("Example", url, "error");
       this.core.getModel().setProperty(ModelPropID.example, inFile.memorizedExample);
-      this.vm.vmStop("", 0, true);
-      const error = this.vm.vmComposeError(Error(), 32, example + " not found");
-      if (error.hidden) {
-        this.vm.vmStop("", 0, true);
-      }
-      this.outputError(error, true);
-      this.loadFileContinue(null);
+      this.runtime.failExampleLoad(example, (error, noSelection) => this.outputError(error, noSelection), (input) => this.loadFileContinue(input));
     };
   }
   getLoadScript() {
     return this.options.loadScript;
   }
+  getOutputText() {
+    return this.outScript;
+  }
   setOutputText(text) {
     this.outScript = text;
+    this.invalidateScript();
+    this.options.onOutputText?.(text);
   }
   setResultText(text, _scroll = false) {
-    this.options.onResultText(text);
+    this.options.onResultText?.(text);
   }
-  loadExample() {
-    const inFile = this.vm.vmGetInFileObject(), key = this.core.getModel().getProperty(ModelPropID.example);
-    let name = inFile.name;
-    if (name.charAt(0) === "/") {
-      name = name.substring(1);
-      inFile.memorizedExample = name;
-    } else {
-      inFile.memorizedExample = key;
-      const lastSlash = key.lastIndexOf("/");
-      if (lastSlash >= 0) {
-        const path = key.substring(0, lastSlash);
-        name = path + "/" + name;
-        name = name.replace(/\w+\/\.\.\//, "");
-      }
-    }
-    const example = name;
+  loadExampleFile() {
+    const inFile = this.vm.vmGetInFileObject(), key = this.core.getModel().getProperty(ModelPropID.example), model = this.core.getModel(), plan = FileHandler.prepareExampleLoad(inFile.name, key, model.getAllExamples(), model.getDatabase().src), example = plan.name, exampleEntry = plan.entry, url = plan.url;
+    inFile.memorizedExample = plan.memorizedExample;
     if (Utils.debug > 0) {
-      Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
+      Utils.console.debug("loadExample: name=" + example + " (current=" + key + ")");
     }
-    const exampleEntry = this.core.getModel().getExample(example);
-    let url;
-    if (exampleEntry && exampleEntry.loaded) {
+    if (plan.status === "loaded" && exampleEntry) {
       this.core.getModel().setProperty(ModelPropID.example, example);
-      url = example;
       const fnExampleLoaded = this.createFnExampleLoaded(example, url, inFile);
       fnExampleLoaded("", example, true);
-    } else if (example && exampleEntry) {
+    } else if (plan.status === "fetch" && exampleEntry) {
       this.core.getModel().setProperty(ModelPropID.example, example);
-      const databaseDir = this.core.getModel().getDatabase().src;
-      url = databaseDir + "/" + example + ".js";
       this.getLoadScript()(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
     } else {
-      url = example;
       if (example !== "") {
         Utils.console.warn("loadExample: Unknown file:", example);
         const fnExampleError = this.createFnExampleError(example, url, inFile);
         fnExampleError();
       } else {
         this.core.getModel().setProperty(ModelPropID.example, example);
-        this.vm.vmStop("", 0, true);
-        this.loadFileContinue("");
+        this.runtime.completeExampleLoad("", void 0, (input) => this.loadFileContinue(input));
       }
     }
-  }
-  static fnLocalStorageName(name, defaultExtension) {
-    if (name.indexOf(".") < 0) {
-      name += "." + (defaultExtension || "");
-    }
-    return name;
   }
   tryLoadingFromLocalStorage(name) {
-    const storage = this.getStorage();
-    let input = null;
-    if (name.indexOf(".") >= 0) {
-      input = storage.getItem(name);
-    } else {
-      for (let i = 0; i < _Controller0.defaultExtensions.length; i += 1) {
-        const storageName = _Controller0.fnLocalStorageName(name, _Controller0.defaultExtensions[i]);
-        input = storage.getItem(storageName);
-        if (input !== null) {
-          break;
-        }
-      }
-    }
-    return input;
+    return FileHandler.loadFromStorage(this.getStorage(), name);
   }
   fnFileLoad() {
     const inFile = this.vm.vmGetInFileObject();
-    if (inFile.open) {
-      if (inFile.command === "chainMerge" && inFile.first && inFile.last) {
-        this.fnDeleteLines({
-          first: inFile.first,
-          last: inFile.last,
-          command: "CHAIN MERGE",
-          stream: 0,
-          // unused
-          line: this.vm.line
-        });
-        this.vm.vmStop("fileLoad", 90);
-      }
-      const name = inFile.name;
-      if (Utils.debug > 1) {
-        Utils.console.debug("fnFileLoad:", inFile.command, name, "details:", inFile);
-      }
-      const input = this.tryLoadingFromLocalStorage(name);
-      if (input !== null) {
-        if (Utils.debug > 0) {
-          Utils.console.debug("fnFileLoad:", inFile.command, name, "from localStorage");
+    this.runtime.dispatchFileLoad(inFile, {
+      deleteLines: (paras) => this.fnDeleteLines(paras),
+      logFile: (file) => {
+        if (Utils.debug > 1) {
+          Utils.console.debug("fnFileLoad:", file.command, file.name, "details:", file);
         }
-        this.vm.vmStop("", 0, true);
+      },
+      loadFromStorage: (name) => this.tryLoadingFromLocalStorage(name),
+      onStorageLoad: (input) => {
+        if (Utils.debug > 0) {
+          Utils.console.debug("fnFileLoad:", inFile.command, inFile.name, "from localStorage");
+        }
         this.loadFileContinue(input);
-      } else {
-        this.loadExample(
-          /* name */
-        );
-      }
-    } else {
-      Utils.console.error("fnFileLoad:", inFile.name, "File not open!");
-    }
-    this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame();
-  }
-  static splitMeta(input) {
-    let fileMeta;
-    if (input.indexOf(FileHandler.getMetaIdent()) === 0) {
-      const index = input.indexOf(",");
-      if (index >= 0) {
-        const metaString = input.substring(0, index);
-        input = input.substring(index + 1);
-        const meta = metaString.split(";");
-        fileMeta = {
-          typeString: meta[1],
-          start: Number(meta[2]),
-          length: Number(meta[3]),
-          entry: Number(meta[4]),
-          encoding: meta[5]
-        };
-      }
-    }
-    if (!fileMeta) {
-      fileMeta = {
-        typeString: ""
-      };
-    }
-    const metaAndData = {
-      meta: fileMeta,
-      data: input
-    };
-    return metaAndData;
+      },
+      loadExample: () => this.loadExampleFile(),
+      onNotOpen: (name) => Utils.console.error("fnFileLoad:", name, "File not open!"),
+      setNextDelay: (delay) => this.runtime.setNextDelay(delay)
+    });
   }
   fnFileSave() {
-    const outFile = this.vm.vmGetOutFileObject(), storage = this.getStorage();
-    let defaultExtension = "";
-    if (outFile.open) {
-      const type = outFile.typeString, name = outFile.name;
-      if (type === "P" || type === "T") {
-        defaultExtension = "bas";
-      } else if (type === "B") {
-        defaultExtension = "bin";
-      }
-      const storageName = _Controller0.fnLocalStorageName(name, defaultExtension);
-      let fileData;
-      if (outFile.fileData.length || type === "B" || outFile.command === "openout") {
-        fileData = outFile.fileData.join("");
-        if (!outFile.length) {
-          outFile.length = fileData.length;
+    const outFile = this.vm.vmGetOutFileObject();
+    this.runtime.dispatchFileSave(
+      outFile,
+      (file) => this.getFileHandler().saveFile(file, () => this.getInputText(), (input, storageName) => this.encodeTokenizedBasic(input, storageName)).data,
+      (name) => {
+        if (Utils.debug > 0) {
+          Utils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
         }
-      } else {
-        fileData = this.getInputText();
-        if (type === "T" || type === "P") {
-          fileData = this.encodeTokenizedBasic(fileData, storageName);
-          if (fileData === "") {
-            outFile.typeString = "A";
-          } else if (type === "P") {
-            fileData = DiskImage.unOrProtectData(fileData);
-          }
-        }
-        outFile.length = fileData.length;
-      }
-      if (Utils.debug > 0) {
-        Utils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
-      }
-      const meta = FileHandler.joinMeta(outFile);
-      storage.setItem(storageName, meta + "," + fileData);
-      this.updateStorageDatabase("set", storageName);
-      if (outFile.fnFileCallback) {
-        try {
-          outFile.fnFileCallback(fileData);
-        } catch (e) {
-          Utils.console.warn(e);
-        }
-      }
-      this.vm.vmResetOutFileHandling();
-    } else {
-      Utils.console.error("fnFileSave: file not open!");
-    }
-    this.vm.vmStop("", 0, true);
+      },
+      () => Utils.console.error("fnFileSave: file not open!"),
+      (error) => Utils.console.warn(error)
+    );
   }
   fnDeleteLines(paras) {
     const inputText = this.getInputText(), lines = this.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
-    let error;
-    if (lines.length) {
-      for (let i = 0; i < lines.length; i += 1) {
-        const line = _Controller0.parseLineNumber(lines[i]);
-        if (isNaN(line)) {
-          error = this.vm.vmComposeError(Error(), 21, paras.command);
-          this.outputError(error, true);
-          break;
-        }
-        lines[i] = String(line);
-      }
-      if (!error) {
-        let input = lines.join("\n");
-        input = this.mergeScripts(inputText, input);
-        this.setInputText(input);
-      }
-    }
-    this.vm.vmGoto(0);
-    this.vm.vmStop("end", 0, true);
+    this.runtime.deleteProgramLines(
+      paras,
+      lines,
+      (deletion) => this.setInputText(this.mergeScripts(inputText, deletion)),
+      (error) => this.outputError(error, true)
+    );
   }
   fnNew() {
-    const input = "";
-    this.setInputText(input);
-    this.fnRemoveAllVariables();
-    this.vm.vmGoto(0);
-    this.vm.vmStop("end", 0, true);
-    this.invalidateScript();
+    this.runtime.newProgram(
+      () => this.setInputText(""),
+      () => this.invalidateScript()
+    );
   }
   fnList(paras) {
-    const input = this.getInputText(), stream = paras.stream, lines = this.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535), regExp = new RegExp(/([\x00-\x1f])/g);
-    for (let i = 0; i < lines.length; i += 1) {
-      let line = lines[i];
-      if (stream !== 9) {
-        line = line.replace(regExp, "$1");
-      }
-      this.vm.print(stream, line, "\r\n");
-    }
-    this.vm.vmGoto(0);
-    this.vm.vmStop("end", 0, true);
+    const input = this.getInputText(), stream = paras.stream, lines = this.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535);
+    this.runtime.listProgram(lines, stream);
   }
   fnReset() {
-    const vm = this.vm;
-    this.fnRemoveAllVariables();
-    vm.vmReset();
-    vm.vmStop("end", 0, true);
-    this.setOutputText("");
-    this.invalidateScript();
+    this.runtime.resetProgram(
+      () => void 0,
+      () => this.setOutputText(""),
+      () => this.invalidateScript()
+    );
   }
-  outputError(error, _noSelection) {
-    const stream = 0;
-    let shortError;
-    if (Utils.isCustomError(error)) {
-      shortError = error.shortMessage || error.message;
-    } else {
-      shortError = error.message;
-    }
-    const escapedShortError = shortError.replace(/([\x00-\x1f])/g, "$1");
+  outputError(error, noSelection) {
+    const stream = 0, diagnostic = Utils.createDiagnostic(error, noSelection, error.name === "CpcVm" ? this.vm.err() : void 0), shortError = diagnostic.shortMessage;
+    this.options.onDiagnostic?.(diagnostic);
+    const escapedShortError = Utils.escapeControlCharacters(shortError);
     this.vm.print(stream, escapedShortError + "\r\n");
     return shortError;
   }
   fnRenumLines(paras) {
-    const vm = this.vm, input = this.getInputText(), basicFormatter = this.getBasicFormatter();
-    this.basicLexer.setOptions({
-      keepWhiteSpace: false
-    });
-    this.basicParser.setOptions(_Controller0.formatterBasicParserOptions);
-    const output = basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
-    if (output.error) {
-      Utils.console.warn(output.error);
-      this.outputError(output.error);
-    } else {
-      this.setInputText(output.text, true);
-    }
-    this.vm.vmGoto(0);
-    vm.vmStop("end", 0, true);
+    this.runtime.renumProgram(
+      this.getInputText(),
+      paras,
+      (source, newLine, oldLine, step, keep) => this.getBasicFormatter().renumber(source, newLine, oldLine, step, keep),
+      (source) => this.setInputText(source, true),
+      (error) => {
+        Utils.console.warn(error);
+        this.outputError(error);
+      }
+    );
   }
   fnEditLineCallback() {
     const inputParas = this.vm.vmGetStopObject().paras, inputText = this.getInputText();
-    let input = inputParas.input;
-    input = this.mergeScripts(inputText, input);
-    this.setInputText(input);
-    this.vm.vmSetStartLine(0);
-    this.vm.vmGoto(0);
-    this.vm.cursor(inputParas.stream, 0);
-    this.vm.vmStop("end", 90);
-    return true;
+    return this.runtime.commitEditedLine(inputParas, inputText, (source, edited) => this.mergeScripts(source, edited), (source) => this.setInputText(source));
   }
   fnEditLine(paras) {
-    const input = this.getInputText(), stream = paras.stream, lineNumber = paras.first || 0, lines = this.fnGetLinesInRange(input, lineNumber, lineNumber);
+    const input = this.getInputText(), lineNumber = paras.first || 0, lines = this.fnGetLinesInRange(input, lineNumber, lineNumber);
     if (lines.length) {
-      const lineString = lines[0];
-      this.vm.print(stream, lineString);
-      this.vm.cursor(stream, 1);
-      const inputParas = {
-        command: paras.command,
-        line: paras.line,
-        stream,
-        message: "",
-        fnInputCallback: this.fnEditLineCallbackHandler,
-        input: lineString
-      };
-      this.vm.vmStop("waitInput", 45, true, inputParas);
-      this.fnWaitInput();
-    } else {
-      const error = this.vm.vmComposeError(Error(), 8, String(lineNumber));
-      this.outputError(error);
-      this.vm.vmStop("stop", 60, true);
-    }
-  }
-  fnParseBench(input, bench) {
-    let output;
-    for (let i = 0; i < bench; i += 1) {
-      let time = Date.now();
-      output = this.codeGeneratorJs.generate(input, this.variables);
-      time = Date.now() - time;
-      Utils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
-      if (output.error) {
-        break;
+      if (this.runtime.editLine(paras, lines[0], this.fnEditLineCallbackHandler, (error) => this.outputError(error))) {
+        this.fnWaitInput();
       }
     }
-    return output;
   }
   fnParse() {
-    const input = this.getInputText(), bench = this.core.getModel().getProperty(ModelPropID.bench);
-    let output;
-    this.basicLexer.setOptions({
-      keepWhiteSpace: false
-    });
-    this.basicParser.setOptions(_Controller0.codeGenJsBasicParserOptions);
-    if (!bench) {
-      output = this.codeGeneratorJs.generate(input, this.variables);
-    } else {
-      output = this.fnParseBench(input, bench);
-    }
+    return this.runtime.parseProgram();
+  }
+  presentCompileOutput(output) {
     let outputString;
     if (output.error) {
       outputString = this.outputError(output.error);
     } else {
       outputString = output.text;
-      this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
-      const tokens = this.encodeTokenizedBasic(input);
-      if (Utils.debug) {
-        Utils.console.debug("parse: input length:", input.length, ", tokenized length:", tokens.length);
-      }
-      try {
-        this.vm.vmPutProgramInMem(tokens);
-      } catch (e) {
-        Utils.console.error("vmPutProgramInMem", e);
-      }
     }
     if (outputString && outputString.length > 0) {
       outputString += "\n";
     }
     this.setOutputText(outputString);
     this.invalidateScript();
-    return output;
+    return this.getOutputText();
+  }
+  fnParseAndStart(clearVariables, clearBeforeRun) {
+    this.runtime.compileAndStartProgram({
+      clearVariables,
+      clearBeforeRun
+    });
   }
   fnPretty() {
     const model = this.core.getModel();
@@ -12718,17 +13446,13 @@ const _Controller0 = class _Controller0 {
     }
   }
   fnAddLines() {
-    const input = this.getInputText(), output = _Controller0.addLineNumbers(input);
+    const input = this.getInputText(), output = Controller0.addLineNumbers(input);
     if (output) {
       this.setInputText(output, true);
     }
   }
   fnRemoveLines() {
     const basicFormatter = this.getBasicFormatter();
-    this.basicLexer.setOptions({
-      keepWhiteSpace: false
-    });
-    this.basicParser.setOptions(_Controller0.formatterBasicParserOptions);
     const input = this.getInputText(), output = basicFormatter.removeUnusedLines(input);
     if (output.error) {
       this.outputError(output.error);
@@ -12736,25 +13460,6 @@ const _Controller0 = class _Controller0 {
       this.setInputText(output.text, true);
     }
   }
-  // private fnGetFilename(input: string) {
-  // 	let name = "file";
-  // 	const reRemMatcher = /^\d* ?(?:REM|rem) ([\w.]+)+/,
-  // 		matches = input.match(reRemMatcher);
-  // 	if (matches !== null) {
-  // 		name = matches[1];
-  // 	} else {
-  // 		const example = this.core.getModel().getProperty<string>(ModelPropID.example);
-  // 		if (example !== "") {
-  // 			if (example.indexOf("/") >= 0) {
-  // 				name = example.substring(example.lastIndexOf("/") + 1);
-  // 			}
-  // 		}
-  // 	}
-  // 	if (name.indexOf(".") < 0) {
-  // 		name += ".bas";
-  // 	}
-  // 	return name;
-  // }
   // eslint-disable-next-line complexity
   fnDownload() {
     const options = ["test1"], meta = {
@@ -12770,7 +13475,7 @@ const _Controller0 = class _Controller0 {
       const item = options[i];
       name = item;
       data = this.tryLoadingFromLocalStorage(name) || "";
-      const metaAndData = _Controller0.splitMeta(data);
+      const metaAndData = FileHandler.splitMeta(data);
       Object.assign(meta, metaAndData.meta);
       data = metaAndData.data;
       if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
@@ -12786,166 +13491,62 @@ const _Controller0 = class _Controller0 {
       }
     }
   }
-  // private selectJsError(script: string, e: Error) {
-  // 	const lineNumber = (e as any).lineNumber, // only on FireFox
-  // 		columnNumber = (e as any).columnNumber;
-  // 	if (lineNumber || columnNumber) { // only available on Firefox
-  // 		const errLine = lineNumber - 3; // for some reason line 0 is 3
-  // 		let pos = 0,
-  // 			line = 0;
-  // 		while (pos < script.length && line < errLine) {
-  // 			pos = script.indexOf("\n", pos) + 1;
-  // 			line += 1;
-  // 		}
-  // 		pos += columnNumber;
-  // 		Utils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
-  // 		this.view.setAreaSelection(ViewID.outputText, pos, pos + 1);
-  // 	}
-  // }
-  fnChain(paras) {
-    const script = this.outScript, vm = this.vm;
-    let line = paras && paras.first || 0;
-    line = line || 0;
-    if (line === 0) {
-      vm.vmResetData();
-    }
+  fnChain(paras, clearBeforeRun = false) {
+    const line = paras && paras.first || 0;
+    this.runtime.startProgram(this.getOutputText(), line, clearBeforeRun);
+  }
+  beforeProgramStart() {
     if (this.vm.vmGetOutFileObject().open) {
       this.fnFileSave();
     }
-    if (!this.fnScript) {
-      try {
-        this.fnScript = new Function("o", script);
-      } catch (e) {
-        Utils.console.error(e);
-        if (e instanceof Error) {
-          e.shortMessage = "JS " + String(e);
-          this.outputError(e, true);
-        }
-        this.fnScript = void 0;
-      }
-    }
-    vm.vmReset4Run();
-    if (this.fnScript) {
-      vm.vmStop("", 0, true);
-      vm.vmGoto(0);
-      this.vm.vmSetStartLine(line);
-    }
+  }
+  afterProgramStart() {
     if (Utils.debug > 1) {
       Utils.console.debug("End of fnRun");
     }
   }
   fnRun(paras) {
-    this.vm.clear();
-    this.fnChain(paras);
+    this.fnChain(paras, true);
   }
   fnParseRun() {
-    this.fnRemoveAllVariables();
-    const output = this.fnParse();
-    if (!output.error) {
-      this.fnRun();
-    }
+    this.fnParseAndStart(true, true);
   }
   fnParseChain() {
-    const output = this.fnParse();
-    if (!output.error) {
-      this.fnChain();
-    }
-  }
-  fnRunPart1(fnScript) {
-    try {
-      fnScript(this.vm);
-    } catch (e) {
-      if (e instanceof Error) {
-        if (e.name === "CpcVm" || e.name === "Variables") {
-          let customError = e;
-          if (customError.errCode !== void 0) {
-            customError = this.vm.vmComposeError(customError, customError.errCode, customError.value);
-          }
-          if (!customError.hidden) {
-            Utils.console.warn(customError);
-            this.outputError(customError, !customError.pos);
-          } else {
-            Utils.console.log(customError.message);
-          }
-        } else {
-          Utils.console.error(e);
-          this.vm.vmComposeError(e, 2, "JS " + String(e));
-          this.outputError(e, true);
-        }
-      } else {
-        Utils.console.error(e);
-      }
-    }
+    this.fnParseAndStart(false, false);
   }
   fnDirectInput() {
-    const inputParas = this.vm.vmGetStopObject().paras, stream = inputParas.stream;
-    let input = inputParas.input;
-    input = input.trim();
-    inputParas.input = "";
+    const directInput = this.runtime.readDirectInput(), { input, stream } = directInput;
     if (input !== "") {
-      this.vm.cursor(stream, 0);
       const inputText = this.getInputText();
-      if (!isNaN(_Controller0.parseLineNumber(input))) {
+      if (directInput.isProgramLine) {
         if (Utils.debug > 0) {
           Utils.console.debug("fnDirectInput: insert line=" + input);
         }
-        input = this.mergeScripts(inputText, input);
-        this.setInputText(input, true);
-        this.vm.vmSetStartLine(0);
-        this.vm.vmGoto(0);
-        this.vm.cursor(stream, 1);
+        this.runtime.insertDirectProgramLine(
+          inputText,
+          input,
+          stream,
+          (source, line) => this.mergeScripts(source, line),
+          (source) => this.setInputText(source, true)
+        );
         this.updateResultText();
         return false;
       }
       Utils.console.log("fnDirectInput: execute:", input);
-      const codeGeneratorJs = this.codeGeneratorJs;
-      let output, outputString;
-      if (inputText && (!isNaN(_Controller0.parseLineNumber(inputText)) || this.core.getModel().getProperty(ModelPropID.implicitLines))) {
-        const separator = inputText.endsWith("\n") ? "" : "\n";
-        this.basicParser.setOptions(_Controller0.codeGenJsBasicParserOptions);
-        output = codeGeneratorJs.generate(inputText + separator + input, this.variables, true);
-        if (output.error) {
-          const error = output.error;
-          if (error.pos < inputText.length + 1) {
-            error.message = "[prg] " + error.message;
-            output = void 0;
+      const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line, stream, directInput.message, {
+        outputError: (error) => this.outputError(error, true),
+        setOutputText: (text) => this.setOutputText(text),
+        onPrepareError: (error) => {
+          Utils.console.error(error);
+          if (error instanceof Error) {
+            this.outputError(error, true);
           }
         }
-      }
-      if (!output) {
-        this.basicParser.setOptions(_Controller0.codeGenJsBasicParserOptions);
-        output = codeGeneratorJs.generate(input, this.variables, true);
-      }
-      if (output.error) {
-        outputString = this.outputError(output.error, true);
-      } else {
-        outputString = output.text;
-      }
-      if (outputString && outputString.length > 0) {
-        outputString += "\n";
-      }
-      this.setOutputText(outputString);
-      if (!output.error) {
-        this.vm.vmSetStartLine(this.vm.line);
-        this.vm.vmGoto("direct");
-        try {
-          const fnScript = new Function("o", outputString);
-          this.fnScript = fnScript;
-          this.vm.vmSetSourceMap(codeGeneratorJs.getSourceMap());
-        } catch (e) {
-          Utils.console.error(e);
-          if (e instanceof Error) {
-            this.outputError(e, true);
-          }
-        }
-      }
+      });
       if (!output.error) {
         this.updateResultText();
         return true;
       }
-      const msg = inputParas.message;
-      this.vm.print(stream, msg);
-      this.vm.cursor(stream, 1);
     }
     this.updateResultText();
     return false;
@@ -12958,23 +13559,7 @@ const _Controller0 = class _Controller0 {
       }
       return;
     }
-    const vm = this.vm, stream = 0, msg = "Ready\r\n";
-    this.vm.tagoff(stream);
-    this.vm.vmResetControlBuffer();
-    if (this.vm.pos(stream) > 1) {
-      this.vm.print(stream, "\r\n");
-    }
-    this.vm.print(stream, msg);
-    this.vm.cursor(stream, 1, 1);
-    vm.vmStop("direct", 0, true, {
-      command: "direct",
-      stream,
-      message: msg,
-      // noCRLF: true,
-      fnInputCallback: this.fnDirectInputHandler,
-      input: "",
-      line: this.vm.line
-    });
+    this.runtime.enterDirectMode(this.fnDirectInputHandler);
     this.fnWaitInput();
   }
   updateResultText() {
@@ -12988,73 +13573,19 @@ const _Controller0 = class _Controller0 {
       this.startWithDirectInput();
     }
   }
-  fnWaitFrame() {
-    this.vm.vmStop("", 0, true);
-    this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame();
-  }
-  fnOnError() {
-    this.vm.vmStop("", 0, true);
-  }
-  static fnDummy() {
-  }
-  fnTimer() {
-    this.vm.vmStop("", 0, true);
-  }
-  fnRunLoop() {
-    const stop = this.vm.vmGetStopObject();
-    this.nextLoopTimeOut = this.initialLoopTimeout;
-    if (!stop.reason && this.fnScript) {
-      this.fnRunPart1(this.fnScript);
-    }
-    if (stop.reason in this.handlers) {
-      this.handlers[stop.reason].call(this, stop.paras);
-    } else {
-      Utils.console.warn("runLoop: Unknown run mode:", stop.reason);
-      this.vm.vmStop("error", 50);
-    }
-    if (stop.reason && stop.reason !== "waitSound" && stop.reason !== "waitKey" && stop.reason !== "waitInput") {
-      this.timeoutHandlerActive = false;
-      this.exitLoop();
-    } else {
-      this.options.setTimeout(this.fnRunLoopHandler, this.nextLoopTimeOut);
-    }
+  getExecutionState() {
+    return this.runtime.getExecutionState();
   }
   startMainLoop() {
-    if (!this.timeoutHandlerActive) {
-      this.timeoutHandlerActive = true;
-      this.options.setTimeout(this.fnRunLoopHandler, 0);
-    }
-  }
-  setStopObject(stop) {
-    Object.assign(this.savedStop, stop);
-  }
-  getStopObject() {
-    return this.savedStop;
+    this.runtime.startMainLoop();
   }
   startParse() {
-    this.vm.vmStop("parse", 95);
+    this.runtime.beginControl("parse");
     this.startMainLoop();
   }
-  startRenum() {
+  startRenum(options = {}) {
     const stream = 0;
-    this.vm.vmStop("renumLines", 85, false, {
-      command: "renum",
-      stream: 0,
-      // unused
-      newLine: 10,
-      // Number(this.view.getInputValue(ViewID.renumNewInput)), // 10
-      oldLine: 1,
-      //Number(this.view.getInputValue(ViewID.renumStartInput)), // 1
-      step: 10,
-      //Number(this.view.getInputValue(ViewID.renumStepInput)), // 10
-      keep: 65535,
-      //Number(this.view.getInputValue(ViewID.renumKeepInput)), // 65535, keep lines
-      // newLine: Number(this.view.getInputValue(ViewID.renumNewInput)), // 10
-      // oldLine: Number(this.view.getInputValue(ViewID.renumStartInput)), // 1
-      // step: Number(this.view.getInputValue(ViewID.renumStepInput)), // 10
-      // keep: Number(this.view.getInputValue(ViewID.renumKeepInput)), // 65535, keep lines
-      line: this.vm.line
-    });
+    this.runtime.beginRenumber(options);
     if (this.vm.pos(stream) > 1) {
       this.vm.print(stream, "\r\n");
     }
@@ -13062,235 +13593,55 @@ const _Controller0 = class _Controller0 {
     this.startMainLoop();
   }
   startRun() {
-    this.setStopObject(this.noStop);
-    this.vm.vmStop("run", 95);
+    this.runtime.beginControl("run");
     this.startMainLoop();
   }
   startParseRun() {
-    this.setStopObject(this.noStop);
-    this.vm.vmStop("parseRun", 95);
+    this.runtime.beginControl("parseRun");
     this.startMainLoop();
   }
   startBreak() {
-    const vm = this.vm, stop = vm.vmGetStopObject();
-    this.setStopObject(stop);
-    this.vm.vmStop("break", 80);
+    this.runtime.beginControl("break");
     this.startMainLoop();
   }
-  startContinue() {
-    const vm = this.vm, stop = vm.vmGetStopObject(), savedStop = this.getStopObject();
-    if (stop.reason === "break" || stop.reason === "escape" || stop.reason === "stop" || stop.reason === "direct") {
-      if (stop.reason === "direct" || stop.reason === "escape") {
-        this.vm.cursor(stop.paras.stream, 0);
-      }
-      Object.assign(stop, savedStop);
-      this.setStopObject(this.noStop);
+  startEscape() {
+    const action = this.runtime.handleEscape(this.options.keyboard);
+    if (action === "ignored" || action === "input") {
+      this.updateResultText();
+      return;
     }
     this.startMainLoop();
   }
+  startContinue() {
+    this.runtime.continueProgram(() => this.startMainLoop());
+  }
   startReset() {
-    this.setStopObject(this.noStop);
-    this.vm.vmStop("reset", 99);
+    this.runtime.beginControl("reset");
     this.startMainLoop();
   }
-  /*
-  startScreenshot(): string {
-  	return this.canvas.takeScreenShot();
+  putKeys(keys) {
+    this.fnPutKeysInBuffer(keys);
+    const reason = this.vm.vmGetStopObject().reason;
+    if (reason === "direct") {
+      this.fnWaitInput();
+    } else if (reason === "escape") {
+      if (this.options.keyboard.getKeyFromBuffer() !== "") {
+        this.vm.cursor(0, 0);
+        this.startContinue();
+      }
+    } else if (reason === "waitInput" || reason === "waitKey") {
+      this.startMainLoop();
+    }
   }
-  */
   fnPutKeysInBuffer(keys) {
     for (let i = 0; i < keys.length; i += 1) {
       this.options.keyboard.putKeyInBuffer(keys.charAt(i), i === keys.length - 1);
     }
   }
-  // startEnter(): void {
-  // 	let input = this.view.getAreaValue(ViewID.inp2Text);
-  // 	input = input.replace(/\n/g, "\r"); // LF => CR
-  // 	this.fnPutKeysInBuffer(input);
-  // }
-  // private static generateFunction(par: string, functionString: string) {
-  // 	if (functionString.startsWith("function anonymous(")) { // already a modified function (inside an anonymous function)?
-  // 		const firstIndex = functionString.indexOf("{"),
-  // 			lastIndex = functionString.lastIndexOf("}");
-  // 		if (firstIndex >= 0 && lastIndex >= 0) {
-  // 			functionString = functionString.substring(firstIndex + 1, lastIndex - 1); // remove anonymous function
-  // 		}
-  // 		functionString = functionString.trim();
-  // 	} else {
-  // 		functionString = "var o=cpcBasic.controller.vm, v=o.vmGetAllVariables(); v." + par + " = " + functionString;
-  // 	}
-  // 	const match = (/function \(([^)]*)/).exec(functionString),
-  // 		args = match ? match[1].split(",") : [],
-  // 		fnFunction = new Function(args[0], args[1], args[2], args[3], args[4], functionString); // eslint-disable-line no-new-func
-  // 		// we support at most 5 arguments
-  // 	return fnFunction;
-  // }
-  // changeVariable(): void {
-  // 	const par = this.view.getSelectValue(ViewID.varSelect),
-  // 		valueString = this.view.getSelectValue(ViewID.varText),
-  // 		variables = this.variables;
-  // 	let value = variables.getVariable(par);
-  // 	if (typeof value === "function") {
-  // 		value = Controller0.generateFunction(par, valueString);
-  // 		variables.setVariable(par, value);
-  // 	} else {
-  // 		const varType = this.variables.determineStaticVarType(par),
-  // 			type = this.vm.vmDetermineVarType(varType); // do we know dynamic type?
-  // 		if (type !== "$") { // not string? => convert to number
-  // 			value = parseFloat(valueString);
-  // 		} else {
-  // 			value = valueString;
-  // 		}
-  // 		try {
-  // 			const value2 = this.vm.vmAssign(varType, value);
-  // 			variables.setVariable(par, value2);
-  // 			Utils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
-  // 		} catch (e) {
-  // 			Utils.console.warn(e);
-  // 		}
-  // 	}
-  // 	this.setVarSelectOptions(ViewID.varSelect, variables);
-  // 	this.uiController.onVarSelectChange(); // title change?
-  // }
-  // setBasicVersion(basicVersion: string): void {
-  // 	this.basicParser.setOptions({
-  // 		basicVersion: basicVersion
-  // 	});
-  // 	this.basicLexer.setOptions({
-  // 		keywords: this.basicParser.getKeywords()
-  // 	});
-  // 	this.invalidateScript();
-  // }
-  // setPalette(palette: string): void {
-  // 	const validPalette = palette === "green" || palette === "grey" ? palette : "color";
-  // 	this.canvas.setOptions({
-  // 		palette: validPalette
-  // 	});
-  // }
-  // setCanvasType(canvasType: string): ICanvas {
-  // 	let canvas = this.canvas;
-  // 	if (canvas) {
-  // 		canvas.stopUpdateCanvas(); // stop updates on current canvas
-  // 		const canvasID = canvas.getOptions().canvasID;
-  // 		this.view.setHidden(canvasID, true);
-  // 	} else if (canvasType !== "graphics") {
-  // 		// initially graphics canvas is not hidden, but we must hide it, if other canvas should be shown
-  // 		this.view.setHidden(ViewID.cpcCanvas, true);
-  // 	}
-  // 	const palette = this.core.getModel().getProperty<string>(ModelPropID.palette);
-  // 	if (this.canvases[canvasType]) {
-  // 		canvas = this.canvases[canvasType];
-  // 		this.canvas = canvas;
-  // 		this.setPalette(palette);
-  // 	} else {
-  // 		const validPalette = palette === "green" || palette === "grey" ? palette : "color";
-  // 		if (canvasType === "text") {
-  // 			canvas = new TextCanvas({
-  // 				canvasID: ViewID.textText,
-  // 				charset: cpcCharset,
-  // 				palette: validPalette
-  // 			});
-  // 		} else if (canvasType === "none") {
-  // 			canvas = new NoCanvas({
-  // 				canvasID: ViewID.noCanvas,
-  // 				charset: cpcCharset,
-  // 				palette: validPalette
-  // 			});
-  // 		} else { // "graphics"
-  // 			const isAreaHidden = this.view.getHidden(ViewID.cpcArea);
-  // 			// make sure canvas area is not hidden when creating canvas object (allows to get width, height)
-  // 			if (isAreaHidden) {
-  // 				this.uiController.toggleAreaHiddenById("change", ViewID.showCpcInput); // show: ViewID.cpcArea
-  // 			}
-  // 			this.view.setHidden(ViewID.cpcCanvas, false);
-  // 			canvas = new Canvas({
-  // 				canvasID: ViewID.cpcCanvas,
-  // 				charset: cpcCharset,
-  // 				palette: validPalette
-  // 			});
-  // 			if (isAreaHidden) {
-  // 				this.uiController.toggleAreaHiddenById("change", ViewID.showCpcInput); // hide again: ViewID.cpcArea
-  // 			}
-  // 		}
-  // 		this.canvases[canvasType] = canvas;
-  // 		this.canvas = canvas;
-  // 	}
-  // 	if (this.vm) {
-  // 		const handler = this.vm.getOnCanvasClickHandler();
-  // 		this.canvas.setOptions({
-  // 			onCanvasClick: handler
-  // 		});
-  // 		this.vm.setCanvas(canvas);
-  // 	}
-  // 	const canvasId = canvas.getOptions().canvasID;
-  // 	this.view.setHidden(canvasId, false);
-  // 	if (this.core.getModel().getProperty<boolean>(ModelPropID.showCpc)) {
-  // 		this.canvas.startUpdateCanvas();
-  // 	}
-  // 	return canvas;
-  // }
-  // setSoundActive(): void {
-  // 	const sound = this.sound,
-  // 		active = this.core.getModel().getProperty<boolean>(ModelPropID.sound);
-  // 	if (active) {
-  // 		sound.soundOn();
-  // 	} else {
-  // 		sound.soundOff();
-  // 		const stop = this.vm && this.vm.vmGetStopObject();
-  // 		if (stop && stop.reason === "waitSound") {
-  // 			this.vm.vmStop("", 0, true); // do not wait
-  // 		}
-  // 	}
-  // }
-  // private getZ80Disass() {
-  // 	if (!this.z80Disass) {
-  // 		const dataArr = this.vm.vmGetMem(),
-  // 			data = dataArr as unknown as Uint8Array; // fast hack: we take number array as Uint8Array
-  // 		this.z80Disass = new Z80Disass({
-  // 			data: data,
-  // 			addr: 0
-  // 		});
-  // 	}
-  // 	return this.z80Disass;
-  // }
-  // setDisassAddr(addr: number, endAddr?: number): void {
-  // 	const z80Disass = this.getZ80Disass();
-  // 	if (endAddr === undefined) {
-  // 		endAddr = addr + 0x100;
-  // 	}
-  // 	z80Disass.setOptions({
-  // 		addr: addr
-  // 	});
-  // 	const opts = z80Disass.getOptions(),
-  // 		lines = [];
-  // 	while (addr < endAddr) { // currently not limited to < 0x10000
-  // 		lines.push(z80Disass.disassLine());
-  // 		if (opts.addr > addr) {
-  // 			addr = opts.addr;
-  // 		} else {
-  // 			Utils.console.error("setDisassAddr: Not increasing:", addr, opts.addr);
-  // 			break;
-  // 		}
-  // 	}
-  // 	const out = lines.join("\n") + "\n";
-  // 	this.view.setAreaValue(ViewID.disassText, out);
-  // }
-  // private fnEndOfImport(imported: string[]) {
-  // 	const stream = 0,
-  // 		vm = this.vm;
-  // 	for (let i = 0; i < imported.length; i += 1) {
-  // 		vm.print(stream, imported[i], " ");
-  // 	}
-  // 	vm.print(stream, "\r\n", imported.length + " file" + (imported.length !== 1 ? "s" : "") + " imported.\r\n");
-  // 	this.updateResultText();
-  // }
-  // private static fnOnDragover(evt: DragEvent) {
-  // 	evt.stopPropagation();
-  // 	evt.preventDefault();
-  // 	if (evt.dataTransfer !== null) {
-  // 		evt.dataTransfer.dropEffect = "copy"; // explicitly show this is a copy
-  // 	}
-  // }
+  setBasicVersion(basicVersion) {
+    this.runtime.setBasicVersion(basicVersion);
+    this.invalidateScript();
+  }
   adaptFilename(name, err) {
     return this.vm.vmAdaptFilename(name, err);
   }
@@ -13306,156 +13657,6 @@ const _Controller0 = class _Controller0 {
     }
     return this.fileHandler;
   }
-  // private getFileSelect(fileHandler: FileHandler) {
-  // 	if (!this.fileSelect) {
-  // 		this.fileSelect = new FileSelect({
-  // 			fnEndOfImport: this.fnEndOfImport.bind(this),
-  // 			fnLoad2: fileHandler.fnLoad2.bind(fileHandler)
-  // 		});
-  // 	}
-  // 	return this.fileSelect;
-  // }
-  // private initDropZone() {
-  // 	const fileHandler = this.getFileHandler(),
-  // 		fileSelect = this.getFileSelect(fileHandler),
-  // 		dropZone = View.getElementById1(ViewID.dropZone);
-  // 	dropZone.addEventListener("dragover", this.fnOnDragoverHandler, false);
-  // 	fileSelect.addFileSelectHandler(dropZone, "drop");
-  // 	const canvasID = this.canvas.getOptions().canvasID,
-  // 		canvasElement = View.getElementById1(canvasID);
-  // 	canvasElement.addEventListener("dragover", this.fnOnDragoverHandler, false);
-  // 	fileSelect.addFileSelectHandler(canvasElement, "drop");
-  // 	const fileInput = View.getElementById1(ViewID.fileInput);
-  // 	fileSelect.addFileSelectHandler(fileInput, "change");
-  // }
-  // private fnUpdateUndoRedoButtons() {
-  // 	this.view.setDisabled(ViewID.undoButton, !this.inputStack.canUndoKeepOne());
-  // 	this.view.setDisabled(ViewID.undoButton2, !this.inputStack.canUndoKeepOne());
-  // 	this.view.setDisabled(ViewID.redoButton, !this.inputStack.canRedo());
-  // 	this.view.setDisabled(ViewID.redoButton2, !this.inputStack.canRedo());
-  // }
-  // private fnInitUndoRedoButtons() {
-  // 	this.inputStack.reset();
-  // 	this.fnUpdateUndoRedoButtons();
-  // }
-  // private fnPutChangedInputOnStack() {
-  // 	const input = this.getInputText(),
-  // 		stackInput = this.inputStack.getInput();
-  // 	if (stackInput !== input) {
-  // 		this.inputStack.save(input);
-  // 		this.fnUpdateUndoRedoButtons();
-  // 	}
-  // }
-  // startUpdateCanvas(): void {
-  // 	this.canvas.startUpdateCanvas();
-  // }
-  // stopUpdateCanvas(): void {
-  // 	this.canvas.stopUpdateCanvas();
-  // }
-  // private getDragElement(): DragElement {
-  // 	if (!this.dragElement) {
-  // 		this.dragElement = new DragElement({
-  // 			view: this.view,
-  // 			entries: {}
-  // 		});
-  // 	}
-  // 	return this.dragElement;
-  // }
-  // getVirtualKeyboard(): VirtualKeyboard {
-  // 	if (!this.virtualKeyboard) {
-  // 		this.virtualKeyboard = new VirtualKeyboard({
-  // 			view: this.view,
-  // 			fnPressCpcKey: this.keyboard.fnPressCpcKey.bind(this.keyboard),
-  // 			fnReleaseCpcKey: this.keyboard.fnReleaseCpcKey.bind(this.keyboard)
-  // 		});
-  // 	}
-  // 	return this.virtualKeyboard;
-  // }
-  // private dragElementsData: Partial<DragElementOptions> = {
-  // 	entries: {
-  // 		consoleLogArea: {
-  // 			itemId: ViewID.consoleLogArea,
-  // 			xOffset: 0,
-  // 			yOffset: 0,
-  // 			enabled: false
-  // 		},
-  // 		cpcArea: {
-  // 			itemId: ViewID.cpcArea,
-  // 			xOffset: 0,
-  // 			yOffset: 0,
-  // 			enabled: false
-  // 		},
-  // 		disassArea: {
-  // 			itemId: ViewID.disassArea,
-  // 			xOffset: 0,
-  // 			yOffset: 0,
-  // 			enabled: false
-  // 		},
-  // 		inp2Area: {
-  // 			itemId: ViewID.inp2Area,
-  // 			xOffset: 0,
-  // 			yOffset: 0,
-  // 			enabled: false
-  // 		},
-  // 		inputArea: {
-  // 			itemId: ViewID.inputArea,
-  // 			xOffset: 0,
-  // 			yOffset: 0,
-  // 			enabled: false
-  // 		},
-  // 		kbdArea: {
-  // 			itemId: ViewID.kbdArea,
-  // 			xOffset: 0,
-  // 			yOffset: 0,
-  // 			enabled: false
-  // 		},
-  // 		mainArea: {
-  // 			itemId: ViewID.mainArea,
-  // 			xOffset: 0,
-  // 			yOffset: 0,
-  // 			enabled: false
-  // 		},
-  // 		outputArea: {
-  // 			itemId: ViewID.outputArea,
-  // 			xOffset: 0,
-  // 			yOffset: 0,
-  // 			enabled: false
-  // 		},
-  // 		resultArea: {
-  // 			itemId: ViewID.resultArea,
-  // 			xOffset: 0,
-  // 			yOffset: 0,
-  // 			enabled: false
-  // 		},
-  // 		variableArea: {
-  // 			itemId: ViewID.variableArea,
-  // 			xOffset: 0,
-  // 			yOffset: 0,
-  // 			enabled: false
-  // 		}
-  // 	}
-  // };
-  // fnDragElementsActive(enabled: boolean): void {
-  // 	const dragElement = this.getDragElement(),
-  // 		dragElementsData = this.dragElementsData;
-  // 	for (const entry in dragElementsData.entries) {
-  // 		if (dragElementsData.entries.hasOwnProperty(entry)) {
-  // 			dragElementsData.entries[entry].enabled = enabled;
-  // 		}
-  // 	}
-  // 	dragElement.setOptions(this.dragElementsData);
-  // }
-  /*
-  getVariable(par: string): VariableValue {
-  	return this.variables.getVariable(par);
-  }
-  */
-  // undoStackElement(): string {
-  // 	return this.inputStack.undo();
-  // }
-  // redoStackElement(): string {
-  // 	return this.inputStack.redo();
-  // }
   createFnDatabaseLoaded(url) {
     return (_sFullUrl, key) => {
       const selectedName = this.core.getModel().getProperty(ModelPropID.database);
@@ -13483,7 +13684,13 @@ const _Controller0 = class _Controller0 {
     };
   }
   onDatabaseSelectChange() {
+    this.loadDatabase();
+  }
+  loadDatabase(name) {
     const model = this.core.getModel();
+    if (name !== void 0) {
+      model.setProperty(ModelPropID.database, name);
+    }
     const databaseName = model.getProperty(ModelPropID.database);
     const database = model.getDatabase();
     if (!database) {
@@ -13495,7 +13702,7 @@ const _Controller0 = class _Controller0 {
       database.loaded = true;
     }
     if (database.loaded) {
-      this.onDirectorySelectChange();
+      this.loadExample(model.getProperty(ModelPropID.example));
     } else {
       this.setInputText("#loading database " + databaseName + "...");
       const exampleIndex = this.core.getModel().getProperty(ModelPropID.exampleIndex);
@@ -13508,483 +13715,52 @@ const _Controller0 = class _Controller0 {
     this.onExampleSelectChange();
   }
   onExampleSelectChange() {
+    this.loadExample(this.core.getModel().getProperty(ModelPropID.example));
+  }
+  loadExample(key, options = {}) {
     const model = this.core.getModel();
-    const vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.core.getModel().getProperty(ModelPropID.database);
+    const vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = model.getProperty(ModelPropID.database);
+    model.setProperty(ModelPropID.example, key);
     vm.closein();
     inFile.open = true;
-    let exampleName = model.getProperty(ModelPropID.example);
-    const exampleEntry = this.core.getModel().getExample(exampleName);
-    let autorun = this.core.getModel().getProperty(ModelPropID.autorun);
-    if (exampleEntry && exampleEntry.meta) {
-      const type = exampleEntry.meta.charAt(0);
-      if (type === "B" || type === "D" || type === "G") {
-        autorun = false;
-      }
-    }
-    inFile.command = autorun ? "run" : "load";
-    if (dataBaseName !== "storage") {
-      exampleName = "/" + exampleName;
-    } else {
-      this.core.getModel().setProperty(ModelPropID.example, exampleName);
-    }
-    inFile.name = exampleName;
+    const request = FileHandler.createExampleLoadRequest(key, dataBaseName, model.getExample(key)?.meta, options.autorun ?? model.getProperty(ModelPropID.autorun));
+    inFile.command = request.command;
+    inFile.name = request.name;
     inFile.start = void 0;
     inFile.fnFileCallback = vm.vmGetLoadHandler();
     vm.vmStop("fileLoad", 90);
     this.startMainLoop();
   }
-  // currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
-  // exportAsBase64(storageName: string): string { // eslint-disable-line class-methods-use-this
-  // 	const storage = this.getStorage();
-  // 	let data = storage.getItem(storageName),
-  // 		out = "";
-  // 	if (data !== null) {
-  // 		const index = data.indexOf(","); // metadata separator
-  // 		if (index >= 0) {
-  // 			const meta = data.substring(0, index);
-  // 			data = data.substring(index + 1);
-  // 			data = window.btoa(data);
-  // 			out = meta + ";base64," + data;
-  // 		} else { // hmm, no meta info
-  // 			data = window.btoa(data);
-  // 			out = "base64," + data;
-  // 		}
-  // 	}
-  // 	Utils.console.log(out);
-  // 	return out;
-  // }
-  // onCpcCanvasClick(event: MouseEvent): void {
-  // 	this.uiController.setPopoversHiddenExcept(); // hide all popovers
-  // 	this.canvas.onCanvasClick(event);
-  // 	this.keyboard.setActive(true);
-  // }
-  // onWindowClick(event: Event): void {
-  // 	this.canvas.onWindowClick(event);
-  // 	this.keyboard.setActive(false);
-  // }
-  // fnArrayBounds(): void {
-  // 	const arrayBounds = this.core.getModel().getProperty<boolean>(ModelPropID.arrayBounds);
-  // 	this.variables.setOptions({
-  // 		arrayBounds: arrayBounds
-  // 	});
-  // 	this.vm.vmGoto(0); // reset current line
-  // 	this.vm.vmStop("end", 0, true);
-  // 	this.fnRemoveAllVariables();
-  // }
-  // fnImplicitLines(): void {
-  // 	const implicitLines = this.core.getModel().getProperty<boolean>(ModelPropID.implicitLines);
-  // 	this.codeGeneratorJs.setOptions({
-  // 		implicitLines: implicitLines
-  // 	});
-  // 	if (this.codeGeneratorToken) {
-  // 		this.codeGeneratorToken.setOptions({
-  // 			implicitLines: implicitLines
-  // 		});
-  // 	}
-  // }
+  fnArrayBounds() {
+    const arrayBounds = this.core.getModel().getProperty(ModelPropID.arrayBounds);
+    this.runtime.setArrayBounds(arrayBounds);
+  }
+  fnImplicitLines() {
+    const implicitLines = this.core.getModel().getProperty(ModelPropID.implicitLines);
+    this.runtime.setImplicitLines(implicitLines);
+  }
   fnRemoveAllVariables() {
     if (Object.keys(this.variables.getAllVariables()).length) {
       this.variables.removeAllVariables();
     }
   }
-  // fnPrettyLowercaseVars(): void {
-  // 	const prettyLowercaseVars = this.core.getModel().getProperty<boolean>(ModelPropID.prettyLowercaseVars);
-  // 	this.getCodeGeneratorBasic().setOptions({
-  // 		lowercaseVars: prettyLowercaseVars
-  // 	});
-  // }
-  // fnIntegerOverflow(): void {
-  // 	const integerOverflow = this.core.getModel().getProperty<boolean>(ModelPropID.integerOverflow);
-  // 	this.codeGeneratorJs.setOptions({
-  // 		integerOverflow: integerOverflow
-  // 	});
-  // }
-  // fnTrace(): void {
-  // 	const trace = this.core.getModel().getProperty<boolean>(ModelPropID.trace);
-  // 	this.codeGeneratorJs.setOptions({
-  // 		trace: trace
-  // 	});
-  // }
+  fnPrettyLowercaseVars() {
+    const lowercaseVars = this.core.getModel().getProperty(ModelPropID.prettyLowercaseVars);
+    this.runtime.setPrettyLowercaseVars(lowercaseVars);
+  }
+  fnIntegerOverflow() {
+    const integerOverflow = this.core.getModel().getProperty(ModelPropID.integerOverflow);
+    this.runtime.setIntegerOverflow(integerOverflow);
+  }
+  fnTrace() {
+    const trace = this.core.getModel().getProperty(ModelPropID.trace);
+    this.runtime.setTrace(trace);
+  }
   fnSpeed() {
     const speed = this.core.getModel().getProperty(ModelPropID.speed);
-    this.initialLoopTimeout = 1e3 - speed * 10;
+    this.initialLoopTimeout = Runtime.getLoopDelay(speed);
   }
   /* eslint-enable no-invalid-this */
-};
-_Controller0.codeGenJsBasicParserOptions = {
-  keepBrackets: false,
-  keepColons: false,
-  keepDataComma: false,
-  keepTokens: false
-};
-_Controller0.codeGenTokenBasicParserOptions = {
-  keepTokens: true,
-  keepBrackets: true,
-  keepColons: true,
-  keepDataComma: true
-};
-_Controller0.formatterBasicParserOptions = {
-  keepBrackets: false,
-  keepColons: false,
-  keepDataComma: false,
-  keepTokens: false
-};
-// gate array ink to basic ink
-_Controller0.gaInk2Ink = [
-  13,
-  27,
-  19,
-  25,
-  1,
-  7,
-  10,
-  16,
-  28,
-  29,
-  24,
-  26,
-  6,
-  8,
-  15,
-  17,
-  30,
-  31,
-  18,
-  20,
-  0,
-  2,
-  9,
-  11,
-  4,
-  22,
-  21,
-  23,
-  3,
-  5,
-  12,
-  14
-];
-_Controller0.defaultExtensions = [
-  "",
-  "bas",
-  "bin"
-];
-let Controller0 = _Controller0;
-
-const ModelPropIDdatabase$1 = "database";
-class Model {
-  constructor(config) {
-    this.config = config || {};
-    this.initialConfig = Object.assign({}, this.config);
-    this.databases = {};
-    this.examples = {};
-  }
-  // {
-  getProperty(property) {
-    return this.config[property];
-  }
-  setProperty(property, value) {
-    const previousValue = this.config[property];
-    this.config[property] = value;
-    if (value !== previousValue && this.propertyChangeCallback) {
-      this.propertyChangeCallback();
-    }
-  }
-  setPropertyChangeCallback(callback) {
-    this.propertyChangeCallback = callback;
-  }
-  getAllProperties() {
-    return this.config;
-  }
-  getAllInitialProperties() {
-    return this.initialConfig;
-  }
-  getChangedProperties() {
-    const current = this.config, initial = this.initialConfig, changed = {};
-    for (const name in current) {
-      if (current.hasOwnProperty(name)) {
-        if (current[name] !== initial[name]) {
-          changed[name] = current[name];
-        }
-      }
-    }
-    return changed;
-  }
-  addDatabases(db) {
-    for (const par in db) {
-      if (db.hasOwnProperty(par)) {
-        const entry = db[par];
-        this.databases[par] = entry;
-        this.examples[par] = {};
-      }
-    }
-  }
-  getAllDatabases() {
-    return this.databases;
-  }
-  getDatabase() {
-    const database = this.getProperty(ModelPropIDdatabase$1);
-    return this.databases[database];
-  }
-  getAllExamples() {
-    const database = this.getProperty(ModelPropIDdatabase$1);
-    return this.examples[database];
-  }
-  getExample(key) {
-    const database = this.getProperty(ModelPropIDdatabase$1);
-    return this.examples[database][key];
-  }
-  setExample(example) {
-    const database = this.getProperty(ModelPropIDdatabase$1), key = example.key;
-    if (!this.examples[database][key]) {
-      if (Utils.debug > 1) {
-        Utils.console.debug("setExample: creating new example:", key);
-      }
-    }
-    this.examples[database][key] = example;
-  }
-  removeExample(key) {
-    const database = this.getProperty(ModelPropIDdatabase$1);
-    if (!this.examples[database][key]) {
-      Utils.console.warn("removeExample: example does not exist: " + key);
-    }
-    delete this.examples[database][key];
-  }
-}
-
-const ModelPropIDdatabase = "database";
-const ModelPropIDexample = "example";
-const ModelPropIDdatabaseDirs = "databaseDirs";
-class Core {
-  constructor(defaultConfig) {
-    this.addIndex = (dir, input) => {
-      if (typeof input === "function") {
-        input = {
-          [dir]: JSON.parse(Core.fnHereDoc(input).trim())
-        };
-      }
-      for (const value in input) {
-        const item = input[value];
-        for (let i = 0; i < item.length; i += 1) {
-          this.model.setExample(item[i]);
-        }
-      }
-    };
-    this.addItem = (key, input) => {
-      let inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
-      inputString = inputString.replace(/^\n/, "").replace(/\n$/, "");
-      if (!key) {
-        Utils.console.warn("addItem: no key!");
-        key = "unknown";
-      }
-      const implicitLines = this.model.getProperty(ModelPropID.implicitLines);
-      const linesOnLoad = this.model.getProperty(ModelPropID.linesOnLoad);
-      if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
-        inputString = Controller0.addLineNumbers(inputString);
-      }
-      const example = this.model.getExample(key);
-      if (example) {
-        example.script = inputString;
-      }
-    };
-    this.addRsx = (key, RsxConstructor) => {
-      const example = this.model.getExample(key);
-      example.key = key;
-      example.rsx = new RsxConstructor();
-      example.loaded = true;
-      Utils.console.log("addItem:", key);
-      return key;
-    };
-    this.model = new Model(defaultConfig);
-  }
-  init() {
-    this.initDatabases();
-  }
-  getModel() {
-    return this.model;
-  }
-  setDebug(debug) {
-    Utils.setDebug(debug);
-  }
-  static getUniqueDbKey(name, databases) {
-    let key = name, index = 2;
-    while (databases[key]) {
-      key = name + index;
-      index += 1;
-    }
-    return key;
-  }
-  initDatabases() {
-    const model = this.model, databases = {}, databaseDirs = model.getProperty(ModelPropIDdatabaseDirs).split(",");
-    for (const databaseDir of databaseDirs) {
-      const parts1 = databaseDir.split("="), databaseSrc = parts1[0], assignedName = parts1.length > 1 ? parts1[1] : "", parts2 = databaseSrc.split("/"), name = assignedName || parts2[parts2.length - 1], key = Core.getUniqueDbKey(name, databases);
-      databases[key] = {
-        text: key,
-        title: databaseSrc,
-        src: databaseSrc
-      };
-    }
-    this.model.addDatabases(databases);
-  }
-  static fnHereDoc(fn) {
-    return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
-  }
-  parseArgs(args, config) {
-    for (const arg of args) {
-      const [name, ...valueParts] = arg.split("=");
-      const nameType = typeof config[name];
-      let value = valueParts.join("=");
-      if (value !== void 0) {
-        if (nameType === "boolean") {
-          value = value === "true";
-        } else if (nameType === "number") {
-          value = Number(value);
-        }
-        config[name] = value;
-      }
-    }
-    return config;
-  }
-  fnRedirectExamples(redirectExamples) {
-    const model = this.getModel();
-    const name = model.getProperty(ModelPropIDdatabase) + "/" + model.getProperty(ModelPropIDexample);
-    if (redirectExamples[name]) {
-      model.setProperty(ModelPropIDdatabase, redirectExamples[name].database);
-      model.setProperty(ModelPropIDexample, redirectExamples[name].example);
-    }
-  }
-}
-
-const cpcconfig = {
-  // eslint-disable-line no-unused-vars
-  databaseDirs: "./examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/LocoBasic/examples=locobasic,https://benchmarko.github.io/CPCBasicApps/rosetta,storage",
-  //databaseDirs: "./examples,../../CPCBasicApps/apps,../../LocoBasic/dist/examples=locobasic,../../CPCBasicApps/rosetta,storage", // local test
-  // just an example, not the full list of moved examples...
-  redirectExamples: {
-    "examples/art": {
-      database: "apps",
-      example: "demo/art"
-    },
-    "examples/blkedit": {
-      database: "apps",
-      example: "apps/blkedit"
-    }
-  }
-};
-
-const startConfig = {
-  arrayBounds: false,
-  autorun: true,
-  basicVersion: "1.1",
-  // "1.1" or "1.0"
-  bench: 0,
-  // debug: number of parse bench loops
-  canvasType: "graphics",
-  // "graphics", "text", "none"
-  databaseDirs: "examples",
-  // example base directories (comma separated)
-  database: "examples",
-  // examples, apps, saved
-  debug: 0,
-  example: "cpcbasic",
-  exampleIndex: "0index.js",
-  // example index for every databaseDir
-  implicitLines: false,
-  // allow implicit line numbers
-  input: "",
-  // keyboard input when starting the app
-  integerOverflow: false,
-  // check for integer overflow
-  kbdLayout: "alphanum",
-  // alphanum, alpha, num
-  linesOnLoad: true,
-  // add missing line numbers on load
-  dragElements: false,
-  palette: "color",
-  // "color", "green", "grey"
-  prettyBrackets: true,
-  // pretty print: brackets
-  prettyColons: true,
-  // pretty print: colons
-  prettyLowercaseVars: false,
-  // pretty print: lowercase variables
-  prettySpace: false,
-  // pretty print: spaces
-  processFileImports: true,
-  // open ZIP, DSK files on import
-  random: "cpc",
-  // cpc or minstd
-  selectDataFiles: false,
-  // select data files in example selection
-  showConsoleLog: false,
-  showCpc: true,
-  showDisass: false,
-  showExport: false,
-  showGallery: false,
-  showInput: true,
-  showInp2: false,
-  showKbd: false,
-  showKbdSettings: false,
-  showMore: false,
-  showOutput: false,
-  showPretty: false,
-  showRenum: false,
-  showResult: false,
-  showSettings: false,
-  showVariable: false,
-  showView: false,
-  sound: true,
-  speed: 100,
-  trace: false
-  // trace code
-};
-class cpcBasic {
-  static start(startupAdapter) {
-    Utils.console.log("CPCBasicTS started at", Utils.dateFormat(/* @__PURE__ */ new Date()));
-    const adapterConfig = startupAdapter.getConfigOverrides() || {};
-    Object.assign(startConfig, cpcconfig, adapterConfig);
-    const redirectExamples = startConfig.redirectExamples;
-    delete startConfig.redirectExamples;
-    const core = new Core(startConfig);
-    if (redirectExamples) {
-      core.fnRedirectExamples(redirectExamples);
-    }
-    if (!startupAdapter.isNodeRuntime()) {
-      const winFn = () => {
-        const ui = startupAdapter.getUI();
-        const win = window;
-        if (!ui) {
-          throw new Error("start: UI undefined!");
-        }
-        if (!win) {
-          throw new Error("start: window undefined!");
-        }
-        win.cpcBasic = {
-          addIndex: core.addIndex,
-          addItem: (key, input) => {
-            if (!key) {
-              key = ui.getCurrentDataKey();
-            }
-            core.addItem(key, input);
-          },
-          addRsx: (key, RsxConstructor) => {
-            if (!key) {
-              key = ui.getCurrentDataKey();
-            }
-            core.addRsx(key, RsxConstructor);
-          }
-        };
-        ui.onWindowLoadContinue(core);
-      };
-      winFn();
-    } else {
-      const nodeUtils = startupAdapter.getNodeUtils();
-      if (!nodeUtils) {
-        throw new Error("start: NodeUtils undefined!");
-      }
-      nodeUtils.nodeMain(core);
-    }
-  }
 }
 
 const myGlobalThis = typeof globalThis !== "undefined" ? globalThis : Function("return this")();
@@ -14237,7 +14013,7 @@ const _NodeUtils = class _NodeUtils {
       setTimeout
     };
     const controller = new Controller0(core, controllerOptions);
-    controller.onDatabaseSelectChange();
+    controller.loadDatabase();
   }
 };
 _NodeUtils.currentScriptKey = "";

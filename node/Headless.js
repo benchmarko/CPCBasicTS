@@ -2,16 +2,16 @@ import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { CodeGeneratorJs } from "../CodeGeneratorJs";
 import { CpcVm } from "../CpcVm";
+import { NullCanvas } from "../NullCanvas";
 import { Random } from "../Random";
 import { Variables } from "../Variables";
-import { NoCanvas } from "../ui/NoCanvas";
 function unsupported(feature) {
     throw new Error("Headless testing does not support " + feature);
 }
 // Reuse the existing null graphics device, adding observable text cells.
-export class HeadlessScreen extends NoCanvas {
+export class HeadlessScreen extends NullCanvas {
     constructor() {
-        super({});
+        super(...arguments);
         this.cells = new Map();
         this.modeValue = 1;
     }

@@ -3460,4 +3460,26 @@ QUnit.module("CpcVm: vm functions", function (hooks) {
 		cpcVm.vmReset();
 		assert.ok(cpcVm, "defined");
 	});
+
+	QUnit.test("RUN defers binary data loading until after VM reset", function (assert) {
+		const cpcVm = that.cpcVm;
+
+		cpcVm.run("binary");
+		const inFile = cpcVm.vmGetInFileObject();
+		inFile.line = 100;
+		const meta: FileMeta = { typeString: "B", start: 0x1000, length: 2 };
+		assert.strictEqual(inFile.fnFileCallback?.("AB", meta), true);
+		assert.strictEqual(cpcVm.vmGetMem()[0x1000], undefined);
+		assert.deepEqual(cpcVm.vmGetStopObject().paras, {
+			command: "run",
+			stream: 0,
+			first: 100,
+			last: 0,
+			line: 0
+		});
+		cpcVm.vmReset();
+		cpcVm.clear();
+		assert.strictEqual(cpcVm.vmPutFileInMemory("AB", meta, false), true);
+		assert.deepEqual(cpcVm.vmGetMem().slice(0x1000, 0x1002), [65, 66]);
+	});
 });

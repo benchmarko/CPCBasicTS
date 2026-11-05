@@ -1,4 +1,4 @@
-import { NoCanvas } from "../ui/NoCanvas";
+import { NullCanvas } from "../NullCanvas";
 import type { CustomError } from "../Interfaces";
 export interface HeadlessCell {
     char: number;
@@ -19,10 +19,9 @@ export interface HeadlessMachineOptions {
     seed?: number;
     ticks?: number;
 }
-export declare class HeadlessScreen extends NoCanvas {
+export declare class HeadlessScreen extends NullCanvas {
     private readonly cells;
     private modeValue;
-    constructor();
     reset(): void;
     getCell(x: number, y: number): HeadlessCell | undefined;
     printChar(char: number, x: number, y: number, pen: number, paper: number, transparent: boolean): void;

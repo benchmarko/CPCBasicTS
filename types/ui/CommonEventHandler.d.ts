@@ -43,6 +43,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onExportButtonClick;
     private onGalleryButtonClick;
     private fnUpdateAreaText;
+    private onOutputTextChange;
     private onUndoButtonClick;
     private onRedoButtonClick;
     private onContinueButtonClick;

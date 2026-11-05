@@ -3,7 +3,7 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-import type { CustomError } from "./Interfaces";
+import type { CustomError, Diagnostic } from "./Interfaces";
 export class Utils {
 	static debug = 0;
 	static console = console; //typeof globalThis !== "undefined" ? globalThis.console : undefined;
@@ -16,6 +16,10 @@ export class Utils {
 		return str.replace(/[\x00-\x1f]/g, function (char: string) { // eslint-disable-line no-control-regex
 			return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
 		});
+	}
+
+	static escapeControlCharacters(input: string): string {
+		return input.replace(/([\x00-\x1f])/g, "\x01$1"); // eslint-disable-line no-control-regex
 	}
 
 	static dateFormat(d: Date): string {
@@ -72,6 +76,21 @@ export class Utils {
 
 	static isCustomError(e: unknown): e is CustomError {
 		return (e as CustomError).pos !== undefined;
+	}
+
+	static createDiagnostic(error: Error, noSelection = false, errCode?: number): Diagnostic {
+		const custom = error as Partial<CustomError>;
+		return {
+			name: error.name,
+			message: error.message,
+			shortMessage: Utils.isCustomError(error) ? custom.shortMessage || error.message : error.message,
+			value: custom.value,
+			pos: custom.pos,
+			len: custom.len,
+			line: custom.line,
+			errCode: custom.errCode ?? errCode,
+			selectSource: custom.pos !== undefined && !noSelection
+		};
 	}
 
 	static split2(str: string, char: string): string[] {

@@ -43,6 +43,12 @@ export class CodeGeneratorBasic {
 		Object.assign(this.options, options);
 	}
 
+	generatePretty(input: string, keepWhiteSpace: boolean, keepBrackets: boolean, keepColons: boolean): IOutput {
+		this.options.lexer.setOptions({ keepWhiteSpace });
+		this.options.parser.setOptions({ keepTokens: true, keepBrackets, keepColons, keepDataComma: true });
+		return this.generate(input);
+	}
+
 	private static readonly combinedKeywords: Record<string, string> = {
 		chainMerge: "CHAIN", // "CHAIN MERGE"
 		clearInput: "CLEAR", // "CLEAR INPUT"

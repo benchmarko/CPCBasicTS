@@ -154,7 +154,10 @@ export class CommonEventHandler {
     }
     fnUpdateAreaText(input) {
         this.controller.setInputText(input, true);
-        this.view.setAreaValue("outputText" /* ViewID.outputText */, "");
+        this.controller.setOutputText("");
+    }
+    onOutputTextChange() {
+        this.controller.setOutputText(this.view.getAreaValue("outputText" /* ViewID.outputText */));
     }
     onUndoButtonClick() {
         const input = this.controller.undoStackElement();
@@ -395,7 +398,7 @@ export class CommonEventHandler {
                 },
                 {
                     id: "renumButton" /* ViewID.renumButton */,
-                    controllerFunc: this.controller.startRenum
+                    controllerFunc: () => this.controller.startRenum()
                 },
                 {
                     id: "renumPopoverButton" /* ViewID.renumPopoverButton */,
@@ -539,7 +542,7 @@ export class CommonEventHandler {
                 },
                 {
                     id: "outputText" /* ViewID.outputText */,
-                    controllerFunc: this.controller.invalidateScript
+                    func: this.onOutputTextChange
                 },
                 {
                     id: "paletteSelect" /* ViewID.paletteSelect */,

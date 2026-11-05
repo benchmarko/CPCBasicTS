@@ -11,6 +11,9 @@ export class Utils {
             return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
         });
     }
+    static escapeControlCharacters(input) {
+        return input.replace(/([\x00-\x1f])/g, "\x01$1"); // eslint-disable-line no-control-regex
+    }
     static dateFormat(d) {
         return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "
             + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);
@@ -52,6 +55,21 @@ export class Utils {
     }
     static isCustomError(e) {
         return e.pos !== undefined;
+    }
+    static createDiagnostic(error, noSelection = false, errCode) {
+        var _a;
+        const custom = error;
+        return {
+            name: error.name,
+            message: error.message,
+            shortMessage: Utils.isCustomError(error) ? custom.shortMessage || error.message : error.message,
+            value: custom.value,
+            pos: custom.pos,
+            len: custom.len,
+            line: custom.line,
+            errCode: (_a = custom.errCode) !== null && _a !== void 0 ? _a : errCode,
+            selectSource: custom.pos !== undefined && !noSelection
+        };
     }
     static split2(str, char) {
         const index = str.indexOf(char);

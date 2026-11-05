@@ -38,6 +38,12 @@ export class CodeGeneratorToken {
 		Object.assign(this.options, options);
 	}
 
+	generateProgram(input: string): IOutput {
+		this.options.lexer.setOptions({ keepWhiteSpace: true });
+		this.options.parser.setOptions({ keepTokens: true, keepBrackets: true, keepColons: true, keepDataComma: true });
+		return this.generate(input);
+	}
+
 	private static readonly tokens: Record<string, number> = {
 		_eol: 0x00, // marker for "end of tokenised line"
 		":": 0x01, // ":" statement seperator

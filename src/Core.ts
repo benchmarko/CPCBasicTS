@@ -1,5 +1,5 @@
 import { ModelPropID } from "./Constants";
-import { Controller0 } from "./Controller0";
+import { BasicFormatter } from "./BasicFormatter";
 import type { ConfigEntryType, ConfigType, DatabasesType, ExampleEntry, ICore, ICpcVmRsx, IModel } from "./Interfaces";
 import { Model } from "./Model";
 import { Utils } from "./Utils";
@@ -103,7 +103,7 @@ export class Core implements ICore {
 		const linesOnLoad = this.model.getProperty<boolean>(ModelPropID.linesOnLoad);
 
 		if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
-			inputString = Controller0.addLineNumbers(inputString);
+			inputString = BasicFormatter.addLineNumbers(inputString);
 		}
 
 		const example = this.model.getExample(key);

@@ -150,6 +150,10 @@ export class CodeGeneratorJs {
     setOptions(options) {
         Object.assign(this.options, options);
     }
+    setBasicVersion(basicVersion) {
+        this.options.parser.setOptions({ basicVersion });
+        this.options.lexer.setOptions({ keywords: this.options.parser.getKeywords() });
+    }
     reset() {
         const stack = this.stack;
         stack.forLabel.length = 0;
@@ -1409,8 +1413,29 @@ export class CodeGeneratorJs {
     getSourceMap() {
         return this.sourceMap;
     }
-    debugGetLabelsCount() {
-        return Object.keys(this.referencedLabelsCount).length;
+    prepareProgramParser() {
+        this.options.lexer.setOptions({ keepWhiteSpace: false });
+        this.options.parser.setOptions({
+            keepBrackets: false,
+            keepColons: false,
+            keepDataComma: false,
+            keepTokens: false
+        });
+    }
+    generateProgram(input, variables) {
+        this.prepareProgramParser();
+        return this.generate(input, variables);
+    }
+    generateDirect(input, program, variables) {
+        this.prepareProgramParser();
+        if (program && (!isNaN(parseInt(program, 10)) || this.options.implicitLines)) {
+            const separator = program.endsWith("\n") ? "" : "\n", commandStart = program.length + separator.length, output = this.generate(program + separator + input, variables, true);
+            if (!output.error || !(output.error.pos < commandStart)) {
+                return output;
+            }
+            output.error.message = "[prg] " + output.error.message;
+        }
+        return this.generate(input, variables, true);
     }
     generate(input, variables, allowDirect) {
         const out = {

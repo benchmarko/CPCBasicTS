@@ -7,7 +7,6 @@ export const enum ModelPropID { // eslint-disable-line no-shadow
 	arrayBounds = "arrayBounds",
 	autorun = "autorun",
 	basicVersion = "basicVersion",
-	bench = "bench",
 	canvasType = "canvasType",
 	databaseDirs = "databaseDirs",
 	database = "database",

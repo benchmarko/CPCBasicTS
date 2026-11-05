@@ -2,7 +2,6 @@ export declare const enum ModelPropID {
     arrayBounds = "arrayBounds",
     autorun = "autorun",
     basicVersion = "basicVersion",
-    bench = "bench",
     canvasType = "canvasType",
     databaseDirs = "databaseDirs",
     database = "database",

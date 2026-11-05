@@ -103,5 +103,19 @@ export class Snapshot {
     getMemory() {
         return this.options.data.substring(0x100); // memory dump without snapshot header
     }
+    applyToVm(vm) {
+        const info = this.getSnapshotInfo(), memory = this.getMemory(), inks = info.ga.inkval;
+        vm.vmChangeMode(info.ga.multi & 0x03); // eslint-disable-line no-bitwise
+        for (let index = 0; index < inks.length - 1; index += 1) {
+            vm.ink(index, Snapshot.gaInk2Ink[inks[index]]);
+        }
+        vm.border(Snapshot.gaInk2Ink[inks[inks.length - 1]]);
+        vm.vmSetRamSelect(info.ramconf);
+        for (let index = 0; index < info.crtc.reg.length; index += 1) {
+            vm.vmSetCrtcData(index, info.crtc.reg[index]);
+        }
+        return memory;
+    }
 }
+Snapshot.gaInk2Ink = [13, 27, 19, 25, 1, 7, 10, 16, 28, 29, 24, 26, 6, 8, 15, 17, 30, 31, 18, 20, 0, 2, 9, 11, 4, 22, 21, 23, 3, 5, 12, 14];
 //# sourceMappingURL=Snapshot.js.map

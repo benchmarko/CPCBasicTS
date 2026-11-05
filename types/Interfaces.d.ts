@@ -1,3 +1,4 @@
+import type { ExecutionState } from "./ExecutionState";
 export interface CustomError extends Error {
     value: string;
     pos: number;
@@ -6,6 +7,25 @@ export interface CustomError extends Error {
     hidden?: boolean;
     shortMessage?: string;
     errCode?: number;
+}
+export interface Diagnostic {
+    readonly name: string;
+    readonly message: string;
+    readonly shortMessage: string;
+    readonly value?: string;
+    readonly pos?: number;
+    readonly len?: number;
+    readonly line?: number | string;
+    readonly errCode?: number;
+    readonly selectSource: boolean;
+}
+export interface RuntimeCallbacks {
+    onInputText?: (value: string, keepStack?: boolean) => void;
+    onOutputText?: (value: string) => void;
+    onResultText?: (value: string) => void;
+    onExecutionState?: (state: ExecutionState) => void;
+    onDiagnostic?: (diagnostic: Diagnostic) => void;
+    onProgramEnd?: () => void;
 }
 export type LoadScriptFn = (url: string, fnSuccess: (url2: string, key: string) => void, fnError: (url2: string, key: string) => void, key: string) => void;
 export interface IOutput {
@@ -21,7 +41,13 @@ export interface IStorage {
     key(index: number): string | null;
     removeItem(key: string): void;
     setItem(key: string, value: string): void;
-    [key: string]: any;
+}
+export interface RuntimeHost {
+    storage: IStorage;
+    loadScript: LoadScriptFn;
+    atobFn(input: string): string;
+    btoaFn(input: string): string;
+    setTimeout(callback: () => void, delay?: number): unknown;
 }
 export interface DatabaseEntry {
     text: string;
@@ -45,6 +71,42 @@ export interface VmLineRenumParas extends VmBaseParas {
     oldLine?: number;
     step?: number;
     keep?: number;
+}
+export type RenumOptions = Pick<VmLineRenumParas, "newLine" | "oldLine" | "step" | "keep">;
+export interface ExampleLoadOptions {
+    autorun?: boolean;
+}
+export interface IRuntimeController {
+    getInputText(): string;
+    getVariableNames(): string[];
+    getVariable(name: string): VariableValue;
+    setInputText(input: string, keepStack?: boolean): void;
+    getOutputText(): string;
+    setOutputText(output: string): void;
+    getExecutionState(): ExecutionState;
+    putKeys(keys: string): void;
+    invalidateScript(): void;
+    startParse(): void;
+    startRenum(options?: RenumOptions): void;
+    startRun(): void;
+    startParseRun(): void;
+    startBreak(): void;
+    startEscape(): void;
+    startContinue(): void;
+    startReset(): void;
+    loadDatabase(name?: string): void;
+    loadExample(key: string, options?: ExampleLoadOptions): void;
+    fnPretty(): void;
+    fnAddLines(): void;
+    fnRemoveLines(): void;
+    setBasicVersion(basicVersion: string): void;
+    fnImplicitLines(): void;
+    fnIntegerOverflow(): void;
+    fnPrettyLowercaseVars(): void;
+    fnArrayBounds(): void;
+    fnTrace(): void;
+    fnSpeed(): void;
+    fnRemoveAllVariables(): void;
 }
 export interface VmFileParas extends VmBaseParas {
     fileMask?: string;

@@ -1,3 +1,4 @@
+import type { CpcVm } from "./CpcVm";
 type SnapshotInfo = {
     ident: string;
     unused1: string;
@@ -48,6 +49,7 @@ export interface SnapshotOptions {
     quiet?: boolean;
 }
 export declare class Snapshot {
+    private static readonly gaInk2Ink;
     private readonly options;
     private pos;
     constructor(options: SnapshotOptions);
@@ -61,6 +63,7 @@ export declare class Snapshot {
     private readUtf;
     getSnapshotInfo(): SnapshotInfo;
     getMemory(): string;
+    applyToVm(vm: Pick<CpcVm, "vmChangeMode" | "ink" | "border" | "vmSetRamSelect" | "vmSetCrtcData">): string;
 }
 export {};
 //# sourceMappingURL=Snapshot.d.ts.map

@@ -7,7 +7,6 @@ export var ModelPropID;
     ModelPropID["arrayBounds"] = "arrayBounds";
     ModelPropID["autorun"] = "autorun";
     ModelPropID["basicVersion"] = "basicVersion";
-    ModelPropID["bench"] = "bench";
     ModelPropID["canvasType"] = "canvasType";
     ModelPropID["databaseDirs"] = "databaseDirs";
     ModelPropID["database"] = "database";

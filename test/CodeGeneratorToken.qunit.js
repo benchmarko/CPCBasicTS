@@ -3,6 +3,8 @@
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { CodeGeneratorToken } from "../CodeGeneratorToken";
+import { CodeGeneratorJs } from "../CodeGeneratorJs";
+import { Variables } from "../Variables";
 import { TestHelper } from "./TestHelper";
 import { TestInput } from "./TestInput";
 /* eslint-disable quote-props */
@@ -792,6 +794,31 @@ QUnit.module("CodeGeneratorToken: Tests", function (hooks) {
     }
     TestHelper.compareAllTests(TestInput.getAllTests(), allTests);
     TestHelper.generateAllTests(allTests, runTestsFor, hooks);
+    QUnit.test("program tokenization restores whitespace and punctuation retention", function (assert) {
+        const generator = createCodeGeneratorToken(), source = "10 DATA 1,,3: value = (2+3)::PRINT value\n20 END", expected = generator.generate(source);
+        assert.notOk(expected.error);
+        generator.getOptions().lexer.setOptions({ keepWhiteSpace: false });
+        generator.getOptions().parser.setOptions({ keepTokens: false, keepBrackets: false, keepColons: false, keepDataComma: false });
+        assert.deepEqual(generator.generateProgram(source), expected);
+    });
+    QUnit.test("program tokenization remains stable across shared-parser JavaScript compilation", function (assert) {
+        const generator = createCodeGeneratorToken(), options = generator.getOptions(), compiler = new CodeGeneratorJs({ lexer: options.lexer, parser: options.parser, quiet: true }), source = "10 DATA 1,,3: value = (2+3)::PRINT value\n20 END", expected = generator.generateProgram(source);
+        assert.notOk(expected.error);
+        assert.notOk(compiler.generateProgram(source, new Variables({})).error);
+        assert.deepEqual(generator.generateProgram(source), expected);
+        assert.notOk(compiler.generateDirect("PRINT 7", source, new Variables({})).error);
+        assert.deepEqual(generator.generateProgram(source), expected);
+    });
+    QUnit.test("program tokenization preserves diagnostics and implicit line settings", function (assert) {
+        const generator = createCodeGeneratorToken(), expected = generator.generate("10 LET =");
+        assert.ok(expected.error);
+        assert.deepEqual(generator.generateProgram("10 LET =").error, expected.error);
+        generator.setOptions({ implicitLines: true });
+        const source = "PRINT 7\nEND", implicit = generator.generateProgram(source);
+        assert.notOk(implicit.error);
+        assert.ok(implicit.text.length > 0);
+        assert.deepEqual(generator.generateProgram(source), implicit);
+    });
 });
 // end
 //# sourceMappingURL=CodeGeneratorToken.qunit.js.map

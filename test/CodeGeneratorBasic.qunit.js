@@ -766,6 +766,20 @@ function createCodeGeneratorBasic(keepWhiteSpace) {
         parser: basicParser
     });
 }
+QUnit.module("CodeGeneratorBasic:prettySetup", function () {
+    QUnit.test("pretty compilation applies explicit retention flags on every call", function (assert) {
+        const parser = new BasicParser({ quiet: true }), lexer = new BasicLexer({ keywords: parser.getKeywords() }), generator = new CodeGeneratorBasic({ lexer, parser }), source = "10 value = (2+3)::PRINT value";
+        for (const keep of [false, true]) {
+            lexer.setOptions({ keepWhiteSpace: keep });
+            parser.setOptions({ keepTokens: true, keepBrackets: keep, keepColons: keep, keepDataComma: true });
+            const expected = generator.generate(source);
+            assert.notOk(expected.error);
+            lexer.setOptions({ keepWhiteSpace: !keep });
+            parser.setOptions({ keepTokens: false, keepBrackets: !keep, keepColons: !keep, keepDataComma: false });
+            assert.deepEqual(generator.generatePretty(source, keep, keep, keep), expected);
+        }
+    });
+});
 QUnit.module("CodeGeneratorBasic: Tests", function (hooks) {
     hooks.before(function () {
         hooks.codeGeneratorBasic = createCodeGeneratorBasic(false);

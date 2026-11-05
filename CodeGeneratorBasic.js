@@ -59,6 +59,11 @@ export class CodeGeneratorBasic {
     setOptions(options) {
         Object.assign(this.options, options);
     }
+    generatePretty(input, keepWhiteSpace, keepBrackets, keepColons) {
+        this.options.lexer.setOptions({ keepWhiteSpace });
+        this.options.parser.setOptions({ keepTokens: true, keepBrackets, keepColons, keepDataComma: true });
+        return this.generate(input);
+    }
     composeError(error, message, value, pos) {
         return Utils.composeError("CodeGeneratorBasic", error, message, value, pos, undefined, this.line);
     }

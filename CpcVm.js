@@ -1899,34 +1899,35 @@ export class CpcVm {
             line: this.line // unused
         });
     }
-    vmLoadCallback(input, meta) {
-        const inFile = this.inFile;
-        let putInMemory = false;
-        if (input !== null && meta) {
-            if (meta.typeString === "B" || meta.typeString === "S" || inFile.start !== undefined) { // only for binary files or when a load address is specified (feature)
-                const start = inFile.start !== undefined ? inFile.start : Number(meta.start);
-                let length = Number(meta.length); // we do not really need the length from metadata
-                if (isNaN(length)) {
-                    length = input.length; // only valid after atob()
-                }
-                if (Utils.debug > 1) {
-                    Utils.console.debug("vmLoadCallback:", inFile.name + ": putting data in memory", start, "-", start + length);
-                }
-                if (meta.typeString === "S") {
-                    for (let i = 0; i < length; i += 1) {
-                        this.vmSetMem(start + i, input.charCodeAt(i)); // set snapshot data directly without memory mapping
-                    }
-                    const addr = this.screenPage << 14; // eslint-disable-line no-bitwise
-                    this.vmCopyToScreen(addr, addr);
-                }
-                else {
-                    for (let i = 0; i < length; i += 1) {
-                        this.poke((start + i) & 0xffff, input.charCodeAt(i)); // eslint-disable-line no-bitwise
-                    }
-                }
-                putInMemory = true;
+    vmPutFileInMemory(input, meta, includeSnapshot) {
+        const inFile = this.inFile, shouldPutInMemory = input !== null && meta && (meta.typeString === "B" || (includeSnapshot && meta.typeString === "S") || inFile.start !== undefined);
+        if (!shouldPutInMemory || input === null || !meta) {
+            return false;
+        }
+        const start = inFile.start !== undefined ? inFile.start : Number(meta.start);
+        let length = Number(meta.length); // we do not really need the length from metadata
+        if (isNaN(length)) {
+            length = input.length; // only valid after atob()
+        }
+        if (Utils.debug > 1) {
+            Utils.console.debug("vmPutFileInMemory:", inFile.name + ": putting data in memory", start, "-", start + length);
+        }
+        if (meta.typeString === "S") {
+            for (let i = 0; i < length; i += 1) {
+                this.vmSetMem(start + i, input.charCodeAt(i)); // set snapshot data directly without memory mapping
+            }
+            const addr = this.screenPage << 14; // eslint-disable-line no-bitwise
+            this.vmCopyToScreen(addr, addr);
+        }
+        else {
+            for (let i = 0; i < length; i += 1) {
+                this.poke((start + i) & 0xffff, input.charCodeAt(i)); // eslint-disable-line no-bitwise
             }
         }
+        return true;
+    }
+    vmLoadCallback(input, meta) {
+        const putInMemory = this.vmPutFileInMemory(input, meta, true);
         this.closein();
         return putInMemory;
     }
@@ -2903,13 +2904,12 @@ export class CpcVm {
         return Math.sign(n) * Number(Math.round(Number(Math.abs(n) + "e" + decimals)) + "e" + ((decimals >= 0) ? "-" + decimals : "+" + -decimals));
     }
     vmRunCallback(input, meta) {
-        const inFile = this.inFile, putInMemory = input !== null && meta && (meta.typeString === "B" || inFile.start !== undefined);
-        // TODO: we could put it in memory as we do it for LOAD
+        const inFile = this.inFile, line = inFile.line, putInMemory = input !== null && meta && (meta.typeString === "B" || inFile.start !== undefined);
         if (input !== null) {
             const lineParas = {
                 command: "run",
                 stream: 0, // unused
-                first: inFile.line,
+                first: line,
                 last: 0, // unused
                 line: this.line
             };

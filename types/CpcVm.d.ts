@@ -322,6 +322,7 @@ export declare class CpcVm implements ICpcVm {
     vmLineInputCallback(): boolean;
     lineInput(stream: number, noCRLF: string, msg: string, varType: string): void;
     list(stream: number, first?: number, last?: number): void;
+    vmPutFileInMemory(input: string | null, meta: FileMeta | undefined, includeSnapshot: boolean): boolean;
     private vmLoadCallback;
     load(name: string, start?: number): void;
     private vmLocate;

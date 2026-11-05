@@ -1,4 +1,4 @@
-import { Controller0 } from "./Controller0";
+import { BasicFormatter } from "./BasicFormatter";
 import { Model } from "./Model";
 import { Utils } from "./Utils";
 const ModelPropIDdatabase = "database";
@@ -29,7 +29,7 @@ export class Core {
             const implicitLines = this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */);
             const linesOnLoad = this.model.getProperty("linesOnLoad" /* ModelPropID.linesOnLoad */);
             if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
-                inputString = Controller0.addLineNumbers(inputString);
+                inputString = BasicFormatter.addLineNumbers(inputString);
             }
             const example = this.model.getExample(key);
             if (example) {

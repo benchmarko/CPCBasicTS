@@ -5,6 +5,7 @@
 import { BasicLexer } from "../BasicLexer"; // we use BasicLexer here just for convenient input
 import { BasicParser } from "../BasicParser";
 import { BasicFormatter } from "../BasicFormatter";
+import { Utils } from "../Utils";
 import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
 
 QUnit.dump.maxDepth = 10;
@@ -90,6 +91,138 @@ const allTests: AllTestsType = {
 type hooksWithBasicFormatter = NestedHooks & {
 	basicFormatter: BasicFormatter
 };
+
+QUnit.module("BasicFormatter:deleteScript", function () {
+	QUnit.test("deletion scripts retain only normalized line numbers without mutating input", function (assert) {
+		const lines = ["  0010 REM first", "20 PRINT 7", "30 END"];
+		assert.strictEqual(BasicFormatter.createDeleteScript(lines), "10\n20\n30");
+		assert.deepEqual(lines, ["  0010 REM first", "20 PRINT 7", "30 END"]);
+		assert.strictEqual(BasicFormatter.createDeleteScript([]), "");
+	});
+
+	QUnit.test("invalid lines prevent a partial deletion script", function (assert) {
+		assert.strictEqual(BasicFormatter.createDeleteScript(["10 REM first", "PRINT 7", "30 END"]), undefined);
+		assert.strictEqual(BasicFormatter.createDeleteScript([""]), undefined);
+	});
+
+	QUnit.test("range deletion composes with the shared merge operation", function (assert) {
+		const lines = ["10 REM first", "20 REM second", "30 END"],
+			selected = BasicFormatter.getLinesInRange(lines, 10, 20),
+			deletion = BasicFormatter.createDeleteScript(selected);
+		assert.strictEqual(deletion, "10\n20");
+		assert.strictEqual(BasicFormatter.mergeLines(lines, BasicFormatter.splitLines(deletion ?? "") ?? []), "30 END");
+	});
+});
+
+QUnit.module("BasicFormatter:source scripts", function () {
+	QUnit.test("line number parsing accepts numeric prefixes without range validation", function (assert) {
+		assert.strictEqual(BasicFormatter.parseLineNumber("10 PRINT 1"), 10);
+		assert.strictEqual(BasicFormatter.parseLineNumber("  20"), 20);
+		assert.ok(isNaN(BasicFormatter.parseLineNumber("PRINT 1")));
+	});
+
+	QUnit.test("merge trims source endings and applies implicit line numbers", function (assert) {
+		assert.strictEqual(BasicFormatter.mergeScripts("10 PRINT 1\n", "20 END\n"), "10 PRINT 1\n20 END");
+		assert.strictEqual(BasicFormatter.mergeScripts("PRINT 1", "20 END", true), "1 PRINT 1\n20 END");
+	});
+
+	QUnit.test("range selection and merge report malformed source through the host callback", function (assert) {
+		const errors: string[] = [];
+		assert.deepEqual(BasicFormatter.getLinesInRangeFromScript("10 PRINT 1\n20 END\n30 END", 20, 30), ["20 END", "30 END"]);
+		assert.deepEqual(BasicFormatter.getLinesInRangeFromScript("PRINT 1", 1, 10, false, () => { errors.push("range"); }), []);
+		assert.strictEqual(BasicFormatter.mergeScripts("10 END", "PRINT 1", false, () => { errors.push("merge"); }), "10 END");
+		assert.deepEqual(errors, ["range", "merge"]);
+	});
+});
+
+QUnit.module("BasicFormatter:listing", function () {
+	QUnit.test("screen listings escape control bytes without changing source lines", function (assert) {
+		const lines = ["10 REM \x00\x01\x1f", '20 PRINT "A\nB"', "30 REM \x7f\x80"],
+			expected = ["10 REM \x01\x00\x01\x01\x01\x1f", '20 PRINT "A\x01\nB"', "30 REM \x7f\x80"];
+		for (const stream of [0, 1, 7, 8]) {
+			assert.deepEqual(BasicFormatter.formatListing(lines, stream), expected);
+		}
+		assert.deepEqual(lines, ["10 REM \x00\x01\x1f", '20 PRINT "A\nB"', "30 REM \x7f\x80"]);
+	});
+
+	QUnit.test("stream 9 preserves raw bytes and returns an independent array", function (assert) {
+		const lines = ["10 REM \x00\x01\x1f"],
+			listing = BasicFormatter.formatListing(lines, 9);
+		assert.deepEqual(listing, lines);
+		listing[0] = "changed";
+		assert.strictEqual(lines[0], "10 REM \x00\x01\x1f");
+		assert.deepEqual(BasicFormatter.formatListing([], 0), []);
+	});
+
+	QUnit.test("diagnostic escaping covers the complete control range", function (assert) {
+		const controls = Array.from({ length: 32 }, (_value, index) => String.fromCharCode(index)),
+			expected = controls.map((char) => "\x01" + char).join("");
+		assert.strictEqual(Utils.escapeControlCharacters(controls.join("")), expected);
+		assert.strictEqual(Utils.escapeControlCharacters("ASCII \x7f\x80"), "ASCII \x7f\x80");
+	});
+});
+
+QUnit.module("BasicFormatter:parserSetup", function () {
+	QUnit.test("renumbering and line removal reset retained parser state", function (assert) {
+		const formatter = createBasicFormatter(),
+			source = "10 GOTO 30\n20 PRINT (2+3)\n30 END",
+			expectedRenum = formatter.renumber(source, 100, 1, 5, 65535),
+			expectedRemoval = formatter.removeUnusedLines(source);
+		assert.notOk(expectedRenum.error);
+		assert.notOk(expectedRemoval.error);
+		const retainFormatting = () => {
+			formatter.getOptions().lexer.setOptions({ keepWhiteSpace: true });
+			formatter.getOptions().parser.setOptions({ keepBrackets: true, keepColons: true, keepDataComma: true, keepTokens: true });
+		};
+		retainFormatting();
+		assert.deepEqual(formatter.renumber(source, 100, 1, 5, 65535), expectedRenum);
+		retainFormatting();
+		assert.deepEqual(formatter.removeUnusedLines(source), expectedRemoval);
+	});
+});
+
+QUnit.module("BasicFormatter:addLineNumbers", function () {
+	QUnit.test("numbers missing lines while preserving explicit numbers and spacing", function (assert) {
+		assert.strictEqual(BasicFormatter.addLineNumbers('PRINT "A"\nEND'), '1 PRINT "A"\n2 END');
+		assert.strictEqual(BasicFormatter.addLineNumbers('10 PRINT "A"\nPRINT "B"\n30 END'), '10 PRINT "A"\n11 PRINT "B"\n30 END');
+		assert.strictEqual(BasicFormatter.addLineNumbers("  10 REM first\n  REM next"), "  10 REM first\n11   REM next");
+		assert.strictEqual(BasicFormatter.addLineNumbers("0 REM zero\nEND"), "0 REM zero\n1 END");
+	});
+
+	QUnit.test("preserves existing blank-line and trailing-newline behavior", function (assert) {
+		assert.strictEqual(BasicFormatter.addLineNumbers(""), "1 ");
+		assert.strictEqual(BasicFormatter.addLineNumbers("REM first\n\nEND\n"), "1 REM first\n2 \n3 END\n4 ");
+	});
+});
+
+QUnit.module("BasicFormatter:sourceLines", function () {
+	QUnit.test("splits numbered source and preserves multiline content", function (assert) {
+		assert.deepEqual(BasicFormatter.splitLines('10 PRINT "first\nsecond"\n20 END\n'), ['10 PRINT "first\nsecond"', "20 END"]);
+		assert.deepEqual(BasicFormatter.splitLines("PRINT 1\nEND", true), ["1 PRINT 1", "2 END"]);
+		assert.deepEqual(BasicFormatter.splitLines(""), []);
+		assert.strictEqual(BasicFormatter.splitLines("PRINT 1\n20 END"), undefined);
+	});
+
+	QUnit.test("merges sorted lines, replaces matches, and deletes numbered-only lines", function (assert) {
+		const original = ["10 REM first", "20 REM old", "30 END"],
+			updates = ["20 REM replacement", "25 PRINT 7"];
+		assert.strictEqual(BasicFormatter.mergeLines(original, updates), "10 REM first\n20 REM replacement\n25 PRINT 7\n30 END");
+		assert.strictEqual(BasicFormatter.mergeLines(original, ["20"]), "10 REM first\n30 END");
+		assert.strictEqual(BasicFormatter.mergeLines(original, []), original.join("\n"));
+		assert.strictEqual(BasicFormatter.mergeLines([], updates), updates.join("\n"));
+		assert.deepEqual(original, ["10 REM first", "20 REM old", "30 END"]);
+		assert.deepEqual(updates, ["20 REM replacement", "25 PRINT 7"]);
+	});
+
+	QUnit.test("selects inclusive line ranges without mutating the source", function (assert) {
+		const lines = ["10 REM first", "20 REM second", "30 END", ""];
+		assert.deepEqual(BasicFormatter.getLinesInRange(lines, 10, 20), ["10 REM first", "20 REM second"]);
+		assert.deepEqual(BasicFormatter.getLinesInRange(lines, 20, 20), ["20 REM second"]);
+		assert.deepEqual(BasicFormatter.getLinesInRange(lines, 21, 29), []);
+		assert.deepEqual(BasicFormatter.getLinesInRange([], 0, 65535), []);
+		assert.deepEqual(lines, ["10 REM first", "20 REM second", "30 END", ""]);
+	});
+});
 
 function createBasicFormatter() {
 	const basicParser = new BasicParser({

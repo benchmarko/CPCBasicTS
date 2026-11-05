@@ -14,6 +14,7 @@ export declare class CodeGeneratorToken {
     constructor(options: CodeGeneratorTokenOptions);
     getOptions(): CodeGeneratorTokenOptions;
     setOptions(options: Partial<CodeGeneratorTokenOptions>): void;
+    generateProgram(input: string): IOutput;
     private static readonly tokens;
     private static readonly tokensFF;
     private composeError;

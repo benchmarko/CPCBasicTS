@@ -16,6 +16,7 @@ export declare class CodeGeneratorBasic {
     constructor(options: CodeGeneratorBasicOptions);
     getOptions(): CodeGeneratorBasicOptions;
     setOptions(options: Partial<CodeGeneratorBasicOptions>): void;
+    generatePretty(input: string, keepWhiteSpace: boolean, keepBrackets: boolean, keepColons: boolean): IOutput;
     private static readonly combinedKeywords;
     private static readonly operators;
     private static readonly operatorPrecedence;

@@ -45,6 +45,11 @@ export class CodeGeneratorToken {
     setOptions(options) {
         Object.assign(this.options, options);
     }
+    generateProgram(input) {
+        this.options.lexer.setOptions({ keepWhiteSpace: true });
+        this.options.parser.setOptions({ keepTokens: true, keepBrackets: true, keepColons: true, keepDataComma: true });
+        return this.generate(input);
+    }
     composeError(error, message, value, pos) {
         return Utils.composeError("CodeGeneratorToken", error, message, value, pos, undefined, this.label);
     }

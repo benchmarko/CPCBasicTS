@@ -14,6 +14,9 @@
 	      return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
 	    });
 	  }
+	  static escapeControlCharacters(input) {
+	    return input.replace(/([\x00-\x1f])/g, "$1");
+	  }
 	  static dateFormat(d) {
 	    return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);
 	  }
@@ -49,6 +52,20 @@
 	  }
 	  static isCustomError(e) {
 	    return e.pos !== void 0;
+	  }
+	  static createDiagnostic(error, noSelection = false, errCode) {
+	    const custom = error;
+	    return {
+	      name: error.name,
+	      message: error.message,
+	      shortMessage: _Utils.isCustomError(error) ? custom.shortMessage || error.message : error.message,
+	      value: custom.value,
+	      pos: custom.pos,
+	      len: custom.len,
+	      line: custom.line,
+	      errCode: custom.errCode ?? errCode,
+	      selectSource: custom.pos !== void 0 && !noSelection
+	    };
 	  }
 	  static split2(str, char) {
 	    const index = str.indexOf(char);
@@ -119,6 +136,112 @@
 	      implicitLines: false
 	    };
 	    this.setOptions(options);
+	  }
+	  static parseLineNumber(line) {
+	    return parseInt(line, 10);
+	  }
+	  static addLineNumbers(input) {
+	    const lineParts = input.split("\n");
+	    let lastLine = 0;
+	    for (let index = 0; index < lineParts.length; index += 1) {
+	      let lineNumber = parseInt(lineParts[index], 10);
+	      if (isNaN(lineNumber)) {
+	        lineNumber = lastLine + 1;
+	        lineParts[index] = String(lineNumber) + " " + lineParts[index];
+	      }
+	      lastLine = lineNumber;
+	    }
+	    return lineParts.join("\n");
+	  }
+	  static splitLines(input, implicitLines = false) {
+	    if (implicitLines) {
+	      input = BasicFormatter.addLineNumbers(input);
+	    }
+	    const parts = input.split(/^(\s*\d+)/m), lines = [];
+	    if (parts[0] === "") {
+	      parts.shift();
+	    }
+	    if (parts.length % 2 !== 0) {
+	      return void 0;
+	    }
+	    for (let index = 0; index < parts.length; index += 2) {
+	      let content = parts[index + 1];
+	      if (content.endsWith("\n")) {
+	        content = content.substring(0, content.length - 1);
+	      }
+	      lines.push(parts[index] + content);
+	    }
+	    return lines;
+	  }
+	  static mergeLines(lines1, lines2) {
+	    const result = [];
+	    let index1 = 0, index2 = 0;
+	    while (index1 < lines1.length && index2 < lines2.length) {
+	      const line1 = lines1[index1], line2 = lines2[index2], number1 = parseInt(line1, 10), number2 = parseInt(line2, 10);
+	      if (number1 < number2) {
+	        result.push(line1);
+	        index1 += 1;
+	      } else {
+	        if (String(number2) !== line2) {
+	          result.push(line2);
+	        }
+	        index2 += 1;
+	        if (number1 === number2) {
+	          index1 += 1;
+	        }
+	      }
+	    }
+	    const merged = result.concat(lines1.slice(index1), lines2.slice(index2));
+	    if (merged.length >= 2 && merged[merged.length - 2] === "" && merged[merged.length - 1] === "") {
+	      merged.pop();
+	    }
+	    return merged.join("\n");
+	  }
+	  static getLinesInRange(sourceLines, firstLine, lastLine) {
+	    const lines = sourceLines.slice();
+	    while (lines.length && parseInt(lines[0], 10) < firstLine) {
+	      lines.shift();
+	    }
+	    if (lines.length && lines[lines.length - 1] === "") {
+	      lines.pop();
+	    }
+	    while (lines.length && parseInt(lines[lines.length - 1], 10) > lastLine) {
+	      lines.pop();
+	    }
+	    return lines;
+	  }
+	  static getLinesInRangeFromScript(script, firstLine, lastLine, implicitLines = false, onInvalid) {
+	    const lines = script ? BasicFormatter.splitLines(script, implicitLines) : [];
+	    if (!lines) {
+	      onInvalid?.();
+	      return [];
+	    }
+	    return BasicFormatter.getLinesInRange(lines, firstLine, lastLine);
+	  }
+	  static mergeScripts(script1, script2, implicitLines = false, onInvalid) {
+	    const split = (script) => {
+	      const lines = BasicFormatter.splitLines(Utils.stringTrimEnd(script), implicitLines);
+	      if (!lines) {
+	        onInvalid?.();
+	        return [];
+	      }
+	      return lines;
+	    };
+	    return BasicFormatter.mergeLines(split(script1), split(script2));
+	  }
+	  static formatListing(lines, stream) {
+	    return lines.map((line) => stream === 9 ? line : Utils.escapeControlCharacters(line));
+	  }
+	  static createDeleteScript(lines) {
+	    const numbers = [];
+	    for (const line of lines) {
+	      const number = parseInt(line, 10);
+	      if (isNaN(number)) {
+	        return void 0;
+	      }
+	      numbers.push(String(number));
+	    }
+	    return numbers.join("\n");
 	  }
 	  getOptions() {
 	    return this.options;
@@ -259,7 +382,12 @@
 	    const changes = this.fnRenumberLines(lines, refs, newLine, oldLine, step, keep), output = BasicFormatter.fnApplyChanges(input, changes);
 	    return output;
 	  }
+	  prepareParser() {
+	    this.options.lexer.setOptions({ keepWhiteSpace: false });
+	    this.options.parser.setOptions({ keepBrackets: false, keepColons: false, keepDataComma: false, keepTokens: false });
+	  }
 	  renumber(input, newLine, oldLine, step, keep) {
+	    this.prepareParser();
 	    const out = {
 	      text: ""
 	    };
@@ -296,6 +424,7 @@
 	    return output;
 	  }
 	  removeUnusedLines(input) {
+	    this.prepareParser();
 	    const out = {
 	      text: ""
 	    };
@@ -2894,6 +3023,11 @@
 	  setOptions(options) {
 	    Object.assign(this.options, options);
 	  }
+	  generatePretty(input, keepWhiteSpace, keepBrackets, keepColons) {
+	    this.options.lexer.setOptions({ keepWhiteSpace });
+	    this.options.parser.setOptions({ keepTokens: true, keepBrackets, keepColons, keepDataComma: true });
+	    return this.generate(input);
+	  }
 	  composeError(error, message, value, pos) {
 	    return Utils.composeError("CodeGeneratorBasic", error, message, value, pos, void 0, this.line);
 	  }
@@ -3522,6 +3656,10 @@
 	  }
 	  setOptions(options) {
 	    Object.assign(this.options, options);
+	  }
+	  setBasicVersion(basicVersion) {
+	    this.options.parser.setOptions({ basicVersion });
+	    this.options.lexer.setOptions({ keywords: this.options.parser.getKeywords() });
 	  }
 	  reset() {
 	    const stack = this.stack;
@@ -4723,8 +4861,29 @@
 	  getSourceMap() {
 	    return this.sourceMap;
 	  }
-	  debugGetLabelsCount() {
-	    return Object.keys(this.referencedLabelsCount).length;
+	  prepareProgramParser() {
+	    this.options.lexer.setOptions({ keepWhiteSpace: false });
+	    this.options.parser.setOptions({
+	      keepBrackets: false,
+	      keepColons: false,
+	      keepDataComma: false,
+	      keepTokens: false
+	    });
+	  }
+	  generateProgram(input, variables) {
+	    this.prepareProgramParser();
+	    return this.generate(input, variables);
+	  }
+	  generateDirect(input, program, variables) {
+	    this.prepareProgramParser();
+	    if (program && (!isNaN(parseInt(program, 10)) || this.options.implicitLines)) {
+	      const separator = program.endsWith("\n") ? "" : "\n", commandStart = program.length + separator.length, output = this.generate(program + separator + input, variables, true);
+	      if (!output.error || !(output.error.pos < commandStart)) {
+	        return output;
+	      }
+	      output.error.message = "[prg] " + output.error.message;
+	    }
+	    return this.generate(input, variables, true);
 	  }
 	  generate(input, variables, allowDirect) {
 	    const out = {
@@ -4876,6 +5035,11 @@
 	  }
 	  setOptions(options) {
 	    Object.assign(this.options, options);
+	  }
+	  generateProgram(input) {
+	    this.options.lexer.setOptions({ keepWhiteSpace: true });
+	    this.options.parser.setOptions({ keepTokens: true, keepBrackets: true, keepColons: true, keepDataComma: true });
+	    return this.generate(input);
 	  }
 	  composeError(error, message, value, pos) {
 	    return Utils.composeError("CodeGeneratorToken", error, message, value, pos, void 0, this.label);
@@ -7352,33 +7516,34 @@
 	      // unused
 	    });
 	  }
-	  vmLoadCallback(input, meta) {
-	    const inFile = this.inFile;
-	    let putInMemory = false;
-	    if (input !== null && meta) {
-	      if (meta.typeString === "B" || meta.typeString === "S" || inFile.start !== void 0) {
-	        const start = inFile.start !== void 0 ? inFile.start : Number(meta.start);
-	        let length = Number(meta.length);
-	        if (isNaN(length)) {
-	          length = input.length;
-	        }
-	        if (Utils.debug > 1) {
-	          Utils.console.debug("vmLoadCallback:", inFile.name + ": putting data in memory", start, "-", start + length);
-	        }
-	        if (meta.typeString === "S") {
-	          for (let i = 0; i < length; i += 1) {
-	            this.vmSetMem(start + i, input.charCodeAt(i));
-	          }
-	          const addr = this.screenPage << 14;
-	          this.vmCopyToScreen(addr, addr);
-	        } else {
-	          for (let i = 0; i < length; i += 1) {
-	            this.poke(start + i & 65535, input.charCodeAt(i));
-	          }
-	        }
-	        putInMemory = true;
+	  vmPutFileInMemory(input, meta, includeSnapshot) {
+	    const inFile = this.inFile, shouldPutInMemory = input !== null && meta && (meta.typeString === "B" || includeSnapshot && meta.typeString === "S" || inFile.start !== void 0);
+	    if (!shouldPutInMemory || input === null || !meta) {
+	      return false;
+	    }
+	    const start = inFile.start !== void 0 ? inFile.start : Number(meta.start);
+	    let length = Number(meta.length);
+	    if (isNaN(length)) {
+	      length = input.length;
+	    }
+	    if (Utils.debug > 1) {
+	      Utils.console.debug("vmPutFileInMemory:", inFile.name + ": putting data in memory", start, "-", start + length);
+	    }
+	    if (meta.typeString === "S") {
+	      for (let i = 0; i < length; i += 1) {
+	        this.vmSetMem(start + i, input.charCodeAt(i));
+	      }
+	      const addr = this.screenPage << 14;
+	      this.vmCopyToScreen(addr, addr);
+	    } else {
+	      for (let i = 0; i < length; i += 1) {
+	        this.poke(start + i & 65535, input.charCodeAt(i));
 	      }
 	    }
+	    return true;
+	  }
+	  vmLoadCallback(input, meta) {
+	    const putInMemory = this.vmPutFileInMemory(input, meta, true);
 	    this.closein();
 	    return putInMemory;
 	  }
@@ -8312,13 +8477,13 @@
 	    return Math.sign(n) * Number(Math.round(Number(Math.abs(n) + "e" + decimals)) + "e" + (decimals >= 0 ? "-" + decimals : "+" + -decimals));
 	  }
 	  vmRunCallback(input, meta) {
-	    const inFile = this.inFile, putInMemory = input !== null && meta && (meta.typeString === "B" || inFile.start !== void 0);
+	    const inFile = this.inFile, line = inFile.line, putInMemory = input !== null && meta && (meta.typeString === "B" || inFile.start !== void 0);
 	    if (input !== null) {
 	      const lineParas = {
 	        command: "run",
 	        stream: 0,
 	        // unused
-	        first: inFile.line,
+	        first: line,
 	        last: 0,
 	        // unused
 	        line: this.line
@@ -10495,7 +10660,7 @@
 	};
 	let RsxCpcBasic = _RsxCpcBasic;
 
-	class Snapshot {
+	const _Snapshot = class _Snapshot {
 	  constructor(options) {
 	    this.pos = 0;
 	    this.options = {
@@ -10593,7 +10758,22 @@
 	  getMemory() {
 	    return this.options.data.substring(256);
 	  }
-	}
+	  applyToVm(vm) {
+	    const info = this.getSnapshotInfo(), memory = this.getMemory(), inks = info.ga.inkval;
+	    vm.vmChangeMode(info.ga.multi & 3);
+	    for (let index = 0; index < inks.length - 1; index += 1) {
+	      vm.ink(index, _Snapshot.gaInk2Ink[inks[index]]);
+	    }
+	    vm.border(_Snapshot.gaInk2Ink[inks[inks.length - 1]]);
+	    vm.vmSetRamSelect(info.ramconf);
+	    for (let index = 0; index < info.crtc.reg.length; index += 1) {
+	      vm.vmSetCrtcData(index, info.crtc.reg[index]);
+	    }
+	    return memory;
+	  }
+	};
+	_Snapshot.gaInk2Ink = [13, 27, 19, 25, 1, 7, 10, 16, 28, 29, 24, 26, 6, 8, 15, 17, 30, 31, 18, 20, 0, 2, 9, 11, 4, 22, 21, 23, 3, 5, 12, 14];
+	let Snapshot = _Snapshot;
 
 	class ArrayProxy {
 	  constructor(len) {

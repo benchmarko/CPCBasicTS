@@ -32,6 +32,7 @@ export declare class CodeGeneratorJs {
     constructor(options: CodeGeneratorJsOptions);
     getOptions(): CodeGeneratorJsOptions;
     setOptions(options: Partial<CodeGeneratorJsOptions>): void;
+    setBasicVersion(basicVersion: string): void;
     private static readonly jsKeywords;
     private reset;
     private resetCountsPerLine;
@@ -154,7 +155,9 @@ export declare class CodeGeneratorJs {
     private static combineData;
     private static combineLabels;
     getSourceMap(): Record<string, number[]>;
-    debugGetLabelsCount(): number;
+    private prepareProgramParser;
+    generateProgram(input: string, variables: Variables): IOutput;
+    generateDirect(input: string, program: string, variables: Variables): IOutput;
     generate(input: string, variables: Variables, allowDirect?: boolean): IOutput;
 }
 export {};
