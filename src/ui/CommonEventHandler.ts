@@ -238,7 +238,11 @@ export class CommonEventHandler implements EventListenerObject {
 
 	private fnUpdateAreaText(input: string) {
 		this.controller.setInputText(input, true);
-		this.view.setAreaValue(ViewID.outputText, "");
+		this.controller.setOutputText("");
+	}
+
+	private onOutputTextChange(): void {
+		this.controller.setOutputText(this.view.getAreaValue(ViewID.outputText));
 	}
 
 	private onUndoButtonClick() {
@@ -529,7 +533,7 @@ export class CommonEventHandler implements EventListenerObject {
 					},
 					{
 						id: ViewID.renumButton,
-						controllerFunc: this.controller.startRenum
+						controllerFunc: () => this.controller.startRenum()
 					},
 					{
 						id: ViewID.renumPopoverButton,
@@ -673,7 +677,7 @@ export class CommonEventHandler implements EventListenerObject {
 					},
 					{
 						id: ViewID.outputText,
-						controllerFunc: this.controller.invalidateScript
+						func: this.onOutputTextChange
 					},
 					{
 						id: ViewID.paletteSelect,

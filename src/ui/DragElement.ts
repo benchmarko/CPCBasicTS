@@ -24,9 +24,9 @@ export type DragElementOptions = {
 };
 
 export class DragElement {
-	private readonly fnDragStartHandler: (event: Event) => boolean;
-	private readonly fnDragMoveHandler: (event: Event) => boolean;
-	private readonly fnDragEndHandler: (event: Event) => boolean;
+	private readonly fnDragStartHandler: EventListener;
+	private readonly fnDragMoveHandler: EventListener;
+	private readonly fnDragEndHandler: EventListener;
 
 	private readonly options: DragElementOptions;
 
@@ -71,7 +71,7 @@ export class DragElement {
 		}
 	}
 
-	private dragStart(event: PointerEvent | TouchEvent) {
+	private dragStart(event: Event) {
 		const node = View.getEventTarget<HTMLElement>(event),
 			entries = this.options.entries;
 		let	entry = entries[node.id];
@@ -105,7 +105,7 @@ export class DragElement {
 		el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
 	}
 
-	private dragMove(event: PointerEvent | TouchEvent) {
+	private dragMove(event: Event) {
 		const dragInfo = this.dragInfo;
 
 		if (dragInfo) {
@@ -121,7 +121,7 @@ export class DragElement {
 		}
 	}
 
-	private dragEnd(_event: PointerEvent | TouchEvent) {
+	private dragEnd(_event: Event) {
 		const dragInfo = this.dragInfo;
 
 		if (dragInfo) {

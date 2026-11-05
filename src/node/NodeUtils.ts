@@ -346,6 +346,6 @@ export class NodeUtils implements INodeUtils {
 
 		const controller = new Controller0(core, controllerOptions);
 
-		controller.onDatabaseSelectChange(); // trigger loading configured example
+		controller.loadDatabase();
 	}
 }

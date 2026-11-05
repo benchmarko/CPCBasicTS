@@ -12,16 +12,16 @@ import { BasicParser } from "../BasicParser";
 import { BasicTokenizer } from "../BasicTokenizer";
 import { Canvas } from "./Canvas";
 import { CodeGeneratorBasic } from "../CodeGeneratorBasic";
-import { CodeGeneratorJs } from "../CodeGeneratorJs";
 import { CodeGeneratorToken } from "../CodeGeneratorToken";
 import { cpcCharset } from "../cpcCharset";
-import { CpcVm, FileMeta, VmStopEntry } from "../CpcVm";
+import { CpcVm, FileMeta } from "../CpcVm";
 import { Diff } from "../Diff";
 import { DiskImage } from "../DiskImage";
 import { FileHandler } from "../FileHandler";
 import { FileSelect } from "./FileSelect";
 import { InputStack } from "../InputStack";
-import type { CustomError, ICore, IModel, IOutput, LoadScriptFn, SoundData, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmBaseParas, VariableValue } from "../Interfaces";
+import type { ExampleLoadOptions, ICore, IModel, IOutput, RenumOptions, RuntimeCallbacks, RuntimeHost, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmBaseParas, VariableValue } from "../Interfaces";
+import { Utils } from "../Utils";
 import type { ICanvas, IController } from "./UiInterfaces";
 import { Keyboard } from "./Keyboard";
 import { NoCanvas } from "./NoCanvas";
@@ -37,27 +37,20 @@ import { RsxAmsdos } from "../RsxAmsdos";
 import { RsxCpcBasic } from "../RsxCpcBasic";
 import { UiController } from "./UiController";
 import { Z80Disass } from "../Z80Disass"; // test
-
-interface FileMetaAndData {
-	meta: FileMeta
-	data: string
-}
+import type { ExecutionState } from "../ExecutionState";
+import { createBrowserHost } from "./BrowserHost";
+import { Runtime } from "../Runtime";
 
 interface UserKeyType {
 	code: number
 	text: string
 }
 
-export interface ControllerOptions {
+export interface ControllerOptions extends Partial<RuntimeHost>, RuntimeCallbacks {
 	isHeadlessDirectInput?: boolean
-	onResultText?: (value: string) => void
-	onOutputText?: (value: string) => void
-	onProgramEnd?: () => void
-	loadScript?: LoadScriptFn
 }
 
 export class Controller implements IController {
-	private readonly fnRunLoopHandler: () => void;
 	private readonly fnWaitKeyHandler: () => void;
 	private readonly fnWaitInputHandler: () => void;
 	private readonly fnOnEscapeHandler: () => void;
@@ -69,10 +62,8 @@ export class Controller implements IController {
 	private readonly fnEditLineCallbackHandler: () => boolean;
 	private readonly fnOnUserKeyClickHandler: (event: Event) => void;
 
-	private fnScript?: Function = undefined; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
+	private outScript = "";
 
-	private timeoutHandlerActive = false;
-	private nextLoopTimeOut = 0; // next timeout for the main loop
 	private initialLoopTimeout = 0;
 
 	private inputSet = false;
@@ -91,7 +82,7 @@ export class Controller implements IController {
 	private readonly basicLexer: BasicLexer;
 	private readonly basicParser: BasicParser;
 
-	private readonly codeGeneratorJs: CodeGeneratorJs;
+	private readonly runtime: Runtime;
 
 	private readonly canvases: Record<string, ICanvas> = {};
 	private canvas: ICanvas;
@@ -110,20 +101,18 @@ export class Controller implements IController {
 	private readonly vm: CpcVm;
 	private readonly vmOnCanvasClickHandler: (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
 
-	private readonly noStop: VmStopEntry;
-	private readonly savedStop: VmStopEntry; // backup of stop object
 
 	private fileHandler?: FileHandler;
 	private fileSelect?: FileSelect;
 
 	private hasStorageDatabase: boolean;
 	private readonly options: ControllerOptions;
+	private readonly host: RuntimeHost;
 
 	private z80Disass?: Z80Disass;
 
 
 	constructor(core: ICore, view: View, options: ControllerOptions = {}) {
-		this.fnRunLoopHandler = this.fnRunLoop.bind(this);
 		this.fnWaitKeyHandler = this.fnWaitKey.bind(this);
 		this.fnWaitInputHandler = this.fnWaitInput.bind(this);
 		this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
@@ -139,16 +128,14 @@ export class Controller implements IController {
 		const model = this.core.getModel();
 		this.model = model;
 		this.view = view;
+		this.outScript = view.getAreaValue(ViewID.outputText);
 		this.options = options;
+		this.host = createBrowserHost(options);
 		this.view.addEventListenerById("click", this.fnOnUserKeyClickHandler, ViewID.userKeys);
 
 		this.uiController = new UiController(core, view, this, this.fnOnUserActionHandler);
 
 		this.canvas = this.setCanvasType(model.getProperty<string>(ModelPropID.canvasType));
-
-		this.variables = new Variables({
-			arrayBounds: model.getProperty<boolean>(ModelPropID.arrayBounds)
-		});
 
 		this.fnSpeed();
 
@@ -164,15 +151,51 @@ export class Controller implements IController {
 		// check first user action, also if sound is not yet on
 
 		const random = new Random(model.getProperty<string>(ModelPropID.random) === "cpc");
-
-		this.vm = new CpcVm({
+		this.runtime = new Runtime({
 			canvas: this.canvas,
 			keyboard: this.keyboard,
-			random: random,
 			sound: this.sound,
-			variables: this.variables,
-			onClickKey: this.fnPutKeyInBufferHandler
+			random,
+			arrayBounds: model.getProperty<boolean>(ModelPropID.arrayBounds),
+			basicVersion: model.getProperty<string>(ModelPropID.basicVersion),
+			trace: model.getProperty<boolean>(ModelPropID.trace),
+			implicitLines: model.getProperty<boolean>(ModelPropID.implicitLines),
+			integerOverflow: model.getProperty<boolean>(ModelPropID.integerOverflow),
+			onClickKey: this.fnPutKeyInBufferHandler,
+			encodeTokens: (input) => this.encodeTokenizedBasic(input),
+			outputError: this.outputError.bind(this),
+			onJsError: (error) => this.selectJsError(this.getOutputText(), error),
+			logger: UiUtils.console,
+			getCodeGeneratorBasic: () => this.getCodeGeneratorBasic(),
+			getCodeGeneratorToken: () => this.codeGeneratorToken,
+			onVariablesCleared: () => this.uiController.refreshVariables(),
+			onTokenized: (sourceLength, tokenLength) => {
+				if (UiUtils.debug) {
+					UiUtils.console.debug("parse: input length:", sourceLength, ", tokenized length:", tokenLength);
+				}
+			},
+			onMemoryError: (error) => UiUtils.console.error("vmPutProgramInMem", error),
+			programHost: {
+				getSource: () => this.getInputText(),
+				beforeCompileProgram: (source) => this.updateUserKeys(source),
+				prepareCompileOutput: (output) => this.presentCompileOutput(output),
+				beforeProgramStart: () => this.beforeProgramStart(),
+				afterProgramStart: () => this.afterProgramStart()
+			},
+			handlers: Object.fromEntries(Object.entries(this.handlers).map(([reason, handler]) => [reason, handler.bind(this)])),
+			getInitialDelay: () => this.initialLoopTimeout,
+			setTimeout: (callback, delay) => this.host.setTimeout(callback, delay),
+			onExit: () => this.exitLoop(),
+			onExecutionState: (state) => {
+				this.uiController.onExecutionState(state);
+				options.onExecutionState?.(state);
+			},
+			onUnknownReason: (reason) => UiUtils.console.warn("runLoop: Unknown run mode:", reason)
 		});
+		this.variables = this.runtime.variables;
+		this.vm = this.runtime.vm;
+		this.basicParser = this.runtime.basicParser;
+		this.basicLexer = this.runtime.basicLexer;
 		
 		const onCanvasClick = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => {
 			const handler = this.vm.getOnCanvasClickHandler();
@@ -186,39 +209,10 @@ export class Controller implements IController {
 			onCanvasClick
 		});
 		this.vm.setCanvas(this.canvas);
-		this.vm.vmReset();
+		this.runtime.reset();
 
 		this.vm.vmRegisterRsx(new RsxAmsdos(), true);
 		this.vm.vmRegisterRsx(new RsxCpcBasic(), true);
-
-		this.noStop = Object.assign({}, this.vm.vmGetStopObject());
-		this.savedStop = {
-			reason: "",
-			priority: 0,
-			paras: {
-				command: "",
-				stream: 0,
-				line: 0,
-				first: 0, // unused
-				last: 0 // unused
-			}
-		}; // backup of stop object
-		this.setStopObject(this.noStop);
-
-		this.basicParser = new BasicParser({
-			basicVersion: this.model.getProperty<string>(ModelPropID.basicVersion)
-		});
-		this.basicLexer = new BasicLexer({
-			keywords: this.basicParser.getKeywords()
-		});
-
-		this.codeGeneratorJs = new CodeGeneratorJs({
-			lexer: this.basicLexer,
-			parser: this.basicParser,
-			trace: model.getProperty<boolean>(ModelPropID.trace),
-			implicitLines: model.getProperty<boolean>(ModelPropID.implicitLines),
-			integerOverflow: model.getProperty<boolean>(ModelPropID.integerOverflow)
-		});
 
 		if (model.getProperty<boolean>(ModelPropID.sound)) { // activate sound needs user action
 			this.setSoundActive(); // activate in waiting state
@@ -241,30 +235,9 @@ export class Controller implements IController {
 		}
 	}
 
-	private static getLocalStorage() {
-		return Polyfills.localStorage || window.localStorage;
+	private getStorage() {
+		return this.host.storage;
 	}
-
-	private static readonly codeGenJsBasicParserOptions = {
-		keepBrackets: false,
-		keepColons: false,
-		keepDataComma: false,
-		keepTokens: false
-	};
-
-	private static readonly codeGenTokenBasicParserOptions = {
-		keepTokens: true,
-		keepBrackets: true,
-		keepColons: true,
-		keepDataComma: true
-	};
-
-	private static readonly formatterBasicParserOptions = {
-		keepBrackets: false,
-		keepColons: false,
-		keepDataComma: false,
-		keepTokens: false
-	};
 
 	public getCanvas(): ICanvas {
 		return this.canvas;
@@ -467,51 +440,10 @@ export class Controller implements IController {
 		this.view.setAreaInputList(ViewID.galleryAreaItems, inputs);
 	}
 
-	private static fnSortByStringProperties(a: SelectOptionElement, b: SelectOptionElement) {
-		const x = a.value,
-			y = b.value;
-
-		if (x < y) {
-			return -1;
-		} else if (x > y) {
-			return 1;
-		}
-		return 0;
-	}
-
-	private setVarSelectOptions(select: ViewID, variables: Variables) {
-		const maxVarLength = 35,
-			varNames = variables.getAllVariableNames(),
-			items: SelectOptionElement[] = [];
-
-		for (let i = 0; i < varNames.length; i += 1) {
-			const key = varNames[i],
-				value = variables.getVariable(key),
-				title = key + "=" + value;
-
-			let strippedTitle = title.substring(0, maxVarLength); // limit length
-
-			if (title !== strippedTitle) {
-				strippedTitle += " ...";
-			}
-
-			const item: SelectOptionElement = {
-				value: key,
-				text: strippedTitle,
-				title: strippedTitle,
-				selected: false
-			};
-
-			items.push(item);
-		}
-		items.sort(Controller.fnSortByStringProperties);
-		this.view.setSelectOptions(select, items);
-	}
-
 	private static readonly exportEditorText = "<editor>";
 
 	setExportSelectOptions(select: ViewID): void {
-		const dirList = Controller.fnGetStorageDirectoryEntries(),
+		const dirList = this.fnGetStorageDirectoryEntries(),
 			items: SelectOptionElement[] = [],
 			editorText = Controller.exportEditorText;
 
@@ -539,7 +471,7 @@ export class Controller implements IController {
 		}
 
 		const database = this.model.getProperty<string>(ModelPropID.database),
-			storage = Controller.getLocalStorage();
+			storage = this.getStorage();
 
 		let selectedExample = "",
 			exampleChanged = false;
@@ -553,7 +485,7 @@ export class Controller implements IController {
 		let	dir: string[];
 
 		if (!key) { // no key => get all
-			dir = Controller.fnGetStorageDirectoryEntries();
+			dir = this.fnGetStorageDirectoryEntries();
 			dir.sort();
 		} else {
 			dir = [key];
@@ -572,7 +504,7 @@ export class Controller implements IController {
 
 				if (!example) {
 					const dataString = storage.getItem(key) || "",
-						data = Controller.splitMeta(dataString);
+						data = FileHandler.splitMeta(dataString);
 
 					example = {
 						key: key,
@@ -604,6 +536,10 @@ export class Controller implements IController {
 		});
 	}
 
+	getInputText(): string {
+		return this.view.getAreaValue(ViewID.inputText);
+	}
+
 	setInputText(input: string, keepStack?: boolean): void {
 		this.view.setAreaValue(ViewID.inputText, input);
 		this.updateUserKeys(input);
@@ -612,10 +548,11 @@ export class Controller implements IController {
 		} else {
 			this.fnUpdateUndoRedoButtons();
 		}
+		this.options.onInputText?.(input, keepStack);
 	}
 
 	invalidateScript(): void {
-		this.fnScript = undefined;
+		this.runtime.invalidateProgram();
 	}
 
 	private fnWaitForContinue() {
@@ -630,86 +567,37 @@ export class Controller implements IController {
 	}
 
 	private fnOnEscape() {
-		const stop = this.vm.vmGetStopObject(),
-			stream = 0;
+		this.startEscape();
+	}
 
-		if (this.vm.vmOnBreakContSet()) {
-			// ignore break
-		} else if (stop.reason === "direct" || this.vm.vmOnBreakHandlerActive()) {
-			(stop.paras as VmInputParas).input = "";
-			const msg = "*Break*\r\n";
-
-			this.vm.print(stream, msg);
-		} else if (stop.reason !== "escape") { // first escape?
-			this.vm.cursor(stream, 1);
-			this.keyboard.clearInput();
-
+	startEscape(): void {
+		const action = this.runtime.handleEscape(this.keyboard);
+		if (action === "ignored" || action === "input") {
+			this.updateResultText();
+			return;
+		}
+		if (action === "suspended") {
 			this.keyboard.setOptions({
 				fnOnKeyDown: this.fnWaitForContinueHandler
 			});
-
-			this.setStopObject(stop);
-			this.vm.vmStop("escape", 85, false, {
-				command: "escape",
-				stream: stream,
-				first: 0, // unused
-				last: 0, // unused
-				line: this.vm.line
-			});
-		} else { // second escape
+		} else {
 			this.removeKeyBoardHandler();
-			this.vm.cursor(stream, 0);
-
-			const savedStop = this.getStopObject();
-
-			if (savedStop.reason === "waitInput") { // sepcial handling: set line to repeat input
-				this.vm.vmGoto((savedStop.paras as VmInputParas).line);
-			}
-
-			if (!this.vm.vmEscape()) {
-				this.vm.vmStop("", 0, true); // continue program, in break handler?
-				this.setStopObject(this.noStop);
-			} else {
-				this.vm.vmStop("stop", 0, true); // stop
-				const msg = "Break in " + this.vm.line + "\r\n";
-
-				this.vm.print(stream, msg);
-			}
 		}
-
 		this.startMainLoop();
 	}
 
-	private fnWaitSound() { // rather fnEvent
-		const stop = this.vm.vmGetStopObject();
-
-		this.vm.vmLoopCondition(); // update nextFrameTime, timers, inks; schedule sound: free queue
-		if (this.sound.isActivatedByUser()) { // only if activated
-			const soundDataList = this.vm.vmGetSoundData();
-
-			while (soundDataList.length && this.sound.testCanQueue(soundDataList[0].state)) {
-				const soundData = soundDataList.shift() as SoundData;
-
-				this.sound.sound(soundData);
-			}
-			if (!soundDataList.length) {
-				if (stop.reason === "waitSound") { // only for this reason
-					this.vm.vmStop("", 0, true); // no more wait
-				}
-			}
-		}
-		this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
+	private fnWaitSound() {
+		this.runtime.handleWaitSound(this.sound.isActivatedByUser());
 	}
-
 	private fnWaitKey() {
-		const key = this.keyboard.getKeyFromBuffer();
+		const key = this.runtime.handleWaitKey(
+			() => this.sound.isActivatedByUser(),
+			(key) => UiUtils.console.log("Wait for key:", key)
+		);
 
-		if (key !== "") { // do we have a key from the buffer already?
-			UiUtils.console.log("Wait for key:", key);
-			this.vm.vmStop("", 0, true);
+		if (key !== "") {
 			this.removeKeyBoardHandler();
 		} else {
-			this.fnWaitSound(); // sound and blinking events
 			// wait until keypress handler (for call &bb18)
 			this.keyboard.setOptions({
 				fnOnKeyDown: this.fnWaitKeyHandler
@@ -718,140 +606,23 @@ export class Controller implements IController {
 		return key;
 	}
 
-	private fnWaitInput() { // eslint-disable-line complexity
-		const stop = this.vm.vmGetStopObject(),
-			inputParas = stop.paras as VmInputParas,
-			stream = inputParas.stream;
-		let input = inputParas.input,
-			key: string;
-
-		if (input === undefined || stream === undefined) {
-			this.outputError(this.vm.vmComposeError(Error(), 32, "Programming Error: fnWaitInput"), true);
+	private fnWaitInput() {
+		const result = this.runtime.handleWaitInput({
+			onInvalid: (error) => this.outputError(error, true),
+			onInputReturn: (editedInput) => {
+				UiUtils.console.log("fnWaitInput:", editedInput, "reason", this.vm.vmGetStopObject().reason);
+			},
+			onInputSubmitted: () => this.removeKeyBoardHandler(),
+			startMainLoop: () => this.startMainLoop(),
+			continueExecution: () => this.startContinue()
+		});
+		if (result.status === "invalid") {
 			return;
 		}
 
-		do {
-			key = this.keyboard.getKeyFromBuffer(); // (inkey$ could insert frame if checked too often)
-			// chr13 shows as empty string!
-			switch (key) {
-			case "": // no key?
-				break;
-			case "\r": // cr (\x0d)
-				break;
-			case "\x10": // DLE (clear character under cursor)
-				key = "\x07"; // currently ignore (BEL)
-				break;
-			case "\x7f": // del
-				if (input.length) {
-					input = input.slice(0, -1);
-					key = "\x08\x10"; // use BS and DLE
-				} else {
-					key = "\x07"; // ignore BS, use BEL
-				}
-				break;
-			case "\xe0": // copy
-				key = this.vm.copychr$(stream);
-				if (key.length) {
-					input += key;
-					key = "\x09"; // TAB
-				} else {
-					key = "\x07"; // ignore (BEL)
-				}
-				break;
-			case "\xf0": // cursor up
-				if (!input.length) {
-					key = "\x0b"; // VT
-				} else {
-					key = "\x07"; // ignore (BEL)
-				}
-				break;
-			case "\xf1": // cursor down
-				if (!input.length) {
-					key = "\x0a"; // LF
-				} else {
-					key = "\x07"; // ignore (BEL)
-				}
-				break;
-			case "\xf2": // cursor left
-				if (!input.length) {
-					key = "\x08"; // BS
-				} else {
-					key = "\x07"; // ignore (BEL) TODO
-				}
-				break;
-			case "\xf3": // cursor right
-				if (!input.length) {
-					key = "\x09"; // TAB
-				} else {
-					key = "\x07"; // ignore (BEL) TODO
-				}
-				break;
-			case "\xf4": // shift+cursor up
-				key = ""; // currently ignore
-				break;
-			case "\xf5": // shift+cursor down
-				key = ""; // currently ignore
-				break;
-			case "\xf6": // shift+cursor left
-				key = ""; // currently ignore
-				break;
-			case "\xf7": // shift+cursor right
-				key = ""; // currently ignore
-				break;
-			case "\xf8": // ctrl+cursor up
-				key = ""; // currently ignore
-				break;
-			case "\xf9": // ctrl+cursor down
-				key = ""; // currently ignore
-				break;
-			case "\xfa": // ctrl+cursor left
-				key = ""; // currently ignore
-				break;
-			case "\xfb": // ctrl+cursor right
-				key = ""; // currently ignore
-				break;
-			default:
-				input += key;
-				if (key < "\x20") { // control code
-					key = "\x01" + key; // print control code (do not execute)
-				}
-				break;
-			}
-			if (key && key !== "\r") {
-				this.vm.print(stream, key);
-			}
-		} while (key !== "" && key !== "\r"); // get all keys until CR or no more key
-
-		inputParas.input = input;
-		let inputOk = false;
-
-		if (key === "\r") {
-			UiUtils.console.log("fnWaitInput:", input, "reason", stop.reason);
-			if (!inputParas.noCRLF && inputParas.command !== "input"
-    && inputParas.command !== "lineinput") {
-				this.vm.print(stream, "\r\n");
-			}
-			if (inputParas.fnInputCallback) {
-				inputOk = inputParas.fnInputCallback();
-			} else {
-				inputOk = true;
-			}
-			if (inputOk) {
-				this.removeKeyBoardHandler();
-				if (stop.reason === "waitInput") { // only for this reason
-					this.vm.vmStop("", 0, true); // no more wait
-				} else if (stop.reason === "direct") {
-					this.vm.vmStop("", 0, true);
-					this.startMainLoop();
-				} else {
-					this.startContinue();
-				}
-			}
-		}
-
-		if (!inputOk) {
-			if (stop.reason === "waitInput") { // only for this reason
-				this.fnWaitSound(); // sound and blinking events
+		if (result.status === "pending") {
+			if (result.reason === "waitInput") {
+				this.fnWaitSound();
 			}
 			// make sure the handler is set
 			this.keyboard.setOptions({
@@ -860,318 +631,65 @@ export class Controller implements IController {
 		}
 	}
 
-	private static parseLineNumber(line: string) {
-		return parseInt(line, 10); // we do not check for linenumber in range 0...65535
-	}
-
-	private static addLineNumbers(input: string) {
-		const lineParts = input.split("\n");
-		let lastLine = 0;
-
-		for (let i = 0; i < lineParts.length; i += 1) {
-			let lineNum = parseInt(lineParts[i], 10);
-
-			if (isNaN(lineNum)) {
-				lineNum = lastLine + 1;
-				lineParts[i] = String(lastLine + 1) + " " + lineParts[i];
-			}
-			lastLine = lineNum;
-		}
-		return lineParts.join("\n");
-	}
-
-	private splitLines(input: string) {
-		if (this.model.getProperty<boolean>(ModelPropID.implicitLines)) {
-			input = Controller.addLineNumbers(input);
-		}
-
-		// get numbers starting at the beginning of a line (allows some simple multi line strings)
-		const lineParts = input.split(/^(\s*\d+)/m),
-			lines: string[] = [];
-
-		if (lineParts[0] === "") {
-			lineParts.shift(); // remove first empty item
-		}
-
-		if (lineParts.length % 2 !== 0) {
-			UiUtils.console.warn("splitLines: No line numbers?");
-			const error = this.vm.vmComposeError(Error(), 21, "split"); // "Direct command found"
-
-			this.outputError(error, true);
-			return lines;
-		}
-
-		for (let i = 0; i < lineParts.length; i += 2) {
-			const number = lineParts[i];
-			let content = lineParts[i + 1];
-
-			if (content.endsWith("\n")) {
-				content = content.substring(0, content.length - 1);
-			}
-			lines.push(number + content);
-		}
-
-		return lines;
-	}
-
 	// merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
 	private mergeScripts(script1: string, script2: string) {
-		const lines1 = this.splitLines(UiUtils.stringTrimEnd(script1)),
-			lines2 = this.splitLines(UiUtils.stringTrimEnd(script2));
-		let result = [],
-			lineNumber1: number | undefined,
-			lineNumber2: number | undefined;
-
-		while (lines1.length && lines2.length) {
-			lineNumber1 = lineNumber1 || Controller.parseLineNumber(lines1[0]);
-			lineNumber2 = lineNumber2 || Controller.parseLineNumber(lines2[0]);
-
-			if (lineNumber1 < lineNumber2) { // use line from script1
-				result.push(lines1.shift());
-				lineNumber1 = 0;
-			} else { // use line from script2
-				const line2 = lines2.shift();
-
-				if (String(lineNumber2) !== line2) { // line not empty?
-					result.push(line2);
-				}
-				if (lineNumber1 === lineNumber2) { // same line number in script1 and script2
-					lines1.shift(); // ignore line from script1 (overwrite it)
-					lineNumber1 = 0;
-				}
-				lineNumber2 = 0;
-			}
-		}
-
-		result = result.concat(lines1, lines2); // put in remaining lines from one source
-		if (result.length >= 2) {
-			if (result[result.length - 2] === "" && result[result.length - 1] === "") {
-				result.pop(); // remove additional newline
-			}
-		}
-
-		return result.join("\n");
+		return BasicFormatter.mergeScripts(
+			script1,
+			script2,
+			this.model.getProperty<boolean>(ModelPropID.implicitLines),
+			() => this.reportSplitLinesError()
+		);
 	}
 
 	// get line range from a script with sorted line numbers
 	private fnGetLinesInRange(script: string, firstLine: number, lastLine: number) {
-		const lines = script ? this.splitLines(script) : [];
-
-		while (lines.length && Controller.parseLineNumber(lines[0]) < firstLine) {
-			lines.shift();
-		}
-
-		if (lines.length && lines[lines.length - 1] === "") { // trailing empty line?
-			lines.pop(); // remove
-		}
-
-		while (lines.length && Controller.parseLineNumber(lines[lines.length - 1]) > lastLine) {
-			lines.pop();
-		}
-		return lines;
+		return BasicFormatter.getLinesInRangeFromScript(
+			script,
+			firstLine,
+			lastLine,
+			this.model.getProperty<boolean>(ModelPropID.implicitLines),
+			() => this.reportSplitLinesError()
+		);
 	}
 
-	private static fnPrepareMaskRegExp(mask: string) {
-		mask = mask.replace(/([.+^$[\]\\(){}|-])/g, "\\$1");
-		mask = mask.replace(/\?/g, ".");
-		mask = mask.replace(/\*/g, ".*");
-
-		return new RegExp("^" + mask + "$");
+	private reportSplitLinesError(): void {
+		UiUtils.console.warn("splitLines: No line numbers?");
+		this.outputError(this.vm.vmComposeError(Error(), 21, "split"), true);
 	}
 
-	private fnGetExampleDirectoryEntries(mask?: string) { // optional mask
-		const dir: string[] = [],
-			allExamples = this.model.getAllExamples();
-		let regExp: RegExp | undefined;
-
-		if (mask) {
-			regExp = Controller.fnPrepareMaskRegExp(mask);
-		}
-
-		for (const key in allExamples) {
-			if (allExamples.hasOwnProperty(key)) {
-				const example = allExamples[key],
-					key2 = example.key,
-					matchKey2 = key2 + ((key2.indexOf(".") < 0) ? "." : "");
-
-				if (!regExp || regExp.test(matchKey2)) {
-					dir.push(key2);
-				}
-			}
-		}
-		return dir;
-	}
-
-	private static fnGetStorageDirectoryEntries(mask?: string) {
-		const storage = Controller.getLocalStorage(),
-			metaIdent = FileHandler.getMetaIdent(),
-			dir: string[] = [];
-		let	regExp: RegExp | undefined;
-
-		if (mask) {
-			regExp = Controller.fnPrepareMaskRegExp(mask);
-		}
-
-		for (let i = 0; i < storage.length; i += 1) {
-			const key = storage.key(i);
-
-			if (key !== null && storage[key].startsWith(metaIdent)) { // take only cpcBasic files
-				const keywithOutNl = key.replace(/[\n\r]/g, ""); // support also strange names; (newer browsers support also "s" regex modifier)
-
-				if (!regExp || regExp.test(keywithOutNl)) {
-					dir.push(key);
-				}
-			}
-		}
-		return dir;
-	}
-
-	private fnPrintDirectoryEntries(stream: number, dir: string[], sort: boolean) {
-		// first, format names
-		for (let i = 0; i < dir.length; i += 1) {
-			const parts = dir[i].split(".");
-
-			dir[i] = parts[0].padEnd(8, " ") + "." + (parts.length >= 2 ? parts[1] : "").padEnd(3, " ");
-		}
-
-		if (sort) {
-			dir.sort();
-		}
-
-		this.vm.print(stream, "\r\nDrive A: user  0\r\n\r\n");
-		for (let i = 0; i < dir.length; i += 1) {
-			const key = dir[i] + "  ";
-
-			this.vm.print(stream, key);
-		}
-		this.vm.print(stream, "\r\n\r\n999K free\r\n\r\n");
+	private fnGetStorageDirectoryEntries(mask?: string) {
+		return FileHandler.getStorageDirectoryEntries(this.getStorage(), mask);
 	}
 
 	private fnFileCat(paras: VmFileParas): void {
 		const stream = paras.stream,
-			dirList = Controller.fnGetStorageDirectoryEntries();
+			dirList = this.fnGetStorageDirectoryEntries();
 
-		this.fnPrintDirectoryEntries(stream, dirList, true);
+		this.runtime.printDirectoryEntries(dirList, stream, true);
 
 		// currently only from localstorage
 
-		this.vm.vmStop("", 0, true);
 	}
 
 	private fnFileDir(paras: VmFileParas): void {
 		const stream = paras.stream,
 			example = this.model.getProperty<string>(ModelPropID.example),
-			lastSlash = example.lastIndexOf("/");
-
-		let fileMask = paras.fileMask ? Controller.fnLocalStorageName(paras.fileMask) : "";
-		const dirList = Controller.fnGetStorageDirectoryEntries(fileMask);
-		let	path = "";
-
-		if (lastSlash >= 0) {
-			path = example.substring(0, lastSlash) + "/";
-			fileMask = path + (fileMask ? fileMask : "*.*"); // only in same directory
-		}
-
-		const fileExists: Record<string, boolean> = {};
-
-		for (let i = 0; i < dirList.length; i += 1) {
-			fileExists[dirList[i]] = true;
-		}
-
-		const dirListEx = this.fnGetExampleDirectoryEntries(fileMask); // also from examples
-
-		for (let i = 0; i < dirListEx.length; i += 1) {
-			const file = dirListEx[i].substring(path.length); // remove preceding path including "/"
-
-			if (!fileExists[file]) { // ignore duplicates
-				fileExists[file] = true;
-				dirList.push(file);
-			}
-		}
-		this.fnPrintDirectoryEntries(stream, dirList, false);
-		this.vm.vmStop("", 0, true);
+			dirList = FileHandler.getDirectoryEntries(this.getStorage(), this.model.getAllExamples(), example, paras.fileMask);
+		this.runtime.printDirectoryEntries(dirList, stream, false);
 	}
 
 	private fnFileEra(paras: VmFileParas): void {
-		const stream = paras.stream,
-			storage = Controller.getLocalStorage(),
-			fileMask = Controller.fnLocalStorageName(paras.fileMask || ""),
-			dir = Controller.fnGetStorageDirectoryEntries(fileMask);
-
-		if (!dir.length) {
-			this.vm.print(stream, fileMask + " not found\r\n");
-		}
-
-		for (let i = 0; i < dir.length; i += 1) {
-			const name = dir[i];
-
-			if (storage.getItem(name) !== null) {
-				storage.removeItem(name);
-				this.updateStorageDatabase("remove", name);
-				if (UiUtils.debug > 0) {
-					UiUtils.console.debug("fnEraseFile: name=" + name + ": removed from localStorage");
-				}
-			} else {
-				this.vm.print(stream, name + " not found\r\n");
-				UiUtils.console.warn("fnEraseFile: file not found in localStorage:", name);
+		this.runtime.eraseFiles(this.getFileHandler(), paras, (name) => {
+			if (UiUtils.debug > 0) {
+				UiUtils.console.debug("fnEraseFile: name=" + name + ": removed from localStorage");
 			}
-		}
-		this.vm.vmStop("", 0, true);
+		}, (name) => {
+			UiUtils.console.warn("fnEraseFile: file not found in localStorage:", name);
+		});
 	}
 
 	private fnFileRen(paras: VmFileParas): void {
-		const stream = paras.stream,
-			storage = Controller.getLocalStorage(),
-			newName = Controller.fnLocalStorageName(paras.newName as string),
-			oldName = Controller.fnLocalStorageName(paras.oldName as string),
-			item = storage.getItem(oldName);
-
-		if (item !== null) {
-			if (!storage.getItem(newName)) {
-				storage.setItem(newName, item);
-				this.updateStorageDatabase("set", newName);
-				storage.removeItem(oldName);
-				this.updateStorageDatabase("remove", oldName);
-			} else {
-				this.vm.print(stream, oldName + " already exists\r\n");
-			}
-		} else {
-			this.vm.print(stream, oldName + " not found\r\n");
-		}
-		this.vm.vmStop("", 0, true);
-	}
-
-	// Hisoft Devpac GENA3 Z80 Assember (http://www.cpcwiki.eu/index.php/Hisoft_Devpac)
-	private static asmGena3Convert(data: string) {
-		const fnUInt16 = function (pos2: number) {
-				return data.charCodeAt(pos2) + data.charCodeAt(pos2 + 1) * 256;
-			},
-			length = data.length;
-		let pos = 0,
-			out = "";
-
-		pos += 4; // what is the meaning of these bytes?
-
-		while (pos < length) {
-			const lineNum = fnUInt16(pos);
-
-			pos += 2;
-			let index1 = data.indexOf("\r", pos); // EOL marker 0x0d
-
-			if (index1 < 0) {
-				index1 = length;
-			}
-			let index2 = data.indexOf("\x1c", pos); // EOL marker 0x1c
-
-			if (index2 < 0) {
-				index2 = length;
-			}
-			index1 = Math.min(index1, index2);
-			out += lineNum + " " + data.substring(pos, index1) + "\n";
-			pos = index1 + 1;
-		}
-
-		return out;
+		this.runtime.renameFile(this.getFileHandler(), paras);
 	}
 
 	private getBasicFormatter() {
@@ -1220,14 +738,7 @@ export class Controller implements IController {
 	}
 
 	private encodeTokenizedBasic(input: string, name = "test") {
-		const codeGeneratorToken = this.getCodeGeneratorToken();
-
-		this.basicLexer.setOptions({
-			keepWhiteSpace: true
-		});
-		this.basicParser.setOptions(Controller.codeGenTokenBasicParserOptions);
-
-		const output = codeGeneratorToken.generate(input);
+		const output = this.getCodeGeneratorToken().generateProgram(input);
 
 		if (output.error) {
 			this.outputError(output.error);
@@ -1247,20 +758,7 @@ export class Controller implements IController {
 	}
 
 	private prettyPrintBasic(input: string, keepWhiteSpace: boolean, keepBrackets: boolean, keepColons: boolean) {
-		const codeGeneratorBasic = this.getCodeGeneratorBasic(),
-			keepDataComma = true;
-
-		this.basicLexer.setOptions({
-			keepWhiteSpace: keepWhiteSpace
-		});
-		this.basicParser.setOptions({
-			keepTokens: true,
-			keepBrackets: keepBrackets,
-			keepColons: keepColons,
-			keepDataComma: keepDataComma
-		});
-
-		const output = codeGeneratorBasic.generate(input);
+		const output = this.getCodeGeneratorBasic().generatePretty(input, keepWhiteSpace, keepBrackets, keepColons);
 
 		if (output.error) {
 			this.outputError(output.error);
@@ -1268,201 +766,43 @@ export class Controller implements IController {
 		return output.text;
 	}
 
-	// gate array ink to basic ink
-
-	private static gaInk2Ink = [
-		13,
-		27,
-		19,
-		25,
-		1,
-		7,
-		10,
-		16,
-		28,
-		29,
-		24,
-		26,
-		6,
-		8,
-		15,
-		17,
-		30,
-		31,
-		18,
-		20,
-		0,
-		2,
-		9,
-		11,
-		4,
-		22,
-		21,
-		23,
-		3,
-		5,
-		12,
-		14
-	];
-
-	private applyGaInks(inkval: number[]) {
-		for (let i = 0; i < inkval.length - 1; i += 1) {
-			this.vm.ink(i, Controller.gaInk2Ink[inkval[i]]);
-		}
-		this.vm.border(Controller.gaInk2Ink[inkval[inkval.length - 1]]);
-	}
-
-	private applyCrtcRegs(reg: number[]) {
-		for (let i = 0; i < reg.length; i += 1) {
-			this.vm.vmSetCrtcData(i, reg[i]);
-		}
-	}
-
 	private applySnapshot(input: string) {
 		const snapshot = new Snapshot({
-				name: "",
-				data: input
-			}),
-			info = snapshot.getSnapshotInfo(),
-			mode = info.ga.multi & 0x03, // eslint-disable-line no-bitwise
-			mem = snapshot.getMemory();
-
-		this.vm.vmChangeMode(mode);
-		this.applyGaInks(info.ga.inkval);
-		this.vm.vmSetRamSelect(info.ramconf);
-		this.applyCrtcRegs(info.crtc.reg);
-
-		return mem;
+			name: "",
+			data: input
+		});
+		return snapshot.applyToVm(this.vm);
 	}
 
 	private loadFileContinue(input: string | null | undefined) { // eslint-disable-line complexity
 		const inFile = this.vm.vmGetInFileObject();
-		let	data: FileMetaAndData | undefined;
-
-		if (input !== null && input !== undefined) {
-			data = Controller.splitMeta(input);
-
-			input = data.data; // maybe changed
-
-			if (data.meta.encoding === "base64") {
-				input = window.atob(input); // decode base64
-			}
-
-			const type = data.meta.typeString;
-
-			if (type === "T") { // tokenized basic?
-				input = this.decodeTokenizedBasic(input);
-			} else if (type === "P") { // BASIC?
-				input = DiskImage.unOrProtectData(input);
-				input = this.decodeTokenizedBasic(input);
-			} else if (type === "B") { // binary?
-			} else if (type === "A") { // ASCII?
-				// remove EOF character(s) (0x1a) from the end of file
-				input = input.replace(/\x1a+$/, ""); // eslint-disable-line no-control-regex
-			} else if (type === "G") { // Hisoft Devpac GENA3 Z80 Assember
-				input = Controller.asmGena3Convert(input);
-			} else if (type === "S") { // Snapshot
-				input = this.applySnapshot(input);
-			} else if (type === "X") { // (Extended) Disk image file
-				const fileHandler = this.getFileHandler(),
-					imported: string[] = [];
-
-				fileHandler.fnLoad2(input, inFile.name, type, imported); // no meta in data
-				input = "1 ' " + imported.join(", "); // imported files
-			} else if (type === "Z") { // ZIP file
-				const fileHandler = this.getFileHandler(),
-					imported: string[] = [];
-
-				fileHandler.fnLoad2(input, inFile.name, type, imported);
-				input = "1 ' " + imported.join(", "); // imported files
-			}
-		}
-
-		const command = inFile.command, // create copy of data
-			inFileLine = inFile.line || 0;
-		let	putInMemory = false,
-			startLine = 0;
-
-		if (inFile.fnFileCallback) {
-			try {
-				// the callback could close inFile, so do not use it any more
-				putInMemory = inFile.fnFileCallback(input, data && data.meta) as boolean;
-			} catch (e) {
-				UiUtils.console.warn(e);
-			}
-		}
-
-		if (input === undefined) {
-			UiUtils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
-			this.vm.vmStop("stop", 60, true);
-			this.startMainLoop();
-			return;
-		}
-
-		if (input === null) {
-			this.startMainLoop();
-			return;
-		}
-
-		if (data && data.meta.typeString === "S" && putInMemory) { // fast hack
-			input = this.decodeTokenizedBasic(input.substring(0x170));
-			putInMemory = false; // put input in text box
-		}
-
-		switch (command) {
-		case "openin":
-			break;
-		case "chainMerge":
-			input = this.mergeScripts(this.view.getAreaValue(ViewID.inputText), input);
-			this.setInputText(input);
-			this.setResultText("");
-			startLine = inFileLine;
-			this.invalidateScript();
-			this.fnParseChain();
-			break;
-		case "load":
-			if (!putInMemory) {
-				this.setInputText(input);
-				this.setResultText("");
-				this.invalidateScript();
-				this.vm.vmStop("end", 90);
-			}
-			break;
-		case "merge":
-			input = this.mergeScripts(this.view.getAreaValue(ViewID.inputText), input);
-			this.setInputText(input);
-			this.setResultText("");
-			this.invalidateScript();
-			this.fnRemoveAllVariables();
-			this.vm.vmStop("end", 90);
-			break;
-		case "chain": // TODO: if we have a line number, make sure it is not optimized away when compiling
-			this.setInputText(input);
-			this.setResultText("");
-			startLine = inFileLine;
-			this.invalidateScript();
-			this.fnParseChain();
-			break;
-		case "run":
-			if (!putInMemory) {
-				this.setInputText(input);
-				this.setResultText("");
-				startLine = inFileLine;
-				if (!data || data.meta.typeString !== "S") { // keep memory, config for snapshots
-					this.fnReset();
+		this.runtime.continueLoad(input, inFile, {
+			decode: (storedInput) => FileHandler.decodeStoredFile(storedInput, {
+				atobFn: (value) => this.host.atobFn(value),
+				decodeTokenizedBasic: (value) => this.decodeTokenizedBasic(value),
+				applySnapshot: (value) => this.applySnapshot(value),
+				importArchive: (value, type) => {
+					const imported: string[] = [];
+					this.getFileHandler().fnLoad2(value, inFile.name, type, imported);
+					return imported;
 				}
-				this.fnParseRun();
-			} else {
-				this.fnReset();
-				this.vm.clear(); // do we need this?
-			}
-			break;
-		default:
-			UiUtils.console.error("loadExample: Unknown command:", command);
-			break;
-		}
-		this.vm.vmSetStartLine(startLine);
-		this.startMainLoop();
+			}),
+			getSource: () => this.getInputText(),
+			setSource: (source) => this.setInputText(source),
+			clearResult: () => this.setResultText(""),
+			merge: (source, loaded) => this.mergeScripts(source, loaded),
+			invalidate: () => this.invalidateScript(),
+			removeVariables: () => this.fnRemoveAllVariables(),
+			reset: () => this.fnReset(),
+			parseRun: () => this.fnParseRun(),
+			parseChain: () => this.fnParseChain(),
+			onUnknownCommand: (value) => UiUtils.console.error("loadExample: Unknown command:", value),
+			setStartLine: (line) => this.vm.vmSetStartLine(line),
+			startMainLoop: () => this.startMainLoop(),
+			onWarning: (error) => UiUtils.console.warn(error),
+			onError: (message) => UiUtils.console.error(message),
+			decodeTokenizedBasic: (value) => this.decodeTokenizedBasic(value)
+		});
 	}
 
 	private createFnExampleLoaded(example: string, url: string, inFile: ReturnType<typeof this.vm.vmGetInFileObject>) {
@@ -1476,15 +816,8 @@ export class Controller implements IController {
 				UiUtils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + "loaded");
 			}
 			this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
-			this.vm.vmStop("", 0, true);
-
-			if (exampleEntry.rsx) {
-				this.vm.vmRegisterRsx(exampleEntry.rsx, false);
-			}
-
 			const input = exampleEntry.script;
-
-			this.loadFileContinue(input);
+			this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => this.loadFileContinue(loadedInput));
 		};
 	}
 
@@ -1492,25 +825,21 @@ export class Controller implements IController {
 		return () => {
 			UiUtils.console.log("Example", url, "error");
 			this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
-
-			this.vm.vmStop("", 0, true);
-
-			const error = this.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
-
-			// error or onError set
-			if (error.hidden) {
-				this.vm.vmStop("", 0, true); // clear onError
-			}
-			this.outputError(error, true);
-			this.loadFileContinue(null);
+			this.runtime.failExampleLoad(example, (error, noSelection) => this.outputError(error, noSelection), (input) => this.loadFileContinue(input));
 		};
 	}
 
 	private getLoadScript() {
-		return this.options.loadScript || UiUtils.loadScript;
+		return this.host.loadScript;
 	}
 
-	private setOutputText(text: string) {
+	getOutputText(): string {
+		return this.outScript;
+	}
+
+	setOutputText(text: string): void {
+		this.outScript = text;
+		this.invalidateScript();
 		this.view.setAreaValue(ViewID.outputText, text);
 		if (this.options.onOutputText) {
 			this.options.onOutputText(text);
@@ -1527,48 +856,28 @@ export class Controller implements IController {
 		}
 	}
 
-	private loadExample() {
+	private loadExampleFile() {
 		const inFile = this.vm.vmGetInFileObject(),
-			key = this.model.getProperty<string>(ModelPropID.example);
-		let name = inFile.name;
-
-		if (name.charAt(0) === "/") { // absolute path?
-			name = name.substring(1); // remove "/"
-			inFile.memorizedExample = name; // change!
-		} else {
-			inFile.memorizedExample = key;
-			const lastSlash = key.lastIndexOf("/");
-
-			if (lastSlash >= 0) {
-				const path = key.substring(0, lastSlash); // take path from selected example
-
-				name = path + "/" + name;
-				name = name.replace(/\w+\/\.\.\//, ""); // simplify 2 dots (go back) in path: "dir/.."" => ""
-			}
-		}
-		const example = name;
+			key = this.model.getProperty<string>(ModelPropID.example),
+			plan = FileHandler.prepareExampleLoad(inFile.name, key, this.model.getAllExamples(), this.model.getDatabase().src),
+			example = plan.name,
+			exampleEntry = plan.entry,
+			url = plan.url;
+		inFile.memorizedExample = plan.memorizedExample;
 
 		if (UiUtils.debug > 0) {
-			UiUtils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
+			UiUtils.console.debug("loadExample: name=" + example + " (current=" + key + ")");
 		}
 
-		const exampleEntry = this.model.getExample(example); // already loaded
-		let url: string;
-
-		if (exampleEntry && exampleEntry.loaded) {
+		if (plan.status === "loaded" && exampleEntry) {
 			this.model.setProperty(ModelPropID.example, example);
-			url = example;
 			const fnExampleLoaded = this.createFnExampleLoaded(example, url, inFile);
 
 			fnExampleLoaded("", example, true);
-		} else if (example && exampleEntry) { // need to load
+		} else if (plan.status === "fetch" && exampleEntry) { // need to load
 			this.model.setProperty(ModelPropID.example, example);
-			const databaseDir = this.model.getDatabase().src;
-
-			url = databaseDir + "/" + example + ".js";
 			this.getLoadScript()(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
 		} else { // keep original example in this error case
-			url = example;
 			if (example !== "") { // only if not empty
 				UiUtils.console.warn("loadExample: Unknown file:", example);
 				const fnExampleError = this.createFnExampleError(example, url, inFile);
@@ -1576,336 +885,137 @@ export class Controller implements IController {
 				fnExampleError();
 			} else {
 				this.model.setProperty(ModelPropID.example, example);
-				this.vm.vmStop("", 0, true);
-				this.loadFileContinue(""); // empty input?
+				this.runtime.completeExampleLoad("", undefined, (input) => this.loadFileContinue(input)); // empty input?
 			}
 		}
 	}
 
-	private static fnLocalStorageName(name: string, defaultExtension?: string) {
-		// modify name so we do not clash with localstorage methods/properites
-		if (name.indexOf(".") < 0) { // no dot inside name?
-			name += "." + (defaultExtension || ""); // append dot or default extension
-		}
-		return name;
-	}
-
-	private static defaultExtensions = [
-		"",
-		"bas",
-		"bin"
-	];
-
-	private static tryLoadingFromLocalStorage(name: string) {
-		const storage = Controller.getLocalStorage();
-
-		let input: string | null = null;
-
-		if (name.indexOf(".") >= 0) { // extension specified?
-			input = storage.getItem(name);
-		} else {
-			for (let i = 0; i < Controller.defaultExtensions.length; i += 1)	{
-				const storageName = Controller.fnLocalStorageName(name, Controller.defaultExtensions[i]);
-
-				input = storage.getItem(storageName);
-				if (input !== null) {
-					break; // found
-				}
-			}
-		}
-		return input; // null=not found
+	private tryLoadingFromLocalStorage(name: string) {
+		return FileHandler.loadFromStorage(this.getStorage(), name);
 	}
 
 	private fnFileLoad() {
 		const inFile = this.vm.vmGetInFileObject();
 
-		if (inFile.open) {
-			if (inFile.command === "chainMerge" && inFile.first && inFile.last) { // special handling to delete line numbers first
-				this.fnDeleteLines({
-					first: inFile.first,
-					last: inFile.last,
-					command: "CHAIN MERGE",
-					stream: 0, // unused
-					line: this.vm.line
-				});
-				this.vm.vmStop("fileLoad", 90); // restore
-			}
-
-			const name = inFile.name;
-
-			if (UiUtils.debug > 1) {
-				UiUtils.console.debug("fnFileLoad:", inFile.command, name, "details:", inFile);
-			}
-
-			const input = Controller.tryLoadingFromLocalStorage(name);
-
-			if (input !== null) {
-				if (UiUtils.debug > 0) {
-					UiUtils.console.debug("fnFileLoad:", inFile.command, name, "from localStorage");
+		this.runtime.dispatchFileLoad(inFile, {
+			deleteLines: (paras) => this.fnDeleteLines(paras),
+			logFile: (file) => {
+				if (UiUtils.debug > 1) {
+					UiUtils.console.debug("fnFileLoad:", file.command, file.name, "details:", file);
 				}
-				this.vm.vmStop("", 0, true);
+			},
+			loadFromStorage: (name) => this.tryLoadingFromLocalStorage(name),
+			onStorageLoad: (input) => {
+				if (UiUtils.debug > 0) {
+					UiUtils.console.debug("fnFileLoad:", inFile.command, inFile.name, "from localStorage");
+				}
 				this.loadFileContinue(input);
-			} else { // load from example
-				this.loadExample(/* name */);
-			}
-		} else {
-			UiUtils.console.error("fnFileLoad:", inFile.name, "File not open!"); // hopefully isName is defined
-		}
-		this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
-	}
-
-	private static splitMeta(input: string) {
-		let fileMeta: FileMeta | undefined;
-
-		if (input.indexOf(FileHandler.getMetaIdent()) === 0) { // starts with metaIdent?
-			const index = input.indexOf(","); // metadata separator
-
-			if (index >= 0) {
-				const metaString = input.substring(0, index);
-
-				input = input.substring(index + 1);
-
-				const meta = metaString.split(";");
-
-				fileMeta = {
-					typeString: meta[1],
-					start: Number(meta[2]),
-					length: Number(meta[3]),
-					entry: Number(meta[4]),
-					encoding: meta[5]
-				};
-			}
-		}
-
-		if (!fileMeta) {
-			fileMeta = {
-				typeString: ""
-			};
-		}
-
-		const metaAndData: FileMetaAndData = {
-			meta: fileMeta,
-			data: input
-		};
-
-		return metaAndData;
+			},
+			loadExample: () => this.loadExampleFile(),
+			onNotOpen: (name) => UiUtils.console.error("fnFileLoad:", name, "File not open!"),
+			setNextDelay: (delay) => this.runtime.setNextDelay(delay)
+		});
 	}
 
 	private fnFileSave() {
-		const outFile = this.vm.vmGetOutFileObject(),
-			storage = Controller.getLocalStorage();
-		let	defaultExtension = "";
+		const outFile = this.vm.vmGetOutFileObject();
 
-		if (outFile.open) {
-			const type = outFile.typeString,
-				name = outFile.name;
-
-			if (type === "P" || type === "T") {
-				defaultExtension = "bas";
-			} else if (type === "B") {
-				defaultExtension = "bin";
-			}
-			const storageName = Controller.fnLocalStorageName(name, defaultExtension);
-			let fileData: string;
-
-			if (outFile.fileData.length || (type === "B") || (outFile.command === "openout")) { // type A(for openout) or B
-				fileData = outFile.fileData.join("");
-				if (!outFile.length) { // not yet set, e.g. for ASCII? (or can we set it always?)
-					outFile.length = fileData.length; // set length
+		this.runtime.dispatchFileSave(
+			outFile,
+			(file) => this.getFileHandler().saveFile(file, () => this.getInputText(), (input, storageName) => this.encodeTokenizedBasic(input, storageName)).data,
+			(name) => {
+				if (UiUtils.debug > 0) {
+					UiUtils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
 				}
-			} else { // no file data (assuming type A, P or T) => get text
-				fileData = this.view.getAreaValue(ViewID.inputText);
-
-				if (type === "T" || type === "P") {
-					fileData = this.encodeTokenizedBasic(fileData, storageName);
-					if (fileData === "") {
-						outFile.typeString = "A"; // override type
-					} else if (type === "P") {
-						fileData = DiskImage.unOrProtectData(fileData);
-					}
-				}
-				outFile.length = fileData.length; // set length
-			}
-
-			if (UiUtils.debug > 0) {
-				UiUtils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
-			}
-
-			const meta = FileHandler.joinMeta(outFile);
-
-			storage.setItem(storageName, meta + "," + fileData);
-			this.updateStorageDatabase("set", storageName);
-
-			if (outFile.fnFileCallback) {
-				try {
-					outFile.fnFileCallback(fileData); // close file
-				} catch (e) {
-					UiUtils.console.warn(e);
-				}
-			}
-			this.vm.vmResetOutFileHandling(); // make sure it is closed
-		} else {
-			UiUtils.console.error("fnFileSave: file not open!");
-		}
-		this.vm.vmStop("", 0, true); // continue
+			},
+			() => UiUtils.console.error("fnFileSave: file not open!"),
+			(error) => UiUtils.console.warn(error)
+		);
 	}
 
 	private fnDeleteLines(paras: VmLineParas) {
-		const inputText = this.view.getAreaValue(ViewID.inputText),
+		const inputText = this.getInputText(),
 			lines = this.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
-		let	error: CustomError | undefined;
-
-		if (lines.length) {
-			for (let i = 0; i < lines.length; i += 1) {
-				const line = Controller.parseLineNumber(lines[i]);
-
-				if (isNaN(line)) {
-					error = this.vm.vmComposeError(Error(), 21, paras.command); // "Direct command found"
-					this.outputError(error, true);
-					break;
-				}
-				lines[i] = String(line); // keep just the line numbers
-			}
-
-			if (!error) {
-				let input = lines.join("\n");
-
-				input = this.mergeScripts(inputText, input); // delete input lines
-				this.setInputText(input);
-			}
-		}
-
-		this.vm.vmGoto(0); // reset current line
-		this.vm.vmStop("end", 0, true);
+		this.runtime.deleteProgramLines(
+			paras,
+			lines,
+			(deletion) => this.setInputText(this.mergeScripts(inputText, deletion)),
+			(error) => this.outputError(error, true)
+		);
 	}
 
 	private fnNew() {
-		const input = "";
-
-		this.setInputText(input);
-		this.fnRemoveAllVariables();
-
-		this.vm.vmGoto(0); // reset current line
-		this.vm.vmStop("end", 0, true);
-		this.invalidateScript();
+		this.runtime.newProgram(
+			() => this.setInputText(""),
+			() => this.invalidateScript()
+		);
 	}
 
 	private fnList(paras: VmLineParas) {
-		const input = this.view.getAreaValue(ViewID.inputText),
+		const input = this.getInputText(),
 			stream = paras.stream,
-			lines = this.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535),
-			regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
-
-		for (let i = 0; i < lines.length; i += 1) {
-			let line = lines[i];
-
-			if (stream !== 9) {
-				line = line.replace(regExp, "\x01$1"); // escape control characters to print them directly
-			}
-			this.vm.print(stream, line, "\r\n");
-		}
-
-		this.vm.vmGoto(0); // reset current line
-		this.vm.vmStop("end", 0, true);
+			lines = this.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535);
+		this.runtime.listProgram(lines, stream);
 	}
 
 	private fnReset() {
-		const vm = this.vm;
-
-		this.fnRemoveAllVariables();
-
-		vm.vmReset();
-		if (this.virtualKeyboard) {
-			this.virtualKeyboard.reset();
-		}
-
-		vm.vmStop("end", 0, true); // set "end" with priority 0, so that "compile only" still works
-		this.setOutputText("");
-		this.invalidateScript();
+		this.runtime.resetProgram(
+			() => this.virtualKeyboard?.reset(),
+			() => this.setOutputText(""),
+			() => this.invalidateScript()
+		);
 	}
 
 	private outputError(error: Error, noSelection?: boolean) {
-		const stream = 0;
-		let shortError: string;
+		const stream = 0,
+			diagnostic = Utils.createDiagnostic(error, noSelection, error.name === "CpcVm" ? this.vm.err() : undefined),
+			shortError = diagnostic.shortMessage;
 
-		if (UiUtils.isCustomError(error)) {
-			shortError = error.shortMessage || error.message;
-			if (!noSelection) {
-				const startPos = error.pos || 0,
-					len = error.len || ((error.value !== undefined) ? String(error.value).length : 0),
-					endPos = startPos + len;
+		this.uiController.onDiagnostic(diagnostic);
+		this.options.onDiagnostic?.(diagnostic);
 
-				this.view.setAreaSelection(ViewID.inputText, error.pos, endPos);
-			}
-		} else {
-			shortError = error.message;
-		}
-
-		const escapedShortError = shortError.replace(/([\x00-\x1f])/g, "\x01$1"); // eslint-disable-line no-control-regex
+		const escapedShortError = Utils.escapeControlCharacters(shortError);
 
 		this.vm.print(stream, escapedShortError + "\r\n");
 		return shortError;
 	}
 
 	private fnRenumLines(paras: VmLineRenumParas) {
-		const vm = this.vm,
-			input = this.view.getAreaValue(ViewID.inputText),
-			basicFormatter = this.getBasicFormatter();
-
-		this.basicLexer.setOptions({
-			keepWhiteSpace: false
-		});
-		this.basicParser.setOptions(Controller.formatterBasicParserOptions);
-		const output = basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
-
-		if (output.error) {
-			UiUtils.console.warn(output.error);
-			this.outputError(output.error);
-		} else {
-			this.fnPutChangedInputOnStack();
-			this.setInputText(output.text, true);
-			this.fnPutChangedInputOnStack();
-		}
-		this.vm.vmGoto(0); // reset current line
-		vm.vmStop("end", 0, true);
+		this.runtime.renumProgram(
+			this.getInputText(),
+			paras,
+			(source, newLine, oldLine, step, keep) => this.getBasicFormatter().renumber(source, newLine, oldLine, step, keep),
+			(source) => {
+				this.fnPutChangedInputOnStack();
+				this.setInputText(source, true);
+				this.fnPutChangedInputOnStack();
+			},
+			(error) => {
+				UiUtils.console.warn(error);
+				this.outputError(error);
+			}
+		);
 	}
 
 	private fnEditLineCallback() {
 		const inputParas = this.vm.vmGetStopObject().paras as VmInputParas,
-			inputText = this.view.getAreaValue(ViewID.inputText);
-		let input = inputParas.input;
-
-		input = this.mergeScripts(inputText, input);
-		this.setInputText(input);
-		this.vm.vmSetStartLine(0);
-		this.vm.vmGoto(0); // to be sure
-		this.view.setDisabled(ViewID.continueButton, true);
-		this.vm.cursor(inputParas.stream, 0);
-		this.vm.vmStop("end", 90);
-		return true;
+			inputText = this.getInputText();
+		return this.runtime.commitEditedLine(
+			inputParas,
+			inputText,
+			(source, edited) => this.mergeScripts(source, edited),
+			(source) => this.setInputText(source),
+			() => this.uiController.onProgramEdited()
+		);
 	}
 
 	private fnEditLine(paras: VmLineParas) {
-		const input = this.view.getAreaValue(ViewID.inputText),
-			stream = paras.stream,
+		const input = this.getInputText(),
 			lineNumber = paras.first || 0,
 			lines = this.fnGetLinesInRange(input, lineNumber, lineNumber);
 
 		if (lines.length) {
-			const lineString = lines[0];
-
-			this.vm.print(stream, lineString);
-			this.vm.cursor(stream, 1);
-			const inputParas: VmInputParas = {
-				command: paras.command,
-				line: paras.line,
-				stream: stream,
-				message: "",
-				fnInputCallback: this.fnEditLineCallbackHandler,
-				input: lineString
-			};
-
-			this.vm.vmStop("waitInput", 45, true, inputParas);
+			this.runtime.editLine(paras, lines[0], this.fnEditLineCallbackHandler);
 			this.fnWaitInput();
 		} else {
 			const error = this.vm.vmComposeError(Error(), 8, String(lineNumber)); // "Line does not exist"
@@ -1915,61 +1025,17 @@ export class Controller implements IController {
 		}
 	}
 
-	private fnParseBench(input: string, bench: number) {
-		let output: IOutput | undefined;
-
-		for (let i = 0; i < bench; i += 1) {
-			let time = Date.now();
-
-			output = this.codeGeneratorJs.generate(input, this.variables);
-			time = Date.now() - time;
-			UiUtils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
-			if (output.error) {
-				break;
-			}
-		}
-
-		return output;
+	private fnParse(): IOutput {
+		return this.runtime.parseProgram();
 	}
 
-	private fnParse(): IOutput {
-		const input = this.view.getAreaValue(ViewID.inputText),
-			bench = this.model.getProperty<number>(ModelPropID.bench);
-
-		this.updateUserKeys(input);
-
-		// keep variables; this.variables.removeAllVariables();
-		let	output: IOutput;
-
-		this.basicLexer.setOptions({
-			keepWhiteSpace: false
-		});
-		this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);
-		if (!bench) {
-			output = this.codeGeneratorJs.generate(input, this.variables);
-		} else {
-			output = this.fnParseBench(input, bench) as IOutput;
-		}
-
+	private presentCompileOutput(output: IOutput): string {
 		let outputString: string;
 
 		if (output.error) {
 			outputString = this.outputError(output.error);
 		} else {
 			outputString = output.text;
-			this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
-
-			// optional: tokenize to put tokens into memory...
-			const tokens = this.encodeTokenizedBasic(input);
-
-			if (UiUtils.debug) {
-				UiUtils.console.debug("parse: input length:", input.length, ", tokenized length:", tokens.length);
-			}
-			try {
-				this.vm.vmPutProgramInMem(tokens);
-			} catch (e) {
-				UiUtils.console.error("vmPutProgramInMem", e);
-			}
 		}
 
 		if (outputString && outputString.length > 0) {
@@ -1978,13 +1044,20 @@ export class Controller implements IController {
 		this.setOutputText(outputString);
 
 		this.invalidateScript();
-		this.setVarSelectOptions(ViewID.varSelect, this.variables);
+		this.uiController.refreshVariables();
 		this.uiController.onVarSelectChange();
-		return output;
+		return this.getOutputText();
+	}
+
+	private fnParseAndStart(clearVariables: boolean, clearBeforeRun: boolean): void {
+		this.runtime.compileAndStartProgram({
+			clearVariables,
+			clearBeforeRun
+		});
 	}
 
 	fnPretty(): void {
-		const input = this.view.getAreaValue(ViewID.inputText),
+		const input = this.getInputText(),
 			keepWhiteSpace = this.view.getInputChecked(ViewID.prettySpaceInput),
 			keepBrackets = this.view.getInputChecked(ViewID.prettyBracketsInput),
 			keepColons = this.view.getInputChecked(ViewID.prettyColonsInput),
@@ -2003,8 +1076,8 @@ export class Controller implements IController {
 	}
 
 	fnAddLines(): void {
-		const input = this.view.getAreaValue(ViewID.inputText),
-			output = Controller.addLineNumbers(input);
+		const input = this.getInputText(),
+			output = BasicFormatter.addLineNumbers(input);
 
 		if (output) {
 			this.fnPutChangedInputOnStack();
@@ -2016,11 +1089,7 @@ export class Controller implements IController {
 	fnRemoveLines(): void {
 		const basicFormatter = this.getBasicFormatter();
 
-		this.basicLexer.setOptions({
-			keepWhiteSpace: false
-		});
-		this.basicParser.setOptions(Controller.formatterBasicParserOptions);
-		const input = this.view.getAreaValue(ViewID.inputText),
+		const input = this.getInputText(),
 			output = basicFormatter.removeUnusedLines(input);
 
 		if (output.error) {
@@ -2075,11 +1144,11 @@ export class Controller implements IController {
 			name = "",
 			data = "";
 
-		const fnExportBase64 = function () {
+		const fnExportBase64 = () => {
 			meta.encoding = "base64";
 			const metaString = FileHandler.joinMeta(meta);
 
-			data = metaString + "," + window.btoa(data);
+			data = metaString + "," + this.host.btoaFn(data);
 			name += ".b64.txt";
 		};
 
@@ -2097,7 +1166,7 @@ export class Controller implements IController {
 
 			if (item.selected) {
 				if (item.value === editorText) {
-					data = this.view.getAreaValue(ViewID.inputText);
+					data = this.getInputText();
 					name = this.fnGetFilename(data);
 
 					const eolStr = data.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
@@ -2112,8 +1181,8 @@ export class Controller implements IController {
 					meta.entry = 0;
 				} else {
 					name = item.value;
-					data = Controller.tryLoadingFromLocalStorage(name) || "";
-					const metaAndData = Controller.splitMeta(data);
+					data = this.tryLoadingFromLocalStorage(name) || "";
+					const metaAndData = FileHandler.splitMeta(data);
 
 					Object.assign(meta, metaAndData.meta); // copy meta info
 					data = metaAndData.data;
@@ -2203,45 +1272,19 @@ export class Controller implements IController {
 		}
 	}
 
-	private fnChain(paras?: VmLineParas) {
-		const script = this.view.getAreaValue(ViewID.outputText),
-			vm = this.vm;
-		let line = paras && paras.first || 0;
+	private fnChain(paras?: VmLineParas, clearBeforeRun = false) {
+		const script = this.getOutputText(),
+			line = paras && paras.first || 0;
+		this.runtime.startProgram(script, line, clearBeforeRun);
+	}
 
-		line = line || 0;
-		if (line === 0) {
-			vm.vmResetData(); // start from the beginning => also reset data! (or put it in line 0 in the script)
-		}
-
+	private beforeProgramStart(): void {
 		if (this.vm.vmGetOutFileObject().open) {
 			this.fnFileSave();
 		}
+	}
 
-		if (!this.fnScript) {
-			try {
-				this.fnScript = new Function("o", script); // eslint-disable-line no-new-func
-			} catch (e) {
-				UiUtils.console.error(e);
-				if (e instanceof Error) {
-					this.selectJsError(script, e);
-					(e as CustomError).shortMessage = "JS " + String(e);
-					this.outputError(e, true);
-				}
-				this.fnScript = undefined;
-			}
-		}
-		vm.vmReset4Run();
-
-		if (this.fnScript) {
-			vm.vmStop("", 0, true);
-			vm.vmGoto(0); // to load DATA lines
-			this.vm.vmSetStartLine(line); // clear resets also startline
-
-			this.view.setDisabled(ViewID.runButton, true);
-			this.view.setDisabled(ViewID.stopButton, false);
-			this.view.setDisabled(ViewID.continueButton, true);
-		}
-
+	private afterProgramStart(): void {
 		if (!this.inputSet) {
 			this.inputSet = true;
 			const input = this.model.getProperty<string>(ModelPropID.input);
@@ -2251,7 +1294,7 @@ export class Controller implements IController {
 				const that = this,
 					timeout = 1;
 
-				setTimeout(function () {
+				this.host.setTimeout(function () {
 					that.startEnter();
 					that.view.setAreaValue(ViewID.inp2Text, ""); // delete input
 				}, timeout);
@@ -2264,146 +1307,57 @@ export class Controller implements IController {
 	}
 
 	private fnRun(paras?: VmLineParas) {
-		this.vm.clear(); // init variables
-		this.fnChain(paras);
+		this.fnChain(paras, true);
 	}
 
 	private fnParseRun() {
-		this.fnRemoveAllVariables();
-		const output = this.fnParse();
-
-		if (!output.error) {
-			this.fnRun();
-		}
+		this.fnParseAndStart(true, true);
 	}
 
 	private fnParseChain() {
-		const output = this.fnParse();
-
-		if (!output.error) {
-			this.fnChain();
-		}
-	}
-
-	private fnRunPart1(fnScript: Function) { // eslint-disable-line @typescript-eslint/no-unsafe-function-type
-		try {
-			fnScript(this.vm);
-		} catch (e) {
-			if (e instanceof Error) {
-				if (e.name === "CpcVm" || e.name === "Variables") {
-					let customError = e as CustomError;
-
-					if (customError.errCode !== undefined) {
-						customError = this.vm.vmComposeError(customError, customError.errCode, customError.value);
-					}
-					if (!customError.hidden) {
-						UiUtils.console.warn(customError);
-						this.outputError(customError, !customError.pos);
-					} else {
-						UiUtils.console.log(customError.message);
-					}
-				} else {
-					UiUtils.console.error(e);
-					this.selectJsError(this.view.getAreaValue(ViewID.outputText), e);
-					this.vm.vmComposeError(e, 2, "JS " + String(e)); // generate Syntax Error, set also err and erl and set stop
-					this.outputError(e, true);
-				}
-			} else {
-				UiUtils.console.error(e);
-			}
-		}
+		this.fnParseAndStart(false, false);
 	}
 
 	private fnDirectInput() {
-		const inputParas = this.vm.vmGetStopObject().paras as VmInputParas,
-			stream = inputParas.stream;
-		let input = inputParas.input;
-
-		input = input.trim();
-		inputParas.input = "";
+		const directInput = this.runtime.readDirectInput(),
+			{ input, stream } = directInput;
 		if (input !== "") { // direct input
-			this.vm.cursor(stream, 0);
-			const inputText = this.view.getAreaValue(ViewID.inputText);
+			const inputText = this.getInputText();
 
-			if (!isNaN(Controller.parseLineNumber(input))) { // start with number?
+			if (directInput.isProgramLine) {
 				if (UiUtils.debug > 0) {
 					UiUtils.console.debug("fnDirectInput: insert line=" + input);
 				}
-				input = this.mergeScripts(inputText, input);
-				this.setInputText(input, true);
-
-				this.vm.vmSetStartLine(0);
-				this.vm.vmGoto(0); // to be sure
-				this.view.setDisabled(ViewID.continueButton, true);
-
-				this.vm.cursor(stream, 1);
+				this.runtime.insertDirectProgramLine(
+					inputText,
+					input,
+					stream,
+					(source, line) => this.mergeScripts(source, line),
+					(source) => this.setInputText(source, true),
+					() => this.uiController.onProgramEdited()
+				);
 				this.updateResultText();
 				return false; // continue direct input
 			}
 
 			UiUtils.console.log("fnDirectInput: execute:", input);
 
-			const codeGeneratorJs = this.codeGeneratorJs;
-			let	output: IOutput | undefined,
-				outputString: string;
-
-			if (inputText && (!isNaN(Controller.parseLineNumber(inputText)) || this.model.getProperty<boolean>(ModelPropID.implicitLines))) { // do we have a program starting with a line number?
-				const separator = inputText.endsWith("\n") ? "" : "\n";
-
-				this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);
-				output = codeGeneratorJs.generate(inputText + separator + input, this.variables, true); // compile both; allow direct command
-				if (output.error) {
-					const error = output.error;
-
-					if (error.pos < inputText.length + 1) { // error not in direct?
-						error.message = "[prg] " + error.message;
-						output = undefined;
+			const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line as number, stream, directInput.message, {
+				outputError: (error) => this.outputError(error, true),
+				setOutputText: (text) => this.setOutputText(text),
+				onPrepareError: (error) => {
+					UiUtils.console.error(error);
+					if (error instanceof Error) {
+						this.outputError(error, true);
 					}
 				}
-			}
-
-			if (!output) {
-				this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);
-				output = codeGeneratorJs.generate(input, this.variables, true); // compile direct input only
-			}
-
-			if (output.error) {
-				outputString = this.outputError(output.error, true);
-			} else {
-				outputString = output.text;
-			}
-
-			if (outputString && outputString.length > 0) {
-				outputString += "\n";
-			}
-			this.setOutputText(outputString);
-
-			if (!output.error) {
-				this.vm.vmSetStartLine(this.vm.line as number); // fast hack
-				this.vm.vmGoto("direct");
-
-				try {
-					const fnScript = new Function("o", outputString); // eslint-disable-line no-new-func
-
-					this.fnScript = fnScript;
-					this.vm.vmSetSourceMap(codeGeneratorJs.getSourceMap());
-				} catch (e) {
-					UiUtils.console.error(e);
-					if (e instanceof Error) {
-						this.outputError(e, true);
-					}
-				}
-			}
+			});
 
 			if (!output.error) {
 				this.updateResultText();
 				return true;
 			}
 
-			const msg = inputParas.message;
-
-			this.vm.print(stream, msg);
-			this.vm.cursor(stream, 1);
 		}
 		this.updateResultText();
 		return false;
@@ -2419,27 +1373,7 @@ export class Controller implements IController {
 			return;
 		}
 
-		const vm = this.vm,
-			stream = 0,
-			msg = "Ready\r\n";
-
-		this.vm.tagoff(stream);
-		this.vm.vmResetControlBuffer();
-		if (this.vm.pos(stream) > 1) {
-			this.vm.print(stream, "\r\n");
-		}
-		this.vm.print(stream, msg);
-		this.vm.cursor(stream, 1, 1);
-
-		vm.vmStop("direct", 0, true, {
-			command: "direct",
-			stream: stream,
-			message: msg,
-			// noCRLF: true,
-			fnInputCallback: this.fnDirectInputHandler,
-			input: "",
-			line: this.vm.line
-		});
+		this.runtime.enterDirectMode(this.fnDirectInputHandler);
 		this.fnWaitInput();
 	}
 
@@ -2455,11 +1389,7 @@ export class Controller implements IController {
 
 		this.updateResultText();
 
-		this.view.setDisabled(ViewID.runButton, reason === "reset");
-		this.view.setDisabled(ViewID.stopButton, reason !== "fileLoad" && reason !== "fileSave");
-		this.view.setDisabled(ViewID.continueButton, reason === "end" || reason === "fileLoad" || reason === "fileSave" || reason === "parse" || reason === "renumLines" || reason === "reset");
-
-		this.setVarSelectOptions(ViewID.varSelect, this.variables);
+		this.uiController.refreshVariables();
 		this.uiController.onVarSelectChange();
 
 		if (reason === "stop" || reason === "end" || reason === "error" || reason === "parse" || reason === "parseRun") {
@@ -2467,79 +1397,23 @@ export class Controller implements IController {
 		}
 	}
 
-	private fnWaitFrame() {
-		this.vm.vmStop("", 0, true);
-		this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
-	}
-
-	private fnOnError() {
-		this.vm.vmStop("", 0, true); // continue
-	}
-
-	private static fnDummy() {
-		// empty
-	}
-
-	private fnTimer() {
-		this.vm.vmStop("", 0, true); // continue
-	}
-
-	private fnRunLoop() {
-		const stop = this.vm.vmGetStopObject();
-
-		this.nextLoopTimeOut = this.initialLoopTimeout;
-		if (!stop.reason && this.fnScript) {
-			this.fnRunPart1(this.fnScript); // could change reason
-		}
-
-		if (stop.reason in this.handlers) {
-			this.handlers[stop.reason].call(this, stop.paras);
-		} else {
-			UiUtils.console.warn("runLoop: Unknown run mode:", stop.reason);
-			this.vm.vmStop("error", 50);
-		}
-
-		if (stop.reason && stop.reason !== "waitSound" && stop.reason !== "waitKey" && stop.reason !== "waitInput") {
-			this.timeoutHandlerActive = false; // not running any more
-			this.exitLoop();
-		} else {
-			setTimeout(this.fnRunLoopHandler, this.nextLoopTimeOut);
-		}
+	getExecutionState(): ExecutionState {
+		return this.runtime.getExecutionState();
 	}
 
 	startMainLoop(): void {
-		if (!this.timeoutHandlerActive) {
-			this.timeoutHandlerActive = true;
-			setTimeout(this.fnRunLoopHandler, 0);
-		}
-	}
-
-	private setStopObject(stop: VmStopEntry) {
-		Object.assign(this.savedStop, stop);
-	}
-
-	private getStopObject() {
-		return this.savedStop;
+		this.runtime.startMainLoop();
 	}
 
 	startParse(): void {
-		this.removeKeyBoardHandler();
-		this.vm.vmStop("parse", 95);
+		this.runtime.beginControl("parse", () => this.removeKeyBoardHandler());
 		this.startMainLoop();
 	}
 
-	startRenum(): void {
+	startRenum(options: RenumOptions = this.uiController.getRenumOptions()): void {
 		const stream = 0;
 
-		this.vm.vmStop("renumLines", 85, false, {
-			command: "renum",
-			stream: 0, // unused
-			newLine: Number(this.view.getInputValue(ViewID.renumNewInput)), // 10
-			oldLine: Number(this.view.getInputValue(ViewID.renumStartInput)), // 1
-			step: Number(this.view.getInputValue(ViewID.renumStepInput)), // 10
-			keep: Number(this.view.getInputValue(ViewID.renumKeepInput)), // 65535, keep lines
-			line: this.vm.line
-		});
+		this.runtime.beginRenumber(options);
 
 		if (this.vm.pos(stream) > 1) {
 			this.vm.print(stream, "\r\n");
@@ -2549,37 +1423,21 @@ export class Controller implements IController {
 	}
 
 	startRun(): void {
-		this.setStopObject(this.noStop);
-
-		this.removeKeyBoardHandler();
-		this.vm.vmStop("run", 95);
+		this.runtime.beginControl("run", () => this.removeKeyBoardHandler());
 		this.startMainLoop();
 	}
 
 	startParseRun(): void {
-		this.setStopObject(this.noStop);
-		this.removeKeyBoardHandler();
-		this.vm.vmStop("parseRun", 95);
+		this.runtime.beginControl("parseRun", () => this.removeKeyBoardHandler());
 		this.startMainLoop();
 	}
 
 	startBreak(): void {
-		const vm = this.vm,
-			stop = vm.vmGetStopObject();
-
-		this.setStopObject(stop);
-		this.removeKeyBoardHandler();
-		this.vm.vmStop("break", 80);
+		this.runtime.beginControl("break", () => this.removeKeyBoardHandler());
 		this.startMainLoop();
 	}
 
-	private restoreSuspendedState(): void {
-		const stop = this.vm.vmGetStopObject();
-
-		this.removeKeyBoardHandler();
-		Object.assign(stop, this.getStopObject());
-		this.setStopObject(this.noStop);
-
+	private restoreSuspendedInputHandlers(stop: ReturnType<typeof this.vm.vmGetStopObject>): void {
 		switch (stop.reason) {
 		case "waitInput":
 			this.vm.cursor(stop.paras.stream, 1);
@@ -2596,29 +1454,32 @@ export class Controller implements IController {
 	}
 
 	startContinue(): void {
-		const stop = this.vm.vmGetStopObject();
-
 		this.view.setDisabled(ViewID.runButton, true);
 		this.view.setDisabled(ViewID.stopButton, false);
 		this.view.setDisabled(ViewID.continueButton, true);
-		if (stop.reason === "break" || stop.reason === "escape" || stop.reason === "stop" || stop.reason === "direct") {
-			if (stop.reason === "direct" || stop.reason === "escape") {
-				this.vm.cursor(stop.paras.stream, 0); // switch it off (for continue button)
+		this.runtime.continueProgram(
+			() => this.startMainLoop(),
+			() => this.removeKeyBoardHandler(),
+			(restored) => {
+				const stop = this.vm.vmGetStopObject();
+				if (restored || stop.reason === "waitInput") {
+					this.restoreSuspendedInputHandlers(stop);
+				}
 			}
-			this.restoreSuspendedState();
-		}
-		this.startMainLoop();
+		);
 	}
 
 	startReset(): void {
-		this.setStopObject(this.noStop);
-		this.removeKeyBoardHandler();
-		this.vm.vmStop("reset", 99);
+		this.runtime.beginControl("reset", () => this.removeKeyBoardHandler());
 		this.startMainLoop();
 	}
 
 	startScreenshot(): string {
 		return this.canvas.takeScreenShot();
+	}
+
+	putKeys(keys: string): void {
+		this.fnPutKeysInBuffer(keys);
 	}
 
 	private fnPutKeysInBuffer(keys: string) {
@@ -2780,19 +1641,12 @@ export class Controller implements IController {
 				UiUtils.console.warn(e);
 			}
 		}
-		this.setVarSelectOptions(ViewID.varSelect, variables);
+		this.uiController.refreshVariables();
 		this.uiController.onVarSelectChange(); // title change?
 	}
 
 	setBasicVersion(basicVersion: string): void {
-		this.basicParser.setOptions({
-			basicVersion: basicVersion
-		});
-
-		this.basicLexer.setOptions({
-			keywords: this.basicParser.getKeywords()
-		});
-
+		this.runtime.setBasicVersion(basicVersion);
 		this.invalidateScript();
 	}
 
@@ -2965,7 +1819,7 @@ export class Controller implements IController {
 				updateStorageDatabase: this.updateStorageDatabase.bind(this),
 				outputError: this.outputError.bind(this),
 				processFileImports: this.model.getProperty<boolean>(ModelPropID.processFileImports),
-				storage: Polyfills.localStorage || window.localStorage
+				storage: this.getStorage()
 			});
 		}
 		return this.fileHandler;
@@ -3013,7 +1867,7 @@ export class Controller implements IController {
 	}
 
 	private fnPutChangedInputOnStack() {
-		const input = this.view.getAreaValue(ViewID.inputText),
+		const input = this.getInputText(),
 			stackInput = this.inputStack.getInput();
 
 		if (stackInput !== input) {
@@ -3129,6 +1983,10 @@ export class Controller implements IController {
 		dragElement.setOptions(this.dragElementsData);
 	}
 
+	getVariableNames(): string[] {
+		return this.variables.getAllVariableNames();
+	}
+
 	getVariable(par: string): VariableValue {
 		return this.variables.getVariable(par);
 	}
@@ -3177,9 +2035,15 @@ export class Controller implements IController {
 	onDatabaseSelectChange(): void {
 		const databaseName = this.view.getSelectValue(ViewID.databaseSelect);
 
-		this.model.setProperty(ModelPropID.database, databaseName);
 		this.view.setSelectTitleFromSelectedOption(ViewID.databaseSelect);
+		this.loadDatabase(databaseName);
+	}
 
+	loadDatabase(name?: string): void {
+		if (name !== undefined) {
+			this.model.setProperty(ModelPropID.database, name);
+		}
+		const databaseName = this.model.getProperty<string>(ModelPropID.database);
 		const database = this.model.getDatabase();
 
 		if (!database) {
@@ -3210,41 +2074,26 @@ export class Controller implements IController {
 	}
 
 	onExampleSelectChange(): void {
-		const vm = this.vm,
-			inFile = vm.vmGetInFileObject(),
-			dataBaseName = this.model.getProperty<string>(ModelPropID.database),
-			directoryName = this.view.getSelectValue(ViewID.directorySelect);
-
-		vm.closein();
-
-		this.uiController.setPopoversHiddenExcept(); // hide all popovers, especially the gallery
-		inFile.open = true;
-
+		const directoryName = this.view.getSelectValue(ViewID.directorySelect);
 		let exampleName = this.view.getSelectValue(ViewID.exampleSelect);
 
 		if (directoryName) {
 			exampleName = directoryName + "/" + exampleName;
 		}
+		this.loadExample(exampleName);
+	}
 
-		const exampleEntry = this.model.getExample(exampleName);
-		let	autorun = this.model.getProperty<boolean>(ModelPropID.autorun);
-
-		if (exampleEntry && exampleEntry.meta) { // TTT TODO: this is just a workaround, meta is in input now; should change command after loading!
-			const type = exampleEntry.meta.charAt(0);
-
-			if (type === "B" || type === "D" || type === "G") { // binary, data only, Gena Assembler?
-				autorun = false;
-			}
-		}
-		inFile.command = autorun ? "run" : "load";
-
-		if (dataBaseName !== "storage") {
-			exampleName = "/" + exampleName; // load absolute
-		} else {
-			this.model.setProperty(ModelPropID.example, exampleName);
-		}
-
-		inFile.name = exampleName;
+	loadExample(key: string, options: ExampleLoadOptions = {}): void {
+		const vm = this.vm,
+			inFile = vm.vmGetInFileObject(),
+			dataBaseName = this.model.getProperty<string>(ModelPropID.database);
+		this.model.setProperty(ModelPropID.example, key);
+		vm.closein();
+		this.uiController.setPopoversHiddenExcept();
+		inFile.open = true;
+		const request = FileHandler.createExampleLoadRequest(key, dataBaseName, this.model.getExample(key)?.meta, options.autorun ?? this.model.getProperty<boolean>(ModelPropID.autorun));
+		inFile.command = request.command;
+		inFile.name = request.name;
 		inFile.start = undefined;
 		inFile.fnFileCallback = vm.vmGetLoadHandler();
 		vm.vmStop("fileLoad", 90);
@@ -3253,7 +2102,7 @@ export class Controller implements IController {
 
 	// currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
 	exportAsBase64(storageName: string): string { // eslint-disable-line class-methods-use-this
-		const storage = Controller.getLocalStorage();
+		const storage = this.getStorage();
 		let data = storage.getItem(storageName),
 			out = "";
 
@@ -3264,10 +2113,10 @@ export class Controller implements IController {
 				const meta = data.substring(0, index);
 
 				data = data.substring(index + 1);
-				data = window.btoa(data);
+				data = this.host.btoaFn(data);
 				out = meta + ";base64," + data;
 			} else { // hmm, no meta info
-				data = window.btoa(data);
+				data = this.host.btoaFn(data);
 				out = "base64," + data;
 			}
 		}
@@ -3289,84 +2138,53 @@ export class Controller implements IController {
 
 	fnArrayBounds(): void {
 		const arrayBounds = this.model.getProperty<boolean>(ModelPropID.arrayBounds);
-
-		this.variables.setOptions({
-			arrayBounds: arrayBounds
-		});
-		this.vm.vmGoto(0); // reset current line
-		this.vm.vmStop("end", 0, true);
-		this.fnRemoveAllVariables();
+		this.runtime.setArrayBounds(arrayBounds);
 	}
 
 	fnImplicitLines(): void {
 		const implicitLines = this.model.getProperty<boolean>(ModelPropID.implicitLines);
-
-		this.codeGeneratorJs.setOptions({
-			implicitLines: implicitLines
-		});
-		if (this.codeGeneratorToken) {
-			this.codeGeneratorToken.setOptions({
-				implicitLines: implicitLines
-			});
-		}
+		this.runtime.setImplicitLines(implicitLines);
 	}
 
 	fnRemoveAllVariables(): void {
 		if (Object.keys(this.variables.getAllVariables()).length) {
 			this.variables.removeAllVariables();
-			this.setVarSelectOptions(ViewID.varSelect, this.variables);
+			this.uiController.refreshVariables();
 		}
 	}
 
 	fnPrettyLowercaseVars(): void {
 		const prettyLowercaseVars = this.model.getProperty<boolean>(ModelPropID.prettyLowercaseVars);
-
-		this.getCodeGeneratorBasic().setOptions({
-			lowercaseVars: prettyLowercaseVars
-		});
+		this.runtime.setPrettyLowercaseVars(prettyLowercaseVars);
 	}
 
 	fnIntegerOverflow(): void {
 		const integerOverflow = this.model.getProperty<boolean>(ModelPropID.integerOverflow);
-
-		this.codeGeneratorJs.setOptions({
-			integerOverflow: integerOverflow
-		});
+		this.runtime.setIntegerOverflow(integerOverflow);
 	}
 
 	fnTrace(): void {
 		const trace = this.model.getProperty<boolean>(ModelPropID.trace);
-
-		this.codeGeneratorJs.setOptions({
-			trace: trace
-		});
+		this.runtime.setTrace(trace);
 	}
 
 	fnSpeed(): void {
 		const speed = this.model.getProperty<number>(ModelPropID.speed);
 
-		this.initialLoopTimeout = 1000 - speed * 10;
+		this.initialLoopTimeout = Runtime.getLoopDelay(speed);
 	}
 
 	/* eslint-disable no-invalid-this */
 	private readonly handlers: Record<string, (paras: VmBaseParas) => void> = {
-		timer: this.fnTimer,
 		waitKey: this.fnWaitKey,
-		waitFrame: this.fnWaitFrame,
 		waitSound: this.fnWaitSound,
 		waitInput: this.fnWaitInput,
 		fileCat: this.fnFileCat,
 		fileDir: this.fnFileDir,
 		fileEra: this.fnFileEra,
 		fileRen: this.fnFileRen,
-		error: Controller.fnDummy,
-		onError: this.fnOnError,
-		stop: Controller.fnDummy,
-		"break": Controller.fnDummy,
-		escape: Controller.fnDummy,
 		renumLines: this.fnRenumLines,
 		deleteLines: this.fnDeleteLines,
-		end: Controller.fnDummy,
 		editLine: this.fnEditLine,
 		list: this.fnList,
 		fileLoad: this.fnFileLoad,

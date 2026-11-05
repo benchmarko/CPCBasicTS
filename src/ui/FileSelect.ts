@@ -15,9 +15,9 @@ export interface FileSelectOptions {
 export class FileSelect {
 	private readonly options: FileSelectOptions;
 
-	private readonly fnOnErrorHandler: () => void;
-	private readonly fnOnLoadHandler: () => void;
-	private readonly fnOnFileSelectHandler: () => void;
+	private readonly fnOnErrorHandler: (event: ProgressEvent<FileReader>) => void;
+	private readonly fnOnLoadHandler: (event: ProgressEvent<FileReader>) => void;
+	private readonly fnOnFileSelectHandler: (event: Event) => void;
 
 	private files?: FileList;
 	private fileIndex = 0;

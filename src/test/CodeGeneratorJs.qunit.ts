@@ -5,6 +5,7 @@ import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { CodeGeneratorJs } from "../CodeGeneratorJs";
 import { Variables } from "../Variables";
+import type { CustomError } from "../Interfaces";
 import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
 import { TestInput } from "./TestInput";
 
@@ -818,4 +819,113 @@ QUnit.module("CodeGeneratorJs: Tests", function (hooks) {
 
 	TestHelper.compareAllTests(TestInput.getAllTests(), allTests);
 	TestHelper.generateAllTests(allTests, runTestsFor, hooks);
+
+	QUnit.test("direct commands retain the stored program and can reference its labels", function (assert) {
+		const generator = createCodeGeneratorJs();
+		generator.setOptions({ noCodeFrame: false });
+		const output = generator.generateDirect("GOSUB 100", '10 END\n100 PRINT "PROGRAM":RETURN', new Variables({}));
+		assert.notOk(output.error);
+		assert.ok(output.text.includes('"PROGRAM"'));
+		assert.ok(output.text.includes('case "direct"'));
+	});
+
+	QUnit.test("direct compilation falls back only for errors in the stored program", function (assert) {
+		const generator = createCodeGeneratorJs(),
+			generate = generator.generate.bind(generator),
+			inputs: string[] = [];
+		generator.generate = (input, variables, allowDirect) => {
+			inputs.push(input);
+			return generate(input, variables, allowDirect);
+		};
+		const output = generator.generateDirect('PRINT "COMMAND"', "10 LET =", new Variables({}));
+		assert.notOk(output.error);
+		assert.deepEqual(inputs, ['10 LET =\nPRINT "COMMAND"', 'PRINT "COMMAND"']);
+		for (const program of ["10 END", "10 END\n"]) {
+			inputs.length = 0;
+			const invalid = generator.generateDirect("=", program, new Variables({}));
+			assert.ok(invalid.error);
+			assert.strictEqual(inputs.length, 1, "A command error does not trigger fallback");
+			assert.strictEqual(invalid.error?.pos, program.length + (program.endsWith("\n") ? 0 : 1));
+		}
+	});
+
+	QUnit.test("direct compilation does not retry failures without a source offset", function (assert) {
+		const generator = createCodeGeneratorJs(),
+			error = new Error("Compiler failure") as CustomError;
+		let calls = 0;
+		generator.generate = () => {
+			calls += 1;
+			return { text: "", error };
+		};
+		assert.strictEqual(generator.generateDirect("PRINT 1", "10 END", new Variables({})).error, error);
+		assert.strictEqual(calls, 1);
+	});
+
+	QUnit.test("direct compilation supports implicit programs and ignores unnumbered source otherwise", function (assert) {
+		const generator = createCodeGeneratorJs();
+		let output = generator.generateDirect('PRINT "COMMAND"', 'PRINT "PROGRAM"', new Variables({}));
+		assert.notOk(output.error);
+		assert.notOk(output.text.includes('"PROGRAM"'));
+		generator.setOptions({ implicitLines: true });
+		output = generator.generateDirect('PRINT "COMMAND"', 'PRINT "PROGRAM"', new Variables({}));
+		assert.notOk(output.error);
+		assert.ok(output.text.includes('"PROGRAM"'));
+		assert.ok(output.text.includes('"COMMAND"'));
+	});
+
+	QUnit.test("direct compilation resets lexer and parser formatting options", function (assert) {
+		const generator = createCodeGeneratorJs(),
+			expected = generator.generateDirect("PRINT (2+3)", "10 END", new Variables({}));
+		generator.getOptions().lexer.setOptions({ keepWhiteSpace: true });
+		generator.getOptions().parser.setOptions({ keepTokens: true, keepColons: true, keepBrackets: true, keepDataComma: true });
+		assert.deepEqual(generator.generateDirect("PRINT (2+3)", "10 END", new Variables({})), expected);
+	});
+
+	QUnit.test("BASIC version changes keep parser and lexer keywords synchronized", function (assert) {
+		const generator = createCodeGeneratorJs(),
+			source = "10 FILL 1";
+		generator.setBasicVersion("1.1");
+		assert.notOk(generator.generateProgram(source, new Variables({})).error);
+		generator.setBasicVersion("1.0");
+		assert.ok(generator.generateProgram(source, new Variables({})).error);
+		generator.setBasicVersion("1.1");
+		assert.notOk(generator.generateProgram(source, new Variables({})).error);
+	});
+
+	QUnit.test("program compilation resets formatting options", function (assert) {
+		const generator = createCodeGeneratorJs(),
+			source = "10 value=(2+3):PRINT value\n20 END",
+			expected = generator.generateProgram(source, new Variables({})),
+			sourceMap = generator.getSourceMap();
+		generator.getOptions().lexer.setOptions({ keepWhiteSpace: true });
+		generator.getOptions().parser.setOptions({
+			keepBrackets: true,
+			keepColons: true,
+			keepDataComma: true,
+			keepTokens: true
+		});
+		const actual = generator.generateProgram(source, new Variables({}));
+		assert.notOk(expected.error);
+		assert.deepEqual(actual, expected);
+		assert.deepEqual(generator.getSourceMap(), sourceMap);
+	});
+
+	QUnit.test("program compilation runs once and preserves diagnostics", function (assert) {
+		const generator = createCodeGeneratorJs(),
+			generate = generator.generate.bind(generator),
+			variables = new Variables({});
+		let calls = 0;
+		generator.generate = (input, passedVariables, allowDirect) => {
+			calls += 1;
+			assert.strictEqual(passedVariables, variables);
+			return generate(input, passedVariables, allowDirect);
+		};
+		assert.notOk(generator.generateProgram("10 value=7", variables).error);
+		assert.strictEqual(calls, 1);
+		calls = 0;
+		const invalid = generator.generateProgram("10 LET =", variables),
+			expected = generate("10 LET =", variables);
+		assert.deepEqual(invalid.error, expected.error);
+		assert.strictEqual(calls, 1);
+	});
 });

@@ -253,9 +253,6 @@ A list of *CALL*s which are supported. Other *CALL*s are ignored.
 - You can also use a *Console log* window, which is usually hidden. Enable it with the URL parameters *showConsoleLog=true&debug=2*. Example:
  [CPCBasicTS Debug](https://benchmarko.github.io/CPCBasicTS/?showConsoleLog=true&debug=2).
  This is especially useful on mobile devices. If necessary, delete the content manually.
-- There is also an experimental parameter *bench=n* to time the "parsing step" n times.
-  An example with a large BASIC program:
-[sultans2 parsing](https://benchmarko.github.io/CPCBasicTS/?bench=5&database=apps&example=games/sultan2) (check the console output in the browser developer tools).
 
 ## URL parameters
 
@@ -263,7 +260,6 @@ These URL parameters are also put in the URL when you press the *Reload* button 
 
 - arrayBounds=false (check array bounds)
 - autorun=true
-- bench=0 (only for debugging: number of parse bench loops)
 - canvasType=graphics ("graphics", "text", "none")
 - databaseDirs=examples (example base directories, comma separated, name can be assigned with "=")
   - Example: `databaseDirs=./examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/LocoBasic/examples=locobasic,storage`

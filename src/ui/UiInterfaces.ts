@@ -4,7 +4,7 @@
 //
 //
 
-import type { ICanvasVm, VariableValue } from "../Interfaces";
+import type { ICanvasVm, IRuntimeController } from "../Interfaces";
 import type { ViewID } from "./UiConstants";
 
 // Canvas
@@ -32,30 +32,15 @@ export interface ICanvas extends ICanvasVm {
 
 // Controller
 
-export interface IController {
-    startParse: () => void
-    startRenum: () => void
-
-    startRun: () => void
-    startParseRun: () => void
-    startBreak: () => void
-    startContinue: () => void
-    startReset: () => void
+export interface IController extends IRuntimeController {
     startScreenshot: () => string
     startEnter: () => void
 
-    fnPretty: () => void
-    fnAddLines: () => void
-    fnRemoveLines: () => void
-
     fnDownload: () => void
-    setInputText: (input: string, keepStack?: boolean) => void
     setExampleSelectOptions: () => void
     setExportSelectOptions: (id: ViewID) => void
     setGalleryAreaInputs: () => void
-    invalidateScript: () => void
     setSoundActive: () => void
-    setBasicVersion: (basicVersion: string) => void
     setPalette: (palette: string) => void
     setCanvasType: (canvasType: string) => ICanvas
     setDisassAddr: (addr: number, endAddr?: number) => void
@@ -71,18 +56,8 @@ export interface IController {
     startUpdateCanvas: () => void
     stopUpdateCanvas: () => void
     getVirtualKeyboard: () => void
-    getVariable: (par: string) => VariableValue
-    // see VariableValue in Variables.ts
-
     undoStackElement: () => string
     redoStackElement: () => string
-
-    fnImplicitLines: () => void
-    fnIntegerOverflow: () => void
-    fnPrettyLowercaseVars: () => void
-    fnArrayBounds: () => void
-    fnTrace: () => void
-    fnSpeed: () => void
 
     fnDragElementsActive: (enabled: boolean) => void
  }

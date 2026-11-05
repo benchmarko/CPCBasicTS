@@ -2,10 +2,9 @@ import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { CodeGeneratorJs } from "../CodeGeneratorJs";
 import { CpcVm } from "../CpcVm";
+import { NullCanvas } from "../NullCanvas";
 import { Random } from "../Random";
 import { Variables } from "../Variables";
-import { NoCanvas } from "../ui/NoCanvas";
-import type { CanvasOptions } from "../ui/UiInterfaces";
 import type { CustomError, IKeyboard, ISound, SoundData, ToneEnvData, VolEnvData } from "../Interfaces";
 
 export interface HeadlessCell {
@@ -36,13 +35,9 @@ function unsupported(feature: string): never {
 }
 
 // Reuse the existing null graphics device, adding observable text cells.
-export class HeadlessScreen extends NoCanvas {
+export class HeadlessScreen extends NullCanvas {
 	private readonly cells = new Map<string, HeadlessCell>();
 	private modeValue = 1;
-
-	constructor() {
-		super({} as CanvasOptions);
-	}
 
 	reset(): void {
 		this.cells?.clear();

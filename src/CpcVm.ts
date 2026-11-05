@@ -2592,38 +2592,41 @@ export class CpcVm implements ICpcVm {
 		});
 	}
 
-	private vmLoadCallback(input: string, meta: FileMeta) {
-		const inFile = this.inFile;
+	vmPutFileInMemory(input: string | null, meta: FileMeta | undefined, includeSnapshot: boolean): boolean {
+		const inFile = this.inFile,
+			shouldPutInMemory = input !== null && meta && (meta.typeString === "B" || (includeSnapshot && meta.typeString === "S") || inFile.start !== undefined);
 
-		let	putInMemory = false;
+		if (!shouldPutInMemory || input === null || !meta) {
+			return false;
+		}
+		const start = inFile.start !== undefined ? inFile.start : Number(meta.start);
+		let	length = Number(meta.length); // we do not really need the length from metadata
 
-		if (input !== null && meta) {
-			if (meta.typeString === "B" || meta.typeString === "S" || inFile.start !== undefined) { // only for binary files or when a load address is specified (feature)
-				const start = inFile.start !== undefined ? inFile.start : Number(meta.start);
-				let	length = Number(meta.length); // we do not really need the length from metadata
+		if (isNaN(length)) {
+			length = input.length; // only valid after atob()
+		}
+		if (Utils.debug > 1) {
+			Utils.console.debug("vmPutFileInMemory:", inFile.name + ": putting data in memory", start, "-", start + length);
+		}
 
-				if (isNaN(length)) {
-					length = input.length; // only valid after atob()
-				}
-				if (Utils.debug > 1) {
-					Utils.console.debug("vmLoadCallback:", inFile.name + ": putting data in memory", start, "-", start + length);
-				}
+		if (meta.typeString === "S") {
+			for (let i = 0; i < length; i += 1) {
+				this.vmSetMem(start + i, input.charCodeAt(i)); // set snapshot data directly without memory mapping
+			}
+			const addr = this.screenPage << 14; // eslint-disable-line no-bitwise
 
-				if (meta.typeString === "S") {
-					for (let i = 0; i < length; i += 1) {
-						this.vmSetMem(start + i, input.charCodeAt(i)); // set snapshot data directly without memory mapping
-					}
-					const addr = this.screenPage << 14; // eslint-disable-line no-bitwise
-
-					this.vmCopyToScreen(addr, addr);
-				} else {
-					for (let i = 0; i < length; i += 1) {
-						this.poke((start + i) & 0xffff, input.charCodeAt(i)); // eslint-disable-line no-bitwise
-					}
-				}
-				putInMemory = true;
+			this.vmCopyToScreen(addr, addr);
+		} else {
+			for (let i = 0; i < length; i += 1) {
+				this.poke((start + i) & 0xffff, input.charCodeAt(i)); // eslint-disable-line no-bitwise
 			}
 		}
+		return true;
+	}
+
+	private vmLoadCallback(input: string, meta: FileMeta) {
+		const putInMemory = this.vmPutFileInMemory(input, meta, true);
+
 		this.closein();
 		return putInMemory;
 	}
@@ -3756,15 +3759,14 @@ export class CpcVm implements ICpcVm {
 
 	private vmRunCallback(input: string, meta: FileMeta) {
 		const inFile = this.inFile,
+			line = inFile.line,
 			putInMemory = input !== null && meta && (meta.typeString === "B" || inFile.start !== undefined);
-
-		// TODO: we could put it in memory as we do it for LOAD
 
 		if (input !== null) {
 			const lineParas: VmLineParas = {
 				command: "run",
 				stream: 0, // unused
-				first: inFile.line,
+				first: line,
 				last: 0, // unused
 				line: this.line
 			};

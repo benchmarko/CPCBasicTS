@@ -1,5 +1,84 @@
 # Headless BASIC Tests
 
+## Controller Execution State
+
+The controller-based runner is separate from the deterministic test harness below.
+Both controllers implement the DOM-free `IRuntimeController` contract, exported
+as a type from the core entry point. It covers source access, key input,
+execution commands, formatting, and runtime settings. The browser's `IController`
+extends it with presentation-only operations such as screenshots and galleries.
+
+`getVariableNames()` returns a fresh list of internal runtime identifiers, such
+as `countR`, `name$`, or `boardAR`. `getVariable(name)` reads those identifiers,
+matching the existing browser variable panel; it does not resolve BASIC names.
+Array values retain the existing live-reference behavior. Browser labels and
+sorting are handled by the UI adapter, not the runtime controller.
+
+`getOutputText()` returns the controller-owned compiled output.
+`setOutputText(text)` replaces it and invalidates the cached JavaScript function.
+Browser output-editor changes synchronize through this setter. Compiled output
+is trusted JavaScript, not a sandboxed input format.
+
+Both controller option types extend the core `RuntimeCallbacks` interface:
+source changes, compiled output, result text, execution state, diagnostics, and
+program completion use the same callback names and payloads. All listeners are
+optional; hosts can observe only what they need. The browser also reports
+programmatic source changes through `onInputText(value, keepStack)`.
+
+`RuntimeHost`, also exported as a core type, defines storage, script loading,
+base64 codecs, and scheduling. `Controller0` requires these services. The browser
+controller accepts overrides through its options and otherwise uses lazy browser
+defaults. Imports, exports, directory commands, and file loading all use the same
+injected storage and codecs.
+
+Both `Controller0` and the browser `Controller` expose `getExecutionState()` and
+accept an optional `onExecutionState(state)` callback. Snapshots contain `reason`,
+`line`, and `isRunning`; repeated identical snapshots do not trigger callbacks.
+
+`isRunning` means the controller loop is active, including input, key, and sound
+waits. It is false when suspended or idle in direct mode. Reasons are the VM's
+existing stop reasons, not UI labels: explicit BASIC END reports `stop`. Terminal
+states are reported before the controller enters direct mode. Snapshots are copies
+and do not expose mutable VM state.
+
+`startEscape()` applies the same two-stage break policy in both controllers.
+The first Escape suspends execution; `startContinue()` or a nonempty `putKeys()`
+resumes it. When resuming with keys, the first queued character is consumed as
+the resume key. A second Escape stops or enters the BASIC ON BREAK handler.
+In direct mode, Escape clears the partially typed command without starting the
+execution loop. ON BREAK CONT retains its normal ignore behavior.
+
+Both controllers also accept an optional `onDiagnostic(diagnostic)` callback for
+visible compiler and runtime errors. Copied payloads preserve the full and short
+messages, error name, source position and length, BASIC line, value, and BASIC
+error code when available. `selectSource` indicates whether the browser should
+highlight the source range; suppressing selection does not discard metadata.
+Errors handled by BASIC's ON ERROR do not emit visible diagnostics. The existing
+CPC error text is still printed independently of this callback.
+
+`Controller0` also supports the runtime-setting commands used by the browser:
+`setBasicVersion(version)`, `fnArrayBounds()`, `fnImplicitLines()`,
+`fnIntegerOverflow()`, `fnTrace()`, `fnPrettyLowercaseVars()`, and `fnSpeed()`.
+For the `fn...` commands, update the corresponding model property first; these
+commands explicitly apply that property to existing compiler/runtime instances.
+Array-bound changes reset the current execution position and clear variables.
+
+`startRenum({ newLine, oldLine, step, keep })` schedules renumbering without UI
+fields. All options are optional; omitted values use the existing defaults of
+10, 1, 10, and 65535. Calling the browser controller without arguments still
+uses the renumber fields. Source changes and failures use the normal source and
+diagnostic callbacks.
+
+`loadDatabase(name)` selects and loads a configured database, then loads its
+selected example; omitting the name uses the model's current database.
+`loadExample(key, { autorun })` loads a full database-relative key without reading
+selection controls. The optional autorun override applies only to that load and
+does not change the model's default. Binary, data-only, and assembler examples
+retain the existing load-only behavior. Loading uses the injected script loader
+and storage. The legacy selection-handler methods remain compatibility wrappers.
+
+## Deterministic Test Harness
+
 The Node entry point exports a small testing harness around the existing BASIC
 compiler and VM. It executes compiled BASIC, not a separate model of the program.
 No compiler or production VM changes are required.
