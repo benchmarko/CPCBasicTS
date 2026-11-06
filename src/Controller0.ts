@@ -28,7 +28,7 @@ export interface ControllerOptions0 extends RuntimeHost, RuntimeCallbacks {
 	keyboard: IKeyboard
 	sound: ISound
 	isHeadlessDirectInput?: boolean
-	console: any, //TTT
+	console: Console,
 }
 
 export class Controller0 implements IRuntimeController {

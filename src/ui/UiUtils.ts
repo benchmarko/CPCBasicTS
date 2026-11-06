@@ -1,5 +1,11 @@
 import type { CustomError, LoadScriptFn } from "../Interfaces";
 
+type LegacyScriptElement = (HTMLScriptElement | HTMLLinkElement) & {
+	readyState?: string
+	attachEvent?: (type: string, listener: (event?: Event) => void) => void
+	detachEvent?: (type: string, listener: (event?: Event) => void) => void
+};
+
 export class UiUtils {
 	public static debug = 0;
 	public static console = console;
@@ -33,7 +39,7 @@ export class UiUtils {
 				const node = (event ? (event.currentTarget || event.srcElement) : script) as HTMLScriptElement | HTMLLinkElement,
 					fullUrl = (node as HTMLScriptElement).src || (node as HTMLLinkElement).href, // src for script, href for link
 					key = node.getAttribute("data-key") as string,
-					node2 = node as any;
+						node2 = node as LegacyScriptElement;
 
 				if (node2.detachEvent) {
 					node2.detachEvent("onreadystatechange", onScriptReadyStateChange);
@@ -60,9 +66,10 @@ export class UiUtils {
 				}
 			};
 
-		if ((script as any).readyState) { // old IE8
+		const legacyScript = script as LegacyScriptElement;
+		if (legacyScript.readyState && legacyScript.attachEvent) { // old IE8
 			ieTimeoutCount = 3;
-			(script as any).attachEvent("onreadystatechange", onScriptReadyStateChange);
+			legacyScript.attachEvent("onreadystatechange", onScriptReadyStateChange);
 		} else {
 			script.addEventListener("load", onScriptLoad, false);
 			script.addEventListener("error", onScriptLoad, false);

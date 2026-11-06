@@ -24,12 +24,12 @@ export class Model implements IModel {
 
 	// {
 	getProperty<T extends ConfigEntryType>(property: string): T { //getProperty<T extends ConfigEntryType>(property: ModelPropID): T
-		return this.config[property as any] as T; // keyof ConfigType?
+		return this.config[property] as T; // keyof ConfigType?
 	}
 	setProperty<T extends ConfigEntryType>(property: string, value: T): void {
-		const previousValue = this.config[property as any] as ConfigEntryType | undefined;
+		const previousValue = this.config[property] as ConfigEntryType | undefined;
 
-		this.config[property as any] = value;
+		this.config[property] = value;
 		if (value !== previousValue && this.propertyChangeCallback) {
 			this.propertyChangeCallback();
 		}

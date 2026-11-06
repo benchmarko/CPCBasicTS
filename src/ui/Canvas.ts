@@ -527,8 +527,12 @@ export class Canvas implements ICanvas, ICanvasVm {
 	}
 
 	private getMousePos(event: MouseEvent) {
-		const anyDoc = document as any,
-			isFullScreen = Boolean(document.fullscreenElement || anyDoc.mozFullScreenElement || anyDoc.webkitFullscreenElement || anyDoc.msFullscreenElement),
+		const legacyDocument = document as Document & {
+			mozFullScreenElement?: Element | null
+			webkitFullscreenElement?: Element | null
+			msFullscreenElement?: Element | null
+		},
+			isFullScreen = Boolean(document.fullscreenElement || legacyDocument.mozFullScreenElement || legacyDocument.webkitFullscreenElement || legacyDocument.msFullscreenElement),
 			rect = this.canvas.getBoundingClientRect();
 
 		if (isFullScreen) {

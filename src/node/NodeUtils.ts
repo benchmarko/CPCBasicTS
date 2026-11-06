@@ -6,13 +6,9 @@ import { Controller0, ControllerOptions0 } from "../Controller0";
 //import { View } from "../ui/View";
 //import { NodeDocumentAdapter } from "./NodeDocumentAdapter";
 
-interface NodeHttps {
-	get: (url: string, fn: (res: any) => void) => any
-}
-
-interface NodeFs {
-	readFile: (name: string, encoding: string, fn: (res: any) => void) => any
-}
+type NodeHttps = typeof import("node:https");
+type NodeFs = typeof import("node:fs");
+type CpcBasicNodeAPI = Pick<ICore, "addIndex" | "addItem" | "addRsx">;
 
 const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // eslint-disable-line no-new-func
 
@@ -78,7 +74,7 @@ export class NodeUtils implements INodeUtils {
 			cwd = (myGlobalThis.process && myGlobalThis.process.cwd) ? myGlobalThis.process.cwd() : "",
 			name2 = (cwd && name.indexOf(":") < 0 && !name.startsWith("/")) ? cwd + "/" + name : name;
 
-		nodeFs.readFile(name2, "utf8", fnDataLoaded);
+		nodeFs.readFile(name2, "utf8", (error, data) => fnDataLoaded(error ?? undefined, data));
 	}
 
 	private static isUrl(s: string) {
@@ -144,7 +140,8 @@ export class NodeUtils implements INodeUtils {
 		//const nodeDocument = new NodeDocumentAdapter();
 
 		//(myGlobalThis as any).document = nodeDocument;
-		(myGlobalThis as any).cpcBasic = {
+		const cpcBasicGlobal = myGlobalThis as typeof myGlobalThis & { cpcBasic?: CpcBasicNodeAPI };
+		cpcBasicGlobal.cpcBasic = {
 			addIndex: core.addIndex,
 			addItem: (key: string, input: string | (() => void)) => {
 				core.addItem(key || NodeUtils.currentScriptKey, input);

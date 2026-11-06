@@ -10,14 +10,14 @@ type TestFunctionInputType = string | number | undefined; // | object | Function
 
 type TestFunctionType = (sound: Sound, input: TestFunctionInputType[]) => number | string | void;
 
-const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [];
+const lastTestFunctions: Record<string, unknown[]>[] = [];
 
 function clearLastTestFunctions() {
 	lastTestFunctions.length = 0;
 }
 
 function combineLastTestFunctions() {
-	return lastTestFunctions.map((lastTestFunction) => Object.keys(lastTestFunction)[0] + ":" + Object.values(lastTestFunction)[0]).join(" , ") || undefined;
+	return lastTestFunctions.map((lastTestFunction) => Object.keys(lastTestFunction)[0] + ":" + String(Object.values(lastTestFunction)[0])).join(" , ") || undefined;
 }
 
 function combineResult(result: string | number | void) {
@@ -44,20 +44,20 @@ class AudioContextMock {
 		this.currentTime = 0;
 	}
 
-	createChannelMerger(...args: any[]) {
+	createChannelMerger(...args: number[]) {
 		lastTestFunctions.push({
 			createChannelMerger: args
 		});
 		return {
 			connect: function (...args2) {
 				lastTestFunctions.push({
-					"channelMerger:connect": args2 as any
+					"channelMerger:connect": args2
 				});
 				return this;
 			},
 			disconnect: function (...args2 /* destinationNode: AudioNode */) {
 				lastTestFunctions.push({
-					"channelMerger:disconnect": args2 as any
+					"channelMerger:disconnect": args2
 				});
 			},
 			toString: function () {
@@ -73,13 +73,13 @@ class AudioContextMock {
 		return {
 			connect: function (...args) {
 				lastTestFunctions.push({
-					"gain:connect": args as any
+					"gain:connect": args
 				});
 			},
 			gain: {
 				setValueAtTime: function (...args) {
 					lastTestFunctions.push({
-						"gain:gain.setValueAtTime": args as any
+						"gain:gain.setValueAtTime": args
 					});
 				},
 				linearRampToValueAtTime: function (...args) {
@@ -128,7 +128,7 @@ class AudioContextMock {
 			},
 			connect: function (...args) {
 				lastTestFunctions.push({
-					"bufferSource.connect": args as any
+					"bufferSource.connect": args
 				});
 				return this as AudioNode;
 			}
@@ -164,7 +164,7 @@ class AudioContextMock {
 			},
 			connect: function (...args) {
 				lastTestFunctions.push({
-					"oscillator.connect": args as any
+					"oscillator.connect": args
 				});
 			},
 			start: function (...args) {
@@ -179,7 +179,7 @@ class AudioContextMock {
 			},
 			disconnect: function (...args) {
 				lastTestFunctions.push({
-					"oscillator.disconnect": args as any
+					"oscillator.disconnect": args
 				});
 			}
 		} as OscillatorNode;

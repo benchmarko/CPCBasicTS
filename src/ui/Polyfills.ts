@@ -3,6 +3,64 @@
 
 /* globals globalThis */
 
+type LegacyElement = Element & {
+	attachEvent?: (type: string, listener: (event: Event) => void | boolean) => void
+	detachEvent?: (type: string, listener: (event: Event) => void | boolean) => void
+	currentStyle?: Record<string, string | undefined>
+};
+
+interface LegacyTextRange {
+	duplicate(): LegacyTextRange
+	moveToElementTxt?: (element: HTMLTextAreaElement) => void
+	setEndPoint(type: string, range: LegacyTextRange): void
+	text: string
+}
+
+type LegacyDocument = Document & {
+	attachEvent?: (type: string, listener: (event: Event) => void | boolean) => void
+	detachEvent?: (type: string, listener: (event: Event) => void | boolean) => void
+	selection?: { createRange(): LegacyTextRange }
+	__proto__?: Partial<Document>
+};
+
+type LegacyWindow = Window & {
+	webkitAudioContext?: typeof AudioContext
+	mozAudioContext?: typeof AudioContext
+	mozRequestAnimationFrame?: typeof window.requestAnimationFrame
+	webkitRequestAnimationFrame?: typeof window.requestAnimationFrame
+	msRequestAnimationFrame?: typeof window.requestAnimationFrame
+	mozCancelAnimationFrame?: typeof window.cancelAnimationFrame
+	webkitCancelAnimationFrame?: typeof window.cancelAnimationFrame
+	msCancelAnimationFrame?: typeof window.cancelAnimationFrame
+};
+
+type LegacyJson = {
+	parse(text: string): unknown
+	stringify(value: object): string
+};
+
+type LegacyUint8ArrayConstructor = {
+	new(arrayBuffer: ArrayBuffer): ArrayBuffer
+	BYTES_PER_ELEMENT: number
+	prototype: { copyWithin?: typeof Array.prototype.copyWithin }
+};
+
+type PolyfillConsole = Pick<Console, "log" | "info" | "warn" | "error" | "debug"> & {
+	cpcBasicLog: string
+};
+
+type LegacyComputedStyleHost = Window & {
+	getPropertyValue?: (property: string) => string | null
+};
+
+type LegacyComputedStyleWindow = {
+	getComputedStyle?: (this: LegacyComputedStyleHost, element: Element, pseudo?: string) => LegacyComputedStyleHost
+};
+
+type LegacyCurrentStyleElement = Element & {
+	currentStyle?: Record<string, string | undefined>
+};
+
 var Polyfills = {
 	list: [] as string[],
 	getList: function (): string[] {
@@ -11,7 +69,7 @@ var Polyfills = {
 	log: function (part: string): void {
 		Polyfills.list.push(part);
 	},
-	console: typeof window !== "undefined" ? window.console : globalThis.console,
+	console: (typeof window !== "undefined" ? window.console : globalThis.console) as Console | PolyfillConsole,
 
 	localStorage: (function () {
 		let rc: Storage | undefined;
@@ -40,26 +98,28 @@ var Polyfills = {
 		return true;
 	}()),
 
-	atob: (typeof window !== "undefined" ? window.atob : undefined) as any,
-	btoa: (typeof window !== "undefined" ? window.btoa : undefined) as any
+	atob: typeof window !== "undefined" ? window.atob : undefined,
+	btoa: typeof window !== "undefined" ? window.btoa : undefined
 
 };
 
 // IE: window.console is only available when Dev Tools are open
 if (!Polyfills.console) { // browser or node.js
-	const polyFillConsole: any = {
-		cpcBasicLog: "LOG:\n",
-		log: function () { // varargs
-			if (polyFillConsole.cpcBasicLog) {
-				polyFillConsole.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
-			}
+	let logText = "LOG:\n";
+	const appendLog = (...args: unknown[]) => {
+		if (logText) {
+			logText += args.join(" ") + "\n";
 		}
 	};
-
-	polyFillConsole.info = polyFillConsole.log;
-	polyFillConsole.warn = polyFillConsole.log;
-	polyFillConsole.error = polyFillConsole.log;
-	polyFillConsole.debug = polyFillConsole.log;
+	const polyFillConsole: PolyfillConsole = {
+		get cpcBasicLog() { return logText; },
+		set cpcBasicLog(value: string) { logText = value; },
+		log: appendLog,
+		info: appendLog,
+		warn: appendLog,
+		error: appendLog,
+		debug: appendLog
+	};
 
 	Polyfills.console = polyFillConsole;
 	Polyfills.log("window.console");
@@ -72,7 +132,7 @@ if (!Polyfills.console.debug) { // IE8 has no console.debug
 
 if ((typeof globalThis !== "undefined") && !globalThis.window) { // nodeJS
 	Polyfills.log("window");
-	(globalThis.window as any) = globalThis;
+	(globalThis as unknown as { window?: typeof globalThis }).window = globalThis;
 }
 
 if (!Array.prototype.copyWithin) {
@@ -111,7 +171,7 @@ if (!Array.prototype.indexOf) { // IE8
 if (!Array.prototype.fill) { // IE11
 	// based on: https://github.com/1000ch/array-fill/blob/master/index.js
 	Polyfills.log("Array.prototype.fill");
-	Array.prototype.fill = function (value: any, start?: number, end?: number) { // eslint-disable-line no-extend-native
+	Array.prototype.fill = function <T>(this: T[], value: T, start?: number, end?: number): T[] { // eslint-disable-line no-extend-native
 		const length = this.length;
 
 		start = start || 0;
@@ -129,8 +189,8 @@ if (!Array.prototype.fill) { // IE11
 
 if (!Array.prototype.filter) { // IE8
 	Polyfills.log("Array.prototype.filter");
-	Array.prototype.filter = function (callbackFn: any) { // eslint-disable-line no-extend-native,func-names
-		const arr = [];
+	Array.prototype.filter = function <T>(this: T[], callbackFn: (value: T, index: number, array: T[]) => unknown): T[] { // eslint-disable-line no-extend-native,func-names
+		const arr: T[] = [];
 
 		for (let i = 0; i < this.length; i += 1) {
 			if (callbackFn.call(this, this[i], i, this)) {
@@ -171,7 +231,7 @@ if (window.Element) {
 		Polyfills.log("Element.prototype.addEventListener");
 		Element.prototype.addEventListener = function (event: string, fnCallback: (e: Event) => void) {
 			event = "on" + event;
-			return (this as any).attachEvent(event, fnCallback);
+			(this as LegacyElement).attachEvent?.(event, fnCallback);
 		};
 	}
 
@@ -179,7 +239,7 @@ if (window.Element) {
 		Polyfills.log("Element.prototype.removeEventListener");
 		Element.prototype.removeEventListener = function (event: string, fnCallback: (e: Event) => void) {
 			event = "on" + event;
-			return (this as any).detachEvent(event, fnCallback);
+			(this as LegacyElement).detachEvent?.(event, fnCallback);
 		};
 	}
 }
@@ -203,7 +263,8 @@ if (window.Event) {
 if (!window.getComputedStyle) { // IE8
 	// https://stackoverflow.com/questions/21797258/getcomputedstyle-like-javascript-function-for-ie8
 	Polyfills.log("window.getComputedStyle");
-	(window as any).getComputedStyle = function (el: Element, _pseudo?: string) {
+	const legacyWindow = window as unknown as LegacyComputedStyleWindow;
+	legacyWindow.getComputedStyle = function (this: LegacyComputedStyleHost, el: Element, _pseudo?: string) {
 		this.getPropertyValue = function (prop: string) {
 			const re = /(-([a-z]){1})/g;
 
@@ -216,9 +277,10 @@ if (!window.getComputedStyle) { // IE8
 				});
 			}
 
-			const currentStyle = (el as any).currentStyle;
+			const currentStyle = (el as LegacyCurrentStyleElement).currentStyle,
+				currentStyleValue = currentStyle ? currentStyle[prop] : undefined;
 
-			return currentStyle && currentStyle[prop] ? currentStyle[prop] : null;
+			return currentStyleValue ? currentStyleValue : null;
 		};
 		return this;
 	};
@@ -236,7 +298,7 @@ if (window.document) {
 	if (!document.addEventListener) {
 		// or check: https://gist.github.com/fuzzyfox/6762206
 		Polyfills.log("document.addEventListener, removeEventListener");
-		if ((document as any).attachEvent) {
+		if ((document as LegacyDocument).attachEvent) {
 			(function () {
 				type fnHandlerType = ((e: Event) => void) | { handleEvent: ((e: Event) => void)};
 				type EventListenerEntry = {
@@ -249,7 +311,7 @@ if (window.document) {
 
 				document.addEventListener = function (eventString: string, fnHandler: fnHandlerType) {
 					const fnFindCaret = function (event: Event) {
-							const documentSelection = (document as any).selection; // IE only
+							const documentSelection = (document as LegacyDocument).selection; // IE only
 
 							if (documentSelection) {
 								const target = (event.target || event.srcElement) as HTMLTextAreaElement;
@@ -288,7 +350,7 @@ if (window.document) {
 						const elements = document.getElementsByTagName("select");
 
 						for (let i = 0; i < elements.length; i += 1) {
-							(elements[i] as any).attachEvent("on" + eventString, fnOnEvent);
+							(elements[i] as LegacyElement).attachEvent?.("on" + eventString, fnOnEvent);
 							eventListeners.push({ //TTT does this work?
 								object: this,
 								eventString: eventString,
@@ -297,7 +359,7 @@ if (window.document) {
 							});
 						}
 					} else { // e.g. "Click"
-						(document as any).attachEvent("on" + eventString, fnOnEvent);
+						(document as LegacyDocument).attachEvent?.("on" + eventString, fnOnEvent);
 						eventListeners.push({
 							object: this,
 							eventString: eventString,
@@ -314,7 +376,7 @@ if (window.document) {
 						const eventListener = eventListeners[counter];
 
 						if (eventListener.object === this && eventListener.eventString === event && eventListener.fnHandler === fnHandler) {
-							(this as any).detachEvent("on" + event, eventListener.fnOnEvent);
+							(this as LegacyDocument).detachEvent?.("on" + event, eventListener.fnOnEvent);
 							eventListeners.splice(counter, 1);
 							break;
 						}
@@ -325,8 +387,9 @@ if (window.document) {
 		} else {
 			(Polyfills.console || window.console).error("No document.attachEvent found."); // will be ignored
 			// debug: trying to fix
-			if ((document as any).__proto__.addEventListener) { // eslint-disable-line no-proto
-				document.addEventListener = (document as any).__proto__.addEventListener; // eslint-disable-line no-proto
+			const documentPrototype = (document as LegacyDocument).__proto__;
+			if (documentPrototype?.addEventListener) { // eslint-disable-line no-proto
+				document.addEventListener = documentPrototype.addEventListener; // eslint-disable-line no-proto
 			}
 		}
 	}
@@ -351,7 +414,9 @@ if (!Function.prototype.bind) { // IE8
 			}
 			return function () {
 				args.length = argLen;
-				args.push.apply(args, arguments as any);
+				for (let i = 0; i < arguments.length; i += 1) {
+					args.push(arguments[i]);
+				}
 				return that.apply(thatArg, args);
 			};
 		};
@@ -399,9 +464,11 @@ if (!Object.assign) { // IE11
 
 if (!Object.defineProperty || !Polyfills.isDefinePropertyOk) { // IE8
 	Polyfills.log("Object.defineProperty");
-	Object.defineProperty = function (target: any, prop: PropertyKey, PropDescriptor: PropertyDescriptor) {
+	Object.defineProperty = function <T>(target: T, prop: PropertyKey, PropDescriptor: PropertyDescriptor): T {
 		// can handle simple case: Object.defineProperty(exports, "__esModule", { value: true });
-		target[prop] = PropDescriptor.value;
+		const targetWithProperty = target as unknown as Record<PropertyKey, unknown>;
+
+		targetWithProperty[prop] = PropDescriptor.value;
 		return target;
 	};
 }
@@ -427,9 +494,11 @@ if (!Object.keys) { // IE8
 if (!Object.values) { // IE11
 	Polyfills.log("Object.values");
 	// based on: https://github.com/KhaledElAnsari/Object.values/blob/master/index.js
-	Object.values = function (o: object): any[] { // eslint-disable-line @typescript-eslint/no-unsafe-function-type
+	Object.values = function (o: object): unknown[] { // eslint-disable-line @typescript-eslint/no-unsafe-function-type
+		const objectRecord = o as Record<string, unknown>;
+
 		return Object.keys(o).map(function (key) {
-			return (o as Record<string, any>)[key];
+			return objectRecord[key];
 		});
 	};
 }
@@ -622,6 +691,10 @@ if (!Polyfills.localStorage) {
 		class Storage {
 			length = 0;
 
+			private get data(): Record<string, unknown> {
+				return this as unknown as Record<string, unknown>;
+			}
+
 			clear() {
 				for (const key in this) {
 					if (this.hasOwnProperty(key)) {
@@ -646,19 +719,19 @@ if (!Polyfills.localStorage) {
 			}
 
 			getItem(key: string) {
-				return this.hasOwnProperty(key) ? (this as any)[key] : null;
+				return this.hasOwnProperty(key) ? this.data[key] as string : null;
 			}
 
 			setItem(key: string, value: string) {
 				if (this.getItem(key) === null) {
 					this.length += 1;
 				}
-				(this as any)[key] = String(value);
+				this.data[key] = String(value);
 			}
 
 			removeItem(key: string) {
 				if (this.getItem(key) !== null) {
-					delete (this as any)[key];
+					delete this.data[key];
 					this.length -= 1;
 				}
 			}
@@ -670,12 +743,15 @@ if (!Polyfills.localStorage) {
 
 if (!window.ArrayBuffer) { // IE9
 	Polyfills.log("window.ArrayBuffer");
-	window.ArrayBuffer = Array as any;
+	window.ArrayBuffer = Array as unknown as typeof ArrayBuffer;
 }
 
 if (!window.AudioContext) { // ? not for IE
-	window.AudioContext = (window as any).webkitAudioContext || (window as any).mozAudioContext;
-	if (window.AudioContext) {
+	const legacyWindow = window as LegacyWindow,
+		audioContext = legacyWindow.webkitAudioContext || legacyWindow.mozAudioContext;
+
+	if (audioContext) {
+		window.AudioContext = audioContext;
 		Polyfills.log("window.AudioContext");
 	} else {
 		Polyfills.log("window.AudioContext not ok!");
@@ -685,7 +761,7 @@ if (!window.AudioContext) { // ? not for IE
 if (!window.JSON) { // simple polyfill for JSON.parse only
 	// for a better implementation, see https://github.com/douglascrockford/JSON-js/blob/master/json2.js
 	Polyfills.log("window.JSON.parse");
-	(window as any).JSON = {
+	(window as unknown as { JSON?: LegacyJson }).JSON = {
 		parse: function (text: string) {
 			return eval("(" + text + ")"); // eslint-disable-line no-eval
 		},
@@ -698,8 +774,16 @@ if (!window.JSON) { // simple polyfill for JSON.parse only
 
 if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser
 	// https://wiki.selfhtml.org/wiki/JavaScript/Window/requestAnimationFrame
-	window.requestAnimationFrame = (window as any).mozRequestAnimationFrame || (window as any).webkitRequestAnimationFrame || (window as any).msRequestAnimationFrame;
-	window.cancelAnimationFrame = (window as any).mozCancelAnimationFrame || (window as any).webkitCancelAnimationFrame || (window as any).msCancelAnimationFrame;
+	const legacyWindow = window as LegacyWindow;
+	const requestAnimationFrame = legacyWindow.mozRequestAnimationFrame || legacyWindow.webkitRequestAnimationFrame || legacyWindow.msRequestAnimationFrame,
+		cancelAnimationFrame = legacyWindow.mozCancelAnimationFrame || legacyWindow.webkitCancelAnimationFrame || legacyWindow.msCancelAnimationFrame;
+
+	if (requestAnimationFrame) {
+		window.requestAnimationFrame = requestAnimationFrame;
+	}
+	if (cancelAnimationFrame) {
+		window.cancelAnimationFrame = cancelAnimationFrame;
+	}
 	if (!window.requestAnimationFrame || !window.cancelAnimationFrame) {
 		(function () {
 			let lastTime = 0;
@@ -725,16 +809,18 @@ if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser
 
 if (!window.Uint8Array) { // IE9
 	Polyfills.log("Uint8Array (fallback only)");
-	(window as any).Uint8Array = function (arrayBuffer: ArrayBufferConstructor) {
+	const polyfillUint8Array = function (arrayBuffer: ArrayBuffer) {
 		return arrayBuffer; // we just return the ArrayBuffer as fallback; enough for our needs
-	};
-	(window.Uint8Array as any).BYTES_PER_ELEMENT = 1;
+	} as unknown as LegacyUint8ArrayConstructor;
+
+	polyfillUint8Array.BYTES_PER_ELEMENT = 1;
+	(window as unknown as { Uint8Array?: LegacyUint8ArrayConstructor }).Uint8Array = polyfillUint8Array;
 	// A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
 }
 
 if (!window.Uint8Array.prototype.copyWithin) {
 	Polyfills.log("Uint8Array.prototype.copyWithin");
-	(window as any).Uint8Array.prototype.copyWithin = Array.prototype.copyWithin;
+	(window as unknown as { Uint8Array: LegacyUint8ArrayConstructor }).Uint8Array.prototype.copyWithin = Array.prototype.copyWithin;
 }
 
 (Polyfills.console || window.console).debug("Polyfills: (" + Polyfills.getList().length + ") " + Polyfills.getList().join("; "));

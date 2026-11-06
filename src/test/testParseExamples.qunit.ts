@@ -33,8 +33,6 @@ import { TestHelper } from "./TestHelper";
 import { TestNodeUtils } from "./TestNodeUtils";
 import { TestUiUtils } from "./TestUiUtils";
 
-type QUnitAssertType3 = { ok: (r: any, e: any, msg: string) => void, expect: (arg: any) => void, async: () => (() => void) };
-
 // eslint-disable-next-line no-new-func
 const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
 
@@ -71,7 +69,7 @@ function createModel() {
 }
 
 class cpcBasic {
-	static assert: any;
+	static assert: Assert | undefined;
 
 	static totalExamples: number;
 	static ignoredExamples: number;
@@ -251,12 +249,13 @@ class cpcBasic {
 
 	static initVmMock1() {
 		const vmMock = cpcBasic.vmMock,
+			vmMockExtensions = vmMock as unknown as Record<string, unknown>,
 			keywords = cpcBasic.basicParser.getKeywords();
 
 		for (const key in keywords) {
 			if (keywords.hasOwnProperty(key)) {
-				if (!(vmMock as any)[key]) {
-					(vmMock as any)[key] = function () {
+				if (!vmMockExtensions[key]) {
+					vmMockExtensions[key] = function () {
 						return key;
 					};
 				}
@@ -579,7 +578,8 @@ function testParseExample(example: ExampleEntry) {
 			} catch (e) {
 				Utils.console.error("Error in file", example.key);
 				Utils.console.error(e);
-				output.error = e;
+			const error = e instanceof Error ? e : new Error(String(e));
+			output.error = Utils.composeError("testParseExamples", error, error.message, "", 0);
 			}
 		} else {
 			Utils.console.error("There was an error when parsing file", example.key);
@@ -778,7 +778,7 @@ if (typeof myGlobalThis.QUnit !== "undefined") {
 
 	QUnit.config.testTimeout = 8 * 1000;
 	QUnit.module("testParseExamples: Tests", function (/* hooks */) {
-		QUnit.test("testParseExamples", function (assert: QUnitAssertType3) {
+		QUnit.test("testParseExamples", function (assert: Assert) {
 			cpcBasic.assert = assert;
 			testStart();
 		});

@@ -22,10 +22,24 @@ export interface AreaInputElement {
 
 export type PointerEventNamesType = Record<"down"|"move"|"up"|"cancel"|"out"|"type", string>;
 
-export class View {
-	private static myDocument: Document | any = window.document;
+type LegacyFullscreenElement = HTMLElement & {
+	webkitRequestFullscreen?: () => Promise<void> | void
+	mozRequestFullScreen?: () => Promise<void> | void
+	msRequestFullscreen?: () => Promise<void> | void
+};
 
-	static setDocument(doc: Document | any) {
+type LegacyActiveXWindow = Window & {
+	ActiveXObject?: new (classId: string) => { SendKeys(keys: string): void }
+};
+
+type LegacyNavigator = Navigator & {
+	msSaveOrOpenBlob?: (blob: Blob, filename: string) => boolean
+};
+
+export class View {
+	private static myDocument: Document = window.document;
+
+	static setDocument(doc: Document) {
 		View.myDocument = doc;
 	}
 
@@ -442,26 +456,27 @@ export class View {
 
 	requestFullscreenForId(id: ViewID): boolean {
 		const element = View.getElementById1(id),
-			anyEl = element as any,
-			that = this,
-			requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen,
-			fullscreenchangedHandler = function (event: Event) {
-				const target = View.getEventTarget(event);
+			legacyElement = element as LegacyFullscreenElement,
+			activeXObject = (window as LegacyActiveXWindow).ActiveXObject,
+			requestMethod = element.requestFullscreen || legacyElement.webkitRequestFullscreen || legacyElement.mozRequestFullScreen || legacyElement.msRequestFullscreen,
+			fullscreenchangedHandler = (event: Event) => {
+				const target = View.getEventTarget(event),
+					fullscreenElement = View.getDocument().fullscreenElement;
 
-				if (View.getDocument().fullscreenElement) {
+				if (fullscreenElement) {
 					if (UiUtils.debug > 0) {
-						UiUtils.console.debug("Entered fullscreen mode: " + View.getDocument().fullscreenElement.id);
+						UiUtils.console.debug("Entered fullscreen mode: " + fullscreenElement.id);
 					}
 				} else {
 					if (UiUtils.debug > 0) {
 						UiUtils.console.debug("Leaving fullscreen mode.");
 					}
-					that.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
+					this.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
 
 					// for Safari we need to do some change to make sure the window size is set (can we do better?)
-					that.setHidden(id, true);
-					window.setTimeout(function () {
-						that.setHidden(id, false);
+					this.setHidden(id, true);
+					window.setTimeout(() => {
+						this.setHidden(id, false);
 					}, 0);
 				}
 			};
@@ -470,17 +485,17 @@ export class View {
 			const promise = requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
 
 			if (promise) {
-				promise.then(function () {
+				promise.then(() => {
 					if (UiUtils.debug > 0) {
 						UiUtils.console.debug("requestFullscreenForId: " + id + ": success");
 					}
-					that.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
+					this.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
 				}).catch(function (err: unknown) {
 					UiUtils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
 				});
 			}
-		} else if (typeof (window as any).ActiveXObject !== "undefined") { // older IE
-			const wscript = new (window as any).ActiveXObject("WScript.Shell");
+		} else if (activeXObject) { // older IE
+			const wscript = new activeXObject("WScript.Shell");
 
 			if (wscript !== null) {
 				wscript.SendKeys("{F11}"); // eslint-disable-line new-cap
@@ -504,8 +519,9 @@ export class View {
 				type: type
 			});
 
-		if (window.navigator && (window.navigator as any).msSaveOrOpenBlob) { // IE11 support
-			(window.navigator as any).msSaveOrOpenBlob(blob, filename);
+		const legacyNavigator = window.navigator as LegacyNavigator;
+		if (window.navigator && legacyNavigator.msSaveOrOpenBlob) { // IE11 support
+			legacyNavigator.msSaveOrOpenBlob(blob, filename);
 			return;
 		}
 

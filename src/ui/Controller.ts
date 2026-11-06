@@ -203,7 +203,6 @@ export class Controller implements IController {
 
 		this.vm.getOnCanvasClickHandler();
 		this.canvas.setOptions({
-			//onCanvasClick: this.vm.getOnCanvasClickHandler()
 			onCanvasClick
 		});
 		this.vm.setCanvas(this.canvas);
@@ -218,7 +217,6 @@ export class Controller implements IController {
 
 		view.setSelectValue(ViewID.exampleSelect, example);
 
-		//this.hasStorageDatabase = this.initDatabases();
 		this.setDatabaseSelectOptions();
 		this.hasStorageDatabase = this.getHasStorageDatabase();
 
@@ -238,51 +236,6 @@ export class Controller implements IController {
 		return this.canvas;
 	}
 
-	//TODO
-	/*
-	private static getUniqueDbKey(name: string, databases: DatabasesType) {
-		let key = name,
-			index = 2;
-
-		while (databases[key]) {
-			key = name + index;
-			index += 1;
-		}
-		return key;
-	}
-
-	private initDatabases() {
-		/*
-		const model = this.model,
-			databases: DatabasesType = {},
-			databaseDirs = model.getProperty<string>(ModelPropID.databaseDirs).split(",");
-		let hasStorageDatabase = false;
-
-		for (let i = 0; i < databaseDirs.length; i += 1) {
-			const databaseDir = databaseDirs[i],
-				parts1 = databaseDir.split("="),
-				databaseSrc = parts1[0],
-				assignedName = parts1.length > 1 ? parts1[1] : "",
-				parts2 = databaseSrc.split("/"),
-				name = assignedName || parts2[parts2.length - 1],
-				key = Controller.getUniqueDbKey(name, databases);
-
-			databases[key] = {
-				text: key,
-				title: databaseSrc,
-				src: databaseSrc
-			};
-			if (databaseDir === "storage") {
-				hasStorageDatabase = true;
-			}
-		}
-		this.model.addDatabases(databases);
-
-		this.setDatabaseSelectOptions();
-		return hasStorageDatabase;
-	}
-	*/
-
 	private getHasStorageDatabase() {
 		const databases = this.model.getAllDatabases();
 
@@ -296,12 +249,6 @@ export class Controller implements IController {
 		}
 		return hasStorageDatabase;
 	}
-
-	/*
-	private initDatabases() {
-		return getHasStorageDatabase
-	}
-	∂*/
 
 	private onUserAction(/* event, id */) {
 		this.uiController.deactivateUserAction(); // deactivate user action
@@ -1239,11 +1186,12 @@ export class Controller implements IController {
 	}
 
 	private selectJsError(script: string, e: Error) {
-		const lineNumber = (e as any).lineNumber, // only on FireFox
-			columnNumber = (e as any).columnNumber;
+		const firefoxError = e as Error & { lineNumber?: number, columnNumber?: number },
+			lineNumber = firefoxError.lineNumber, // only on FireFox
+			columnNumber = firefoxError.columnNumber;
 
 		if (lineNumber || columnNumber) { // only available on Firefox
-			const errLine = lineNumber - 3; // for some reason line 0 is 3
+			const errLine = Number(lineNumber) - 3; // for some reason line 0 is 3
 			let pos = 0,
 				line = 0;
 
@@ -1251,7 +1199,7 @@ export class Controller implements IController {
 				pos = script.indexOf("\n", pos) + 1;
 				line += 1;
 			}
-			pos += columnNumber;
+			pos += Number(columnNumber);
 
 			UiUtils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
 
@@ -1278,12 +1226,11 @@ export class Controller implements IController {
 
 			if (input !== "") {
 				this.view.setAreaValue(ViewID.inp2Text, input);
-				const that = this,
-					timeout = 1;
+				const timeout = 1;
 
-				this.host.setTimeout(function () {
-					that.startEnter();
-					that.view.setAreaValue(ViewID.inp2Text, ""); // delete input
+				this.host.setTimeout(() => {
+					this.startEnter();
+					this.view.setAreaValue(ViewID.inp2Text, ""); // delete input
 				}, timeout);
 			}
 		}
