@@ -259,7 +259,7 @@ export class DiskImage {
                 firstSector = sector;
             }
         }
-        let format = "";
+        let format;
         if (firstSector === 0xc1) {
             format = "data";
         }
@@ -411,7 +411,7 @@ export class DiskImage {
     // do not know if we need to sort the extents per file, but...
     static sortFileExtents(dir) {
         for (const name in dir) {
-            if (dir.hasOwnProperty(name)) {
+            if (Object.prototype.hasOwnProperty.call(dir, name)) {
                 const fileExtents = dir[name];
                 fileExtents.sort(DiskImage.fnSortByExtentNumber);
             }

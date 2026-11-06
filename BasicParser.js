@@ -99,7 +99,7 @@ export class BasicParser {
         }
         const keywords10 = Object.assign({}, BasicParser.keywordsBasic11); // clone
         for (const key in keywords10) {
-            if (keywords10.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(keywords10, key)) {
                 const keyWithSpaces = " " + key + " ";
                 // what about DEC$ ?
                 if (BasicParser.fnIsInString(" clearInput copychr$ cursor derr fill frame graphics graphicsPaper graphicsPen mask onBreakCont ", keyWithSpaces)) {
@@ -1122,7 +1122,7 @@ export class BasicParser {
     }
     fnGenerateKeywordSymbols() {
         for (const key in this.keywords) {
-            if (this.keywords.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(this.keywords, key)) {
                 const keywordType = this.keywords[key].charAt(0);
                 if (keywordType === "f") {
                     this.createNudSymbol(key, () => this.fnCreateFuncCall(this.previousToken));

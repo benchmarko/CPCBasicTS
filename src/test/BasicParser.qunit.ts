@@ -177,6 +177,7 @@ const allTests: AllTestsType = {
 		"cursor #2,,1": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"cursor","value":"cursor","pos":0,"args":[{"type":"#","value":"#","pos":7,"right":{"type":"number","value":"2","pos":8}},{"type":"null","value":"","pos":0,"len":0},{"type":"number","value":"1","pos":11}]}]}]'
 	},
 	"data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
+		"def fno(o,t,v,do)=o+t+v+do+go": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"def","value":"def","pos":0,"args":[{"type":"identifier","value":"o","pos":8},{"type":"identifier","value":"t","pos":10},{"type":"identifier","value":"v","pos":12},{"type":"identifier","value":"do","pos":14},{"type":"+","value":"+","pos":26,"left":{"type":"+","value":"+","pos":23,"left":{"type":"+","value":"+","pos":21,"left":{"type":"+","value":"+","pos":19,"left":{"type":"identifier","value":"o","pos":18},"right":{"type":"identifier","value":"t","pos":20}},"right":{"type":"identifier","value":"v","pos":22}},"right":{"type":"identifier","value":"do","pos":24}},"right":{"type":"identifier","value":"go","pos":27}}],"right":{"type":"identifier","value":"o","pos":6}}]}]',
 		"data": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"data","value":"data","pos":0,"args":[{"type":"null","value":"","pos":0,"len":0}]}]}]',
 		"data ,": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"data","value":"data","pos":0,"args":[{"type":"null","value":"","pos":0,"len":0},{"type":"null","value":"","pos":0,"len":0}]}]}]',
 		"data \\": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"data","value":"data","pos":0,"args":[{"type":"unquoted","value":"\\\\","pos":5}]}]}]',
@@ -263,6 +264,7 @@ const allTests: AllTestsType = {
 		"drawr x,y,m,g1": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"drawr","value":"drawr","pos":0,"args":[{"type":"identifier","value":"x","pos":6},{"type":"identifier","value":"y","pos":8},{"type":"identifier","value":"m","pos":10},{"type":"identifier","value":"g1","pos":12}]}]}]'
 	},
 	"edit, ei, else, end, ent, env, eof, erase, erl, err, error, every gosub, exp": {
+		"erase o,t,v,do": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"erase","value":"erase","pos":0,"args":[{"type":"identifier","value":"o","pos":6},{"type":"identifier","value":"t","pos":8},{"type":"identifier","value":"v","pos":10},{"type":"identifier","value":"do","pos":12}]}]}]',
 		"edit 20": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"edit","value":"edit","pos":0,"args":[{"type":"linenumber","value":"20","pos":5}]}]}]',
 		"ei": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"ei","value":"ei","pos":0,"args":[]}]}]',
 		"else": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"elseComment","value":"else","pos":0,"args":[]}]}]',
@@ -292,6 +294,9 @@ const allTests: AllTestsType = {
 		"a=exp(2.3)": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"exp","value":"exp","pos":2,"args":[{"type":"number","value":"2.3","pos":6}]}}]}]'
 	},
 	"fill, fix, fn, for, frame, fre": {
+		"for a=&a000 TO &ha00b step &x101": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"for","value":"for","pos":0,"args":[{"type":"identifier","value":"a","pos":4},{"type":"hexnumber","value":"&a000","pos":6},{"type":"hexnumber","value":"&ha00b","pos":15},{"type":"binnumber","value":"&x101","pos":27}]}]}]',
+		"for a=2 to 1 step -&1": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"for","value":"for","pos":0,"args":[{"type":"identifier","value":"a","pos":4},{"type":"number","value":"2","pos":6},{"type":"number","value":"1","pos":11},{"type":"-","value":"-","pos":18,"right":{"type":"hexnumber","value":"&1","pos":19}}]}]}]',
+		"for a=2 to 1 step -&x1": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"for","value":"for","pos":0,"args":[{"type":"identifier","value":"a","pos":4},{"type":"number","value":"2","pos":6},{"type":"number","value":"1","pos":11},{"type":"-","value":"-","pos":18,"right":{"type":"binnumber","value":"&x1","pos":19}}]}]}]',
 		"fill 7": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"fill","value":"fill","pos":0,"args":[{"type":"number","value":"7","pos":5}]}]}]',
 		"a=fix(2.3)": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"fix","value":"fix","pos":2,"args":[{"type":"number","value":"2.3","pos":6}]}}]}]',
 		"x=fnclk": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"x","pos":0},"right":{"type":"fn","value":"fn","pos":2,"args":[],"right":{"type":"identifier","value":"clk","pos":4}}}]}]',
@@ -793,9 +798,10 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 			if ((e as Error).message !== expectedEntry.message) {
 				Utils.console.error(e); // only if unexpected
 			}
+			const error: Record<string, unknown> = e !== null && typeof e === "object" ? e as Record<string, unknown> : {};
 			// on IE we have additional properties description, number, stack in the object, so we use a positive list...
 			// eslint-disable-next-line object-property-newline, object-curly-newline
-			const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(e);
+			const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(error);
 			// (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
 
 			result = JSON.stringify(copiedError);
@@ -810,7 +816,7 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 			basicParser = thisHooks.basicParser;
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const expected = TestHelper.handleBinaryLiterals(tests[key]);
 				let expectedEntry: Record<string, unknown>;
 
@@ -836,7 +842,7 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 		}
 	}
 
-	TestHelper.compareAllTests(TestInput.getAllTests(), allTests);
+	TestHelper.compareAllTests(TestInput.getAllTests(), allTests, "TestInput.ts", "BasicParser.qunit.ts");
 	TestHelper.generateAllTests(allTests, runTestsFor, hooks);
 });
 
@@ -949,7 +955,7 @@ QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
 		};
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				spaceCount = 1;
 				const expected = TestHelper.handleBinaryLiterals(tests[key]),
 					keyWithSpaces = key.replace(/([=?+\-*^/\\,;()#])/g, " $1 ").replace(/ +/g, fnSpaceReplacer).replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/e[ ]+\+[ ]+(\d+)/g, "e+$1"), // with fast hacks

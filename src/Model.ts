@@ -4,9 +4,8 @@
 
 
 import { Utils } from "./Utils";
+import { ModelPropID } from "./Constants";
 import type { ConfigEntryType, ConfigType, DatabaseEntry, DatabasesType, ExampleEntry, ExamplesType, IModel } from "./Interfaces";
-
-const ModelPropIDdatabase = "database"; //TODO
 
 export class Model implements IModel {
 	private config: ConfigType;
@@ -24,12 +23,12 @@ export class Model implements IModel {
 
 	// {
 	getProperty<T extends ConfigEntryType>(property: string): T { //getProperty<T extends ConfigEntryType>(property: ModelPropID): T
-		return this.config[property as any] as T; // keyof ConfigType?
+		return this.config[property] as T; // keyof ConfigType?
 	}
 	setProperty<T extends ConfigEntryType>(property: string, value: T): void {
-		const previousValue = this.config[property as any] as ConfigEntryType | undefined;
+		const previousValue = this.config[property] as ConfigEntryType | undefined;
 
-		this.config[property as any] = value;
+		this.config[property] = value;
 		if (value !== previousValue && this.propertyChangeCallback) {
 			this.propertyChangeCallback();
 		}
@@ -50,7 +49,7 @@ export class Model implements IModel {
 			changed: ConfigType = {};
 
 		for (const name in current) {
-			if (current.hasOwnProperty(name)) {
+			if (Object.prototype.hasOwnProperty.call(current, name)) {
 				if (current[name] !== initial[name]) {
 					changed[name] = current[name];
 				}
@@ -61,7 +60,7 @@ export class Model implements IModel {
 
 	addDatabases(db: DatabasesType): void {
 		for (const par in db) {
-			if (db.hasOwnProperty(par)) {
+			if (Object.prototype.hasOwnProperty.call(db, par)) {
 				const entry = db[par];
 
 				this.databases[par] = entry;
@@ -73,23 +72,23 @@ export class Model implements IModel {
 		return this.databases;
 	}
 	getDatabase(): DatabaseEntry {
-		const database = this.getProperty<string>(ModelPropIDdatabase);
+		const database = this.getProperty<string>(ModelPropID.database);
 
 		return this.databases[database];
 	}
 
-	getAllExamples(): {	[x: string]: ExampleEntry; } {
-		const database = this.getProperty<string>(ModelPropIDdatabase);
+	getAllExamples(): Record<string, ExampleEntry> {
+		const database = this.getProperty<string>(ModelPropID.database);
 
 		return this.examples[database];
 	}
 	getExample(key: string): ExampleEntry {
-		const database = this.getProperty<string>(ModelPropIDdatabase);
+		const database = this.getProperty<string>(ModelPropID.database);
 
 		return this.examples[database][key];
 	}
 	setExample(example: ExampleEntry): void {
-		const database = this.getProperty<string>(ModelPropIDdatabase),
+		const database = this.getProperty<string>(ModelPropID.database),
 			key = example.key;
 
 		if (!this.examples[database][key]) {
@@ -100,7 +99,7 @@ export class Model implements IModel {
 		this.examples[database][key] = example;
 	}
 	removeExample(key: string): void {
-		const database = this.getProperty<string>(ModelPropIDdatabase);
+		const database = this.getProperty<string>(ModelPropID.database);
 
 		if (!this.examples[database][key]) {
 			Utils.console.warn("removeExample: example does not exist: " + key);

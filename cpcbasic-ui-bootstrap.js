@@ -39,18 +39,25 @@
 	  btoa: typeof window !== "undefined" ? window.btoa : void 0
 	};
 	if (!Polyfills$1.console) {
-	  const polyFillConsole = {
-	    cpcBasicLog: "LOG:\n",
-	    log: function() {
-	      if (polyFillConsole.cpcBasicLog) {
-	        polyFillConsole.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
-	      }
+	  let logText = "LOG:\n";
+	  const appendLog = (...args) => {
+	    if (logText) {
+	      logText += args.join(" ") + "\n";
 	    }
 	  };
-	  polyFillConsole.info = polyFillConsole.log;
-	  polyFillConsole.warn = polyFillConsole.log;
-	  polyFillConsole.error = polyFillConsole.log;
-	  polyFillConsole.debug = polyFillConsole.log;
+	  const polyFillConsole = {
+	    get cpcBasicLog() {
+	      return logText;
+	    },
+	    set cpcBasicLog(value) {
+	      logText = value;
+	    },
+	    log: appendLog,
+	    info: appendLog,
+	    warn: appendLog,
+	    error: appendLog,
+	    debug: appendLog
+	  };
 	  Polyfills$1.console = polyFillConsole;
 	  Polyfills$1.log("window.console");
 	}
@@ -137,14 +144,14 @@
 	    Polyfills$1.log("Element.prototype.addEventListener");
 	    Element.prototype.addEventListener = function(event, fnCallback) {
 	      event = "on" + event;
-	      return this.attachEvent(event, fnCallback);
+	      this.attachEvent?.(event, fnCallback);
 	    };
 	  }
 	  if (!Element.prototype.removeEventListener) {
 	    Polyfills$1.log("Element.prototype.removeEventListener");
 	    Element.prototype.removeEventListener = function(event, fnCallback) {
 	      event = "on" + event;
-	      return this.detachEvent(event, fnCallback);
+	      this.detachEvent?.(event, fnCallback);
 	    };
 	  }
 	}
@@ -162,7 +169,8 @@
 	}
 	if (!window.getComputedStyle) {
 	  Polyfills$1.log("window.getComputedStyle");
-	  window.getComputedStyle = function(el, _pseudo) {
+	  const legacyWindow = window;
+	  legacyWindow.getComputedStyle = function(el, _pseudo) {
 	    this.getPropertyValue = function(prop) {
 	      const re = /(-([a-z]){1})/g;
 	      if (prop === "float") {
@@ -173,8 +181,8 @@
 	          return arguments[2].toUpperCase();
 	        });
 	      }
-	      const currentStyle = el.currentStyle;
-	      return currentStyle && currentStyle[prop] ? currentStyle[prop] : null;
+	      const currentStyle = el.currentStyle, currentStyleValue = currentStyle ? currentStyle[prop] : void 0;
+	      return currentStyleValue ? currentStyleValue : null;
 	    };
 	    return this;
 	  };
@@ -223,7 +231,7 @@
 	          if (eventString === "change") {
 	            const elements = document.getElementsByTagName("select");
 	            for (let i = 0; i < elements.length; i += 1) {
-	              elements[i].attachEvent("on" + eventString, fnOnEvent);
+	              elements[i].attachEvent?.("on" + eventString, fnOnEvent);
 	              eventListeners.push({
 	                //TTT does this work?
 	                object: this,
@@ -233,7 +241,7 @@
 	              });
 	            }
 	          } else {
-	            document.attachEvent("on" + eventString, fnOnEvent);
+	            document.attachEvent?.("on" + eventString, fnOnEvent);
 	            eventListeners.push({
 	              object: this,
 	              eventString,
@@ -247,7 +255,7 @@
 	          while (counter < eventListeners.length) {
 	            const eventListener = eventListeners[counter];
 	            if (eventListener.object === this && eventListener.eventString === event && eventListener.fnHandler === fnHandler) {
-	              this.detachEvent("on" + event, eventListener.fnOnEvent);
+	              this.detachEvent?.("on" + event, eventListener.fnOnEvent);
 	              eventListeners.splice(counter, 1);
 	              break;
 	            }
@@ -257,8 +265,9 @@
 	      })();
 	    } else {
 	      (Polyfills$1.console || window.console).error("No document.attachEvent found.");
-	      if (document.__proto__.addEventListener) {
-	        document.addEventListener = document.__proto__.addEventListener;
+	      const documentPrototype = document.__proto__;
+	      if (documentPrototype?.addEventListener) {
+	        document.addEventListener = documentPrototype.addEventListener;
 	      }
 	    }
 	  }
@@ -274,7 +283,9 @@
 	      }
 	      return function() {
 	        args.length = argLen;
-	        args.push.apply(args, arguments);
+	        for (let i = 0; i < arguments.length; i += 1) {
+	          args.push(arguments[i]);
+	        }
 	        return that.apply(thatArg, args);
 	      };
 	    };
@@ -305,7 +316,7 @@
 	    for (let i = 1; i < arguments.length; i += 1) {
 	      const nextSource = arguments[i];
 	      for (const nextKey in nextSource) {
-	        if (nextSource.hasOwnProperty(nextKey)) {
+	        if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
 	          to[nextKey] = nextSource[nextKey];
 	        }
 	      }
@@ -316,7 +327,8 @@
 	if (!Object.defineProperty || !Polyfills$1.isDefinePropertyOk) {
 	  Polyfills$1.log("Object.defineProperty");
 	  Object.defineProperty = function(target, prop, PropDescriptor) {
-	    target[prop] = PropDescriptor.value;
+	    const targetWithProperty = target;
+	    targetWithProperty[prop] = PropDescriptor.value;
 	    return target;
 	  };
 	}
@@ -338,8 +350,9 @@
 	if (!Object.values) {
 	  Polyfills$1.log("Object.values");
 	  Object.values = function(o) {
+	    const objectRecord = o;
 	    return Object.keys(o).map(function(key) {
-	      return o[key];
+	      return objectRecord[key];
 	    });
 	  };
 	}
@@ -487,9 +500,12 @@
 	      constructor() {
 	        this.length = 0;
 	      }
+	      get data() {
+	        return this;
+	      }
 	      clear() {
 	        for (const key in this) {
-	          if (this.hasOwnProperty(key)) {
+	          if (Object.prototype.hasOwnProperty.call(this, key)) {
 	            delete this[key];
 	          }
 	        }
@@ -498,7 +514,7 @@
 	      key(index) {
 	        let i = 0;
 	        for (const key in this) {
-	          if (this.hasOwnProperty(key) && key !== "length") {
+	          if (Object.prototype.hasOwnProperty.call(this, key) && key !== "length") {
 	            if (i === index) {
 	              return key;
 	            }
@@ -508,17 +524,17 @@
 	        return null;
 	      }
 	      getItem(key) {
-	        return this.hasOwnProperty(key) ? this[key] : null;
+	        return Object.prototype.hasOwnProperty.call(this, key) ? this.data[key] : null;
 	      }
 	      setItem(key, value) {
 	        if (this.getItem(key) === null) {
 	          this.length += 1;
 	        }
-	        this[key] = String(value);
+	        this.data[key] = String(value);
 	      }
 	      removeItem(key) {
 	        if (this.getItem(key) !== null) {
-	          delete this[key];
+	          delete this.data[key];
 	          this.length -= 1;
 	        }
 	      }
@@ -531,8 +547,9 @@
 	  window.ArrayBuffer = Array;
 	}
 	if (!window.AudioContext) {
-	  window.AudioContext = window.webkitAudioContext || window.mozAudioContext;
-	  if (window.AudioContext) {
+	  const legacyWindow = window, audioContext = legacyWindow.webkitAudioContext || legacyWindow.mozAudioContext;
+	  if (audioContext) {
+	    window.AudioContext = audioContext;
 	    Polyfills$1.log("window.AudioContext");
 	  } else {
 	    Polyfills$1.log("window.AudioContext not ok!");
@@ -551,8 +568,14 @@
 	  };
 	}
 	if (!window.requestAnimationFrame) {
-	  window.requestAnimationFrame = window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
-	  window.cancelAnimationFrame = window.mozCancelAnimationFrame || window.webkitCancelAnimationFrame || window.msCancelAnimationFrame;
+	  const legacyWindow = window;
+	  const requestAnimationFrame = legacyWindow.mozRequestAnimationFrame || legacyWindow.webkitRequestAnimationFrame || legacyWindow.msRequestAnimationFrame, cancelAnimationFrame = legacyWindow.mozCancelAnimationFrame || legacyWindow.webkitCancelAnimationFrame || legacyWindow.msCancelAnimationFrame;
+	  if (requestAnimationFrame) {
+	    window.requestAnimationFrame = requestAnimationFrame;
+	  }
+	  if (cancelAnimationFrame) {
+	    window.cancelAnimationFrame = cancelAnimationFrame;
+	  }
 	  if (!window.requestAnimationFrame || !window.cancelAnimationFrame) {
 	    (function() {
 	      let lastTime = 0;
@@ -574,10 +597,11 @@
 	}
 	if (!window.Uint8Array) {
 	  Polyfills$1.log("Uint8Array (fallback only)");
-	  window.Uint8Array = function(arrayBuffer) {
+	  const polyfillUint8Array = function(arrayBuffer) {
 	    return arrayBuffer;
 	  };
-	  window.Uint8Array.BYTES_PER_ELEMENT = 1;
+	  polyfillUint8Array.BYTES_PER_ELEMENT = 1;
+	  window.Uint8Array = polyfillUint8Array;
 	}
 	if (!window.Uint8Array.prototype.copyWithin) {
 	  Polyfills$1.log("Uint8Array.prototype.copyWithin");
@@ -628,9 +652,10 @@
 	        fnSuccess(fullUrl, key);
 	      }
 	    };
-	    if (script.readyState) {
+	    const legacyScript = script;
+	    if (legacyScript.readyState && legacyScript.attachEvent) {
 	      ieTimeoutCount = 3;
-	      script.attachEvent("onreadystatechange", onScriptReadyStateChange);
+	      legacyScript.attachEvent("onreadystatechange", onScriptReadyStateChange);
 	    } else {
 	      script.addEventListener("load", onScriptLoad, false);
 	      script.addEventListener("error", onScriptLoad, false);
@@ -658,7 +683,7 @@
 	    let len = data.length, offset = 0, out = "";
 	    while (len) {
 	      const chunkLen = Math.min(len, callSize), chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen);
-	      out += String.fromCharCode.apply(null, chunk);
+	      out += String.fromCharCode.apply(null, Array.from(chunk));
 	      offset += chunkLen;
 	      len -= chunkLen;
 	    }
@@ -944,7 +969,7 @@
 	    let len = data.length, offset = 0, out = "";
 	    while (len) {
 	      const chunkLen = Math.min(len, callSize), chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen);
-	      out += String.fromCharCode.apply(null, chunk);
+	      out += String.fromCharCode.apply(null, Array.from(chunk));
 	      offset += chunkLen;
 	      len -= chunkLen;
 	    }
@@ -1721,7 +1746,7 @@
 	  }
 	  fnQuotedString() {
 	    const closingQuotes = this.input.indexOf('"', this.pos);
-	    let out = "";
+	    let out;
 	    if (closingQuotes < 0 || closingQuotes >= this.lineEnd) {
 	      out = BasicTokenizer.fnControlsToUnicode(this.fnStringUntilEol());
 	    } else {
@@ -1729,14 +1754,6 @@
 	      this.pos = closingQuotes + 1;
 	    }
 	    out = '"' + out;
-	    if (out.indexOf("\r") >= 0) {
-	      Utils.console.log("BasicTokenizer line", this.line, ": string contains CR, replaced by CHR$(13)");
-	      out = out.replace(/\r/g, '"+chr$(13)+"');
-	    }
-	    if (/\n\d/.test(out)) {
-	      Utils.console.log("BasicTokenizer line", this.line, ": string contains LF<digit>, replaced by CHR$(10)<digit>");
-	      out = out.replace(/\n(\d)/g, '"+chr$(10)+"$1');
-	    }
 	    return out;
 	  }
 	  debugPrintInfo() {
@@ -2157,37 +2174,37 @@
 	    return target;
 	  }
 	  requestFullscreenForId(id) {
-	    const element = _View.getElementById1(id), anyEl = element, that = this, requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen, fullscreenchangedHandler = function(event) {
-	      const target = _View.getEventTarget(event);
-	      if (_View.getDocument().fullscreenElement) {
+	    const element = _View.getElementById1(id), legacyElement = element, activeXObject = window.ActiveXObject, requestMethod = element.requestFullscreen || legacyElement.webkitRequestFullscreen || legacyElement.mozRequestFullScreen || legacyElement.msRequestFullscreen, fullscreenchangedHandler = (event) => {
+	      const target = _View.getEventTarget(event), fullscreenElement = _View.getDocument().fullscreenElement;
+	      if (fullscreenElement) {
 	        if (UiUtils.debug > 0) {
-	          UiUtils.console.debug("Entered fullscreen mode: " + _View.getDocument().fullscreenElement.id);
+	          UiUtils.console.debug("Entered fullscreen mode: " + fullscreenElement.id);
 	        }
 	      } else {
 	        if (UiUtils.debug > 0) {
 	          UiUtils.console.debug("Leaving fullscreen mode.");
 	        }
-	        that.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
-	        that.setHidden(id, true);
-	        window.setTimeout(function() {
-	          that.setHidden(id, false);
+	        this.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
+	        this.setHidden(id, true);
+	        window.setTimeout(() => {
+	          this.setHidden(id, false);
 	        }, 0);
 	      }
 	    };
 	    if (requestMethod) {
 	      const promise = requestMethod.call(element);
 	      if (promise) {
-	        promise.then(function() {
+	        promise.then(() => {
 	          if (UiUtils.debug > 0) {
 	            UiUtils.console.debug("requestFullscreenForId: " + id + ": success");
 	          }
-	          that.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
+	          this.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
 	        }).catch(function(err) {
 	          UiUtils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
 	        });
 	      }
-	    } else if (typeof window.ActiveXObject !== "undefined") {
-	      const wscript = new window.ActiveXObject("WScript.Shell");
+	    } else if (activeXObject) {
+	      const wscript = new activeXObject("WScript.Shell");
 	      if (wscript !== null) {
 	        wscript.SendKeys("{F11}");
 	      }
@@ -2205,8 +2222,9 @@
 	    const data8 = UiUtils.string2Uint8Array(data), type = "octet/stream", blob = new Blob([data8.buffer], {
 	      type
 	    });
-	    if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-	      window.navigator.msSaveOrOpenBlob(blob, filename);
+	    const legacyNavigator = window.navigator;
+	    if (window.navigator && legacyNavigator.msSaveOrOpenBlob) {
+	      legacyNavigator.msSaveOrOpenBlob(blob, filename);
 	      return;
 	    }
 	    const url = URL.createObjectURL(blob), a = _View.getDocument().createElement("a"), clickHandler = function() {
@@ -2552,7 +2570,7 @@
 	    this.hasFocus = true;
 	  }
 	  getMousePos(event) {
-	    const anyDoc = document, isFullScreen = Boolean(document.fullscreenElement || anyDoc.mozFullScreenElement || anyDoc.webkitFullscreenElement || anyDoc.msFullscreenElement), rect = this.canvas.getBoundingClientRect();
+	    const legacyDocument = document, isFullScreen = Boolean(document.fullscreenElement || legacyDocument.mozFullScreenElement || legacyDocument.webkitFullscreenElement || legacyDocument.msFullscreenElement), rect = this.canvas.getBoundingClientRect();
 	    if (isFullScreen) {
 	      const areaX = 0, areaY = 0, rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2, rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2, ratioX = rectwidth / this.canvas.width, ratioY = rectHeight / this.canvas.height, minRatio = ratioX <= ratioY ? ratioX : ratioY, diffX = rectwidth - this.canvas.width * minRatio, diffY = rectHeight - this.canvas.height * minRatio;
 	      return {
@@ -3538,7 +3556,7 @@
 	    } else if (node.value) {
 	      value += node.value;
 	    }
-	    let right = "";
+	    let right;
 	    if (node.right) {
 	      right = this.parseNode(node.right);
 	      const needSpace1 = this.keywords[right.toLowerCase()] || keyType;
@@ -5416,7 +5434,7 @@
 	        firstSector = sector;
 	      }
 	    }
-	    let format = "";
+	    let format;
 	    if (firstSector === 193) {
 	      format = "data";
 	    } else if (firstSector === 65) {
@@ -5564,7 +5582,7 @@
 	  // do not know if we need to sort the extents per file, but...
 	  static sortFileExtents(dir) {
 	    for (const name in dir) {
-	      if (dir.hasOwnProperty(name)) {
+	      if (Object.prototype.hasOwnProperty.call(dir, name)) {
 	        const fileExtents = dir[name];
 	        fileExtents.sort(_DiskImage.fnSortByExtentNumber);
 	      }
@@ -6339,10 +6357,7 @@
 	        return left;
 	      }
 	    }
-	    const offs = [
-	      void 0,
-	      0
-	    ];
+	    const offs = [0, 0];
 	    for (i = 1; i < 15; i += 1) {
 	      offs[i + 1] = offs[i] + codes.count[i];
 	    }
@@ -6536,7 +6551,7 @@
 	    if (!cdfh) {
 	      throw this.composeError(Error(), "Zip: readData: file does not exist:" + name, "", 0);
 	    }
-	    let dataUTF8 = "";
+	    let dataUTF8;
 	    if (cdfh.compressionMethod === 0) {
 	      dataUTF8 = this.readUTF(cdfh.dataStart, cdfh.size);
 	    } else if (cdfh.compressionMethod === 8) {
@@ -6748,7 +6763,7 @@
 	      fileExists[entry] = true;
 	    }
 	    for (const key in examples) {
-	      if (examples.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(examples, key)) {
 	        const example = examples[key], name = example.key, matchName = name + (name.indexOf(".") < 0 ? "." : "");
 	        if (!regExp || regExp.test(matchName)) {
 	          const entry = name.substring(path.length);
@@ -7052,7 +7067,6 @@
 	      UiUtils.console.warn("fnHandleFileSelect: FileReader API not supported.");
 	    }
 	  }
-	  //TODO: can we use View.attachEventHandler() somehow?
 	  addFileSelectHandler(element, type) {
 	    element.addEventListener(type, this.fnOnFileSelectHandler, false);
 	  }
@@ -7104,7 +7118,7 @@
 	    this.active = false;
 	    this.codeStringsRemoved = false;
 	    this.pressedKeys = {};
-	    this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this);
+	    this.fnKeydownOrKeyupHandler = (event) => this.onKeydownOrKeyup(event);
 	    this.options = {};
 	    this.setOptions(options);
 	    this.key2CpcKey = _Keyboard.key2CpcKey;
@@ -7192,7 +7206,7 @@
 	      UiUtils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
 	    }
 	    for (const key in key2CpcKey) {
-	      if (key2CpcKey.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(key2CpcKey, key)) {
 	        const keyCode = parseInt(key, 10);
 	        newMap[keyCode] = key2CpcKey[key];
 	      }
@@ -7282,7 +7296,7 @@
 	  }
 	  static keyIdentifier2Char(event) {
 	    const identifier = event.keyIdentifier, shiftKey = event.shiftKey;
-	    let char = "";
+	    let char;
 	    if (/^U\+/i.test(identifier || "")) {
 	      char = String.fromCharCode(parseInt(identifier.substr(2), 16));
 	      if (char === "\0") {
@@ -8122,9 +8136,9 @@
 	  constructor(options) {
 	    this.shiftLock = false;
 	    this.numLock = false;
-	    this.fnVirtualKeyboardKeydownHandler = this.onVirtualKeyboardKeydown.bind(this);
-	    this.fnVirtualKeyboardKeyupOrKeyoutHandler = this.onVirtualKeyboardKeyupOrKeyout.bind(this);
-	    this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this);
+	    this.fnVirtualKeyboardKeydownHandler = (event) => this.onVirtualKeyboardKeydown(event);
+	    this.fnVirtualKeyboardKeyupOrKeyoutHandler = (event) => this.onVirtualKeyboardKeyupOrKeyout(event);
+	    this.fnKeydownOrKeyupHandler = (event) => this.onKeydownOrKeyup(event);
 	    this.options = {};
 	    this.setOptions(options);
 	    const view = this.options.view;
@@ -8304,7 +8318,7 @@
 	  }
 	  static keyIdentifier2Char(event) {
 	    const identifier = event.keyIdentifier, shiftKey = event.shiftKey;
-	    let char = "";
+	    let char;
 	    if (/^U\+/i.test(identifier || "")) {
 	      char = String.fromCharCode(parseInt(identifier.substr(2), 16));
 	      if (char === "\0") {
@@ -9460,7 +9474,7 @@
 	    Object.assign(this.options, options);
 	    const entries = this.options.entries;
 	    for (const key in entries) {
-	      if (entries.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(entries, key)) {
 	        const item = entries[key];
 	        if (item.enabled) {
 	          this.options.view.fnAttachPointerEvents(item.itemId, this.fnDragStartHandler);
@@ -9536,7 +9550,7 @@
 	    if (!Number.isFinite(value)) {
 	      throw new Error("Seed must be a finite number");
 	    }
-	    let mantissa = 0, exponent = 0, sign = 0;
+	    let mantissa = 0, exponent, sign = 0;
 	    if (value !== 0) {
 	      if (value < 0) {
 	        sign = 2147483648;
@@ -9669,10 +9683,10 @@
 	  initToggles() {
 	    const eventDefInternalMap = this.eventDefInternalMap;
 	    for (const type in eventDefInternalMap) {
-	      if (eventDefInternalMap.hasOwnProperty(type)) {
+	      if (Object.prototype.hasOwnProperty.call(eventDefInternalMap, type)) {
 	        const eventDefMap4Type = eventDefInternalMap[type];
 	        for (const id in eventDefMap4Type) {
-	          if (eventDefMap4Type.hasOwnProperty(id)) {
+	          if (Object.prototype.hasOwnProperty.call(eventDefMap4Type, id)) {
 	            const eventDef = eventDefMap4Type[id];
 	            this.initOneToggle(type, id, eventDef);
 	          }
@@ -9697,7 +9711,7 @@
 	  setPopoversHiddenExcept(exceptId) {
 	    const eventDefInternalMap = this.eventDefInternalMap, eventDefMapClick = eventDefInternalMap.click;
 	    for (const id in eventDefMapClick) {
-	      if (eventDefMapClick.hasOwnProperty(id)) {
+	      if (Object.prototype.hasOwnProperty.call(eventDefMapClick, id)) {
 	        const eventDef = eventDefMapClick[id];
 	        if (eventDef.isPopover && eventDef.toggleId !== exceptId) {
 	          const toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef);
@@ -9805,12 +9819,12 @@
 	  updateUrlFromConfig() {
 	    const url = new URL(window.location.href), initial = this.model.getAllInitialProperties(), changed = this.model.getChangedProperties();
 	    for (const name in initial) {
-	      if (initial.hasOwnProperty(name)) {
+	      if (Object.prototype.hasOwnProperty.call(initial, name)) {
 	        url.searchParams.delete(name);
 	      }
 	    }
 	    for (const name in changed) {
-	      if (changed.hasOwnProperty(name)) {
+	      if (Object.prototype.hasOwnProperty.call(changed, name)) {
 	        url.searchParams.set(name, String(changed[name]));
 	      }
 	    }
@@ -9868,7 +9882,7 @@
 	    this.controller.setSoundActive();
 	  }
 	  onScreenshotButtonClick() {
-	    var example = this.view.getSelectValue(ViewID.exampleSelect), image = this.controller.startScreenshot(), link = View.getElementById1(ViewID.screenshotLink), name = example + ".png";
+	    const example = this.view.getSelectValue(ViewID.exampleSelect), image = this.controller.startScreenshot(), link = View.getElementById1(ViewID.screenshotLink), name = example + ".png";
 	    if (image) {
 	      link.setAttribute("download", name);
 	      link.setAttribute("href", image);
@@ -10280,7 +10294,7 @@
 	      ]
 	    };
 	    for (const type in eventDefs) {
-	      if (eventDefs.hasOwnProperty(type)) {
+	      if (Object.prototype.hasOwnProperty.call(eventDefs, type)) {
 	        eventDefInternalMap[type] = {};
 	        const eventDefList = eventDefs[type], itemForType = eventDefInternalMap[type];
 	        for (let i = 0; i < eventDefList.length; i += 1) {
@@ -10484,7 +10498,7 @@
 	    return this.wregout(nr);
 	  }
 	  onlyPrefix() {
-	    let out = "";
+	    let out;
 	    if (this.prefix === 1) {
 	      out = "[DD]-prefix";
 	    } else if (this.prefix === 2) {
@@ -10497,7 +10511,7 @@
 	  }
 	  // eslint-disable-line array-element-newline
 	  operdisCB() {
-	    let out = "", newop;
+	    let out, newop;
 	    if (this.prefix === 1 || this.prefix === 2) {
 	      newop = this.readByte(this.options.addr + 1) & 254 | 6;
 	    } else {
@@ -10625,7 +10639,7 @@
 	  // Disassemble 00-3F
 	  //
 	  operdis00To3Fpart00(b3b4b5) {
-	    let out = "";
+	    let out;
 	    switch (b3b4b5) {
 	      // test b3,b4,b5
 	      case 0:
@@ -10647,7 +10661,7 @@
 	    return out;
 	  }
 	  operdis00To3Fpart01(dissOp) {
-	    let out = "";
+	    let out;
 	    if (dissOp & 8) {
 	      out = "ADD " + this.wregout(2) + "," + this.wregout(dissOp >> 4);
 	    } else {
@@ -10784,7 +10798,7 @@
 	    return out;
 	  }
 	  operdisC0ToFFpart05(dissOp) {
-	    let out = "";
+	    let out;
 	    const b4b5 = dissOp >> 4 & 3;
 	    if (dissOp & 8) {
 	      if (b4b5 === 0) {
@@ -11441,7 +11455,7 @@
 	      ..._BasicParser.keywordsBasic11
 	    };
 	    for (const key in keywords10) {
-	      if (keywords10.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(keywords10, key)) {
 	        const keyWithSpaces = " " + key + " ";
 	        if (_BasicParser.fnIsInString(" clearInput copychr$ cursor derr fill frame graphics graphicsPaper graphicsPen mask onBreakCont ", keyWithSpaces)) {
 	          delete keywords10[key];
@@ -12418,7 +12432,7 @@
 	  }
 	  fnGenerateKeywordSymbols() {
 	    for (const key in this.keywords) {
-	      if (this.keywords.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(this.keywords, key)) {
 	        const keywordType = this.keywords[key].charAt(0);
 	        if (keywordType === "f") {
 	          this.createNudSymbol(key, () => this.fnCreateFuncCall(this.previousToken));
@@ -13626,7 +13640,7 @@
 	        nodeArgs[i] = '"' + nodeArgs[i].replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
 	      }
 	    }
-	    let lineString = String(this.line);
+	    let lineString = this.line;
 	    if (lineString === "direct") {
 	      lineString = '"' + lineString + '"';
 	    }
@@ -14434,7 +14448,7 @@
 	  registerRsx(rsxModule, permanent) {
 	    const rsxRegister = permanent ? this.rsxPermanent : this.rsxTemporary, rsxCommands = rsxModule.getRsxCommands();
 	    for (const command in rsxCommands) {
-	      if (rsxCommands.hasOwnProperty(command)) {
+	      if (Object.prototype.hasOwnProperty.call(rsxCommands, command)) {
 	        rsxRegister[command] = rsxCommands[command];
 	      }
 	    }
@@ -16312,8 +16326,11 @@
 	    });
 	  }
 	  vmPutFileInMemory(input, meta, includeSnapshot) {
-	    const inFile = this.inFile, shouldPutInMemory = input !== null && meta && (meta.typeString === "B" || includeSnapshot && meta.typeString === "S" || inFile.start !== void 0);
-	    if (!shouldPutInMemory || input === null || !meta) {
+	    if (input === null || input === void 0 || !meta) {
+	      return false;
+	    }
+	    const inFile = this.inFile, shouldPutInMemory = meta.typeString === "B" || includeSnapshot && meta.typeString === "S" || inFile.start !== void 0;
+	    if (!shouldPutInMemory) {
 	      return false;
 	    }
 	    const start = inFile.start !== void 0 ? inFile.start : Number(meta.start);
@@ -16586,7 +16603,7 @@
 	    sqTimer.repeat = true;
 	  }
 	  vmOpeninCallback(input) {
-	    if (input !== null) {
+	    if (input !== null && input !== void 0) {
 	      const inFile = this.inFile, eolStr = input.indexOf("\r\n") > 0 ? "\r\n" : "\n";
 	      if (input.endsWith(eolStr)) {
 	        input = input.substring(0, input.length - eolStr.length);
@@ -17187,7 +17204,7 @@
 	        Utils.console.debug("restore: search for dataLine >", line);
 	      }
 	      for (const dataLine in dataLineIndex) {
-	        if (dataLineIndex.hasOwnProperty(dataLine)) {
+	        if (Object.prototype.hasOwnProperty.call(dataLineIndex, dataLine)) {
 	          if (Number(dataLine) >= line) {
 	            dataLineIndex[line] = dataLineIndex[dataLine];
 	            break;
@@ -17272,8 +17289,8 @@
 	    return Math.sign(n) * Number(Math.round(Number(Math.abs(n) + "e" + decimals)) + "e" + (decimals >= 0 ? "-" + decimals : "+" + -decimals));
 	  }
 	  vmRunCallback(input, meta) {
-	    const inFile = this.inFile, line = inFile.line, putInMemory = input !== null && meta && (meta.typeString === "B" || inFile.start !== void 0);
-	    if (input !== null) {
+	    const inFile = this.inFile, line = inFile.line, putInMemory = input !== null && input !== void 0 && Boolean(meta && (meta.typeString === "B" || inFile.start !== void 0));
+	    if (input !== null && input !== void 0) {
 	      const lineParas = {
 	        command: "run",
 	        stream: 0,
@@ -18565,7 +18582,7 @@
 	    this.vmChangeMode(mode);
 	  },
 	  renum: function(...args) {
-	    this.renum.apply(this, args);
+	    Reflect.apply(this.renum, this, args);
 	  }
 	};
 	let RsxCpcBasic = _RsxCpcBasic;
@@ -18733,8 +18750,8 @@
 	}
 
 	class ArrayProxy {
-	  constructor(len) {
-	    return new Proxy(new Array(len), this);
+	  static create(len) {
+	    return new Proxy(new Array(len), new ArrayProxy());
 	  }
 	  // eslint-disable-next-line class-methods-use-this
 	  get(target, prop) {
@@ -18744,18 +18761,17 @@
 	        throw Utils.composeVmError("Variables", Error(), 9, prop);
 	      }
 	    }
-	    return target[prop];
+	    return Reflect.get(target, prop);
 	  }
 	  // eslint-disable-next-line class-methods-use-this
 	  set(target, prop, value) {
-	    if (!isNaN(Number(prop))) {
+	    if (typeof prop === "string" && !isNaN(Number(prop))) {
 	      const numProp = Number(prop);
 	      if (numProp < 0 || numProp >= target.length) {
 	        throw Utils.composeVmError("Variables", Error(), 9, prop);
 	      }
 	    }
-	    target[prop] = value;
-	    return true;
+	    return Reflect.set(target, prop, value);
 	  }
 	}
 	class Variables {
@@ -18787,8 +18803,8 @@
 	    return this.varTypes;
 	  }
 	  createNDimArray(dims, initVal) {
-	    const that = this, fnCreateRec = function(index) {
-	      const len = dims[index], arr = that.options.arrayBounds ? new ArrayProxy(len) : new Array(len);
+	    const fnCreateRec = (index) => {
+	      const len = dims[index], arr = this.options.arrayBounds ? ArrayProxy.create(len) : new Array(len);
 	      index += 1;
 	      if (index < dims.length) {
 	        for (let i = 0; i < len; i += 1) {
@@ -18800,8 +18816,8 @@
 	        }
 	      }
 	      return arr;
-	    }, ret = fnCreateRec(0);
-	    return ret;
+	    };
+	    return fnCreateRec(0);
 	  }
 	  // determine static varType (first letter + optional fixed vartype) from a variable name
 	  // format: (v.|v["])(_)<sname>(A*)(I|R|$)([...]([...])) with optional parts in ()
@@ -19445,7 +19461,6 @@
 	    this.vmOnCanvasClickHandler = onCanvasClick;
 	    this.vm.getOnCanvasClickHandler();
 	    this.canvas.setOptions({
-	      //onCanvasClick: this.vm.getOnCanvasClickHandler()
 	      onCanvasClick
 	    });
 	    this.vm.setCanvas(this.canvas);
@@ -19471,55 +19486,11 @@
 	  getCanvas() {
 	    return this.canvas;
 	  }
-	  //TODO
-	  /*
-	  	private static getUniqueDbKey(name: string, databases: DatabasesType) {
-	  		let key = name,
-	  			index = 2;
-	  
-	  		while (databases[key]) {
-	  			key = name + index;
-	  			index += 1;
-	  		}
-	  		return key;
-	  	}
-	  
-	  	private initDatabases() {
-	  		/*
-	  		const model = this.model,
-	  			databases: DatabasesType = {},
-	  			databaseDirs = model.getProperty<string>(ModelPropID.databaseDirs).split(",");
-	  		let hasStorageDatabase = false;
-	  
-	  		for (let i = 0; i < databaseDirs.length; i += 1) {
-	  			const databaseDir = databaseDirs[i],
-	  				parts1 = databaseDir.split("="),
-	  				databaseSrc = parts1[0],
-	  				assignedName = parts1.length > 1 ? parts1[1] : "",
-	  				parts2 = databaseSrc.split("/"),
-	  				name = assignedName || parts2[parts2.length - 1],
-	  				key = Controller.getUniqueDbKey(name, databases);
-	  
-	  			databases[key] = {
-	  				text: key,
-	  				title: databaseSrc,
-	  				src: databaseSrc
-	  			};
-	  			if (databaseDir === "storage") {
-	  				hasStorageDatabase = true;
-	  			}
-	  		}
-	  		this.model.addDatabases(databases);
-	  
-	  		this.setDatabaseSelectOptions();
-	  		return hasStorageDatabase;
-	  	}
-	  	*/
 	  getHasStorageDatabase() {
 	    const databases = this.model.getAllDatabases();
 	    let hasStorageDatabase = false;
 	    for (const value in databases) {
-	      if (databases.hasOwnProperty(value)) {
+	      if (Object.prototype.hasOwnProperty.call(databases, value)) {
 	        if (value === "storage") {
 	          hasStorageDatabase = true;
 	        }
@@ -19527,11 +19498,6 @@
 	    }
 	    return hasStorageDatabase;
 	  }
-	  /*
-	  private initDatabases() {
-	  	return getHasStorageDatabase
-	  }
-	  ∂*/
 	  onUserAction() {
 	    this.uiController.deactivateUserAction();
 	    this.sound.setActivatedByUser();
@@ -19540,7 +19506,7 @@
 	  setDatabaseSelectOptions() {
 	    const items = [], databases = this.model.getAllDatabases(), database = this.model.getProperty(ModelPropID.database);
 	    for (const value in databases) {
-	      if (databases.hasOwnProperty(value)) {
+	      if (Object.prototype.hasOwnProperty.call(databases, value)) {
 	        const db = databases[value], item = {
 	          value,
 	          text: db.text,
@@ -19571,7 +19537,7 @@
 	  setDirectorySelectOptions() {
 	    const items = [], allExamples = this.model.getAllExamples(), examplePath = _Controller.getPathFromExample(this.model.getProperty(ModelPropID.example)), directorySeen = {};
 	    for (const key in allExamples) {
-	      if (allExamples.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(allExamples, key)) {
 	        const exampleEntry = allExamples[key], value = _Controller.getPathFromExample(exampleEntry.key);
 	        if (!directorySeen[value]) {
 	          const item = {
@@ -19591,7 +19557,7 @@
 	    const maxTitleLength = 160, maxTextLength = 60, items = [], exampleName = _Controller.getNameFromExample(this.model.getProperty(ModelPropID.example)), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue(ViewID.directorySelect), selectDataFiles = this.model.getProperty(ModelPropID.selectDataFiles);
 	    let exampleSelected = false;
 	    for (const key in allExamples) {
-	      if (allExamples.hasOwnProperty(key) && _Controller.getPathFromExample(key) === directoryName) {
+	      if (Object.prototype.hasOwnProperty.call(allExamples, key) && _Controller.getPathFromExample(key) === directoryName) {
 	        const exampleEntry = allExamples[key], exampleName2 = _Controller.getNameFromExample(exampleEntry.key);
 	        if (selectDataFiles || exampleEntry.meta !== "D") {
 	          const title = (exampleName2 + ": " + exampleEntry.title).substring(0, maxTitleLength), item = {
@@ -20264,15 +20230,15 @@
 	    }
 	  }
 	  selectJsError(script, e) {
-	    const lineNumber = e.lineNumber, columnNumber = e.columnNumber;
+	    const firefoxError = e, lineNumber = firefoxError.lineNumber, columnNumber = firefoxError.columnNumber;
 	    if (lineNumber || columnNumber) {
-	      const errLine = lineNumber - 3;
+	      const errLine = Number(lineNumber) - 3;
 	      let pos = 0, line = 0;
 	      while (pos < script.length && line < errLine) {
 	        pos = script.indexOf("\n", pos) + 1;
 	        line += 1;
 	      }
-	      pos += columnNumber;
+	      pos += Number(columnNumber);
 	      UiUtils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
 	      this.view.setAreaSelection(ViewID.outputText, pos, pos + 1);
 	    }
@@ -20292,10 +20258,10 @@
 	      const input = this.model.getProperty(ModelPropID.input);
 	      if (input !== "") {
 	        this.view.setAreaValue(ViewID.inp2Text, input);
-	        const that = this, timeout = 1;
-	        this.host.setTimeout(function() {
-	          that.startEnter();
-	          that.view.setAreaValue(ViewID.inp2Text, "");
+	        const timeout = 1;
+	        this.host.setTimeout(() => {
+	          this.startEnter();
+	          this.view.setAreaValue(ViewID.inp2Text, "");
 	        }, timeout);
 	      }
 	    }
@@ -20331,7 +20297,9 @@
 	        this.updateResultText();
 	        return false;
 	      }
-	      UiUtils.console.log("fnDirectInput: execute:", input);
+	      if (UiUtils.debug > 0) {
+	        UiUtils.console.log("fnDirectInput: execute:", input);
+	      }
 	      const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line, stream, directInput.message, {
 	        outputError: (error) => this.outputError(error, true),
 	        setOutputText: (text) => this.setOutputText(text),
@@ -20353,7 +20321,9 @@
 	  startWithDirectInput() {
 	    if (this.options.isHeadlessDirectInput) {
 	      this.stopUpdateCanvas();
-	      UiUtils.console.log("We are ready.");
+	      if (UiUtils.debug) {
+	        UiUtils.console.log("We are ready.");
+	      }
 	      if (this.options.onProgramEnd) {
 	        this.options.onProgramEnd();
 	      }
@@ -20773,7 +20743,7 @@
 	  fnDragElementsActive(enabled) {
 	    const dragElement = this.getDragElement(), dragElementsData = this.dragElementsData;
 	    for (const entry in dragElementsData.entries) {
-	      if (dragElementsData.entries.hasOwnProperty(entry)) {
+	      if (Object.prototype.hasOwnProperty.call(dragElementsData.entries, entry)) {
 	        dragElementsData.entries[entry].enabled = enabled;
 	      }
 	    }
@@ -21056,7 +21026,6 @@
 	  }
 	}
 
-	const ModelPropIDdatabase$1 = "database";
 	class Model {
 	  constructor(config) {
 	    this.config = config || {};
@@ -21087,7 +21056,7 @@
 	  getChangedProperties() {
 	    const current = this.config, initial = this.initialConfig, changed = {};
 	    for (const name in current) {
-	      if (current.hasOwnProperty(name)) {
+	      if (Object.prototype.hasOwnProperty.call(current, name)) {
 	        if (current[name] !== initial[name]) {
 	          changed[name] = current[name];
 	        }
@@ -21097,7 +21066,7 @@
 	  }
 	  addDatabases(db) {
 	    for (const par in db) {
-	      if (db.hasOwnProperty(par)) {
+	      if (Object.prototype.hasOwnProperty.call(db, par)) {
 	        const entry = db[par];
 	        this.databases[par] = entry;
 	        this.examples[par] = {};
@@ -21108,19 +21077,19 @@
 	    return this.databases;
 	  }
 	  getDatabase() {
-	    const database = this.getProperty(ModelPropIDdatabase$1);
+	    const database = this.getProperty(ModelPropID.database);
 	    return this.databases[database];
 	  }
 	  getAllExamples() {
-	    const database = this.getProperty(ModelPropIDdatabase$1);
+	    const database = this.getProperty(ModelPropID.database);
 	    return this.examples[database];
 	  }
 	  getExample(key) {
-	    const database = this.getProperty(ModelPropIDdatabase$1);
+	    const database = this.getProperty(ModelPropID.database);
 	    return this.examples[database][key];
 	  }
 	  setExample(example) {
-	    const database = this.getProperty(ModelPropIDdatabase$1), key = example.key;
+	    const database = this.getProperty(ModelPropID.database), key = example.key;
 	    if (!this.examples[database][key]) {
 	      if (Utils.debug > 1) {
 	        Utils.console.debug("setExample: creating new example:", key);
@@ -21129,7 +21098,7 @@
 	    this.examples[database][key] = example;
 	  }
 	  removeExample(key) {
-	    const database = this.getProperty(ModelPropIDdatabase$1);
+	    const database = this.getProperty(ModelPropID.database);
 	    if (!this.examples[database][key]) {
 	      Utils.console.warn("removeExample: example does not exist: " + key);
 	    }
@@ -21371,8 +21340,7 @@
 	}
 
 	const uiStartupAdapter = {
-	  getConfigOverrides: () => ({}),
-	  //TODO window?.cpcConfig || {},
+	  getConfigOverrides: () => window.cpcConfig || {},
 	  getArgs: () => [],
 	  getUI: () => new UI(),
 	  isNodeRuntime: () => false,

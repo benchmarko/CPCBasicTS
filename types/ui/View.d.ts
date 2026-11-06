@@ -14,7 +14,7 @@ export interface AreaInputElement {
 export type PointerEventNamesType = Record<"down" | "move" | "up" | "cancel" | "out" | "type", string>;
 export declare class View {
     private static myDocument;
-    static setDocument(doc: Document | any): void;
+    static setDocument(doc: Document): void;
     private static getDocument;
     static getElementById1(id: ViewID): HTMLElement;
     static getElementByIdAs<T extends HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLElement>(id: ViewID): T;

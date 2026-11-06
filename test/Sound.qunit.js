@@ -8,7 +8,7 @@ function clearLastTestFunctions() {
     lastTestFunctions.length = 0;
 }
 function combineLastTestFunctions() {
-    return lastTestFunctions.map((lastTestFunction) => Object.keys(lastTestFunction)[0] + ":" + Object.values(lastTestFunction)[0]).join(" , ") || undefined;
+    return lastTestFunctions.map((lastTestFunction) => Object.keys(lastTestFunction)[0] + ":" + String(Object.values(lastTestFunction)[0])).join(" , ") || undefined;
 }
 function combineResult(result) {
     const combinedTestFunctions = combineLastTestFunctions(), combinedResult = [];
@@ -84,7 +84,7 @@ class AudioContextMock {
                 lastTestFunctions.push({
                     "createBuffer:getChannelData": args2
                 });
-                return buffer; // TODO: new Float32Array()
+                return buffer;
             }
         };
     }
@@ -301,7 +301,7 @@ QUnit.module("Sound: Tests", function (hooks) {
         sound.soundOn();
         sound.setActivatedByUser();
         for (const key in tests) {
-            if (tests.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(tests, key)) {
                 const expected = tests[key], result = runSingleTest(testFunction, sound, key, expected, category);
                 if (results) {
                     results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));

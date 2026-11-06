@@ -45,9 +45,10 @@ export class TestUiUtils {
                 fnSuccess(fullUrl, key);
             }
         };
-        if (script.readyState) { // old IE8
+        const legacyScript = script;
+        if (legacyScript.readyState && legacyScript.attachEvent) { // old IE8
             ieTimeoutCount = 3;
-            script.attachEvent("onreadystatechange", onScriptReadyStateChange);
+            legacyScript.attachEvent("onreadystatechange", onScriptReadyStateChange);
         }
         else {
             script.addEventListener("load", onScriptLoad, false);

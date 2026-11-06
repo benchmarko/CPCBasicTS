@@ -8,9 +8,9 @@ export class VirtualKeyboard {
     constructor(options) {
         this.shiftLock = false;
         this.numLock = false;
-        this.fnVirtualKeyboardKeydownHandler = this.onVirtualKeyboardKeydown.bind(this);
-        this.fnVirtualKeyboardKeyupOrKeyoutHandler = this.onVirtualKeyboardKeyupOrKeyout.bind(this);
-        this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this); // for real Enter and Space
+        this.fnVirtualKeyboardKeydownHandler = (event) => this.onVirtualKeyboardKeydown(event);
+        this.fnVirtualKeyboardKeyupOrKeyoutHandler = (event) => this.onVirtualKeyboardKeyupOrKeyout(event);
+        this.fnKeydownOrKeyupHandler = (event) => this.onKeydownOrKeyup(event); // for real Enter and Space
         this.options = {};
         this.setOptions(options);
         const view = this.options.view;
@@ -198,7 +198,7 @@ export class VirtualKeyboard {
         // SliTaz web browser has not key but keyIdentifier
         const identifier = event.keyIdentifier, // eslint-disable-line @typescript-eslint/no-explicit-any
         shiftKey = event.shiftKey;
-        let char = "";
+        let char;
         if ((/^U\+/i).test(identifier || "")) { // unicode string?
             char = String.fromCharCode(parseInt(identifier.substr(2), 16));
             if (char === "\0") { // ignore

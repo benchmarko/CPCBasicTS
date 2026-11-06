@@ -60,10 +60,10 @@ export class CommonEventHandler {
     initToggles() {
         const eventDefInternalMap = this.eventDefInternalMap;
         for (const type in eventDefInternalMap) {
-            if (eventDefInternalMap.hasOwnProperty(type)) {
+            if (Object.prototype.hasOwnProperty.call(eventDefInternalMap, type)) {
                 const eventDefMap4Type = eventDefInternalMap[type];
                 for (const id in eventDefMap4Type) {
-                    if (eventDefMap4Type.hasOwnProperty(id)) {
+                    if (Object.prototype.hasOwnProperty.call(eventDefMap4Type, id)) {
                         const eventDef = eventDefMap4Type[id];
                         this.initOneToggle(type, id, eventDef);
                     }
@@ -88,7 +88,7 @@ export class CommonEventHandler {
     setPopoversHiddenExcept(exceptId) {
         const eventDefInternalMap = this.eventDefInternalMap, eventDefMapClick = eventDefInternalMap.click;
         for (const id in eventDefMapClick) {
-            if (eventDefMapClick.hasOwnProperty(id)) {
+            if (Object.prototype.hasOwnProperty.call(eventDefMapClick, id)) {
                 const eventDef = eventDefMapClick[id];
                 if (eventDef.isPopover && (eventDef.toggleId !== exceptId)) {
                     const toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef);
@@ -199,12 +199,12 @@ export class CommonEventHandler {
     updateUrlFromConfig() {
         const url = new URL(window.location.href), initial = this.model.getAllInitialProperties(), changed = this.model.getChangedProperties();
         for (const name in initial) {
-            if (initial.hasOwnProperty(name)) {
+            if (Object.prototype.hasOwnProperty.call(initial, name)) {
                 url.searchParams.delete(name);
             }
         }
         for (const name in changed) {
-            if (changed.hasOwnProperty(name)) {
+            if (Object.prototype.hasOwnProperty.call(changed, name)) {
                 url.searchParams.set(name, String(changed[name]));
             }
         }
@@ -265,7 +265,7 @@ export class CommonEventHandler {
         this.controller.setSoundActive();
     }
     onScreenshotButtonClick() {
-        var example = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */), image = this.controller.startScreenshot(), link = View.getElementById1("screenshotLink" /* ViewID.screenshotLink */), name = example + ".png";
+        const example = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */), image = this.controller.startScreenshot(), link = View.getElementById1("screenshotLink" /* ViewID.screenshotLink */), name = example + ".png";
         if (image) {
             link.setAttribute("download", name);
             link.setAttribute("href", image);
@@ -675,7 +675,7 @@ export class CommonEventHandler {
             ]
         };
         for (const type in eventDefs) {
-            if (eventDefs.hasOwnProperty(type)) {
+            if (Object.prototype.hasOwnProperty.call(eventDefs, type)) {
                 eventDefInternalMap[type] = {};
                 const eventDefList = eventDefs[type], itemForType = eventDefInternalMap[type];
                 for (let i = 0; i < eventDefList.length; i += 1) {

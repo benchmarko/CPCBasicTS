@@ -80,7 +80,7 @@
 	    let len = data.length, offset = 0, out = "";
 	    while (len) {
 	      const chunkLen = Math.min(len, callSize), chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen);
-	      out += String.fromCharCode.apply(null, chunk);
+	      out += String.fromCharCode.apply(null, Array.from(chunk));
 	      offset += chunkLen;
 	      len -= chunkLen;
 	    }
@@ -616,7 +616,7 @@
 	      ..._BasicParser.keywordsBasic11
 	    };
 	    for (const key in keywords10) {
-	      if (keywords10.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(keywords10, key)) {
 	        const keyWithSpaces = " " + key + " ";
 	        if (_BasicParser.fnIsInString(" clearInput copychr$ cursor derr fill frame graphics graphicsPaper graphicsPen mask onBreakCont ", keyWithSpaces)) {
 	          delete keywords10[key];
@@ -1593,7 +1593,7 @@
 	  }
 	  fnGenerateKeywordSymbols() {
 	    for (const key in this.keywords) {
-	      if (this.keywords.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(this.keywords, key)) {
 	        const keywordType = this.keywords[key].charAt(0);
 	        if (keywordType === "f") {
 	          this.createNudSymbol(key, () => this.fnCreateFuncCall(this.previousToken));
@@ -2434,9 +2434,9 @@
 	  static fnParseArgs(args, config) {
 	    for (let i = 0; i < args.length; i += 1) {
 	      const nameValue = args[i], nameValueList = Utils.split2(nameValue, "="), name = nameValueList[0];
-	      if (config.hasOwnProperty(name)) {
+	      if (Object.prototype.hasOwnProperty.call(config, name)) {
 	        let value = nameValueList[1];
-	        if (value !== void 0 && config.hasOwnProperty(name)) {
+	        if (value !== void 0 && Object.prototype.hasOwnProperty.call(config, name)) {
 	          switch (typeof config[name]) {
 	            case "string":
 	              break;
@@ -2460,7 +2460,7 @@
 	    let match;
 	    while ((match = rSearch.exec(urlQuery)) !== null) {
 	      const name = fnDecode(match[1]), value = fnDecode(match[2]);
-	      if (value !== null && config.hasOwnProperty(name)) {
+	      if (value !== null && Object.prototype.hasOwnProperty.call(config, name)) {
 	        args.push(name + "=" + value);
 	      }
 	    }
@@ -2468,7 +2468,7 @@
 	  }
 	  static generateTests(allTests, runTestsFor, results) {
 	    for (const category in allTests) {
-	      if (allTests.hasOwnProperty(category)) {
+	      if (Object.prototype.hasOwnProperty.call(allTests, category)) {
 	        if (results) {
 	          results[category] = [];
 	        }
@@ -2510,7 +2510,7 @@
 	  }
 	  static listKeys(category, tests, assert, results) {
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const result = "";
 	        if (results) {
 	          results[category].push(_TestHelper.stringInQuotes(key) + ": " + _TestHelper.stringInQuotes(result));
@@ -2525,7 +2525,7 @@
 	    const reJsKeywords = _TestHelper.createJsKeywordRegex();
 	    let result = "";
 	    for (const category in allResults) {
-	      if (allResults.hasOwnProperty(category)) {
+	      if (Object.prototype.hasOwnProperty.call(allResults, category)) {
 	        const results = allResults[category], containsSpace = category.indexOf(" ") >= 0, isJsKeyword = reJsKeywords.test(category);
 	        if (results.length) {
 	          result += containsSpace || isJsKeyword ? _TestHelper.stringInQuotes(category) : category;
@@ -2551,27 +2551,24 @@
 	    }
 	    _TestHelper.generateTests(allTests, _TestHelper.config.generateKeys ? _TestHelper.listKeys : runTestsFor, allResults);
 	  }
-	  static compareKeys(keys1, keys2, type) {
-	    let isEqual = true;
-	    for (let i = 0; i < keys1.length; i += 1) {
-	      if (keys1[i] !== keys2[i]) {
-	        isEqual = false;
-	        Utils.console.warn("compareKeys: " + type + ": " + keys1[i] + " <> " + keys2[i]);
-	      }
+	  static compareKeys(keys1, keys2, type, referenceFile, comparedFile, category) {
+	    const keys1Set = new Set(keys1), keys2Set = new Set(keys2), additionalKeys = keys2.filter((key) => !keys1Set.has(key)), missingKeys = keys1.filter((key) => !keys2Set.has(key)), context = category === void 0 ? type : type + " in category " + JSON.stringify(category);
+	    const isEqual = !additionalKeys.length && !missingKeys.length;
+	    if (additionalKeys.length) {
+	      Utils.console.warn("compareKeys: " + comparedFile + " has additional " + context + " not in " + referenceFile + ": " + JSON.stringify(additionalKeys));
 	    }
-	    if (keys1.length !== keys2.length) {
-	      isEqual = false;
-	      Utils.console.warn("compareKeys: " + type + ": different sizes: " + keys1.length + " <> " + keys2.length);
+	    if (missingKeys.length) {
+	      Utils.console.warn("compareKeys: " + comparedFile + " is missing " + context + " from " + referenceFile + ": " + JSON.stringify(missingKeys));
 	    }
 	    return isEqual;
 	  }
-	  static compareAllTests(allTests1, allTests2) {
+	  static compareAllTests(allTests1, allTests2, referenceFile, comparedFile) {
 	    const categories1 = Object.keys(allTests1), categories2 = Object.keys(allTests2);
-	    let isEqual = _TestHelper.compareKeys(categories1, categories2, "categories");
-	    if (isEqual) {
-	      for (let i = 0; i < categories1.length; i += 1) {
-	        const category = categories1[i], key1 = allTests1[category], key2 = allTests2[category], keys1 = Object.keys(key1), keys2 = Object.keys(key2);
-	        isEqual = _TestHelper.compareKeys(keys1, keys2, "keys");
+	    let isEqual = _TestHelper.compareKeys(categories1, categories2, "categories", referenceFile, comparedFile);
+	    for (const category of categories1) {
+	      if (Object.prototype.hasOwnProperty.call(allTests2, category)) {
+	        const keys1 = Object.keys(allTests1[category]), keys2 = Object.keys(allTests2[category]);
+	        isEqual = _TestHelper.compareKeys(keys1, keys2, "input keys", referenceFile, comparedFile, category) && isEqual;
 	      }
 	    }
 	    return isEqual;
@@ -2896,7 +2893,7 @@
 	      parser: basicParser
 	    });
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const expected = TestHelper.handleBinaryLiterals(tests[key]), result = runSingleTest(basicFormatter, key);
 	        if (results) {
 	          results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
@@ -3077,6 +3074,7 @@
 	    "cursor #2,,1": ""
 	  },
 	  "data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
+	    "def fno(o,t,v,do)=o+t+v+do+go": "",
 	    "data": "",
 	    "data ,": "",
 	    "data \\": "",
@@ -3163,6 +3161,7 @@
 	    "drawr x,y,m,g1": ""
 	  },
 	  "edit, ei, else, end, ent, env, eof, erase, erl, err, error, every gosub, exp": {
+	    "erase o,t,v,do": "",
 	    "edit 20": "",
 	    "ei": "",
 	    "else": "",
@@ -3192,6 +3191,9 @@
 	    "a=exp(2.3)": ""
 	  },
 	  "fill, fix, fn, for, frame, fre": {
+	    "for a=&a000 TO &ha00b step &x101": "",
+	    "for a=2 to 1 step -&1": "",
+	    "for a=2 to 1 step -&x1": "",
 	    "fill 7": "",
 	    "a=fix(2.3)": "",
 	    "x=fnclk": "",
@@ -3826,6 +3828,7 @@
 	    "cursor #2,,1": '[{"type":"cursor","value":"cursor","pos":0},{"type":"#","value":"#","pos":7},{"type":"number","value":"2","pos":8},{"type":",","value":",","pos":9},{"type":",","value":",","pos":10},{"type":"number","value":"1","pos":11},{"type":"(end)","value":"","pos":12}]'
 	  },
 	  "data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
+	    "def fno(o,t,v,do)=o+t+v+do+go": '[{"type":"def","value":"def","pos":0},{"type":"fn","value":"fn","pos":4},{"type":"identifier","value":"o","pos":6},{"type":"(","value":"(","pos":7},{"type":"identifier","value":"o","pos":8},{"type":",","value":",","pos":9},{"type":"identifier","value":"t","pos":10},{"type":",","value":",","pos":11},{"type":"identifier","value":"v","pos":12},{"type":",","value":",","pos":13},{"type":"identifier","value":"do","pos":14},{"type":")","value":")","pos":16},{"type":"=","value":"=","pos":17},{"type":"identifier","value":"o","pos":18},{"type":"+","value":"+","pos":19},{"type":"identifier","value":"t","pos":20},{"type":"+","value":"+","pos":21},{"type":"identifier","value":"v","pos":22},{"type":"+","value":"+","pos":23},{"type":"identifier","value":"do","pos":24},{"type":"+","value":"+","pos":26},{"type":"identifier","value":"go","pos":27},{"type":"(end)","value":"","pos":29}]',
 	    "data": '[{"type":"data","value":"data","pos":0},{"type":"(end)","value":"","pos":4}]',
 	    "data ,": '[{"type":"data","value":"data","pos":0},{"type":",","value":",","pos":5},{"type":"(end)","value":"","pos":6}]',
 	    "data \\": '[{"type":"data","value":"data","pos":0},{"type":"unquoted","value":"\\\\","pos":5},{"type":"(end)","value":"","pos":6}]',
@@ -3912,6 +3915,7 @@
 	    "drawr x,y,m,g1": '[{"type":"drawr","value":"drawr","pos":0},{"type":"identifier","value":"x","pos":6},{"type":",","value":",","pos":7},{"type":"identifier","value":"y","pos":8},{"type":",","value":",","pos":9},{"type":"identifier","value":"m","pos":10},{"type":",","value":",","pos":11},{"type":"identifier","value":"g1","pos":12},{"type":"(end)","value":"","pos":14}]'
 	  },
 	  "edit, ei, else, end, ent, env, eof, erase, erl, err, error, every gosub, exp": {
+	    "erase o,t,v,do": '[{"type":"erase","value":"erase","pos":0},{"type":"identifier","value":"o","pos":6},{"type":",","value":",","pos":7},{"type":"identifier","value":"t","pos":8},{"type":",","value":",","pos":9},{"type":"identifier","value":"v","pos":10},{"type":",","value":",","pos":11},{"type":"identifier","value":"do","pos":12},{"type":"(end)","value":"","pos":14}]',
 	    "edit 20": '[{"type":"edit","value":"edit","pos":0},{"type":"number","value":"20","pos":5},{"type":"(end)","value":"","pos":7}]',
 	    "ei": '[{"type":"ei","value":"ei","pos":0},{"type":"(end)","value":"","pos":2}]',
 	    "else": '[{"type":"else","value":"else","pos":0},{"type":"(end)","value":"","pos":4}]',
@@ -3941,6 +3945,9 @@
 	    "a=exp(2.3)": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"exp","value":"exp","pos":2},{"type":"(","value":"(","pos":5},{"type":"number","value":"2.3","pos":6},{"type":")","value":")","pos":9},{"type":"(end)","value":"","pos":10}]'
 	  },
 	  "fill, fix, fn, for, frame, fre": {
+	    "for a=&a000 TO &ha00b step &x101": '[{"type":"for","value":"for","pos":0},{"type":"identifier","value":"a","pos":4},{"type":"=","value":"=","pos":5},{"type":"hexnumber","value":"&a000","pos":6},{"type":"to","value":"TO","pos":12},{"type":"hexnumber","value":"&ha00b","pos":15},{"type":"step","value":"step","pos":22},{"type":"binnumber","value":"&x101","pos":27},{"type":"(end)","value":"","pos":32}]',
+	    "for a=2 to 1 step -&1": '[{"type":"for","value":"for","pos":0},{"type":"identifier","value":"a","pos":4},{"type":"=","value":"=","pos":5},{"type":"number","value":"2","pos":6},{"type":"to","value":"to","pos":8},{"type":"number","value":"1","pos":11},{"type":"step","value":"step","pos":13},{"type":"-","value":"-","pos":18},{"type":"hexnumber","value":"&1","pos":19},{"type":"(end)","value":"","pos":21}]',
+	    "for a=2 to 1 step -&x1": '[{"type":"for","value":"for","pos":0},{"type":"identifier","value":"a","pos":4},{"type":"=","value":"=","pos":5},{"type":"number","value":"2","pos":6},{"type":"to","value":"to","pos":8},{"type":"number","value":"1","pos":11},{"type":"step","value":"step","pos":13},{"type":"-","value":"-","pos":18},{"type":"binnumber","value":"&x1","pos":19},{"type":"(end)","value":"","pos":22}]',
 	    "fill 7": '[{"type":"fill","value":"fill","pos":0},{"type":"number","value":"7","pos":5},{"type":"(end)","value":"","pos":6}]',
 	    "a=fix(2.3)": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"fix","value":"fix","pos":2},{"type":"(","value":"(","pos":5},{"type":"number","value":"2.3","pos":6},{"type":")","value":")","pos":9},{"type":"(end)","value":"","pos":10}]',
 	    "x=fnclk": '[{"type":"identifier","value":"x","pos":0},{"type":"=","value":"=","pos":1},{"type":"fn","value":"fn","pos":2},{"type":"identifier","value":"clk","pos":4},{"type":"(end)","value":"","pos":7}]',
@@ -4428,7 +4435,8 @@
 	      if (e.message !== expectedEntry.message) {
 	        Utils.console.error(e);
 	      }
-	      const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(e);
+	      const error = e !== null && typeof e === "object" ? e : {};
+	      const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(error);
 	      result = JSON.stringify(copiedError);
 	    }
 	    return result;
@@ -4436,7 +4444,7 @@
 	  function runTestsFor(category, tests, assert, results) {
 	    const basicLexer = hooks.basicLexer;
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const expected = TestHelper.handleBinaryLiterals(tests[key]);
 	        let expectedEntry;
 	        try {
@@ -4456,7 +4464,7 @@
 	      }
 	    }
 	  }
-	  TestHelper.compareAllTests(TestInput.getAllTests(), allTests$9);
+	  TestHelper.compareAllTests(TestInput.getAllTests(), allTests$9, "TestInput.ts", "BasicLexer.qunit.ts");
 	  TestHelper.generateAllTests(allTests$9, runTestsFor, hooks);
 	});
 	QUnit.module("BasicLexer: keepWhiteSpace", function(hooks) {
@@ -4514,7 +4522,7 @@
 	      return " ".repeat(spaceCount);
 	    };
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        spaceCount = 1;
 	        const expected = tests[key], keyWithSpaces = key.replace(/([=?+\-*^/\\,;()#])/g, " $1 ").replace(/\s+/g, fnSpaceReplacer), result = runSingleTestForWhitespace(basicLexer, keyWithSpaces, expected);
 	        if (results) {
@@ -4536,7 +4544,7 @@
 	    }), inputs = "!$%\u2195_`{}~";
 	    for (let i = 0; i < inputs.length; i += 1) {
 	      const key = inputs.charAt(i);
-	      let result = "";
+	      let result;
 	      try {
 	        result = String(basicLexer.lex(key));
 	      } catch (e) {
@@ -4715,6 +4723,7 @@
 	    "cursor #2,,1": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"cursor","value":"cursor","pos":0,"args":[{"type":"#","value":"#","pos":7,"right":{"type":"number","value":"2","pos":8}},{"type":"null","value":"","pos":0,"len":0},{"type":"number","value":"1","pos":11}]}]}]'
 	  },
 	  "data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
+	    "def fno(o,t,v,do)=o+t+v+do+go": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"def","value":"def","pos":0,"args":[{"type":"identifier","value":"o","pos":8},{"type":"identifier","value":"t","pos":10},{"type":"identifier","value":"v","pos":12},{"type":"identifier","value":"do","pos":14},{"type":"+","value":"+","pos":26,"left":{"type":"+","value":"+","pos":23,"left":{"type":"+","value":"+","pos":21,"left":{"type":"+","value":"+","pos":19,"left":{"type":"identifier","value":"o","pos":18},"right":{"type":"identifier","value":"t","pos":20}},"right":{"type":"identifier","value":"v","pos":22}},"right":{"type":"identifier","value":"do","pos":24}},"right":{"type":"identifier","value":"go","pos":27}}],"right":{"type":"identifier","value":"o","pos":6}}]}]',
 	    "data": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"data","value":"data","pos":0,"args":[{"type":"null","value":"","pos":0,"len":0}]}]}]',
 	    "data ,": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"data","value":"data","pos":0,"args":[{"type":"null","value":"","pos":0,"len":0},{"type":"null","value":"","pos":0,"len":0}]}]}]',
 	    "data \\": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"data","value":"data","pos":0,"args":[{"type":"unquoted","value":"\\\\","pos":5}]}]}]',
@@ -4801,6 +4810,7 @@
 	    "drawr x,y,m,g1": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"drawr","value":"drawr","pos":0,"args":[{"type":"identifier","value":"x","pos":6},{"type":"identifier","value":"y","pos":8},{"type":"identifier","value":"m","pos":10},{"type":"identifier","value":"g1","pos":12}]}]}]'
 	  },
 	  "edit, ei, else, end, ent, env, eof, erase, erl, err, error, every gosub, exp": {
+	    "erase o,t,v,do": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"erase","value":"erase","pos":0,"args":[{"type":"identifier","value":"o","pos":6},{"type":"identifier","value":"t","pos":8},{"type":"identifier","value":"v","pos":10},{"type":"identifier","value":"do","pos":12}]}]}]',
 	    "edit 20": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"edit","value":"edit","pos":0,"args":[{"type":"linenumber","value":"20","pos":5}]}]}]',
 	    "ei": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"ei","value":"ei","pos":0,"args":[]}]}]',
 	    "else": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"elseComment","value":"else","pos":0,"args":[]}]}]',
@@ -4830,6 +4840,9 @@
 	    "a=exp(2.3)": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"exp","value":"exp","pos":2,"args":[{"type":"number","value":"2.3","pos":6}]}}]}]'
 	  },
 	  "fill, fix, fn, for, frame, fre": {
+	    "for a=&a000 TO &ha00b step &x101": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"for","value":"for","pos":0,"args":[{"type":"identifier","value":"a","pos":4},{"type":"hexnumber","value":"&a000","pos":6},{"type":"hexnumber","value":"&ha00b","pos":15},{"type":"binnumber","value":"&x101","pos":27}]}]}]',
+	    "for a=2 to 1 step -&1": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"for","value":"for","pos":0,"args":[{"type":"identifier","value":"a","pos":4},{"type":"number","value":"2","pos":6},{"type":"number","value":"1","pos":11},{"type":"-","value":"-","pos":18,"right":{"type":"hexnumber","value":"&1","pos":19}}]}]}]',
+	    "for a=2 to 1 step -&x1": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"for","value":"for","pos":0,"args":[{"type":"identifier","value":"a","pos":4},{"type":"number","value":"2","pos":6},{"type":"number","value":"1","pos":11},{"type":"-","value":"-","pos":18,"right":{"type":"binnumber","value":"&x1","pos":19}}]}]}]',
 	    "fill 7": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"fill","value":"fill","pos":0,"args":[{"type":"number","value":"7","pos":5}]}]}]',
 	    "a=fix(2.3)": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"fix","value":"fix","pos":2,"args":[{"type":"number","value":"2.3","pos":6}]}}]}]',
 	    "x=fnclk": '[{"type":"label","value":"","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"x","pos":0},"right":{"type":"fn","value":"fn","pos":2,"args":[],"right":{"type":"identifier","value":"clk","pos":4}}}]}]',
@@ -5317,7 +5330,8 @@
 	      if (e.message !== expectedEntry.message) {
 	        Utils.console.error(e);
 	      }
-	      const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(e);
+	      const error = e !== null && typeof e === "object" ? e : {};
+	      const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(error);
 	      result = JSON.stringify(copiedError);
 	    }
 	    return result;
@@ -5325,7 +5339,7 @@
 	  function runTestsFor(category, tests, assert, results) {
 	    const thisHooks = hooks, basicLexer = thisHooks.basicLexer, basicParser = thisHooks.basicParser;
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const expected = TestHelper.handleBinaryLiterals(tests[key]);
 	        let expectedEntry;
 	        try {
@@ -5345,7 +5359,7 @@
 	      }
 	    }
 	  }
-	  TestHelper.compareAllTests(TestInput.getAllTests(), allTests$8);
+	  TestHelper.compareAllTests(TestInput.getAllTests(), allTests$8, "TestInput.ts", "BasicParser.qunit.ts");
 	  TestHelper.generateAllTests(allTests$8, runTestsFor, hooks);
 	});
 	QUnit.module("BasicParser: keepWhiteSpace, keep...", function(hooks) {
@@ -5431,7 +5445,7 @@
 	      return " ".repeat(spaceCount);
 	    };
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        spaceCount = 1;
 	        const expected = TestHelper.handleBinaryLiterals(tests[key]), keyWithSpaces = key.replace(/([=?+\-*^/\\,;()#])/g, " $1 ").replace(/ +/g, fnSpaceReplacer).replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/e[ ]+\+[ ]+(\d+)/g, "e+$1"), result = runSingleTestForWhitespace(basicLexer, basicParser, keyWithSpaces, expected);
 	        if (results) {
@@ -5862,7 +5876,7 @@
 	  }
 	  fnQuotedString() {
 	    const closingQuotes = this.input.indexOf('"', this.pos);
-	    let out = "";
+	    let out;
 	    if (closingQuotes < 0 || closingQuotes >= this.lineEnd) {
 	      out = BasicTokenizer.fnControlsToUnicode(this.fnStringUntilEol());
 	    } else {
@@ -5870,14 +5884,6 @@
 	      this.pos = closingQuotes + 1;
 	    }
 	    out = '"' + out;
-	    if (out.indexOf("\r") >= 0) {
-	      Utils.console.log("BasicTokenizer line", this.line, ": string contains CR, replaced by CHR$(13)");
-	      out = out.replace(/\r/g, '"+chr$(13)+"');
-	    }
-	    if (/\n\d/.test(out)) {
-	      Utils.console.log("BasicTokenizer line", this.line, ": string contains LF<digit>, replaced by CHR$(10)<digit>");
-	      out = out.replace(/\n(\d)/g, '"+chr$(10)+"$1');
-	    }
 	    return out;
 	  }
 	  debugPrintInfo() {
@@ -6788,7 +6794,7 @@
 	  function runTestsFor(category, tests, assert, results) {
 	    const basicTokenizer = hooks.basicTokenizer;
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const expected = tests[key], result = runSingleTest(basicTokenizer, key);
 	        if (results) {
 	          results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
@@ -6809,7 +6815,7 @@
 	  function runTestsForMore(category, tests, assert, results) {
 	    const basicTokenizer = hooks.basicTokenizer;
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const expected = tests[key], result = runSingleTest(basicTokenizer, key);
 	        if (results) {
 	          results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
@@ -6866,9 +6872,10 @@
 	        fnSuccess(fullUrl, key);
 	      }
 	    };
-	    if (script.readyState) {
+	    const legacyScript = script;
+	    if (legacyScript.readyState && legacyScript.attachEvent) {
 	      ieTimeoutCount = 3;
-	      script.attachEvent("onreadystatechange", onScriptReadyStateChange);
+	      legacyScript.attachEvent("onreadystatechange", onScriptReadyStateChange);
 	    } else {
 	      script.addEventListener("load", onScriptLoad, false);
 	      script.addEventListener("error", onScriptLoad, false);
@@ -6896,7 +6903,7 @@
 	    let len = data.length, offset = 0, out = "";
 	    while (len) {
 	      const chunkLen = Math.min(len, callSize), chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen);
-	      out += String.fromCharCode.apply(null, chunk);
+	      out += String.fromCharCode.apply(null, Array.from(chunk));
 	      offset += chunkLen;
 	      len -= chunkLen;
 	    }
@@ -7048,18 +7055,25 @@
 	  btoa: typeof window !== "undefined" ? window.btoa : void 0
 	};
 	if (!Polyfills$1.console) {
-	  const polyFillConsole = {
-	    cpcBasicLog: "LOG:\n",
-	    log: function() {
-	      if (polyFillConsole.cpcBasicLog) {
-	        polyFillConsole.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
-	      }
+	  let logText = "LOG:\n";
+	  const appendLog = (...args) => {
+	    if (logText) {
+	      logText += args.join(" ") + "\n";
 	    }
 	  };
-	  polyFillConsole.info = polyFillConsole.log;
-	  polyFillConsole.warn = polyFillConsole.log;
-	  polyFillConsole.error = polyFillConsole.log;
-	  polyFillConsole.debug = polyFillConsole.log;
+	  const polyFillConsole = {
+	    get cpcBasicLog() {
+	      return logText;
+	    },
+	    set cpcBasicLog(value) {
+	      logText = value;
+	    },
+	    log: appendLog,
+	    info: appendLog,
+	    warn: appendLog,
+	    error: appendLog,
+	    debug: appendLog
+	  };
 	  Polyfills$1.console = polyFillConsole;
 	  Polyfills$1.log("window.console");
 	}
@@ -7146,14 +7160,14 @@
 	    Polyfills$1.log("Element.prototype.addEventListener");
 	    Element.prototype.addEventListener = function(event, fnCallback) {
 	      event = "on" + event;
-	      return this.attachEvent(event, fnCallback);
+	      this.attachEvent?.(event, fnCallback);
 	    };
 	  }
 	  if (!Element.prototype.removeEventListener) {
 	    Polyfills$1.log("Element.prototype.removeEventListener");
 	    Element.prototype.removeEventListener = function(event, fnCallback) {
 	      event = "on" + event;
-	      return this.detachEvent(event, fnCallback);
+	      this.detachEvent?.(event, fnCallback);
 	    };
 	  }
 	}
@@ -7171,7 +7185,8 @@
 	}
 	if (!window.getComputedStyle) {
 	  Polyfills$1.log("window.getComputedStyle");
-	  window.getComputedStyle = function(el, _pseudo) {
+	  const legacyWindow = window;
+	  legacyWindow.getComputedStyle = function(el, _pseudo) {
 	    this.getPropertyValue = function(prop) {
 	      const re = /(-([a-z]){1})/g;
 	      if (prop === "float") {
@@ -7182,8 +7197,8 @@
 	          return arguments[2].toUpperCase();
 	        });
 	      }
-	      const currentStyle = el.currentStyle;
-	      return currentStyle && currentStyle[prop] ? currentStyle[prop] : null;
+	      const currentStyle = el.currentStyle, currentStyleValue = currentStyle ? currentStyle[prop] : void 0;
+	      return currentStyleValue ? currentStyleValue : null;
 	    };
 	    return this;
 	  };
@@ -7232,7 +7247,7 @@
 	          if (eventString === "change") {
 	            const elements = document.getElementsByTagName("select");
 	            for (let i = 0; i < elements.length; i += 1) {
-	              elements[i].attachEvent("on" + eventString, fnOnEvent);
+	              elements[i].attachEvent?.("on" + eventString, fnOnEvent);
 	              eventListeners.push({
 	                //TTT does this work?
 	                object: this,
@@ -7242,7 +7257,7 @@
 	              });
 	            }
 	          } else {
-	            document.attachEvent("on" + eventString, fnOnEvent);
+	            document.attachEvent?.("on" + eventString, fnOnEvent);
 	            eventListeners.push({
 	              object: this,
 	              eventString,
@@ -7256,7 +7271,7 @@
 	          while (counter < eventListeners.length) {
 	            const eventListener = eventListeners[counter];
 	            if (eventListener.object === this && eventListener.eventString === event && eventListener.fnHandler === fnHandler) {
-	              this.detachEvent("on" + event, eventListener.fnOnEvent);
+	              this.detachEvent?.("on" + event, eventListener.fnOnEvent);
 	              eventListeners.splice(counter, 1);
 	              break;
 	            }
@@ -7266,8 +7281,9 @@
 	      })();
 	    } else {
 	      (Polyfills$1.console || window.console).error("No document.attachEvent found.");
-	      if (document.__proto__.addEventListener) {
-	        document.addEventListener = document.__proto__.addEventListener;
+	      const documentPrototype = document.__proto__;
+	      if (documentPrototype?.addEventListener) {
+	        document.addEventListener = documentPrototype.addEventListener;
 	      }
 	    }
 	  }
@@ -7283,7 +7299,9 @@
 	      }
 	      return function() {
 	        args.length = argLen;
-	        args.push.apply(args, arguments);
+	        for (let i = 0; i < arguments.length; i += 1) {
+	          args.push(arguments[i]);
+	        }
 	        return that.apply(thatArg, args);
 	      };
 	    };
@@ -7314,7 +7332,7 @@
 	    for (let i = 1; i < arguments.length; i += 1) {
 	      const nextSource = arguments[i];
 	      for (const nextKey in nextSource) {
-	        if (nextSource.hasOwnProperty(nextKey)) {
+	        if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
 	          to[nextKey] = nextSource[nextKey];
 	        }
 	      }
@@ -7325,7 +7343,8 @@
 	if (!Object.defineProperty || !Polyfills$1.isDefinePropertyOk) {
 	  Polyfills$1.log("Object.defineProperty");
 	  Object.defineProperty = function(target, prop, PropDescriptor) {
-	    target[prop] = PropDescriptor.value;
+	    const targetWithProperty = target;
+	    targetWithProperty[prop] = PropDescriptor.value;
 	    return target;
 	  };
 	}
@@ -7347,8 +7366,9 @@
 	if (!Object.values) {
 	  Polyfills$1.log("Object.values");
 	  Object.values = function(o) {
+	    const objectRecord = o;
 	    return Object.keys(o).map(function(key) {
-	      return o[key];
+	      return objectRecord[key];
 	    });
 	  };
 	}
@@ -7496,9 +7516,12 @@
 	      constructor() {
 	        this.length = 0;
 	      }
+	      get data() {
+	        return this;
+	      }
 	      clear() {
 	        for (const key in this) {
-	          if (this.hasOwnProperty(key)) {
+	          if (Object.prototype.hasOwnProperty.call(this, key)) {
 	            delete this[key];
 	          }
 	        }
@@ -7507,7 +7530,7 @@
 	      key(index) {
 	        let i = 0;
 	        for (const key in this) {
-	          if (this.hasOwnProperty(key) && key !== "length") {
+	          if (Object.prototype.hasOwnProperty.call(this, key) && key !== "length") {
 	            if (i === index) {
 	              return key;
 	            }
@@ -7517,17 +7540,17 @@
 	        return null;
 	      }
 	      getItem(key) {
-	        return this.hasOwnProperty(key) ? this[key] : null;
+	        return Object.prototype.hasOwnProperty.call(this, key) ? this.data[key] : null;
 	      }
 	      setItem(key, value) {
 	        if (this.getItem(key) === null) {
 	          this.length += 1;
 	        }
-	        this[key] = String(value);
+	        this.data[key] = String(value);
 	      }
 	      removeItem(key) {
 	        if (this.getItem(key) !== null) {
-	          delete this[key];
+	          delete this.data[key];
 	          this.length -= 1;
 	        }
 	      }
@@ -7540,8 +7563,9 @@
 	  window.ArrayBuffer = Array;
 	}
 	if (!window.AudioContext) {
-	  window.AudioContext = window.webkitAudioContext || window.mozAudioContext;
-	  if (window.AudioContext) {
+	  const legacyWindow = window, audioContext = legacyWindow.webkitAudioContext || legacyWindow.mozAudioContext;
+	  if (audioContext) {
+	    window.AudioContext = audioContext;
 	    Polyfills$1.log("window.AudioContext");
 	  } else {
 	    Polyfills$1.log("window.AudioContext not ok!");
@@ -7560,8 +7584,14 @@
 	  };
 	}
 	if (!window.requestAnimationFrame) {
-	  window.requestAnimationFrame = window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
-	  window.cancelAnimationFrame = window.mozCancelAnimationFrame || window.webkitCancelAnimationFrame || window.msCancelAnimationFrame;
+	  const legacyWindow = window;
+	  const requestAnimationFrame = legacyWindow.mozRequestAnimationFrame || legacyWindow.webkitRequestAnimationFrame || legacyWindow.msRequestAnimationFrame, cancelAnimationFrame = legacyWindow.mozCancelAnimationFrame || legacyWindow.webkitCancelAnimationFrame || legacyWindow.msCancelAnimationFrame;
+	  if (requestAnimationFrame) {
+	    window.requestAnimationFrame = requestAnimationFrame;
+	  }
+	  if (cancelAnimationFrame) {
+	    window.cancelAnimationFrame = cancelAnimationFrame;
+	  }
 	  if (!window.requestAnimationFrame || !window.cancelAnimationFrame) {
 	    (function() {
 	      let lastTime = 0;
@@ -7583,10 +7613,11 @@
 	}
 	if (!window.Uint8Array) {
 	  Polyfills$1.log("Uint8Array (fallback only)");
-	  window.Uint8Array = function(arrayBuffer) {
+	  const polyfillUint8Array = function(arrayBuffer) {
 	    return arrayBuffer;
 	  };
-	  window.Uint8Array.BYTES_PER_ELEMENT = 1;
+	  polyfillUint8Array.BYTES_PER_ELEMENT = 1;
+	  window.Uint8Array = polyfillUint8Array;
 	}
 	if (!window.Uint8Array.prototype.copyWithin) {
 	  Polyfills$1.log("Uint8Array.prototype.copyWithin");
@@ -8062,37 +8093,37 @@
 	    return target;
 	  }
 	  requestFullscreenForId(id) {
-	    const element = _View.getElementById1(id), anyEl = element, that = this, requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen, fullscreenchangedHandler = function(event) {
-	      const target = _View.getEventTarget(event);
-	      if (_View.getDocument().fullscreenElement) {
+	    const element = _View.getElementById1(id), legacyElement = element, activeXObject = window.ActiveXObject, requestMethod = element.requestFullscreen || legacyElement.webkitRequestFullscreen || legacyElement.mozRequestFullScreen || legacyElement.msRequestFullscreen, fullscreenchangedHandler = (event) => {
+	      const target = _View.getEventTarget(event), fullscreenElement = _View.getDocument().fullscreenElement;
+	      if (fullscreenElement) {
 	        if (UiUtils.debug > 0) {
-	          UiUtils.console.debug("Entered fullscreen mode: " + _View.getDocument().fullscreenElement.id);
+	          UiUtils.console.debug("Entered fullscreen mode: " + fullscreenElement.id);
 	        }
 	      } else {
 	        if (UiUtils.debug > 0) {
 	          UiUtils.console.debug("Leaving fullscreen mode.");
 	        }
-	        that.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
-	        that.setHidden(id, true);
-	        window.setTimeout(function() {
-	          that.setHidden(id, false);
+	        this.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
+	        this.setHidden(id, true);
+	        window.setTimeout(() => {
+	          this.setHidden(id, false);
 	        }, 0);
 	      }
 	    };
 	    if (requestMethod) {
 	      const promise = requestMethod.call(element);
 	      if (promise) {
-	        promise.then(function() {
+	        promise.then(() => {
 	          if (UiUtils.debug > 0) {
 	            UiUtils.console.debug("requestFullscreenForId: " + id + ": success");
 	          }
-	          that.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
+	          this.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
 	        }).catch(function(err) {
 	          UiUtils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
 	        });
 	      }
-	    } else if (typeof window.ActiveXObject !== "undefined") {
-	      const wscript = new window.ActiveXObject("WScript.Shell");
+	    } else if (activeXObject) {
+	      const wscript = new activeXObject("WScript.Shell");
 	      if (wscript !== null) {
 	        wscript.SendKeys("{F11}");
 	      }
@@ -8110,8 +8141,9 @@
 	    const data8 = UiUtils.string2Uint8Array(data), type = "octet/stream", blob = new Blob([data8.buffer], {
 	      type
 	    });
-	    if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-	      window.navigator.msSaveOrOpenBlob(blob, filename);
+	    const legacyNavigator = window.navigator;
+	    if (window.navigator && legacyNavigator.msSaveOrOpenBlob) {
+	      legacyNavigator.msSaveOrOpenBlob(blob, filename);
 	      return;
 	    }
 	    const url = URL.createObjectURL(blob), a = _View.getDocument().createElement("a"), clickHandler = function() {
@@ -8457,7 +8489,7 @@
 	    this.hasFocus = true;
 	  }
 	  getMousePos(event) {
-	    const anyDoc = document, isFullScreen = Boolean(document.fullscreenElement || anyDoc.mozFullScreenElement || anyDoc.webkitFullscreenElement || anyDoc.msFullscreenElement), rect = this.canvas.getBoundingClientRect();
+	    const legacyDocument = document, isFullScreen = Boolean(document.fullscreenElement || legacyDocument.mozFullScreenElement || legacyDocument.webkitFullscreenElement || legacyDocument.msFullscreenElement), rect = this.canvas.getBoundingClientRect();
 	    if (isFullScreen) {
 	      const areaX = 0, areaY = 0, rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2, rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2, ratioX = rectwidth / this.canvas.width, ratioY = rectHeight / this.canvas.height, minRatio = ratioX <= ratioY ? ratioX : ratioY, diffX = rectwidth - this.canvas.width * minRatio, diffY = rectHeight - this.canvas.height * minRatio;
 	      return {
@@ -9443,7 +9475,7 @@
 	    } else if (node.value) {
 	      value += node.value;
 	    }
-	    let right = "";
+	    let right;
 	    if (node.right) {
 	      right = this.parseNode(node.right);
 	      const needSpace1 = this.keywords[right.toLowerCase()] || keyType;
@@ -11321,7 +11353,7 @@
 	        firstSector = sector;
 	      }
 	    }
-	    let format = "";
+	    let format;
 	    if (firstSector === 193) {
 	      format = "data";
 	    } else if (firstSector === 65) {
@@ -11469,7 +11501,7 @@
 	  // do not know if we need to sort the extents per file, but...
 	  static sortFileExtents(dir) {
 	    for (const name in dir) {
-	      if (dir.hasOwnProperty(name)) {
+	      if (Object.prototype.hasOwnProperty.call(dir, name)) {
 	        const fileExtents = dir[name];
 	        fileExtents.sort(_DiskImage.fnSortByExtentNumber);
 	      }
@@ -12244,10 +12276,7 @@
 	        return left;
 	      }
 	    }
-	    const offs = [
-	      void 0,
-	      0
-	    ];
+	    const offs = [0, 0];
 	    for (i = 1; i < 15; i += 1) {
 	      offs[i + 1] = offs[i] + codes.count[i];
 	    }
@@ -12441,7 +12470,7 @@
 	    if (!cdfh) {
 	      throw this.composeError(Error(), "Zip: readData: file does not exist:" + name, "", 0);
 	    }
-	    let dataUTF8 = "";
+	    let dataUTF8;
 	    if (cdfh.compressionMethod === 0) {
 	      dataUTF8 = this.readUTF(cdfh.dataStart, cdfh.size);
 	    } else if (cdfh.compressionMethod === 8) {
@@ -12653,7 +12682,7 @@
 	      fileExists[entry] = true;
 	    }
 	    for (const key in examples) {
-	      if (examples.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(examples, key)) {
 	        const example = examples[key], name = example.key, matchName = name + (name.indexOf(".") < 0 ? "." : "");
 	        if (!regExp || regExp.test(matchName)) {
 	          const entry = name.substring(path.length);
@@ -12957,7 +12986,6 @@
 	      UiUtils.console.warn("fnHandleFileSelect: FileReader API not supported.");
 	    }
 	  }
-	  //TODO: can we use View.attachEventHandler() somehow?
 	  addFileSelectHandler(element, type) {
 	    element.addEventListener(type, this.fnOnFileSelectHandler, false);
 	  }
@@ -13009,7 +13037,7 @@
 	    this.active = false;
 	    this.codeStringsRemoved = false;
 	    this.pressedKeys = {};
-	    this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this);
+	    this.fnKeydownOrKeyupHandler = (event) => this.onKeydownOrKeyup(event);
 	    this.options = {};
 	    this.setOptions(options);
 	    this.key2CpcKey = _Keyboard.key2CpcKey;
@@ -13097,7 +13125,7 @@
 	      UiUtils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
 	    }
 	    for (const key in key2CpcKey) {
-	      if (key2CpcKey.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(key2CpcKey, key)) {
 	        const keyCode = parseInt(key, 10);
 	        newMap[keyCode] = key2CpcKey[key];
 	      }
@@ -13187,7 +13215,7 @@
 	  }
 	  static keyIdentifier2Char(event) {
 	    const identifier = event.keyIdentifier, shiftKey = event.shiftKey;
-	    let char = "";
+	    let char;
 	    if (/^U\+/i.test(identifier || "")) {
 	      char = String.fromCharCode(parseInt(identifier.substr(2), 16));
 	      if (char === "\0") {
@@ -14027,9 +14055,9 @@
 	  constructor(options) {
 	    this.shiftLock = false;
 	    this.numLock = false;
-	    this.fnVirtualKeyboardKeydownHandler = this.onVirtualKeyboardKeydown.bind(this);
-	    this.fnVirtualKeyboardKeyupOrKeyoutHandler = this.onVirtualKeyboardKeyupOrKeyout.bind(this);
-	    this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this);
+	    this.fnVirtualKeyboardKeydownHandler = (event) => this.onVirtualKeyboardKeydown(event);
+	    this.fnVirtualKeyboardKeyupOrKeyoutHandler = (event) => this.onVirtualKeyboardKeyupOrKeyout(event);
+	    this.fnKeydownOrKeyupHandler = (event) => this.onKeydownOrKeyup(event);
 	    this.options = {};
 	    this.setOptions(options);
 	    const view = this.options.view;
@@ -14209,7 +14237,7 @@
 	  }
 	  static keyIdentifier2Char(event) {
 	    const identifier = event.keyIdentifier, shiftKey = event.shiftKey;
-	    let char = "";
+	    let char;
 	    if (/^U\+/i.test(identifier || "")) {
 	      char = String.fromCharCode(parseInt(identifier.substr(2), 16));
 	      if (char === "\0") {
@@ -15365,7 +15393,7 @@
 	    Object.assign(this.options, options);
 	    const entries = this.options.entries;
 	    for (const key in entries) {
-	      if (entries.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(entries, key)) {
 	        const item = entries[key];
 	        if (item.enabled) {
 	          this.options.view.fnAttachPointerEvents(item.itemId, this.fnDragStartHandler);
@@ -15441,7 +15469,7 @@
 	    if (!Number.isFinite(value)) {
 	      throw new Error("Seed must be a finite number");
 	    }
-	    let mantissa = 0, exponent = 0, sign = 0;
+	    let mantissa = 0, exponent, sign = 0;
 	    if (value !== 0) {
 	      if (value < 0) {
 	        sign = 2147483648;
@@ -15574,10 +15602,10 @@
 	  initToggles() {
 	    const eventDefInternalMap = this.eventDefInternalMap;
 	    for (const type in eventDefInternalMap) {
-	      if (eventDefInternalMap.hasOwnProperty(type)) {
+	      if (Object.prototype.hasOwnProperty.call(eventDefInternalMap, type)) {
 	        const eventDefMap4Type = eventDefInternalMap[type];
 	        for (const id in eventDefMap4Type) {
-	          if (eventDefMap4Type.hasOwnProperty(id)) {
+	          if (Object.prototype.hasOwnProperty.call(eventDefMap4Type, id)) {
 	            const eventDef = eventDefMap4Type[id];
 	            this.initOneToggle(type, id, eventDef);
 	          }
@@ -15602,7 +15630,7 @@
 	  setPopoversHiddenExcept(exceptId) {
 	    const eventDefInternalMap = this.eventDefInternalMap, eventDefMapClick = eventDefInternalMap.click;
 	    for (const id in eventDefMapClick) {
-	      if (eventDefMapClick.hasOwnProperty(id)) {
+	      if (Object.prototype.hasOwnProperty.call(eventDefMapClick, id)) {
 	        const eventDef = eventDefMapClick[id];
 	        if (eventDef.isPopover && eventDef.toggleId !== exceptId) {
 	          const toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef);
@@ -15710,12 +15738,12 @@
 	  updateUrlFromConfig() {
 	    const url = new URL(window.location.href), initial = this.model.getAllInitialProperties(), changed = this.model.getChangedProperties();
 	    for (const name in initial) {
-	      if (initial.hasOwnProperty(name)) {
+	      if (Object.prototype.hasOwnProperty.call(initial, name)) {
 	        url.searchParams.delete(name);
 	      }
 	    }
 	    for (const name in changed) {
-	      if (changed.hasOwnProperty(name)) {
+	      if (Object.prototype.hasOwnProperty.call(changed, name)) {
 	        url.searchParams.set(name, String(changed[name]));
 	      }
 	    }
@@ -15773,7 +15801,7 @@
 	    this.controller.setSoundActive();
 	  }
 	  onScreenshotButtonClick() {
-	    var example = this.view.getSelectValue(ViewID.exampleSelect), image = this.controller.startScreenshot(), link = View.getElementById1(ViewID.screenshotLink), name = example + ".png";
+	    const example = this.view.getSelectValue(ViewID.exampleSelect), image = this.controller.startScreenshot(), link = View.getElementById1(ViewID.screenshotLink), name = example + ".png";
 	    if (image) {
 	      link.setAttribute("download", name);
 	      link.setAttribute("href", image);
@@ -16185,7 +16213,7 @@
 	      ]
 	    };
 	    for (const type in eventDefs) {
-	      if (eventDefs.hasOwnProperty(type)) {
+	      if (Object.prototype.hasOwnProperty.call(eventDefs, type)) {
 	        eventDefInternalMap[type] = {};
 	        const eventDefList = eventDefs[type], itemForType = eventDefInternalMap[type];
 	        for (let i = 0; i < eventDefList.length; i += 1) {
@@ -16389,7 +16417,7 @@
 	    return this.wregout(nr);
 	  }
 	  onlyPrefix() {
-	    let out = "";
+	    let out;
 	    if (this.prefix === 1) {
 	      out = "[DD]-prefix";
 	    } else if (this.prefix === 2) {
@@ -16402,7 +16430,7 @@
 	  }
 	  // eslint-disable-line array-element-newline
 	  operdisCB() {
-	    let out = "", newop;
+	    let out, newop;
 	    if (this.prefix === 1 || this.prefix === 2) {
 	      newop = this.readByte(this.options.addr + 1) & 254 | 6;
 	    } else {
@@ -16530,7 +16558,7 @@
 	  // Disassemble 00-3F
 	  //
 	  operdis00To3Fpart00(b3b4b5) {
-	    let out = "";
+	    let out;
 	    switch (b3b4b5) {
 	      // test b3,b4,b5
 	      case 0:
@@ -16552,7 +16580,7 @@
 	    return out;
 	  }
 	  operdis00To3Fpart01(dissOp) {
-	    let out = "";
+	    let out;
 	    if (dissOp & 8) {
 	      out = "ADD " + this.wregout(2) + "," + this.wregout(dissOp >> 4);
 	    } else {
@@ -16689,7 +16717,7 @@
 	    return out;
 	  }
 	  operdisC0ToFFpart05(dissOp) {
-	    let out = "";
+	    let out;
 	    const b4b5 = dissOp >> 4 & 3;
 	    if (dissOp & 8) {
 	      if (b4b5 === 0) {
@@ -17544,7 +17572,7 @@
 	        nodeArgs[i] = '"' + nodeArgs[i].replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
 	      }
 	    }
-	    let lineString = String(this.line);
+	    let lineString = this.line;
 	    if (lineString === "direct") {
 	      lineString = '"' + lineString + '"';
 	    }
@@ -18352,7 +18380,7 @@
 	  registerRsx(rsxModule, permanent) {
 	    const rsxRegister = permanent ? this.rsxPermanent : this.rsxTemporary, rsxCommands = rsxModule.getRsxCommands();
 	    for (const command in rsxCommands) {
-	      if (rsxCommands.hasOwnProperty(command)) {
+	      if (Object.prototype.hasOwnProperty.call(rsxCommands, command)) {
 	        rsxRegister[command] = rsxCommands[command];
 	      }
 	    }
@@ -20230,8 +20258,11 @@
 	    });
 	  }
 	  vmPutFileInMemory(input, meta, includeSnapshot) {
-	    const inFile = this.inFile, shouldPutInMemory = input !== null && meta && (meta.typeString === "B" || includeSnapshot && meta.typeString === "S" || inFile.start !== void 0);
-	    if (!shouldPutInMemory || input === null || !meta) {
+	    if (input === null || input === void 0 || !meta) {
+	      return false;
+	    }
+	    const inFile = this.inFile, shouldPutInMemory = meta.typeString === "B" || includeSnapshot && meta.typeString === "S" || inFile.start !== void 0;
+	    if (!shouldPutInMemory) {
 	      return false;
 	    }
 	    const start = inFile.start !== void 0 ? inFile.start : Number(meta.start);
@@ -20504,7 +20535,7 @@
 	    sqTimer.repeat = true;
 	  }
 	  vmOpeninCallback(input) {
-	    if (input !== null) {
+	    if (input !== null && input !== void 0) {
 	      const inFile = this.inFile, eolStr = input.indexOf("\r\n") > 0 ? "\r\n" : "\n";
 	      if (input.endsWith(eolStr)) {
 	        input = input.substring(0, input.length - eolStr.length);
@@ -21105,7 +21136,7 @@
 	        Utils.console.debug("restore: search for dataLine >", line);
 	      }
 	      for (const dataLine in dataLineIndex) {
-	        if (dataLineIndex.hasOwnProperty(dataLine)) {
+	        if (Object.prototype.hasOwnProperty.call(dataLineIndex, dataLine)) {
 	          if (Number(dataLine) >= line) {
 	            dataLineIndex[line] = dataLineIndex[dataLine];
 	            break;
@@ -21190,8 +21221,8 @@
 	    return Math.sign(n) * Number(Math.round(Number(Math.abs(n) + "e" + decimals)) + "e" + (decimals >= 0 ? "-" + decimals : "+" + -decimals));
 	  }
 	  vmRunCallback(input, meta) {
-	    const inFile = this.inFile, line = inFile.line, putInMemory = input !== null && meta && (meta.typeString === "B" || inFile.start !== void 0);
-	    if (input !== null) {
+	    const inFile = this.inFile, line = inFile.line, putInMemory = input !== null && input !== void 0 && Boolean(meta && (meta.typeString === "B" || inFile.start !== void 0));
+	    if (input !== null && input !== void 0) {
 	      const lineParas = {
 	        command: "run",
 	        stream: 0,
@@ -22483,7 +22514,7 @@
 	    this.vmChangeMode(mode);
 	  },
 	  renum: function(...args) {
-	    this.renum.apply(this, args);
+	    Reflect.apply(this.renum, this, args);
 	  }
 	};
 	let RsxCpcBasic = _RsxCpcBasic;
@@ -22651,8 +22682,8 @@
 	}
 
 	class ArrayProxy {
-	  constructor(len) {
-	    return new Proxy(new Array(len), this);
+	  static create(len) {
+	    return new Proxy(new Array(len), new ArrayProxy());
 	  }
 	  // eslint-disable-next-line class-methods-use-this
 	  get(target, prop) {
@@ -22662,18 +22693,17 @@
 	        throw Utils.composeVmError("Variables", Error(), 9, prop);
 	      }
 	    }
-	    return target[prop];
+	    return Reflect.get(target, prop);
 	  }
 	  // eslint-disable-next-line class-methods-use-this
 	  set(target, prop, value) {
-	    if (!isNaN(Number(prop))) {
+	    if (typeof prop === "string" && !isNaN(Number(prop))) {
 	      const numProp = Number(prop);
 	      if (numProp < 0 || numProp >= target.length) {
 	        throw Utils.composeVmError("Variables", Error(), 9, prop);
 	      }
 	    }
-	    target[prop] = value;
-	    return true;
+	    return Reflect.set(target, prop, value);
 	  }
 	}
 	class Variables {
@@ -22705,8 +22735,8 @@
 	    return this.varTypes;
 	  }
 	  createNDimArray(dims, initVal) {
-	    const that = this, fnCreateRec = function(index) {
-	      const len = dims[index], arr = that.options.arrayBounds ? new ArrayProxy(len) : new Array(len);
+	    const fnCreateRec = (index) => {
+	      const len = dims[index], arr = this.options.arrayBounds ? ArrayProxy.create(len) : new Array(len);
 	      index += 1;
 	      if (index < dims.length) {
 	        for (let i = 0; i < len; i += 1) {
@@ -22718,8 +22748,8 @@
 	        }
 	      }
 	      return arr;
-	    }, ret = fnCreateRec(0);
-	    return ret;
+	    };
+	    return fnCreateRec(0);
 	  }
 	  // determine static varType (first letter + optional fixed vartype) from a variable name
 	  // format: (v.|v["])(_)<sname>(A*)(I|R|$)([...]([...])) with optional parts in ()
@@ -23363,7 +23393,6 @@
 	    this.vmOnCanvasClickHandler = onCanvasClick;
 	    this.vm.getOnCanvasClickHandler();
 	    this.canvas.setOptions({
-	      //onCanvasClick: this.vm.getOnCanvasClickHandler()
 	      onCanvasClick
 	    });
 	    this.vm.setCanvas(this.canvas);
@@ -23389,55 +23418,11 @@
 	  getCanvas() {
 	    return this.canvas;
 	  }
-	  //TODO
-	  /*
-	  	private static getUniqueDbKey(name: string, databases: DatabasesType) {
-	  		let key = name,
-	  			index = 2;
-	  
-	  		while (databases[key]) {
-	  			key = name + index;
-	  			index += 1;
-	  		}
-	  		return key;
-	  	}
-	  
-	  	private initDatabases() {
-	  		/*
-	  		const model = this.model,
-	  			databases: DatabasesType = {},
-	  			databaseDirs = model.getProperty<string>(ModelPropID.databaseDirs).split(",");
-	  		let hasStorageDatabase = false;
-	  
-	  		for (let i = 0; i < databaseDirs.length; i += 1) {
-	  			const databaseDir = databaseDirs[i],
-	  				parts1 = databaseDir.split("="),
-	  				databaseSrc = parts1[0],
-	  				assignedName = parts1.length > 1 ? parts1[1] : "",
-	  				parts2 = databaseSrc.split("/"),
-	  				name = assignedName || parts2[parts2.length - 1],
-	  				key = Controller.getUniqueDbKey(name, databases);
-	  
-	  			databases[key] = {
-	  				text: key,
-	  				title: databaseSrc,
-	  				src: databaseSrc
-	  			};
-	  			if (databaseDir === "storage") {
-	  				hasStorageDatabase = true;
-	  			}
-	  		}
-	  		this.model.addDatabases(databases);
-	  
-	  		this.setDatabaseSelectOptions();
-	  		return hasStorageDatabase;
-	  	}
-	  	*/
 	  getHasStorageDatabase() {
 	    const databases = this.model.getAllDatabases();
 	    let hasStorageDatabase = false;
 	    for (const value in databases) {
-	      if (databases.hasOwnProperty(value)) {
+	      if (Object.prototype.hasOwnProperty.call(databases, value)) {
 	        if (value === "storage") {
 	          hasStorageDatabase = true;
 	        }
@@ -23445,11 +23430,6 @@
 	    }
 	    return hasStorageDatabase;
 	  }
-	  /*
-	  private initDatabases() {
-	  	return getHasStorageDatabase
-	  }
-	  ∂*/
 	  onUserAction() {
 	    this.uiController.deactivateUserAction();
 	    this.sound.setActivatedByUser();
@@ -23458,7 +23438,7 @@
 	  setDatabaseSelectOptions() {
 	    const items = [], databases = this.model.getAllDatabases(), database = this.model.getProperty(ModelPropID.database);
 	    for (const value in databases) {
-	      if (databases.hasOwnProperty(value)) {
+	      if (Object.prototype.hasOwnProperty.call(databases, value)) {
 	        const db = databases[value], item = {
 	          value,
 	          text: db.text,
@@ -23489,7 +23469,7 @@
 	  setDirectorySelectOptions() {
 	    const items = [], allExamples = this.model.getAllExamples(), examplePath = _Controller.getPathFromExample(this.model.getProperty(ModelPropID.example)), directorySeen = {};
 	    for (const key in allExamples) {
-	      if (allExamples.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(allExamples, key)) {
 	        const exampleEntry = allExamples[key], value = _Controller.getPathFromExample(exampleEntry.key);
 	        if (!directorySeen[value]) {
 	          const item = {
@@ -23509,7 +23489,7 @@
 	    const maxTitleLength = 160, maxTextLength = 60, items = [], exampleName = _Controller.getNameFromExample(this.model.getProperty(ModelPropID.example)), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue(ViewID.directorySelect), selectDataFiles = this.model.getProperty(ModelPropID.selectDataFiles);
 	    let exampleSelected = false;
 	    for (const key in allExamples) {
-	      if (allExamples.hasOwnProperty(key) && _Controller.getPathFromExample(key) === directoryName) {
+	      if (Object.prototype.hasOwnProperty.call(allExamples, key) && _Controller.getPathFromExample(key) === directoryName) {
 	        const exampleEntry = allExamples[key], exampleName2 = _Controller.getNameFromExample(exampleEntry.key);
 	        if (selectDataFiles || exampleEntry.meta !== "D") {
 	          const title = (exampleName2 + ": " + exampleEntry.title).substring(0, maxTitleLength), item = {
@@ -24182,15 +24162,15 @@
 	    }
 	  }
 	  selectJsError(script, e) {
-	    const lineNumber = e.lineNumber, columnNumber = e.columnNumber;
+	    const firefoxError = e, lineNumber = firefoxError.lineNumber, columnNumber = firefoxError.columnNumber;
 	    if (lineNumber || columnNumber) {
-	      const errLine = lineNumber - 3;
+	      const errLine = Number(lineNumber) - 3;
 	      let pos = 0, line = 0;
 	      while (pos < script.length && line < errLine) {
 	        pos = script.indexOf("\n", pos) + 1;
 	        line += 1;
 	      }
-	      pos += columnNumber;
+	      pos += Number(columnNumber);
 	      UiUtils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
 	      this.view.setAreaSelection(ViewID.outputText, pos, pos + 1);
 	    }
@@ -24210,10 +24190,10 @@
 	      const input = this.model.getProperty(ModelPropID.input);
 	      if (input !== "") {
 	        this.view.setAreaValue(ViewID.inp2Text, input);
-	        const that = this, timeout = 1;
-	        this.host.setTimeout(function() {
-	          that.startEnter();
-	          that.view.setAreaValue(ViewID.inp2Text, "");
+	        const timeout = 1;
+	        this.host.setTimeout(() => {
+	          this.startEnter();
+	          this.view.setAreaValue(ViewID.inp2Text, "");
 	        }, timeout);
 	      }
 	    }
@@ -24249,7 +24229,9 @@
 	        this.updateResultText();
 	        return false;
 	      }
-	      UiUtils.console.log("fnDirectInput: execute:", input);
+	      if (UiUtils.debug > 0) {
+	        UiUtils.console.log("fnDirectInput: execute:", input);
+	      }
 	      const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line, stream, directInput.message, {
 	        outputError: (error) => this.outputError(error, true),
 	        setOutputText: (text) => this.setOutputText(text),
@@ -24271,7 +24253,9 @@
 	  startWithDirectInput() {
 	    if (this.options.isHeadlessDirectInput) {
 	      this.stopUpdateCanvas();
-	      UiUtils.console.log("We are ready.");
+	      if (UiUtils.debug) {
+	        UiUtils.console.log("We are ready.");
+	      }
 	      if (this.options.onProgramEnd) {
 	        this.options.onProgramEnd();
 	      }
@@ -24691,7 +24675,7 @@
 	  fnDragElementsActive(enabled) {
 	    const dragElement = this.getDragElement(), dragElementsData = this.dragElementsData;
 	    for (const entry in dragElementsData.entries) {
-	      if (dragElementsData.entries.hasOwnProperty(entry)) {
+	      if (Object.prototype.hasOwnProperty.call(dragElementsData.entries, entry)) {
 	        dragElementsData.entries[entry].enabled = enabled;
 	      }
 	    }
@@ -25104,6 +25088,7 @@
 	    "cursor #2,,1": "CURSOR #2,,1"
 	  },
 	  "data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
+	    "def fno(o,t,v,do)=o+t+v+do+go": "DEF FNo(o,t,v,do)=o+t+v+do+go",
 	    "data": "DATA",
 	    "data ,": "DATA ,",
 	    "data \\": "DATA \\",
@@ -25190,6 +25175,7 @@
 	    "drawr x,y,m,g1": "DRAWR x,y,m,g1"
 	  },
 	  "edit, ei, else, end, ent, env, eof, erase, erl, err, error, every gosub, exp": {
+	    "erase o,t,v,do": "ERASE o,t,v,do",
 	    "edit 20": "EDIT 20",
 	    "ei": "EI",
 	    "else": "ELSE",
@@ -25219,6 +25205,9 @@
 	    "a=exp(2.3)": "a=EXP(2.3)"
 	  },
 	  "fill, fix, fn, for, frame, fre": {
+	    "for a=&a000 TO &ha00b step &x101": "FOR a=&A000 TO &HA00B STEP &X101",
+	    "for a=2 to 1 step -&1": "FOR a=2 TO 1 STEP -&1",
+	    "for a=2 to 1 step -&x1": "FOR a=2 TO 1 STEP -&X1",
 	    "fill 7": "FILL 7",
 	    "a=fix(2.3)": "a=FIX(2.3)",
 	    "x=fnclk": "x=FNclk",
@@ -25746,7 +25735,7 @@
 	      // keepWhiteSpace active for category "keepSpaces"
 	    });
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const expected = tests[key], output = codeGeneratorBasic.generate(key), result = output.error ? String(output.error) : output.text;
 	        if (results) {
 	          results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
@@ -25757,7 +25746,7 @@
 	      }
 	    }
 	  }
-	  TestHelper.compareAllTests(TestInput.getAllTests(), allTests$6);
+	  TestHelper.compareAllTests(TestInput.getAllTests(), allTests$6, "TestInput.ts", "CodeGeneratorBasic.qunit.ts");
 	  TestHelper.generateAllTests(allTests$6, runTestsFor, hooks);
 	});
 	QUnit.module("CodeGeneratorBasic: keepWhiteSpace", function(hooks) {
@@ -25786,7 +25775,7 @@
 	      return " ".repeat(spaceCount) + value + " ".repeat(spaceCount + 1);
 	    };
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        spaceCount = 1;
 	        const expected = TestHelper.handleBinaryLiterals(tests[key]);
 	        let keyWithSpaces = key;
@@ -25834,7 +25823,7 @@
 	      // keepWhiteSpace active for category "keepSpaces"
 	    });
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const output = codeGeneratorBasic.generate(key), result = output.error ? String(output.error) : output.text;
 	        let expected = tests[key];
 	        if (!output.error) {
@@ -25869,7 +25858,7 @@
 	      // keepWhiteSpace active for category "keepSpaces"
 	    });
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const output = codeGeneratorBasic.generate(key), result = output.error ? String(output.error) : output.text;
 	        let expected = tests[key];
 	        if (!output.error) {
@@ -26671,7 +26660,7 @@
 	  function runTestsFor(category, tests, assert, results) {
 	    const codeGeneratorJs = hooks.codeGeneratorJs;
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const expected = TestHelper.handleBinaryLiterals(tests[key]), result = runSingleTest(codeGeneratorJs, key);
 	        if (results) {
 	          results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
@@ -26682,7 +26671,7 @@
 	      }
 	    }
 	  }
-	  TestHelper.compareAllTests(TestInput.getAllTests(), allTests$5);
+	  TestHelper.compareAllTests(TestInput.getAllTests(), allTests$5, "TestInput.ts", "CodeGeneratorJs.qunit.ts");
 	  TestHelper.generateAllTests(allTests$5, runTestsFor, hooks);
 	  QUnit.test("direct commands retain the stored program and can reference its labels", function(assert) {
 	    const generator = createCodeGeneratorJs();
@@ -26943,6 +26932,7 @@
 	    "cursor #2,,1": "E1,20,23,10,2C,2C,0F"
 	  },
 	  "data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
+	    "def fno(o,t,v,do)=o+t+v+do+go": "8D,20,E4,0D,00,00,EF,28,0D,00,00,EF,2C,0D,00,00,F4,2C,0D,00,00,F6,2C,0D,00,00,64,EF,29,EF,0D,00,00,EF,F4,0D,00,00,F4,F4,0D,00,00,F6,F4,0D,00,00,64,EF,F4,0D,00,00,67,EF",
 	    "data": "8C",
 	    "data ,": "8C,20,2C",
 	    "data \\": "8C,20,5C",
@@ -27029,6 +27019,7 @@
 	    "drawr x,y,m,g1": "95,20,0D,00,00,F8,2C,0D,00,00,F9,2C,0D,00,00,ED,2C,0D,00,00,67,B1"
 	  },
 	  "edit, ei, else, end, ent, env, eof, erase, erl, err, error, every gosub, exp": {
+	    "erase o,t,v,do": "9B,20,0D,00,00,EF,2C,0D,00,00,F4,2C,0D,00,00,F6,2C,0D,00,00,64,EF",
 	    "edit 20": "96,20,1E,14,00",
 	    "ei": "DC",
 	    "else": "01,97",
@@ -27058,6 +27049,9 @@
 	    "a=exp(2.3)": "0D,00,00,E1,EF,FF,07,28,1F,33,33,33,13,82,29"
 	  },
 	  "fill, fix, fn, for, frame, fre": {
+	    "for a=&a000 TO &ha00b step &x101": "9E,20,0D,00,00,E1,EF,1C,00,A0,20,EC,20,1C,0B,A0,20,E6,20,1B,05,00",
+	    "for a=2 to 1 step -&1": "9E,20,0D,00,00,E1,EF,10,20,EC,20,0F,20,E6,20,F5,1C,01,00",
+	    "for a=2 to 1 step -&x1": "9E,20,0D,00,00,E1,EF,10,20,EC,20,0F,20,E6,20,F5,1B,01,00",
 	    "fill 7": "DD,20,15",
 	    "a=fix(2.3)": "0D,00,00,E1,EF,FF,08,28,1F,33,33,33,13,82,29",
 	    "x=fnclk": "0D,00,00,F8,EF,E4,0D,00,00,63,6C,EB",
@@ -27549,7 +27543,7 @@
 	  function runTestsFor(category, tests, assert, results) {
 	    const codeGeneratorToken = hooks.codeGeneratorToken;
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const expected = tests[key], output = codeGeneratorToken.generate(key), result = output.error ? String(output.error) : fnBin2Hex(output.text);
 	        if (results) {
 	          results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
@@ -27560,7 +27554,7 @@
 	      }
 	    }
 	  }
-	  TestHelper.compareAllTests(TestInput.getAllTests(), allTests$4);
+	  TestHelper.compareAllTests(TestInput.getAllTests(), allTests$4, "TestInput.ts", "CodeGeneratorToken.qunit.ts");
 	  TestHelper.generateAllTests(allTests$4, runTestsFor, hooks);
 	  QUnit.test("program tokenization restores whitespace and punctuation retention", function(assert) {
 	    const generator = createCodeGeneratorToken$1(), source = "10 DATA 1,,3: value = (2+3)::PRINT value\n20 END", expected = generator.generate(source);
@@ -27674,7 +27668,7 @@
 	    const databases = this.core.getModel().getAllDatabases();
 	    let hasStorageDatabase = false;
 	    for (const value in databases) {
-	      if (databases.hasOwnProperty(value)) {
+	      if (Object.prototype.hasOwnProperty.call(databases, value)) {
 	        if (value === "storage") {
 	          hasStorageDatabase = true;
 	        }
@@ -28187,7 +28181,9 @@
 	        this.updateResultText();
 	        return false;
 	      }
-	      Utils.console.log("fnDirectInput: execute:", input);
+	      if (Utils.debug > 0) {
+	        Utils.console.log("fnDirectInput: execute:", input);
+	      }
 	      const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line, stream, directInput.message, {
 	        outputError: (error) => this.outputError(error, true),
 	        setOutputText: (text) => this.setOutputText(text),
@@ -28208,7 +28204,9 @@
 	  }
 	  startWithDirectInput() {
 	    if (this.options.isHeadlessDirectInput) {
-	      Utils.console.log("We are ready.");
+	      if (Utils.debug) {
+	        Utils.console.log("We are ready.");
+	      }
 	      if (this.options.onProgramEnd) {
 	        this.options.onProgramEnd();
 	      }
@@ -28418,7 +28416,6 @@
 	  /* eslint-enable no-invalid-this */
 	}
 
-	const ModelPropIDdatabase$1 = "database";
 	class Model {
 	  constructor(config) {
 	    this.config = config || {};
@@ -28449,7 +28446,7 @@
 	  getChangedProperties() {
 	    const current = this.config, initial = this.initialConfig, changed = {};
 	    for (const name in current) {
-	      if (current.hasOwnProperty(name)) {
+	      if (Object.prototype.hasOwnProperty.call(current, name)) {
 	        if (current[name] !== initial[name]) {
 	          changed[name] = current[name];
 	        }
@@ -28459,7 +28456,7 @@
 	  }
 	  addDatabases(db) {
 	    for (const par in db) {
-	      if (db.hasOwnProperty(par)) {
+	      if (Object.prototype.hasOwnProperty.call(db, par)) {
 	        const entry = db[par];
 	        this.databases[par] = entry;
 	        this.examples[par] = {};
@@ -28470,19 +28467,19 @@
 	    return this.databases;
 	  }
 	  getDatabase() {
-	    const database = this.getProperty(ModelPropIDdatabase$1);
+	    const database = this.getProperty(ModelPropID.database);
 	    return this.databases[database];
 	  }
 	  getAllExamples() {
-	    const database = this.getProperty(ModelPropIDdatabase$1);
+	    const database = this.getProperty(ModelPropID.database);
 	    return this.examples[database];
 	  }
 	  getExample(key) {
-	    const database = this.getProperty(ModelPropIDdatabase$1);
+	    const database = this.getProperty(ModelPropID.database);
 	    return this.examples[database][key];
 	  }
 	  setExample(example) {
-	    const database = this.getProperty(ModelPropIDdatabase$1), key = example.key;
+	    const database = this.getProperty(ModelPropID.database), key = example.key;
 	    if (!this.examples[database][key]) {
 	      if (Utils.debug > 1) {
 	        Utils.console.debug("setExample: creating new example:", key);
@@ -28491,7 +28488,7 @@
 	    this.examples[database][key] = example;
 	  }
 	  removeExample(key) {
-	    const database = this.getProperty(ModelPropIDdatabase$1);
+	    const database = this.getProperty(ModelPropID.database);
 	    if (!this.examples[database][key]) {
 	      Utils.console.warn("removeExample: example does not exist: " + key);
 	    }
@@ -28731,7 +28728,29 @@
 	    }
 	  };
 	}
-	QUnit.module("Controller0", function() {
+	function captureConsoleLogs$1(run) {
+	  const originalLog = Utils.console.log, logs = [];
+	  Utils.console.log = (...args) => {
+	    logs.push(args);
+	  };
+	  try {
+	    return { result: run(), logs };
+	  } finally {
+	    Utils.console.log = originalLog;
+	  }
+	}
+	QUnit.module("Controller0", function(hooks) {
+	  let consoleWarnings = [];
+	  const originalConsoleWarn = Utils.console.warn;
+	  hooks.beforeEach(function() {
+	    consoleWarnings = [];
+	    Utils.console.warn = (...args) => {
+	      consoleWarnings.push(args);
+	    };
+	  });
+	  hooks.afterEach(function() {
+	    Utils.console.warn = originalConsoleWarn;
+	  });
 	  QUnit.test("the runtime contract exposes variable identifiers and values without UI controls", function(assert) {
 	    const host = createController(), runtime = host.controller;
 	    assert.deepEqual(runtime.getVariableNames(), []);
@@ -28881,6 +28900,7 @@
 	    host.drain();
 	    assert.strictEqual(diagnostics.length, 1);
 	    assert.strictEqual(completions, 2);
+	    assert.ok(consoleWarnings.length > 0);
 	  });
 	  QUnit.test("headless execution does not require notification listeners", function(assert) {
 	    const host = createController(true, void 0, {
@@ -29003,8 +29023,11 @@
 	    });
 	    host.core.getModel().getDatabase().loaded = false;
 	    host.core.getModel().setProperty("exampleIndex", "0index.js");
-	    host.controller.loadDatabase("examples");
-	    host.drain();
+	    const output = captureConsoleLogs$1(() => {
+	      host.controller.loadDatabase("examples");
+	      host.drain();
+	    });
+	    assert.ok(output.logs.some((args) => String(args[0]).includes("fnDatabaseLoaded: database loaded: examples: examples/0index.js")));
 	    assert.deepEqual(requests, ["examples/0index.js"]);
 	    assert.strictEqual(host.core.getModel().getDatabase().loaded, true);
 	    assert.ok(host.result.includes("EXAMPLE"));
@@ -29057,6 +29080,7 @@
 	    assert.strictEqual(host.controller.getInputText(), source);
 	    assert.strictEqual(host.diagnostics.length, 1);
 	    assert.ok(host.diagnostics[0].shortMessage.includes("Line does not exist"));
+	    assert.ok(consoleWarnings.length > 0);
 	  });
 	  QUnit.test("direct GOSUB executes stored program labels", function(assert) {
 	    const host = createController(false);
@@ -29204,8 +29228,11 @@
 	    host.core.getModel().setProperty("integerOverflow", true);
 	    host.controller.fnIntegerOverflow();
 	    host.controller.setInputText("10 value=40000 OR 0:END");
-	    host.controller.startParseRun();
-	    host.drain();
+	    const output = captureConsoleLogs$1(() => {
+	      host.controller.startParseRun();
+	      host.drain();
+	    });
+	    assert.ok(output.logs.some((args) => String(args[0]).includes("BASIC error(6):") && String(args[1]).includes("Overflow in 10")));
 	    assert.strictEqual(host.diagnostics.length, 1);
 	    assert.strictEqual(host.diagnostics[0]?.errCode, 6);
 	  });
@@ -29253,8 +29280,11 @@
 	  QUnit.test("runtime diagnostics retain BASIC error metadata", function(assert) {
 	    const host = createController();
 	    host.controller.setInputText("10 ERROR 5");
-	    host.controller.startParseRun();
-	    host.drain();
+	    const output = captureConsoleLogs$1(() => {
+	      host.controller.startParseRun();
+	      host.drain();
+	    });
+	    assert.ok(output.logs.some((args) => String(args[0]).includes("BASIC error(5):") && String(args[1]).includes("Improper argument in 10")));
 	    assert.strictEqual(host.diagnostics.length, 1);
 	    assert.strictEqual(host.diagnostics[0].errCode, 5);
 	    assert.strictEqual(host.diagnostics[0].line, 10);
@@ -29263,8 +29293,12 @@
 	  QUnit.test("ON ERROR handles runtime failures without emitting visible diagnostics", function(assert) {
 	    const host = createController();
 	    host.controller.setInputText('10 ON ERROR GOTO 30\n20 ERROR 5\n30 PRINT "HANDLED":END');
-	    host.controller.startParseRun();
-	    host.drain();
+	    const output = captureConsoleLogs$1(() => {
+	      host.controller.startParseRun();
+	      host.drain();
+	    });
+	    assert.ok(output.logs.some((args) => String(args[0]).includes("BASIC error(5):") && String(args[1]).includes("hidden: true")));
+	    assert.ok(output.logs.some((args) => String(args[0]).includes("Improper argument in 30: undefined")));
 	    assert.deepEqual(host.diagnostics, []);
 	    assert.ok(host.result.includes("HANDLED"));
 	  });
@@ -31889,7 +31923,7 @@
 	  });
 	  function deleteObjectContents(obj) {
 	    for (const prop in obj) {
-	      if (obj.hasOwnProperty(prop)) {
+	      if (Object.prototype.hasOwnProperty.call(obj, prop)) {
 	        delete obj[prop];
 	      }
 	    }
@@ -31898,7 +31932,7 @@
 	    lastTestFunctions$1.length = 0;
 	  }
 	  function combineLastTestFunctions() {
-	    return lastTestFunctions$1.map((lastTestFunction) => Object.keys(lastTestFunction)[0] + ":" + Object.values(lastTestFunction)[0]).join(" , ") || void 0;
+	    return lastTestFunctions$1.map((lastTestFunction) => Object.keys(lastTestFunction)[0] + ":" + String(Object.values(lastTestFunction)[0])).join(" , ") || void 0;
 	  }
 	  function getValidStream(cpcVm, input) {
 	    let stream = cpcVm.vmRound(input);
@@ -31907,66 +31941,69 @@
 	    }
 	    return stream;
 	  }
+	  function invokeTestMethod(method, thisArg, input) {
+	    return Reflect.apply(method, thisArg, input);
+	  }
 	  const allTestFunctions = {
 	    abs: function(cpcVm, input) {
-	      return String(cpcVm.abs.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.abs, cpcVm, input));
 	    },
 	    addressOf: function(cpcVm, input) {
-	      return String(cpcVm.addressOf.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.addressOf, cpcVm, input));
 	    },
 	    afterGosub: function(cpcVm, input) {
-	      cpcVm.afterGosub.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.afterGosub, cpcVm, input);
 	    },
 	    asc: function(cpcVm, input) {
-	      return String(cpcVm.asc.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.asc, cpcVm, input));
 	    },
 	    atn: function(cpcVm, input) {
 	      cpcVm.rad();
-	      return String(cpcVm.atn.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.atn, cpcVm, input));
 	    },
 	    atnDeg: function(cpcVm, input) {
 	      cpcVm.deg();
-	      return String(cpcVm.atn.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.atn, cpcVm, input));
 	    },
 	    auto: function(cpcVm, input) {
-	      return cpcVm.auto.apply(cpcVm, input);
+	      return invokeTestMethod(cpcVm.auto, cpcVm, input);
 	    },
 	    bin$: function(cpcVm, input) {
-	      return cpcVm.bin$.apply(cpcVm, input);
+	      return invokeTestMethod(cpcVm.bin$, cpcVm, input);
 	    },
 	    border: function(cpcVm, input) {
-	      cpcVm.border.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.border, cpcVm, input);
 	    },
 	    call: function(cpcVm, input) {
-	      cpcVm.call.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.call, cpcVm, input);
 	    },
 	    cat: function(cpcVm, input) {
-	      cpcVm.cat.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.cat, cpcVm, input);
 	    },
 	    chain: function(cpcVm, input) {
-	      cpcVm.chain.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.chain, cpcVm, input);
 	    },
 	    chainMerge: function(cpcVm, input) {
-	      cpcVm.chainMerge.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.chainMerge, cpcVm, input);
 	    },
 	    chr$: function(cpcVm, input) {
-	      return cpcVm.chr$.apply(cpcVm, input);
+	      return invokeTestMethod(cpcVm.chr$, cpcVm, input);
 	    },
 	    cint: function(cpcVm, input) {
-	      return String(cpcVm.cint.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.cint, cpcVm, input));
 	    },
 	    clearInput: function(cpcVm, input) {
-	      cpcVm.clearInput.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.clearInput, cpcVm, input);
 	    },
 	    clg: function(cpcVm, input) {
-	      cpcVm.clg.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.clg, cpcVm, input);
 	    },
 	    closein: function(cpcVm, input) {
 	      const inFile = cpcVm.vmGetInFileObject();
 	      inFile.open = true;
 	      inFile.command = "test1";
 	      inFile.name = "name1";
-	      cpcVm.closein.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.closein, cpcVm, input);
 	    },
 	    closeout: function(cpcVm, input) {
 	      const outFile = cpcVm.vmGetOutFileObject(), testCase = input.shift();
@@ -31988,13 +32025,13 @@
 	          Utils.console.error("Unknown testCase:", testCase);
 	          break;
 	      }
-	      cpcVm.closeout.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.closeout, cpcVm, input);
 	    },
 	    cls: function(cpcVm, input) {
-	      cpcVm.cls.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.cls, cpcVm, input);
 	    },
 	    commaTab: function(cpcVm, input) {
-	      return String(cpcVm.vmInternal.commaTab.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.vmInternal.commaTab, cpcVm, input));
 	    },
 	    cont: function(cpcVm, input) {
 	      const testCase = input.shift();
@@ -32010,84 +32047,84 @@
 	          Utils.console.error("Unknown testCase:", testCase);
 	          break;
 	      }
-	      cpcVm.cont.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.cont, cpcVm, input);
 	    },
 	    copychr$: function(cpcVm, input) {
 	      const stream = getValidStream(cpcVm, Number(input));
 	      cpcVm.locate(stream, 2 + 1, 3 + 1);
 	      clearLastTestFunctions();
-	      return cpcVm.copychr$.apply(cpcVm, input);
+	      return invokeTestMethod(cpcVm.copychr$, cpcVm, input);
 	    },
 	    cos: function(cpcVm, input) {
 	      cpcVm.rad();
-	      return String(cpcVm.cos.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.cos, cpcVm, input));
 	    },
 	    cosDeg: function(cpcVm, input) {
 	      cpcVm.deg();
-	      return String(cpcVm.cos.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.cos, cpcVm, input));
 	    },
 	    creal: function(cpcVm, input) {
-	      return String(cpcVm.creal.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.creal, cpcVm, input));
 	    },
 	    cursor: function(cpcVm, input) {
 	      const stream = getValidStream(cpcVm, Number(input));
 	      cpcVm.locate(stream, 2 + 1, 3 + 1);
 	      clearLastTestFunctions();
-	      cpcVm.cursor.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.cursor, cpcVm, input);
 	    },
 	    data: function(cpcVm, input) {
-	      cpcVm.data.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.data, cpcVm, input);
 	    },
 	    dec$: function(cpcVm, input) {
-	      return String(cpcVm.dec$.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.dec$, cpcVm, input));
 	    },
 	    defint: function(cpcVm, input) {
 	      deleteObjectContents(varTypesMap);
-	      cpcVm.defint.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.defint, cpcVm, input);
 	      return JSON.stringify(varTypesMap);
 	    },
 	    defreal: function(cpcVm, input) {
 	      deleteObjectContents(varTypesMap);
-	      cpcVm.defreal.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.defreal, cpcVm, input);
 	      return JSON.stringify(varTypesMap);
 	    },
 	    defstr: function(cpcVm, input) {
 	      deleteObjectContents(varTypesMap);
-	      cpcVm.defstr.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.defstr, cpcVm, input);
 	      return JSON.stringify(varTypesMap);
 	    },
 	    "delete": function(cpcVm, input) {
-	      cpcVm.delete.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.delete, cpcVm, input);
 	    },
 	    derr: function(cpcVm, input) {
-	      return String(cpcVm.derr.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.derr, cpcVm, input));
 	    },
 	    di: function(cpcVm, input) {
-	      cpcVm.di.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.di, cpcVm, input);
 	    },
 	    dim: function(cpcVm, input) {
-	      cpcVm.dim.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.dim, cpcVm, input);
 	    },
 	    draw: function(cpcVm, input) {
-	      cpcVm.draw.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.draw, cpcVm, input);
 	    },
 	    drawr: function(cpcVm, input) {
-	      cpcVm.drawr.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.drawr, cpcVm, input);
 	    },
 	    edit: function(cpcVm, input) {
-	      cpcVm.edit.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.edit, cpcVm, input);
 	    },
 	    ei: function(cpcVm, input) {
-	      cpcVm.ei.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.ei, cpcVm, input);
 	    },
 	    end: function(cpcVm, input) {
-	      cpcVm.end.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.end, cpcVm, input);
 	    },
 	    ent: function(cpcVm, input) {
-	      cpcVm.ent.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.ent, cpcVm, input);
 	    },
 	    env: function(cpcVm, input) {
-	      cpcVm.env.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.env, cpcVm, input);
 	    },
 	    eof: function(cpcVm, input) {
 	      const inFile = cpcVm.vmGetInFileObject(), testCase = input.shift();
@@ -32105,7 +32142,7 @@
 	          Utils.console.error("Unknown testCase:", testCase);
 	          break;
 	      }
-	      return String(cpcVm.eof.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.eof, cpcVm, input));
 	    },
 	    erase: function(cpcVm, input) {
 	      cpcVm.dim("abc4AR", 4);
@@ -32113,36 +32150,36 @@
 	      cpcVm.dim("abc52AA$", 5, 2);
 	      cpcVm.dim("abc52A$", 5);
 	      clearLastTestFunctions();
-	      cpcVm.erase.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.erase, cpcVm, input);
 	    },
 	    erl: function(cpcVm, input) {
 	      cpcVm.vmGoto("123aa");
 	      cpcVm.vmComposeError(Error(), 1, "");
 	      cpcVm.vmStop("", 0, true);
-	      return String(cpcVm.erl.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.erl, cpcVm, input));
 	    },
 	    err: function(cpcVm, input) {
 	      cpcVm.vmComposeError(Error(), 31, "");
 	      cpcVm.vmStop("", 0, true);
-	      return String(cpcVm.err.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.err, cpcVm, input));
 	    },
 	    error: function(cpcVm, input) {
-	      cpcVm.error.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.error, cpcVm, input);
 	    },
 	    everyGosub: function(cpcVm, input) {
-	      cpcVm.everyGosub.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.everyGosub, cpcVm, input);
 	    },
 	    exp: function(cpcVm, input) {
-	      return String(cpcVm.exp.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.exp, cpcVm, input));
 	    },
 	    fill: function(cpcVm, input) {
-	      cpcVm.fill.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.fill, cpcVm, input);
 	    },
 	    fix: function(cpcVm, input) {
-	      return String(cpcVm.fix.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.fix, cpcVm, input));
 	    },
 	    frame: function(cpcVm, input) {
-	      cpcVm.frame.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.frame, cpcVm, input);
 	    },
 	    fre: function(cpcVm, input) {
 	      const testCase = input.shift();
@@ -32156,24 +32193,24 @@
 	          Utils.console.error("Unknown testCase:", testCase);
 	          break;
 	      }
-	      return String(cpcVm.fre.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.fre, cpcVm, input));
 	    },
 	    gosub: function(cpcVm, input) {
-	      cpcVm.gosub.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.gosub, cpcVm, input);
 	      return String(cpcVm.line);
 	    },
 	    "goto": function(cpcVm, input) {
-	      cpcVm.goto.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.goto, cpcVm, input);
 	      return String(cpcVm.line);
 	    },
 	    graphicsPaper: function(cpcVm, input) {
-	      cpcVm.graphicsPaper.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.graphicsPaper, cpcVm, input);
 	    },
 	    graphicsPen: function(cpcVm, input) {
-	      cpcVm.graphicsPen.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.graphicsPen, cpcVm, input);
 	    },
 	    hex$: function(cpcVm, input) {
-	      return cpcVm.hex$.apply(cpcVm, input);
+	      return invokeTestMethod(cpcVm.hex$, cpcVm, input);
 	    },
 	    himem: function(cpcVm, input) {
 	      const testCase = input.shift();
@@ -32187,19 +32224,19 @@
 	          Utils.console.error("Unknown testCase:", testCase);
 	          break;
 	      }
-	      return String(cpcVm.himem.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.himem, cpcVm, input));
 	    },
 	    ink: function(cpcVm, input) {
-	      cpcVm.ink.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.ink, cpcVm, input);
 	    },
 	    inkey: function(cpcVm, input) {
-	      return String(cpcVm.inkey.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.inkey, cpcVm, input));
 	    },
 	    inkey$: function(cpcVm, input) {
-	      return cpcVm.inkey$.apply(cpcVm, input);
+	      return invokeTestMethod(cpcVm.inkey$, cpcVm, input);
 	    },
 	    inp: function(cpcVm, input) {
-	      return String(cpcVm.inp.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.inp, cpcVm, input));
 	    },
 	    input: function(cpcVm, input) {
 	      if (input.length && input[0] === 9) {
@@ -32212,7 +32249,7 @@
 	          clearLastTestFunctions();
 	        }
 	      }
-	      cpcVm.input.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.input, cpcVm, input);
 	      const stop = cpcVm.vmGetStopObject();
 	      if (stop.reason === "waitInput" && stop.paras.command === "input") {
 	        const inputParas = stop.paras;
@@ -32233,28 +32270,28 @@
 	      return collectInput.join(" ");
 	    },
 	    instr: function(cpcVm, input) {
-	      return String(cpcVm.instr.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.instr, cpcVm, input));
 	    },
 	    "int": function(cpcVm, input) {
-	      return String(cpcVm.int.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.int, cpcVm, input));
 	    },
 	    joy: function(cpcVm, input) {
-	      return String(cpcVm.joy.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.joy, cpcVm, input));
 	    },
 	    key: function(cpcVm, input) {
-	      cpcVm.key.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.key, cpcVm, input);
 	    },
 	    keyDef: function(cpcVm, input) {
-	      cpcVm.keyDef.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.keyDef, cpcVm, input);
 	    },
 	    left$: function(cpcVm, input) {
-	      return String(cpcVm.left$.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.left$, cpcVm, input));
 	    },
 	    len: function(cpcVm, input) {
-	      return String(cpcVm.len.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.len, cpcVm, input));
 	    },
 	    lineInput: function(cpcVm, input) {
-	      cpcVm.lineInput.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.lineInput, cpcVm, input);
 	      const stop = cpcVm.vmGetStopObject();
 	      if (stop.reason === "waitInput" && stop.paras.command === "lineinput") {
 	        const inputParas = stop.paras;
@@ -32264,10 +32301,10 @@
 	      return String(cpcVm.vmGetNextInput());
 	    },
 	    list: function(cpcVm, input) {
-	      cpcVm.list.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.list, cpcVm, input);
 	    },
 	    load: function(cpcVm, input) {
-	      cpcVm.load.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.load, cpcVm, input);
 	      const stop = cpcVm.vmGetStopObject(), inFile = cpcVm.vmGetInFileObject(), inFileString = JSON.stringify(inFile);
 	      if (stop.reason === "fileLoad" && inFile.command === "load") {
 	        const input2 = "12", meta = {
@@ -32281,81 +32318,81 @@
 	    },
 	    locate: function(cpcVm, input) {
 	      const stream = getValidStream(cpcVm, Number(input));
-	      cpcVm.locate.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.locate, cpcVm, input);
 	      return cpcVm.pos(stream) + "," + cpcVm.vpos(stream);
 	    },
 	    log: function(cpcVm, input) {
-	      return String(cpcVm.log.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.log, cpcVm, input));
 	    },
 	    log10: function(cpcVm, input) {
-	      return String(cpcVm.log10.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.log10, cpcVm, input));
 	    },
 	    lower$: function(cpcVm, input) {
-	      return cpcVm.lower$.apply(cpcVm, input);
+	      return invokeTestMethod(cpcVm.lower$, cpcVm, input);
 	    },
 	    mask: function(cpcVm, input) {
-	      cpcVm.mask.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.mask, cpcVm, input);
 	    },
 	    max: function(cpcVm, input) {
-	      return String(cpcVm.max.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.max, cpcVm, input));
 	    },
 	    memory: function(cpcVm, input) {
-	      cpcVm.memory.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.memory, cpcVm, input);
 	      return String(cpcVm.himem());
 	    },
 	    merge: function(cpcVm, input) {
-	      cpcVm.merge.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.merge, cpcVm, input);
 	    },
 	    mid$: function(cpcVm, input) {
-	      return cpcVm.mid$.apply(cpcVm, input);
+	      return invokeTestMethod(cpcVm.mid$, cpcVm, input);
 	    },
 	    mid$Assign: function(cpcVm, input) {
-	      return cpcVm.mid$Assign.apply(cpcVm, input);
+	      return invokeTestMethod(cpcVm.mid$Assign, cpcVm, input);
 	    },
 	    min: function(cpcVm, input) {
-	      return String(cpcVm.min.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.min, cpcVm, input));
 	    },
 	    mode: function(cpcVm, input) {
-	      cpcVm.mode.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.mode, cpcVm, input);
 	    },
 	    move: function(cpcVm, input) {
-	      cpcVm.move.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.move, cpcVm, input);
 	    },
 	    mover: function(cpcVm, input) {
-	      cpcVm.mover.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.mover, cpcVm, input);
 	    },
 	    "new": function(cpcVm, input) {
-	      cpcVm.new.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.new, cpcVm, input);
 	    },
 	    onBreakCont: function(cpcVm, input) {
-	      cpcVm.onBreakCont.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.onBreakCont, cpcVm, input);
 	      return String(cpcVm.vmEscape()) + ", onBreakContSet:" + String(cpcVm.vmOnBreakContSet()) + ", onBreakHandlerActive:" + String(cpcVm.vmOnBreakHandlerActive());
 	    },
 	    onBreakGosub: function(cpcVm, input) {
 	      cpcVm.vmGoto("123");
-	      cpcVm.onBreakGosub.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.onBreakGosub, cpcVm, input);
 	      return String(cpcVm.vmEscape()) + ", onBreakContSet:" + String(cpcVm.vmOnBreakContSet()) + ", onBreakHandlerActive:" + String(cpcVm.vmOnBreakHandlerActive());
 	    },
 	    onBreakStop: function(cpcVm, input) {
-	      cpcVm.onBreakStop.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.onBreakStop, cpcVm, input);
 	      return String(cpcVm.vmEscape()) + ", onBreakContSet:" + String(cpcVm.vmOnBreakContSet()) + ", onBreakHandlerActive:" + String(cpcVm.vmOnBreakHandlerActive());
 	    },
 	    onErrorGoto: function(cpcVm, input) {
-	      cpcVm.onErrorGoto.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.onErrorGoto, cpcVm, input);
 	    },
 	    onGosub: function(cpcVm, input) {
-	      cpcVm.onGosub.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.onGosub, cpcVm, input);
 	      return String(cpcVm.line);
 	    },
 	    onGoto: function(cpcVm, input) {
-	      cpcVm.onGoto.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.onGoto, cpcVm, input);
 	      return String(cpcVm.line);
 	    },
 	    onSqGosub: function(cpcVm, input) {
-	      cpcVm.onSqGosub.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.onSqGosub, cpcVm, input);
 	    },
 	    openin: function(cpcVm, input) {
-	      cpcVm.openin.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.openin, cpcVm, input);
 	      const stop = cpcVm.vmGetStopObject(), inFile = cpcVm.vmGetInFileObject();
 	      if (stop.reason === "fileLoad" && inFile.command === "openin") {
 	        const input2 = "10,a\b20,b\n";
@@ -32365,53 +32402,53 @@
 	      }
 	    },
 	    openout: function(cpcVm, input) {
-	      cpcVm.openout.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.openout, cpcVm, input);
 	    },
 	    origin: function(cpcVm, input) {
-	      cpcVm.origin.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.origin, cpcVm, input);
 	    },
 	    out: function(cpcVm, input) {
-	      cpcVm.out.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.out, cpcVm, input);
 	    },
 	    paper: function(cpcVm, input) {
-	      cpcVm.paper.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.paper, cpcVm, input);
 	    },
 	    peek: function(cpcVm, input) {
 	      cpcVm.symbolAfter(254);
 	      clearLastTestFunctions();
-	      return String(cpcVm.peek.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.peek, cpcVm, input));
 	    },
 	    pen: function(cpcVm, input) {
-	      cpcVm.pen.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.pen, cpcVm, input);
 	    },
 	    pi: function(cpcVm, input) {
-	      return String(cpcVm.pi.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.pi, cpcVm, input));
 	    },
 	    plot: function(cpcVm, input) {
-	      cpcVm.plot.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.plot, cpcVm, input);
 	    },
 	    plotr: function(cpcVm, input) {
-	      cpcVm.plotr.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.plotr, cpcVm, input);
 	    },
 	    poke: function(cpcVm, input) {
 	      cpcVm.symbolAfter(254);
 	      clearLastTestFunctions();
-	      cpcVm.poke.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.poke, cpcVm, input);
 	    },
 	    pos: function(cpcVm, input) {
-	      return String(cpcVm.pos.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.pos, cpcVm, input));
 	    },
 	    print: function(cpcVm, input) {
 	      if (input && input.length === 2 && String(input[1]).charCodeAt(0) === 25) {
 	        cpcVm.symbolAfter(254);
 	      }
-	      cpcVm.print.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.print, cpcVm, input);
 	    },
 	    rad: function(cpcVm, input) {
-	      cpcVm.rad.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.rad, cpcVm, input);
 	    },
 	    randomize: function(cpcVm, input) {
-	      cpcVm.randomize.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.randomize, cpcVm, input);
 	      const stop = cpcVm.vmGetStopObject();
 	      if (stop.reason === "waitInput" && stop.paras.command === "randomize") {
 	        const inputParas = stop.paras;
@@ -32424,40 +32461,40 @@
 	      return String(cpcVm.vmGetNextInput());
 	    },
 	    read: function(cpcVm, input) {
-	      return String(cpcVm.read.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.read, cpcVm, input));
 	    },
 	    release: function(cpcVm, input) {
-	      cpcVm.release.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.release, cpcVm, input);
 	    },
 	    remain: function(cpcVm, input) {
-	      return String(cpcVm.remain.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.remain, cpcVm, input));
 	    },
 	    renum: function(cpcVm, input) {
-	      cpcVm.renum.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.renum, cpcVm, input);
 	    },
 	    restore: function(cpcVm, input) {
-	      cpcVm.restore.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.restore, cpcVm, input);
 	    },
 	    resume: function(cpcVm, input) {
-	      cpcVm.resume.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.resume, cpcVm, input);
 	    },
 	    resumeNext: function(cpcVm, input) {
-	      cpcVm.resumeNext.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.resumeNext, cpcVm, input);
 	    },
 	    "return": function(cpcVm, input) {
-	      cpcVm.return.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.return, cpcVm, input);
 	    },
 	    right$: function(cpcVm, input) {
-	      return String(cpcVm.right$.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.right$, cpcVm, input));
 	    },
 	    rnd: function(cpcVm, input) {
-	      return String(cpcVm.rnd.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.rnd, cpcVm, input));
 	    },
 	    round: function(cpcVm, input) {
-	      return String(cpcVm.round.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.round, cpcVm, input));
 	    },
 	    run: function(cpcVm, input) {
-	      cpcVm.run.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.run, cpcVm, input);
 	      const stop = cpcVm.vmGetStopObject(), inFile = cpcVm.vmGetInFileObject(), stopString = JSON.stringify(stop);
 	      if (stop.reason === "fileLoad" && inFile.command === "run") {
 	        const input2 = "10 print 12.76", meta = {
@@ -32472,160 +32509,160 @@
 	      return stopString;
 	    },
 	    save: function(cpcVm, input) {
-	      cpcVm.save.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.save, cpcVm, input);
 	    },
 	    sgn: function(cpcVm, input) {
-	      return String(cpcVm.sgn.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.sgn, cpcVm, input));
 	    },
 	    sin: function(cpcVm, input) {
 	      cpcVm.rad();
-	      return String(cpcVm.sin.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.sin, cpcVm, input));
 	    },
 	    sinDeg: function(cpcVm, input) {
 	      cpcVm.deg();
-	      return String(cpcVm.sin.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.sin, cpcVm, input));
 	    },
 	    sound: function(cpcVm, input) {
-	      cpcVm.sound.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.sound, cpcVm, input);
 	    },
 	    space$: function(cpcVm, input) {
-	      return String(cpcVm.space$.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.space$, cpcVm, input));
 	    },
 	    spc: function(cpcVm, input) {
-	      return String(cpcVm.vmInternal.spc.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.vmInternal.spc, cpcVm, input));
 	    },
 	    speedInk: function(cpcVm, input) {
-	      cpcVm.speedInk.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.speedInk, cpcVm, input);
 	    },
 	    speedKey: function(cpcVm, input) {
-	      cpcVm.speedKey.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.speedKey, cpcVm, input);
 	    },
 	    speedWrite: function(cpcVm, input) {
-	      cpcVm.speedWrite.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.speedWrite, cpcVm, input);
 	    },
 	    sq: function(cpcVm, input) {
-	      return String(cpcVm.sq.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.sq, cpcVm, input));
 	    },
 	    sqr: function(cpcVm, input) {
-	      return String(cpcVm.sqr.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.sqr, cpcVm, input));
 	    },
 	    stop: function(cpcVm, input) {
-	      cpcVm.stop.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.stop, cpcVm, input);
 	    },
 	    str$: function(cpcVm, input) {
-	      return String(cpcVm.str$.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.str$, cpcVm, input));
 	    },
 	    string$: function(cpcVm, input) {
-	      return String(cpcVm.string$.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.string$, cpcVm, input));
 	    },
 	    symbol: function(cpcVm, input) {
 	      cpcVm.symbolAfter(254);
-	      cpcVm.symbol.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.symbol, cpcVm, input);
 	    },
 	    symbolAfter: function(cpcVm, input) {
-	      cpcVm.symbolAfter.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.symbolAfter, cpcVm, input);
 	    },
 	    tab: function(cpcVm, input) {
-	      return String(cpcVm.vmInternal.tab.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.vmInternal.tab, cpcVm, input));
 	    },
 	    tag: function(cpcVm, input) {
-	      cpcVm.tag.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.tag, cpcVm, input);
 	    },
 	    tagoff: function(cpcVm, input) {
-	      cpcVm.tagoff.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.tagoff, cpcVm, input);
 	    },
 	    tan: function(cpcVm, input) {
 	      cpcVm.rad();
-	      return String(cpcVm.tan.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.tan, cpcVm, input));
 	    },
 	    tanDeg: function(cpcVm, input) {
 	      cpcVm.deg();
-	      return String(cpcVm.tan.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.tan, cpcVm, input));
 	    },
 	    test: function(cpcVm, input) {
-	      return String(cpcVm.test.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.test, cpcVm, input));
 	    },
 	    testr: function(cpcVm, input) {
-	      return String(cpcVm.testr.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.testr, cpcVm, input));
 	    },
 	    time: function(cpcVm, input) {
-	      let time = cpcVm.time.apply(cpcVm, input);
+	      let time = invokeTestMethod(cpcVm.time, cpcVm, input);
 	      if (time) {
 	        time = 3;
 	      }
 	      return String(time);
 	    },
 	    troff: function(cpcVm, input) {
-	      cpcVm.troff.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.troff, cpcVm, input);
 	    },
 	    tron: function(cpcVm, input) {
-	      cpcVm.tron.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.tron, cpcVm, input);
 	    },
 	    unt: function(cpcVm, input) {
-	      return String(cpcVm.unt.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.unt, cpcVm, input));
 	    },
 	    upper$: function(cpcVm, input) {
-	      return String(cpcVm.upper$.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.upper$, cpcVm, input));
 	    },
 	    using: function(cpcVm, input) {
-	      return String(cpcVm.using.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.using, cpcVm, input));
 	    },
 	    val: function(cpcVm, input) {
-	      return String(cpcVm.val.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.val, cpcVm, input));
 	    },
 	    vpos: function(cpcVm, input) {
-	      return String(cpcVm.vpos.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.vpos, cpcVm, input));
 	    },
 	    wait: function(cpcVm, input) {
-	      cpcVm.wait.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.wait, cpcVm, input);
 	    },
 	    width: function(cpcVm, input) {
-	      cpcVm.width.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.width, cpcVm, input);
 	    },
 	    window: function(cpcVm, input) {
-	      cpcVm.window.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.window, cpcVm, input);
 	    },
 	    windowSwap: function(cpcVm, input) {
-	      cpcVm.windowSwap.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.windowSwap, cpcVm, input);
 	    },
 	    write: function(cpcVm, input) {
-	      cpcVm.write.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.write, cpcVm, input);
 	    },
 	    xpos: function(cpcVm, input) {
-	      return String(cpcVm.xpos.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.xpos, cpcVm, input));
 	    },
 	    ypos: function(cpcVm, input) {
-	      return String(cpcVm.ypos.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.ypos, cpcVm, input));
 	    },
 	    zone: function(cpcVm, input) {
-	      cpcVm.zone.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.zone, cpcVm, input);
 	    },
 	    vmAssertNumberType: function(cpcVm, input) {
 	      cpcVm.defstr("s");
-	      cpcVm.vmAssertNumberType.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.vmAssertNumberType, cpcVm, input);
 	    },
 	    vmAssign: function(cpcVm, input) {
 	      cpcVm.defint("i");
 	      cpcVm.defstr("s");
-	      return String(cpcVm.vmAssign.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.vmAssign, cpcVm, input));
 	    },
 	    vmGoto: function(cpcVm, input) {
-	      cpcVm.vmGoto.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.vmGoto, cpcVm, input);
 	      return String(cpcVm.line);
 	    },
 	    vmLoopCondition: function(cpcVm, input) {
-	      return String(cpcVm.vmLoopCondition.apply(cpcVm, input));
+	      return String(invokeTestMethod(cpcVm.vmLoopCondition, cpcVm, input));
 	    },
 	    vmReset: function(cpcVm, input) {
-	      cpcVm.vmReset.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.vmReset, cpcVm, input);
 	    },
 	    vmReset4Run: function(cpcVm, input) {
-	      cpcVm.vmReset4Run.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.vmReset4Run, cpcVm, input);
 	    },
 	    vmTrace: function(cpcVm, input) {
 	      cpcVm.vmGoto(123);
 	      cpcVm.tron();
-	      cpcVm.vmTrace.apply(cpcVm, input);
+	      invokeTestMethod(cpcVm.vmTrace, cpcVm, input);
 	      cpcVm.troff();
 	    }
 	  };
@@ -32666,7 +32703,7 @@
 	      const key = "timer" + i, timerData = Object.assign({
 	        _key: key
 	      }, timerList[i]);
-	      timerData.nextTimeMs = void 0;
+	      Reflect.deleteProperty(timerData, "nextTimeMs");
 	      vmState[key] = timerData;
 	    }
 	    return vmState;
@@ -32675,7 +32712,7 @@
 	    if (typeof vmState0 === "object" && typeof vmState1 === "object") {
 	      const stateObj0 = vmState0, stateObj1 = vmState1;
 	      for (const key in stateObj1) {
-	        if (stateObj1.hasOwnProperty(key)) {
+	        if (Object.prototype.hasOwnProperty.call(stateObj1, key)) {
 	          if (key !== "_key" && stateObj1[key] === stateObj0[key]) {
 	            stateObj0[key] = void 0;
 	            stateObj1[key] = void 0;
@@ -32695,7 +32732,7 @@
 	      combinedResult.push(result);
 	    }
 	    for (const state in vmState0) {
-	      if (vmState0.hasOwnProperty(state)) {
+	      if (Object.prototype.hasOwnProperty.call(vmState0, state)) {
 	        const stateDiff = getStateDiff(vmState0[state], vmState1[state]);
 	        if (stateDiff !== void 0) {
 	          combinedResult.push(stateDiff);
@@ -32734,7 +32771,7 @@
 	  function runTestsFor(category, tests, assert, results) {
 	    const cpcVm = hooks.cpcVm, testFunction = allTestFunctions[category];
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const expected = tests[key], result = runSingleTest(testFunction, cpcVm, cpcVm.getOptions(), key, expected, category);
 	        if (results) {
 	          results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
@@ -32813,7 +32850,7 @@
 	QUnit.module("Diff: Tests", function(hooks) {
 	  function runTestsFor(category, tests, assert, results) {
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const parts = Utils.split2(key, "#"), text1 = parts[0], text2 = parts[1], expected = tests[key];
 	        let result;
 	        try {
@@ -32852,7 +32889,7 @@
 	  }
 	  static nodeReadFile(name, fnDataLoaded) {
 	    const nodeFs = eval("require")("fs"), myGlobalThis = typeof globalThis !== "undefined" ? globalThis : Function("return this")(), cwd = myGlobalThis.process && myGlobalThis.process.cwd ? myGlobalThis.process.cwd() : "", name2 = cwd && name.indexOf(":") < 0 && !name.startsWith("/") ? cwd + "/" + name : name;
-	    nodeFs.readFile(name2, "utf8", fnDataLoaded);
+	    nodeFs.readFile(name2, "utf8", (error2, data2) => fnDataLoaded(error2 ?? void 0, data2));
 	  }
 	  static isUrl(s) {
 	    return s.startsWith("http");
@@ -32931,9 +32968,10 @@
 	        fnSuccess(fullUrl, key);
 	      }
 	    };
-	    if (script.readyState) {
+	    const legacyScript = script;
+	    if (legacyScript.readyState && legacyScript.attachEvent) {
 	      ieTimeoutCount = 3;
-	      script.attachEvent("onreadystatechange", onScriptReadyStateChange);
+	      legacyScript.attachEvent("onreadystatechange", onScriptReadyStateChange);
 	    } else {
 	      script.addEventListener("load", onScriptLoad, false);
 	      script.addEventListener("error", onScriptLoad, false);
@@ -33022,7 +33060,7 @@
 	QUnit.module("DiskImage: Read files tests", function(hooks) {
 	  function runTestsFor(category, tests, assert, results) {
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const uncompressed = extractFirstFileFromZip(key), disk = new DiskImage({
 	          data: uncompressed,
 	          diskName: "name",
@@ -33085,10 +33123,37 @@
 	  }
 	  return lineList.join("\n");
 	}
+	function addAmsdosHeader(name, headerEntry, data) {
+	  if (headerEntry.typeString !== "A") {
+	    if (data.length !== headerEntry.length) {
+	      Utils.console.warn("runTestsFor: " + name + ": Need to adapt length:", data.length);
+	      headerEntry.length = data.length;
+	      headerEntry.pseudoLen = data.length;
+	    }
+	    const header = DiskImage.createAmsdosHeader(headerEntry), headerString = DiskImage.combineAmsdosHeader(header);
+	    data = headerString + data;
+	  }
+	  return data;
+	}
+	function assertDiskImageRoundTrip(assert, category, diskImage, result, expected, input) {
+	  const message = category + " DSK";
+	  if (Utils.debug > 5) {
+	    Utils.console.debug(message + ": result: ", fnBin2Hex(result));
+	    Utils.console.debug(message + ": expected: ", fnBin2Hex(expected));
+	  }
+	  assert.strictEqual(fnBin2Hex(result), fnBin2Hex(expected), message);
+	  let result2;
+	  try {
+	    result2 = readFilesFromDiskImage(diskImage);
+	  } catch (e) {
+	    result2 = String(e);
+	  }
+	  assert.strictEqual(result2, input, message);
+	}
 	QUnit.module("DiskImage: Write files tests", function(hooks) {
 	  function runTestsFor(category, tests, assert, results) {
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        if (category === "data" || category === "system") {
 	          const input = tests[key], fileInfos = input.split(" --- "), diskImage = new DiskImage({
 	            quiet: true,
@@ -33112,15 +33177,7 @@
 	            } else if (headerEntry.typeString === "B") ; else if (headerEntry.typeString === "A") ; else {
 	              Utils.console.error("runTestsFor: Unknon file type:", headerEntry.typeString);
 	            }
-	            if (headerEntry.typeString !== "A") {
-	              if (data.length !== headerEntry.length) {
-	                Utils.console.warn("runTestsFor: " + name + ": Need to adapt length:", data.length);
-	                headerEntry.length = data.length;
-	                headerEntry.pseudoLen = data.length;
-	              }
-	              const header = DiskImage.createAmsdosHeader(headerEntry), headerString = DiskImage.combineAmsdosHeader(header);
-	              data = headerString + data;
-	            }
+	            data = addAmsdosHeader(name, headerEntry, data);
 	            diskImage.writeFile(name, data);
 	          }
 	          const result = diskImage.stripEmptyTracks(), uncompressed = extractFirstFileFromZip(key), expected = uncompressed;
@@ -33128,20 +33185,7 @@
 	            results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
 	          }
 	          if (assert) {
-	            const message = category + " DSK";
-	            if (Utils.debug > 5) {
-	              Utils.console.debug(message + ": result: ", fnBin2Hex(result));
-	              Utils.console.debug(message + ": expected: ", fnBin2Hex(expected));
-	            }
-	            assert.strictEqual(fnBin2Hex(result), fnBin2Hex(expected), message);
-	            const expected2 = input;
-	            let result2 = "";
-	            try {
-	              result2 = readFilesFromDiskImage(diskImage);
-	            } catch (e) {
-	              result2 = String(e);
-	            }
-	            assert.strictEqual(result2, expected2, message);
+	            assertDiskImageRoundTrip(assert, category, diskImage, result, expected, input);
 	          }
 	        } else if (assert) {
 	          assert.expect(0);
@@ -34695,6 +34739,28 @@
 	  });
 	});
 
+	function captureConsoleWarnings(run) {
+	  const originalWarn = Utils.console.warn, warnings = [];
+	  Utils.console.warn = (...args) => {
+	    warnings.push(args);
+	  };
+	  try {
+	    return { result: run(), warnings };
+	  } finally {
+	    Utils.console.warn = originalWarn;
+	  }
+	}
+	function captureConsoleLogs(run) {
+	  const originalLog = Utils.console.log, logs = [];
+	  Utils.console.log = (...args) => {
+	    logs.push(args);
+	  };
+	  try {
+	    return { result: run(), logs };
+	  } finally {
+	    Utils.console.log = originalLog;
+	  }
+	}
 	QUnit.module("Runtime", function() {
 	  QUnit.test("shared runtime services use the injected host devices", function(assert) {
 	    const canvas = {}, keys = [], keyboard = { getKeyFromBuffer: () => keys.shift() ?? "" }, sound = {}, events = [];
@@ -34752,8 +34818,9 @@
 	    const compiled = runtime.compileProgram("10 END");
 	    assert.notOk(compiled.error);
 	    assert.ok(compiled.text.length > 0);
-	    const failed = runtime.compileAndStartProgram({ clearVariables: false, clearBeforeRun: true });
-	    assert.ok(failed.error);
+	    const failed = captureConsoleWarnings(() => runtime.compileAndStartProgram({ clearVariables: false, clearBeforeRun: true }));
+	    assert.ok(failed.result.error);
+	    assert.ok(failed.warnings.some((args) => String(args[0]).includes("Unexpected token in 10")));
 	    assert.deepEqual(events, ["beforeCompile", ["output", true]]);
 	    events.length = 0;
 	    source = "10 END";
@@ -34766,7 +34833,7 @@
 	    assert.deepEqual(events, ["beforeCompile", ["output", false], "beforeStart", "afterStart"]);
 	    events.length = 0;
 	    runtime.vm.vmStop("waitInput", 45, true);
-	    const invalid = runtime.handleWaitInput({
+	    const invalid = captureConsoleLogs(() => runtime.handleWaitInput({
 	      onInvalid: () => {
 	        events.push("invalid");
 	      },
@@ -34776,8 +34843,9 @@
 	      continueExecution: () => {
 	        events.push("continue");
 	      }
-	    });
-	    assert.deepEqual(invalid, { status: "invalid" });
+	    }));
+	    assert.deepEqual(invalid.result, { status: "invalid" });
+	    assert.ok(invalid.logs.some((args) => String(args[0]).includes("BASIC error(32):") && String(args[1]).includes("fnWaitInput")));
 	    assert.deepEqual(events, ["invalid"]);
 	    const inputParas = {
 	      command: "direct",
@@ -34930,7 +34998,7 @@
 	    runtime.vm.vmStop("", 0, true);
 	    runtime.vm.vmGoto(50);
 	    events.length = 0;
-	    runtime.deleteProgramLines(
+	    const invalidDeletion = captureConsoleLogs(() => runtime.deleteProgramLines(
 	      { command: "delete", stream: 0, line: 50, first: 10, last: 20 },
 	      ["PRINT 7"],
 	      () => {
@@ -34941,7 +35009,8 @@
 	        assert.strictEqual(runtime.vm.line, 50, "Error presentation precedes VM reset");
 	        events.push("invalid");
 	      }
-	    );
+	    ));
+	    assert.ok(invalidDeletion.logs.some((args) => String(args[0]).includes("BASIC error(21):") && String(args[1]).includes("Direct command found in 50: delete")));
 	    assert.deepEqual(events, ["invalid"]);
 	    assert.strictEqual(runtime.vm.line, 0);
 	    assert.strictEqual(runtime.vm.vmGetStopObject().reason, "end");
@@ -34998,7 +35067,7 @@
 	    runtime.vm.print = (stream, text) => {
 	      events.push(["prompt", stream, text]);
 	    };
-	    const failedDirectOutput = runtime.executeDirectCommand("PRINT =", "", 30, 0, "?", {
+	    const failedDirectOutput = captureConsoleWarnings(() => runtime.executeDirectCommand("PRINT =", "", 30, 0, "?", {
 	      outputError: () => {
 	        events.push("compileError");
 	        return "syntax error";
@@ -35009,8 +35078,9 @@
 	      onPrepareError: (error) => {
 	        events.push(["prepareError", error]);
 	      }
-	    });
-	    assert.ok(failedDirectOutput.error);
+	    }));
+	    assert.ok(failedDirectOutput.result.error);
+	    assert.ok(failedDirectOutput.warnings.some((args) => String(args[0]).includes("Unexpected token")));
 	    assert.deepEqual(events, ["compileError", ["output", "syntax error\n"], ["prompt", 0, "?"], ["cursor", 0, 1]]);
 	    events.length = 0;
 	    const directInputParas = {
@@ -35062,14 +35132,16 @@
 	    assert.deepEqual(events, [["print", 1, "old.bas not found\r\n"]]);
 	    assert.strictEqual(runtime.vm.vmGetStopObject().reason, "");
 	    events.length = 0;
-	    const editStarted = runtime.editLine(
+	    const edit = captureConsoleLogs(() => runtime.editLine(
 	      { command: "edit", stream: 0, line: 0, first: 42 },
 	      void 0,
 	      () => true,
 	      (error) => {
 	        events.push(["missing", error.name]);
 	      }
-	    );
+	    ));
+	    const editStarted = edit.result;
+	    assert.ok(edit.logs.some((args) => String(args[0]).includes("BASIC error(8):") && String(args[1]).includes("Line does not exist in 0: 42")));
 	    assert.strictEqual(editStarted, false);
 	    assert.deepEqual(events, [["missing", "CpcVm"]]);
 	    assert.strictEqual(runtime.vm.vmGetStopObject().reason, "stop");
@@ -35085,7 +35157,7 @@
 	    assert.deepEqual(events, [["continue", "10 END", ""]]);
 	    events.length = 0;
 	    runtime.vm.vmStop("waitKey", 45, true);
-	    runtime.failExampleLoad(
+	    const failedExampleLoad = captureConsoleLogs(() => runtime.failExampleLoad(
 	      "missing",
 	      (error, noSelection) => {
 	        assert.ok(error instanceof Error);
@@ -35095,8 +35167,8 @@
 	      (input) => {
 	        events.push(["continue", input, runtime.vm.vmGetStopObject().reason]);
 	      }
-	    );
-	    assert.deepEqual(events, [["error", "error"], ["continue", null, "error"]]);
+	    ));
+	    assert.ok(failedExampleLoad.logs.some((args) => String(args[0]).includes("BASIC error(32):") && String(args[1]).includes("missing not found")));
 	    events.length = 0;
 	    runtime.vm.vmStop("fileLoad", 90, true);
 	    runtime.dispatchFileLoad(
@@ -35270,7 +35342,7 @@
 	  lastTestFunctions.length = 0;
 	}
 	function combineLastTestFunctions() {
-	  return lastTestFunctions.map((lastTestFunction) => Object.keys(lastTestFunction)[0] + ":" + Object.values(lastTestFunction)[0]).join(" , ") || void 0;
+	  return lastTestFunctions.map((lastTestFunction) => Object.keys(lastTestFunction)[0] + ":" + String(Object.values(lastTestFunction)[0])).join(" , ") || void 0;
 	}
 	function combineResult(result) {
 	  const combinedTestFunctions = combineLastTestFunctions(), combinedResult = [];
@@ -35557,7 +35629,7 @@
 	    sound.soundOn();
 	    sound.setActivatedByUser();
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const expected = tests[key], result = runSingleTest(testFunction, sound, key, expected, category);
 	        if (results) {
 	          results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
@@ -35830,7 +35902,7 @@
 	  function runTestsForDetermineStaticVarType(category, tests, assert, results) {
 	    const variables = new Variables({});
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const expected = tests[key], result = variables.determineStaticVarType(key);
 	        if (results) {
 	          results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
@@ -38176,7 +38248,7 @@
 	      return;
 	    }
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const expected = tests[key], result = runSingleTest(z80Disass, key);
 	        if (results) {
 	          results[category].push(TestHelper.hexInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
@@ -38215,7 +38287,7 @@
 	  }
 	  function runTestsFor(category, tests, assert, results) {
 	    for (const key in tests) {
-	      if (tests.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(tests, key)) {
 	        const parts = Utils.split2(key, ","), meta = parts[0], atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob, data = atobFn(parts[1]), zip = new ZipFile({
 	          data: Utils.string2Uint8Array(data),
 	          zipName: "name"
@@ -38283,11 +38355,11 @@
 	const _cpcBasic = class _cpcBasic {
 	  // for loading tokenized examples
 	  static initVmMock1() {
-	    const vmMock = _cpcBasic.vmMock, keywords = _cpcBasic.basicParser.getKeywords();
+	    const vmMock = _cpcBasic.vmMock, vmMockExtensions = vmMock, keywords = _cpcBasic.basicParser.getKeywords();
 	    for (const key in keywords) {
-	      if (keywords.hasOwnProperty(key)) {
-	        if (!vmMock[key]) {
-	          vmMock[key] = function() {
+	      if (Object.prototype.hasOwnProperty.call(keywords, key)) {
+	        if (!vmMockExtensions[key]) {
+	          vmMockExtensions[key] = function() {
 	            return key;
 	          };
 	        }
@@ -38318,7 +38390,7 @@
 	  }
 	  static addIndex2(_dir, input) {
 	    for (const value in input) {
-	      if (input.hasOwnProperty(value)) {
+	      if (Object.prototype.hasOwnProperty.call(input, value)) {
 	        const item = input[value];
 	        for (let i = 0; i < item.length; i += 1) {
 	          this.model.setExample(item[i]);
@@ -38575,7 +38647,7 @@
 	}
 	function testParseExample(example) {
 	  const codeGeneratorJs = cpcBasic.codeGeneratorJs, codeGeneratorToken = cpcBasic.codeGeneratorToken, basicTokenizer = cpcBasic.basicTokenizer, script = example.script || "", input = testCheckMeta(script), firstLine = input.substring(0, input.indexOf("\n")) || input;
-	  let checks = "", output, fnScript;
+	  let checks, output, fnScript;
 	  if (example.meta === "D") {
 	    checks = "ignored";
 	    output = {
@@ -38629,7 +38701,8 @@
 	      } catch (e) {
 	        Utils.console.error("Error in file", example.key);
 	        Utils.console.error(e);
-	        output.error = e;
+	        const error = e instanceof Error ? e : new Error(String(e));
+	        output.error = Utils.composeError("testParseExamples", error, error.message, "", 0);
 	      }
 	    } else {
 	      Utils.console.error("There was an error when parsing file", example.key);

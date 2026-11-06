@@ -119,7 +119,7 @@ export class Utils {
 			const chunkLen = Math.min(len, callSize),
 				chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen); // array.slice on Uint8Array not for IE11
 
-			out += String.fromCharCode.apply(null, chunk); // on Chrome this is faster than single character processing
+			out += String.fromCharCode.apply(null, Array.from(chunk)); // on Chrome this is faster than single character processing
 			offset += chunkLen;
 			len -= chunkLen;
 		}

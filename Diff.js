@@ -64,7 +64,7 @@ export class Diff {
             return [
                 x,
                 x - this // eslint-disable-line no-invalid-this
-            ]; // XXX context is not the best way to pass diagonal
+            ]; // Array.map's thisArg supplies the diagonal.
         }, 
         // NOTE: all intervals from now on are both sides inclusive
         // Get the points in Edit Graph, one of the LCS paths goes through.
@@ -129,7 +129,7 @@ export class Diff {
                             overlap = [
                                 xx,
                                 x
-                            ].map(toPoint, k); // XXX ES5
+                            ].map(toPoint, k);
                         }
                     }
                 }
@@ -163,7 +163,7 @@ export class Diff {
                             overlap = [
                                 x,
                                 xx
-                            ].map(toPoint, K); // XXX ES5
+                            ].map(toPoint, K);
                         }
                     }
                 }
@@ -239,7 +239,6 @@ export class Diff {
         const lcs = Diff.fnLCS(aA.slice(i, iN), aB.slice(j, iM), fnEquals);
         for (let k = 0; k < lcs.length; k += 1) {
             const atom = lcs[k], ni = Diff.customIndexOf(aA, atom, i, fnEquals), nj = Diff.customIndexOf(aB, atom, j, fnEquals);
-            // XXX ES5 map
             // Delete unmatched atoms from A
             [].push.apply(diff, aA.slice(i, ni).map(function (atom2) {
                 return {

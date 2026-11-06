@@ -10,7 +10,7 @@ export class Keyboard {
         this.active = false; // flag if keyboard is active/focused, set from outside
         this.codeStringsRemoved = false;
         this.pressedKeys = {}; // currently pressed browser keys
-        this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this);
+        this.fnKeydownOrKeyupHandler = (event) => this.onKeydownOrKeyup(event);
         this.options = {};
         this.setOptions(options);
         this.key2CpcKey = Keyboard.key2CpcKey;
@@ -84,7 +84,7 @@ export class Keyboard {
             UiUtils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
         }
         for (const key in key2CpcKey) {
-            if (key2CpcKey.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(key2CpcKey, key)) {
                 const keyCode = parseInt(key, 10); // get just the number
                 newMap[keyCode] = key2CpcKey[key];
             }
@@ -184,7 +184,7 @@ export class Keyboard {
         // SliTaz web browser has not key but keyIdentifier
         const identifier = event.keyIdentifier, // eslint-disable-line @typescript-eslint/no-explicit-any
         shiftKey = event.shiftKey;
-        let char = "";
+        let char;
         if ((/^U\+/i).test(identifier || "")) { // unicode string?
             char = String.fromCharCode(parseInt(identifier.substr(2), 16));
             if (char === "\0") { // ignore

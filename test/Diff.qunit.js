@@ -13,7 +13,7 @@ const allTests = {
 QUnit.module("Diff: Tests", function (hooks) {
     function runTestsFor(category, tests, assert, results) {
         for (const key in tests) {
-            if (tests.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(tests, key)) {
                 const parts = Utils.split2(key, "#"), text1 = parts[0], text2 = parts[1], expected = tests[key];
                 let result;
                 try {

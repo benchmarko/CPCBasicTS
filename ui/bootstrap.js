@@ -2,7 +2,7 @@ import "./Polyfills";
 import { UI } from "./UI";
 import { cpcBasic } from "../cpcbasic";
 const uiStartupAdapter = {
-    getConfigOverrides: () => ({}), //TODO window?.cpcConfig || {},
+    getConfigOverrides: () => window.cpcConfig || {},
     getArgs: () => [],
     getUI: () => new UI(),
     isNodeRuntime: () => false,

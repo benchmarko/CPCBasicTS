@@ -1,7 +1,6 @@
 "use strict";
 // Polyfills.ts - Some Polyfills for old browsers, e.g. IE8, and nodeJS
 //
-/* globals globalThis */
 var Polyfills = {
     list: [],
     getList: function () {
@@ -10,7 +9,7 @@ var Polyfills = {
     log: function (part) {
         Polyfills.list.push(part);
     },
-    console: typeof window !== "undefined" ? window.console : globalThis.console,
+    console: (typeof window !== "undefined" ? window.console : globalThis.console),
     localStorage: (function () {
         let rc;
         if (typeof window !== "undefined") {
@@ -37,23 +36,26 @@ var Polyfills = {
         }
         return true;
     }()),
-    atob: (typeof window !== "undefined" ? window.atob : undefined),
-    btoa: (typeof window !== "undefined" ? window.btoa : undefined)
+    atob: typeof window !== "undefined" ? window.atob : undefined,
+    btoa: typeof window !== "undefined" ? window.btoa : undefined
 };
 // IE: window.console is only available when Dev Tools are open
 if (!Polyfills.console) { // browser or node.js
-    const polyFillConsole = {
-        cpcBasicLog: "LOG:\n",
-        log: function () {
-            if (polyFillConsole.cpcBasicLog) {
-                polyFillConsole.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
-            }
+    let logText = "LOG:\n";
+    const appendLog = (...args) => {
+        if (logText) {
+            logText += args.join(" ") + "\n";
         }
     };
-    polyFillConsole.info = polyFillConsole.log;
-    polyFillConsole.warn = polyFillConsole.log;
-    polyFillConsole.error = polyFillConsole.log;
-    polyFillConsole.debug = polyFillConsole.log;
+    const polyFillConsole = {
+        get cpcBasicLog() { return logText; },
+        set cpcBasicLog(value) { logText = value; },
+        log: appendLog,
+        info: appendLog,
+        warn: appendLog,
+        error: appendLog,
+        debug: appendLog
+    };
     Polyfills.console = polyFillConsole;
     Polyfills.log("window.console");
 }
@@ -143,15 +145,17 @@ if (window.Element) {
     if (!Element.prototype.addEventListener) { // IE8
         Polyfills.log("Element.prototype.addEventListener");
         Element.prototype.addEventListener = function (event, fnCallback) {
+            var _a, _b;
             event = "on" + event;
-            return this.attachEvent(event, fnCallback);
+            (_b = (_a = this).attachEvent) === null || _b === void 0 ? void 0 : _b.call(_a, event, fnCallback);
         };
     }
     if (!Element.prototype.removeEventListener) { // IE8
         Polyfills.log("Element.prototype.removeEventListener");
         Element.prototype.removeEventListener = function (event, fnCallback) {
+            var _a, _b;
             event = "on" + event;
-            return this.detachEvent(event, fnCallback);
+            (_b = (_a = this).detachEvent) === null || _b === void 0 ? void 0 : _b.call(_a, event, fnCallback);
         };
     }
 }
@@ -172,7 +176,8 @@ if (window.Event) {
 if (!window.getComputedStyle) { // IE8
     // https://stackoverflow.com/questions/21797258/getcomputedstyle-like-javascript-function-for-ie8
     Polyfills.log("window.getComputedStyle");
-    window.getComputedStyle = function (el, _pseudo) {
+    const legacyWindow = window;
+    legacyWindow.getComputedStyle = function (el, _pseudo) {
         this.getPropertyValue = function (prop) {
             const re = /(-([a-z]){1})/g;
             if (prop === "float") {
@@ -183,8 +188,8 @@ if (!window.getComputedStyle) { // IE8
                     return arguments[2].toUpperCase();
                 });
             }
-            const currentStyle = el.currentStyle;
-            return currentStyle && currentStyle[prop] ? currentStyle[prop] : null;
+            const currentStyle = el.currentStyle, currentStyleValue = currentStyle ? currentStyle[prop] : undefined;
+            return currentStyleValue ? currentStyleValue : null;
         };
         return this;
     };
@@ -203,6 +208,7 @@ if (window.document) {
             (function () {
                 const eventListeners = [];
                 document.addEventListener = function (eventString, fnHandler) {
+                    var _a, _b, _c, _d;
                     const fnFindCaret = function (event) {
                         const documentSelection = document.selection; // IE only
                         if (documentSelection) {
@@ -237,7 +243,7 @@ if (window.document) {
                     if (eventString === "change") {
                         const elements = document.getElementsByTagName("select");
                         for (let i = 0; i < elements.length; i += 1) {
-                            elements[i].attachEvent("on" + eventString, fnOnEvent);
+                            (_b = (_a = elements[i]).attachEvent) === null || _b === void 0 ? void 0 : _b.call(_a, "on" + eventString, fnOnEvent);
                             eventListeners.push({
                                 object: this,
                                 eventString: eventString,
@@ -247,7 +253,7 @@ if (window.document) {
                         }
                     }
                     else { // e.g. "Click"
-                        document.attachEvent("on" + eventString, fnOnEvent);
+                        (_d = (_c = document).attachEvent) === null || _d === void 0 ? void 0 : _d.call(_c, "on" + eventString, fnOnEvent);
                         eventListeners.push({
                             object: this,
                             eventString: eventString,
@@ -257,11 +263,12 @@ if (window.document) {
                     }
                 };
                 document.removeEventListener = function (event, fnHandler) {
+                    var _a, _b;
                     let counter = 0;
                     while (counter < eventListeners.length) {
                         const eventListener = eventListeners[counter];
                         if (eventListener.object === this && eventListener.eventString === event && eventListener.fnHandler === fnHandler) {
-                            this.detachEvent("on" + event, eventListener.fnOnEvent);
+                            (_b = (_a = this).detachEvent) === null || _b === void 0 ? void 0 : _b.call(_a, "on" + event, eventListener.fnOnEvent);
                             eventListeners.splice(counter, 1);
                             break;
                         }
@@ -273,8 +280,9 @@ if (window.document) {
         else {
             (Polyfills.console || window.console).error("No document.attachEvent found."); // will be ignored
             // debug: trying to fix
-            if (document.__proto__.addEventListener) { // eslint-disable-line no-proto
-                document.addEventListener = document.__proto__.addEventListener; // eslint-disable-line no-proto
+            const documentPrototype = document.__proto__;
+            if (documentPrototype === null || documentPrototype === void 0 ? void 0 : documentPrototype.addEventListener) { // eslint-disable-line no-proto
+                document.addEventListener = documentPrototype.addEventListener; // eslint-disable-line no-proto
             }
         }
     }
@@ -294,7 +302,9 @@ if (!Function.prototype.bind) { // IE8
             }
             return function () {
                 args.length = argLen;
-                args.push.apply(args, arguments);
+                for (let i = 0; i < arguments.length; i += 1) {
+                    args.push(arguments[i]);
+                }
                 return that.apply(thatArg, args);
             };
         };
@@ -325,7 +335,7 @@ if (!Object.assign) { // IE11
         for (let i = 1; i < arguments.length; i += 1) {
             const nextSource = arguments[i];
             for (const nextKey in nextSource) {
-                if (nextSource.hasOwnProperty(nextKey)) {
+                if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
                     to[nextKey] = nextSource[nextKey];
                 }
             }
@@ -337,7 +347,8 @@ if (!Object.defineProperty || !Polyfills.isDefinePropertyOk) { // IE8
     Polyfills.log("Object.defineProperty");
     Object.defineProperty = function (target, prop, PropDescriptor) {
         // can handle simple case: Object.defineProperty(exports, "__esModule", { value: true });
-        target[prop] = PropDescriptor.value;
+        const targetWithProperty = target;
+        targetWithProperty[prop] = PropDescriptor.value;
         return target;
     };
 }
@@ -361,8 +372,9 @@ if (!Object.values) { // IE11
     Polyfills.log("Object.values");
     // based on: https://github.com/KhaledElAnsari/Object.values/blob/master/index.js
     Object.values = function (o) {
+        const objectRecord = o;
         return Object.keys(o).map(function (key) {
-            return o[key];
+            return objectRecord[key];
         });
     };
 }
@@ -521,9 +533,12 @@ if (!Polyfills.localStorage) {
             constructor() {
                 this.length = 0;
             }
+            get data() {
+                return this;
+            }
             clear() {
                 for (const key in this) {
-                    if (this.hasOwnProperty(key)) {
+                    if (Object.prototype.hasOwnProperty.call(this, key)) {
                         delete this[key];
                     }
                 }
@@ -532,7 +547,7 @@ if (!Polyfills.localStorage) {
             key(index) {
                 let i = 0;
                 for (const key in this) {
-                    if (this.hasOwnProperty(key) && key !== "length") {
+                    if (Object.prototype.hasOwnProperty.call(this, key) && key !== "length") {
                         if (i === index) {
                             return key;
                         }
@@ -542,17 +557,17 @@ if (!Polyfills.localStorage) {
                 return null;
             }
             getItem(key) {
-                return this.hasOwnProperty(key) ? this[key] : null;
+                return Object.prototype.hasOwnProperty.call(this, key) ? this.data[key] : null;
             }
             setItem(key, value) {
                 if (this.getItem(key) === null) {
                     this.length += 1;
                 }
-                this[key] = String(value);
+                this.data[key] = String(value);
             }
             removeItem(key) {
                 if (this.getItem(key) !== null) {
-                    delete this[key];
+                    delete this.data[key];
                     this.length -= 1;
                 }
             }
@@ -565,8 +580,9 @@ if (!window.ArrayBuffer) { // IE9
     window.ArrayBuffer = Array;
 }
 if (!window.AudioContext) { // ? not for IE
-    window.AudioContext = window.webkitAudioContext || window.mozAudioContext;
-    if (window.AudioContext) {
+    const legacyWindow = window, audioContext = legacyWindow.webkitAudioContext || legacyWindow.mozAudioContext;
+    if (audioContext) {
+        window.AudioContext = audioContext;
         Polyfills.log("window.AudioContext");
     }
     else {
@@ -588,8 +604,14 @@ if (!window.JSON) { // simple polyfill for JSON.parse only
 }
 if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser
     // https://wiki.selfhtml.org/wiki/JavaScript/Window/requestAnimationFrame
-    window.requestAnimationFrame = window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
-    window.cancelAnimationFrame = window.mozCancelAnimationFrame || window.webkitCancelAnimationFrame || window.msCancelAnimationFrame;
+    const legacyWindow = window;
+    const requestAnimationFrame = legacyWindow.mozRequestAnimationFrame || legacyWindow.webkitRequestAnimationFrame || legacyWindow.msRequestAnimationFrame, cancelAnimationFrame = legacyWindow.mozCancelAnimationFrame || legacyWindow.webkitCancelAnimationFrame || legacyWindow.msCancelAnimationFrame;
+    if (requestAnimationFrame) {
+        window.requestAnimationFrame = requestAnimationFrame;
+    }
+    if (cancelAnimationFrame) {
+        window.cancelAnimationFrame = cancelAnimationFrame;
+    }
     if (!window.requestAnimationFrame || !window.cancelAnimationFrame) {
         (function () {
             let lastTime = 0;
@@ -611,10 +633,11 @@ if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser
 }
 if (!window.Uint8Array) { // IE9
     Polyfills.log("Uint8Array (fallback only)");
-    window.Uint8Array = function (arrayBuffer) {
+    const polyfillUint8Array = function (arrayBuffer) {
         return arrayBuffer; // we just return the ArrayBuffer as fallback; enough for our needs
     };
-    window.Uint8Array.BYTES_PER_ELEMENT = 1;
+    polyfillUint8Array.BYTES_PER_ELEMENT = 1;
+    window.Uint8Array = polyfillUint8Array;
     // A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
 }
 if (!window.Uint8Array.prototype.copyWithin) {

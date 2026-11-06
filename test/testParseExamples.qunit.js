@@ -49,11 +49,11 @@ function createModel() {
 }
 class cpcBasic {
     static initVmMock1() {
-        const vmMock = cpcBasic.vmMock, keywords = cpcBasic.basicParser.getKeywords();
+        const vmMock = cpcBasic.vmMock, vmMockExtensions = vmMock, keywords = cpcBasic.basicParser.getKeywords();
         for (const key in keywords) {
-            if (keywords.hasOwnProperty(key)) {
-                if (!vmMock[key]) {
-                    vmMock[key] = function () {
+            if (Object.prototype.hasOwnProperty.call(keywords, key)) {
+                if (!vmMockExtensions[key]) {
+                    vmMockExtensions[key] = function () {
                         return key;
                     };
                 }
@@ -84,7 +84,7 @@ class cpcBasic {
     }
     static addIndex2(_dir, input) {
         for (const value in input) {
-            if (input.hasOwnProperty(value)) {
+            if (Object.prototype.hasOwnProperty.call(input, value)) {
                 const item = input[value];
                 for (let i = 0; i < item.length; i += 1) {
                     //item[i].dir = dir; // TTT to check
@@ -326,7 +326,7 @@ function testCheckMeta(input) {
         input = cpcBasic.basicTokenizer.decode(input);
     }
     else if (type === "P") { // protected BASIC?
-        input = DiskImage.unOrProtectData(input); // TODO
+        input = DiskImage.unOrProtectData(input);
         input = cpcBasic.basicTokenizer.decode(input);
     }
     else if (type === "B") { // binary?
@@ -355,7 +355,7 @@ function hasLineNumbers(input) {
 }
 function testParseExample(example) {
     const codeGeneratorJs = cpcBasic.codeGeneratorJs, codeGeneratorToken = cpcBasic.codeGeneratorToken, basicTokenizer = cpcBasic.basicTokenizer, script = example.script || "", input = testCheckMeta(script), firstLine = input.substring(0, input.indexOf("\n")) || input;
-    let checks = "", output, fnScript; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
+    let checks, output, fnScript; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
     if (example.meta === "D") {
         checks = "ignored";
         output = {
@@ -419,7 +419,8 @@ function testParseExample(example) {
             catch (e) {
                 Utils.console.error("Error in file", example.key);
                 Utils.console.error(e);
-                output.error = e;
+                const error = e instanceof Error ? e : new Error(String(e));
+                output.error = Utils.composeError("testParseExamples", error, error.message, "", 0);
             }
         }
         else {

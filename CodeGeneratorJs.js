@@ -719,7 +719,7 @@ export class CodeGeneratorJs {
                 nodeArgs[i] = '"' + nodeArgs[i].replace(/\\/g, "\\\\").replace(/"/g, "\\\"") + '"'; // escape backslashes and quotes, put in quotes
             }
         }
-        let lineString = String(this.line); // TODO: already string?
+        let lineString = this.line;
         if (lineString === "direct") {
             lineString = '"' + lineString + '"';
         }

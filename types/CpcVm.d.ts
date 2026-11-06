@@ -17,6 +17,7 @@ export interface FileMeta {
     entry?: number;
     encoding?: string;
 }
+type FileCallbackType = (input: string | null | undefined, meta?: FileMeta) => boolean | void;
 interface FileBase {
     open: boolean;
     command: string;
@@ -24,7 +25,7 @@ interface FileBase {
     line: number;
     start: (number | undefined);
     fileData: string[];
-    fnFileCallback: ((...args: any[]) => void | boolean) | undefined;
+    fnFileCallback: FileCallbackType | undefined;
 }
 interface InFile extends FileBase {
     first: number;
@@ -74,7 +75,7 @@ type PrintObjectType = {
     args: (string | number)[];
 };
 type DataEntryType = (string | undefined);
-type LoadHandlerType = (input: string, meta: FileMeta) => boolean;
+type LoadHandlerType = (input: string | null | undefined, meta?: FileMeta) => boolean;
 export declare class CpcVm implements ICpcVm {
     private readonly options;
     private quiet;
@@ -322,7 +323,7 @@ export declare class CpcVm implements ICpcVm {
     vmLineInputCallback(): boolean;
     lineInput(stream: number, noCRLF: string, msg: string, varType: string): void;
     list(stream: number, first?: number, last?: number): void;
-    vmPutFileInMemory(input: string | null, meta: FileMeta | undefined, includeSnapshot: boolean): boolean;
+    vmPutFileInMemory(input: string | null | undefined, meta: FileMeta | undefined, includeSnapshot: boolean): boolean;
     private vmLoadCallback;
     load(name: string, start?: number): void;
     private vmLocate;

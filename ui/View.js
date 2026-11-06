@@ -327,40 +327,40 @@ export class View {
         return target;
     }
     requestFullscreenForId(id) {
-        const element = View.getElementById1(id), anyEl = element, that = this, requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen, fullscreenchangedHandler = function (event) {
-            const target = View.getEventTarget(event);
-            if (View.getDocument().fullscreenElement) {
+        const element = View.getElementById1(id), legacyElement = element, activeXObject = window.ActiveXObject, requestMethod = element.requestFullscreen || legacyElement.webkitRequestFullscreen || legacyElement.mozRequestFullScreen || legacyElement.msRequestFullscreen, fullscreenchangedHandler = (event) => {
+            const target = View.getEventTarget(event), fullscreenElement = View.getDocument().fullscreenElement;
+            if (fullscreenElement) {
                 if (UiUtils.debug > 0) {
-                    UiUtils.console.debug("Entered fullscreen mode: " + View.getDocument().fullscreenElement.id);
+                    UiUtils.console.debug("Entered fullscreen mode: " + fullscreenElement.id);
                 }
             }
             else {
                 if (UiUtils.debug > 0) {
                     UiUtils.console.debug("Leaving fullscreen mode.");
                 }
-                that.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
+                this.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
                 // for Safari we need to do some change to make sure the window size is set (can we do better?)
-                that.setHidden(id, true);
-                window.setTimeout(function () {
-                    that.setHidden(id, false);
+                this.setHidden(id, true);
+                window.setTimeout(() => {
+                    this.setHidden(id, false);
                 }, 0);
             }
         };
         if (requestMethod) {
             const promise = requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
             if (promise) {
-                promise.then(function () {
+                promise.then(() => {
                     if (UiUtils.debug > 0) {
                         UiUtils.console.debug("requestFullscreenForId: " + id + ": success");
                     }
-                    that.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
+                    this.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
                 }).catch(function (err) {
                     UiUtils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
                 });
             }
         }
-        else if (typeof window.ActiveXObject !== "undefined") { // older IE
-            const wscript = new window.ActiveXObject("WScript.Shell");
+        else if (activeXObject) { // older IE
+            const wscript = new activeXObject("WScript.Shell");
             if (wscript !== null) {
                 wscript.SendKeys("{F11}"); // eslint-disable-line new-cap
             }
@@ -379,8 +379,9 @@ export class View {
         const data8 = UiUtils.string2Uint8Array(data), type = "octet/stream", blob = new Blob([data8.buffer], {
             type: type
         });
-        if (window.navigator && window.navigator.msSaveOrOpenBlob) { // IE11 support
-            window.navigator.msSaveOrOpenBlob(blob, filename);
+        const legacyNavigator = window.navigator;
+        if (window.navigator && legacyNavigator.msSaveOrOpenBlob) { // IE11 support
+            legacyNavigator.msSaveOrOpenBlob(blob, filename);
             return;
         }
         const url = URL.createObjectURL(blob), a = View.getDocument().createElement("a"), clickHandler = function () {

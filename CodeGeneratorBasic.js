@@ -283,7 +283,7 @@ export class CodeGeneratorBasic {
         else if (node.value) { // e.g. string,...
             value += node.value;
         }
-        let right = "";
+        let right;
         if (node.right) {
             right = this.parseNode(node.right);
             const needSpace1 = this.keywords[right.toLowerCase()] || keyType;

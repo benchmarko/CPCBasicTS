@@ -161,10 +161,7 @@ export class ZipFile {
                 return left;
             }
         }
-        const offs = [
-            undefined,
-            0
-        ];
+        const offs = [0, 0];
         for (i = 1; i < 0xF; i += 1) {
             offs[i + 1] = offs[i] + codes.count[i];
         }
@@ -374,7 +371,7 @@ export class ZipFile {
         if (!cdfh) {
             throw this.composeError(Error(), "Zip: readData: file does not exist:" + name, "", 0);
         }
-        let dataUTF8 = "";
+        let dataUTF8;
         if (cdfh.compressionMethod === 0) { // stored
             dataUTF8 = this.readUTF(cdfh.dataStart, cdfh.size);
         }

@@ -176,7 +176,7 @@ export class BasicTokenizer {
 
 	private fnQuotedString() {
 		const closingQuotes = this.input.indexOf('"', this.pos);
-		let out = "";
+		let out: string;
 
 		if (closingQuotes < 0 || closingQuotes >= this.lineEnd) { // unclosed quoted string (quotes not found or not in this line)
 			out = BasicTokenizer.fnControlsToUnicode(this.fnStringUntilEol()); // take remaining line
@@ -185,16 +185,6 @@ export class BasicTokenizer {
 			this.pos = closingQuotes + 1; // after quotes
 		}
 		out = '"' + out;
-
-		//TODO: is this still needed?
-		if (out.indexOf("\r") >= 0) {
-			Utils.console.log("BasicTokenizer line", this.line, ": string contains CR, replaced by CHR$(13)");
-			out = out.replace(/\r/g, '"+chr$(13)+"');
-		}
-		if ((/\n\d/).test(out)) {
-			Utils.console.log("BasicTokenizer line", this.line, ": string contains LF<digit>, replaced by CHR$(10)<digit>");
-			out = out.replace(/\n(\d)/g, '"+chr$(10)+"$1');
-		}
 		return out;
 	}
 

@@ -780,7 +780,7 @@ QUnit.module("CodeGeneratorJs: Tests", function (hooks) {
     function runTestsFor(category, tests, assert, results) {
         const codeGeneratorJs = hooks.codeGeneratorJs;
         for (const key in tests) {
-            if (tests.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(tests, key)) {
                 const expected = TestHelper.handleBinaryLiterals(tests[key]), result = runSingleTest(codeGeneratorJs, key);
                 if (results) {
                     results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
@@ -791,7 +791,7 @@ QUnit.module("CodeGeneratorJs: Tests", function (hooks) {
             }
         }
     }
-    TestHelper.compareAllTests(TestInput.getAllTests(), allTests);
+    TestHelper.compareAllTests(TestInput.getAllTests(), allTests, "TestInput.ts", "CodeGeneratorJs.qunit.ts");
     TestHelper.generateAllTests(allTests, runTestsFor, hooks);
     QUnit.test("direct commands retain the stored program and can reference its labels", function (assert) {
         const generator = createCodeGeneratorJs();

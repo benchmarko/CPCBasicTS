@@ -319,7 +319,7 @@ export class Canvas {
         this.hasFocus = true;
     }
     getMousePos(event) {
-        const anyDoc = document, isFullScreen = Boolean(document.fullscreenElement || anyDoc.mozFullScreenElement || anyDoc.webkitFullscreenElement || anyDoc.msFullscreenElement), rect = this.canvas.getBoundingClientRect();
+        const legacyDocument = document, isFullScreen = Boolean(document.fullscreenElement || legacyDocument.mozFullScreenElement || legacyDocument.webkitFullscreenElement || legacyDocument.msFullscreenElement), rect = this.canvas.getBoundingClientRect();
         if (isFullScreen) {
             const areaX = 0, areaY = 0, rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2, rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2, ratioX = rectwidth / this.canvas.width, ratioY = rectHeight / this.canvas.height, minRatio = ratioX <= ratioY ? ratioX : ratioY, diffX = rectwidth - (this.canvas.width * minRatio), diffY = rectHeight - (this.canvas.height * minRatio);
             return {

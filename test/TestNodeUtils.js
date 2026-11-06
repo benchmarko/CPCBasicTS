@@ -19,7 +19,7 @@ export class TestNodeUtils {
         const nodeFs = eval("require")("fs"), // eslint-disable-line no-eval
         myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(), // eslint-disable-line no-new-func
         cwd = (myGlobalThis.process && myGlobalThis.process.cwd) ? myGlobalThis.process.cwd() : "", name2 = (cwd && name.indexOf(":") < 0 && !name.startsWith("/")) ? cwd + "/" + name : name;
-        nodeFs.readFile(name2, "utf8", fnDataLoaded);
+        nodeFs.readFile(name2, "utf8", (error, data) => fnDataLoaded(error !== null && error !== void 0 ? error : undefined, data));
     }
     static isUrl(s) {
         return s.startsWith("http"); // http or https

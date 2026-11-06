@@ -7,6 +7,26 @@ import { Random } from "../Random";
 import { RunLoop } from "../RunLoop";
 import { SoundQueue } from "../SoundQueue";
 import { Utils } from "../Utils";
+function captureConsoleWarnings(run) {
+    const originalWarn = Utils.console.warn, warnings = [];
+    Utils.console.warn = (...args) => { warnings.push(args); };
+    try {
+        return { result: run(), warnings };
+    }
+    finally {
+        Utils.console.warn = originalWarn;
+    }
+}
+function captureConsoleLogs(run) {
+    const originalLog = Utils.console.log, logs = [];
+    Utils.console.log = (...args) => { logs.push(args); };
+    try {
+        return { result: run(), logs };
+    }
+    finally {
+        Utils.console.log = originalLog;
+    }
+}
 QUnit.module("Runtime", function () {
     QUnit.test("shared runtime services use the injected host devices", function (assert) {
         const canvas = {}, keys = [], keyboard = { getKeyFromBuffer: () => { var _a; return (_a = keys.shift()) !== null && _a !== void 0 ? _a : ""; } }, sound = {}, events = [];
@@ -55,8 +75,9 @@ QUnit.module("Runtime", function () {
         const compiled = runtime.compileProgram("10 END");
         assert.notOk(compiled.error);
         assert.ok(compiled.text.length > 0);
-        const failed = runtime.compileAndStartProgram({ clearVariables: false, clearBeforeRun: true });
-        assert.ok(failed.error);
+        const failed = captureConsoleWarnings(() => runtime.compileAndStartProgram({ clearVariables: false, clearBeforeRun: true }));
+        assert.ok(failed.result.error);
+        assert.ok(failed.warnings.some((args) => String(args[0]).includes("Unexpected token in 10")));
         assert.deepEqual(events, ["beforeCompile", ["output", true]]);
         events.length = 0;
         source = "10 END";
@@ -69,12 +90,13 @@ QUnit.module("Runtime", function () {
         assert.deepEqual(events, ["beforeCompile", ["output", false], "beforeStart", "afterStart"]);
         events.length = 0;
         runtime.vm.vmStop("waitInput", 45, true);
-        const invalid = runtime.handleWaitInput({
+        const invalid = captureConsoleLogs(() => runtime.handleWaitInput({
             onInvalid: () => { events.push("invalid"); },
             startMainLoop: () => { events.push("main"); },
             continueExecution: () => { events.push("continue"); }
-        });
-        assert.deepEqual(invalid, { status: "invalid" });
+        }));
+        assert.deepEqual(invalid.result, { status: "invalid" });
+        assert.ok(invalid.logs.some((args) => String(args[0]).includes("BASIC error(32):") && String(args[1]).includes("fnWaitInput")));
         assert.deepEqual(events, ["invalid"]);
         const inputParas = {
             command: "direct", stream: 0, line: 10, input: "", message: "",
@@ -176,11 +198,12 @@ QUnit.module("Runtime", function () {
         runtime.vm.vmStop("", 0, true);
         runtime.vm.vmGoto(50);
         events.length = 0;
-        runtime.deleteProgramLines({ command: "delete", stream: 0, line: 50, first: 10, last: 20 }, ["PRINT 7"], () => { assert.ok(false, "Malformed source must not be deleted"); }, (error) => {
+        const invalidDeletion = captureConsoleLogs(() => runtime.deleteProgramLines({ command: "delete", stream: 0, line: 50, first: 10, last: 20 }, ["PRINT 7"], () => { assert.ok(false, "Malformed source must not be deleted"); }, (error) => {
             assert.ok(error instanceof Error);
             assert.strictEqual(runtime.vm.line, 50, "Error presentation precedes VM reset");
             events.push("invalid");
-        });
+        }));
+        assert.ok(invalidDeletion.logs.some((args) => String(args[0]).includes("BASIC error(21):") && String(args[1]).includes("Direct command found in 50: delete")));
         assert.deepEqual(events, ["invalid"]);
         assert.strictEqual(runtime.vm.line, 0);
         assert.strictEqual(runtime.vm.vmGetStopObject().reason, "end");
@@ -212,12 +235,13 @@ QUnit.module("Runtime", function () {
         ]);
         events.length = 0;
         runtime.vm.print = (stream, text) => { events.push(["prompt", stream, text]); };
-        const failedDirectOutput = runtime.executeDirectCommand("PRINT =", "", 30, 0, "?", {
+        const failedDirectOutput = captureConsoleWarnings(() => runtime.executeDirectCommand("PRINT =", "", 30, 0, "?", {
             outputError: () => { events.push("compileError"); return "syntax error"; },
             setOutputText: (text) => { events.push(["output", text]); },
             onPrepareError: (error) => { events.push(["prepareError", error]); }
-        });
-        assert.ok(failedDirectOutput.error);
+        }));
+        assert.ok(failedDirectOutput.result.error);
+        assert.ok(failedDirectOutput.warnings.some((args) => String(args[0]).includes("Unexpected token")));
         assert.deepEqual(events, ["compileError", ["output", "syntax error\n"], ["prompt", 0, "?"], ["cursor", 0, 1]]);
         events.length = 0;
         const directInputParas = {
@@ -251,7 +275,9 @@ QUnit.module("Runtime", function () {
         assert.deepEqual(events, [["print", 1, "old.bas not found\r\n"]]);
         assert.strictEqual(runtime.vm.vmGetStopObject().reason, "");
         events.length = 0;
-        const editStarted = runtime.editLine({ command: "edit", stream: 0, line: 0, first: 42 }, undefined, () => true, (error) => { events.push(["missing", error.name]); });
+        const edit = captureConsoleLogs(() => runtime.editLine({ command: "edit", stream: 0, line: 0, first: 42 }, undefined, () => true, (error) => { events.push(["missing", error.name]); }));
+        const editStarted = edit.result;
+        assert.ok(edit.logs.some((args) => String(args[0]).includes("BASIC error(8):") && String(args[1]).includes("Line does not exist in 0: 42")));
         assert.strictEqual(editStarted, false);
         assert.deepEqual(events, [["missing", "CpcVm"]]);
         assert.strictEqual(runtime.vm.vmGetStopObject().reason, "stop");
@@ -267,12 +293,12 @@ QUnit.module("Runtime", function () {
         assert.deepEqual(events, [["continue", "10 END", ""]]);
         events.length = 0;
         runtime.vm.vmStop("waitKey", 45, true);
-        runtime.failExampleLoad("missing", (error, noSelection) => {
+        const failedExampleLoad = captureConsoleLogs(() => runtime.failExampleLoad("missing", (error, noSelection) => {
             assert.ok(error instanceof Error);
             assert.strictEqual(noSelection, true);
             events.push(["error", runtime.vm.vmGetStopObject().reason]);
-        }, (input) => { events.push(["continue", input, runtime.vm.vmGetStopObject().reason]); });
-        assert.deepEqual(events, [["error", "error"], ["continue", null, "error"]]);
+        }, (input) => { events.push(["continue", input, runtime.vm.vmGetStopObject().reason]); }));
+        assert.ok(failedExampleLoad.logs.some((args) => String(args[0]).includes("BASIC error(32):") && String(args[1]).includes("missing not found")));
         events.length = 0;
         runtime.vm.vmStop("fileLoad", 90, true);
         runtime.dispatchFileLoad({ open: true, name: "stored.bas", command: "load", first: 0, last: 0 }, {

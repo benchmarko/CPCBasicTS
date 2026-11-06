@@ -1898,7 +1898,7 @@ QUnit.module("Z80Disass: Tests", function (hooks) {
             return;
         }
         for (const key in tests) {
-            if (tests.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(tests, key)) {
                 const expected = tests[key], result = runSingleTest(z80Disass, key);
                 if (results) {
                     results[category].push(TestHelper.hexInQuotes(key) + ": " + TestHelper.stringInQuotes(result));

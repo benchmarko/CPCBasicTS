@@ -15,9 +15,7 @@ export declare class Model implements IModel {
     addDatabases(db: DatabasesType): void;
     getAllDatabases(): DatabasesType;
     getDatabase(): DatabaseEntry;
-    getAllExamples(): {
-        [x: string]: ExampleEntry;
-    };
+    getAllExamples(): Record<string, ExampleEntry>;
     getExample(key: string): ExampleEntry;
     setExample(example: ExampleEntry): void;
     removeExample(key: string): void;

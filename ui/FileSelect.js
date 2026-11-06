@@ -115,7 +115,6 @@ export class FileSelect {
             UiUtils.console.warn("fnHandleFileSelect: FileReader API not supported.");
         }
     }
-    //TODO: can we use View.attachEventHandler() somehow?
     addFileSelectHandler(element, type) {
         element.addEventListener(type, this.fnOnFileSelectHandler, false);
     }

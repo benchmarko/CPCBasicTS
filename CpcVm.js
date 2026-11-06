@@ -1900,8 +1900,11 @@ export class CpcVm {
         });
     }
     vmPutFileInMemory(input, meta, includeSnapshot) {
-        const inFile = this.inFile, shouldPutInMemory = input !== null && meta && (meta.typeString === "B" || (includeSnapshot && meta.typeString === "S") || inFile.start !== undefined);
-        if (!shouldPutInMemory || input === null || !meta) {
+        if (input === null || input === undefined || !meta) {
+            return false;
+        }
+        const inFile = this.inFile, shouldPutInMemory = meta.typeString === "B" || (includeSnapshot && meta.typeString === "S") || inFile.start !== undefined;
+        if (!shouldPutInMemory) {
             return false;
         }
         const start = inFile.start !== undefined ? inFile.start : Number(meta.start);
@@ -2176,7 +2179,7 @@ export class CpcVm {
         sqTimer.repeat = true; // means reloaded for sq
     }
     vmOpeninCallback(input) {
-        if (input !== null) {
+        if (input !== null && input !== undefined) {
             const inFile = this.inFile, eolStr = input.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
             if (input.endsWith(eolStr)) {
                 input = input.substring(0, input.length - eolStr.length); // remove last eol marker (also for data files)
@@ -2812,7 +2815,7 @@ export class CpcVm {
                 Utils.console.debug("restore: search for dataLine >", line);
             }
             for (const dataLine in dataLineIndex) { // linear search a data line > line
-                if (dataLineIndex.hasOwnProperty(dataLine)) {
+                if (Object.prototype.hasOwnProperty.call(dataLineIndex, dataLine)) {
                     if (Number(dataLine) >= line) {
                         dataLineIndex[line] = dataLineIndex[dataLine]; // set data index also for line
                         break;
@@ -2904,8 +2907,8 @@ export class CpcVm {
         return Math.sign(n) * Number(Math.round(Number(Math.abs(n) + "e" + decimals)) + "e" + ((decimals >= 0) ? "-" + decimals : "+" + -decimals));
     }
     vmRunCallback(input, meta) {
-        const inFile = this.inFile, line = inFile.line, putInMemory = input !== null && meta && (meta.typeString === "B" || inFile.start !== undefined);
-        if (input !== null) {
+        const inFile = this.inFile, line = inFile.line, putInMemory = input !== null && input !== undefined && Boolean(meta && (meta.typeString === "B" || inFile.start !== undefined));
+        if (input !== null && input !== undefined) {
             const lineParas = {
                 command: "run",
                 stream: 0, // unused

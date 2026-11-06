@@ -3,8 +3,8 @@
 // https://benchmarko.github.io/CPCBasicTS/
 import { Utils } from "./Utils";
 class ArrayProxy {
-    constructor(len) {
-        return new Proxy(new Array(len), this);
+    static create(len) {
+        return new Proxy(new Array(len), new ArrayProxy());
     }
     // eslint-disable-next-line class-methods-use-this
     get(target, prop) {
@@ -14,18 +14,17 @@ class ArrayProxy {
                 throw Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
             }
         }
-        return target[prop];
+        return Reflect.get(target, prop);
     }
     // eslint-disable-next-line class-methods-use-this
     set(target, prop, value) {
-        if (!isNaN(Number(prop))) {
+        if (typeof prop === "string" && !isNaN(Number(prop))) {
             const numProp = Number(prop);
             if (numProp < 0 || numProp >= target.length) {
                 throw Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
             }
         }
-        target[prop] = value;
-        return true;
+        return Reflect.set(target, prop, value);
     }
 }
 export class Variables {
@@ -56,8 +55,8 @@ export class Variables {
         return this.varTypes;
     }
     createNDimArray(dims, initVal) {
-        const that = this, fnCreateRec = function (index) {
-            const len = dims[index], arr = that.options.arrayBounds ? new ArrayProxy(len) : new Array(len);
+        const fnCreateRec = (index) => {
+            const len = dims[index], arr = this.options.arrayBounds ? ArrayProxy.create(len) : new Array(len);
             index += 1;
             if (index < dims.length) { // more dimensions?
                 for (let i = 0; i < len; i += 1) {
@@ -70,8 +69,8 @@ export class Variables {
                 }
             }
             return arr;
-        }, ret = fnCreateRec(0);
-        return ret;
+        };
+        return fnCreateRec(0);
     }
     // determine static varType (first letter + optional fixed vartype) from a variable name
     // format: (v.|v["])(_)<sname>(A*)(I|R|$)([...]([...])) with optional parts in ()

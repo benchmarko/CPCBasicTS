@@ -5,7 +5,7 @@ export interface ControllerOptions0 extends RuntimeHost, RuntimeCallbacks {
     keyboard: IKeyboard;
     sound: ISound;
     isHeadlessDirectInput?: boolean;
-    console: any;
+    console: Console;
 }
 export declare class Controller0 implements IRuntimeController {
     private readonly fnDirectInputHandler;

@@ -98,7 +98,7 @@ export class Controller0 {
         const databases = this.core.getModel().getAllDatabases();
         let hasStorageDatabase = false;
         for (const value in databases) {
-            if (databases.hasOwnProperty(value)) {
+            if (Object.prototype.hasOwnProperty.call(databases, value)) {
                 if (value === "storage") {
                     hasStorageDatabase = true;
                 }
@@ -629,7 +629,9 @@ export class Controller0 {
                 this.updateResultText();
                 return false; // continue direct input
             }
-            Utils.console.log("fnDirectInput: execute:", input);
+            if (Utils.debug > 0) {
+                Utils.console.log("fnDirectInput: execute:", input);
+            }
             const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line, stream, directInput.message, {
                 outputError: (error) => this.outputError(error, true),
                 setOutputText: (text) => this.setOutputText(text),
@@ -651,7 +653,9 @@ export class Controller0 {
     startWithDirectInput() {
         if (this.options.isHeadlessDirectInput) {
             //this.stopUpdateCanvas();
-            Utils.console.log("We are ready.");
+            if (Utils.debug) {
+                Utils.console.log("We are ready.");
+            }
             if (this.options.onProgramEnd) {
                 this.options.onProgramEnd();
             }

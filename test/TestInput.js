@@ -168,6 +168,7 @@ const allTests = {
         "cursor #2,,1": ""
     },
     "data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
+        "def fno(o,t,v,do)=o+t+v+do+go": "",
         "data": "",
         "data ,": "",
         "data \\": "",
@@ -254,6 +255,7 @@ const allTests = {
         "drawr x,y,m,g1": ""
     },
     "edit, ei, else, end, ent, env, eof, erase, erl, err, error, every gosub, exp": {
+        "erase o,t,v,do": "",
         "edit 20": "",
         "ei": "",
         "else": "",
@@ -283,6 +285,9 @@ const allTests = {
         "a=exp(2.3)": ""
     },
     "fill, fix, fn, for, frame, fre": {
+        "for a=&a000 TO &ha00b step &x101": "",
+        "for a=2 to 1 step -&1": "",
+        "for a=2 to 1 step -&x1": "",
         "fill 7": "",
         "a=fix(2.3)": "",
         "x=fnclk": "",

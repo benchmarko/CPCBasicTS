@@ -47,9 +47,10 @@ export class UiUtils {
                 fnSuccess(fullUrl, key);
             }
         };
-        if (script.readyState) { // old IE8
+        const legacyScript = script;
+        if (legacyScript.readyState && legacyScript.attachEvent) { // old IE8
             ieTimeoutCount = 3;
-            script.attachEvent("onreadystatechange", onScriptReadyStateChange);
+            legacyScript.attachEvent("onreadystatechange", onScriptReadyStateChange);
         }
         else {
             script.addEventListener("load", onScriptLoad, false);
@@ -78,7 +79,7 @@ export class UiUtils {
         let len = data.length, offset = 0, out = "";
         while (len) {
             const chunkLen = Math.min(len, callSize), chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen); // array.slice on Uint8Array not for IE11
-            out += String.fromCharCode.apply(null, chunk); // on Chrome this is faster than single character processing
+            out += String.fromCharCode.apply(null, Array.from(chunk)); // on Chrome this is faster than single character processing
             offset += chunkLen;
             len -= chunkLen;
         }

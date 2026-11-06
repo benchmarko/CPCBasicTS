@@ -25,7 +25,7 @@ export declare class TestHelper {
     private static printAllResults;
     static generateAllTests(allTests: AllTestsType, runTestsFor: runTestsForType, hooks: NestedHooks): void;
     private static compareKeys;
-    static compareAllTests(allTests1: AllTestsType, allTests2: AllTestsType): boolean;
+    static compareAllTests(allTests1: AllTestsType, allTests2: AllTestsType, referenceFile: string, comparedFile: string): boolean;
 }
 export {};
 //# sourceMappingURL=TestHelper.d.ts.map

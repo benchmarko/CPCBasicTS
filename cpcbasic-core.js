@@ -83,7 +83,7 @@
 	    let len = data.length, offset = 0, out = "";
 	    while (len) {
 	      const chunkLen = Math.min(len, callSize), chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen);
-	      out += String.fromCharCode.apply(null, chunk);
+	      out += String.fromCharCode.apply(null, Array.from(chunk));
 	      offset += chunkLen;
 	      len -= chunkLen;
 	    }
@@ -935,7 +935,7 @@
 	      ..._BasicParser.keywordsBasic11
 	    };
 	    for (const key in keywords10) {
-	      if (keywords10.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(keywords10, key)) {
 	        const keyWithSpaces = " " + key + " ";
 	        if (_BasicParser.fnIsInString(" clearInput copychr$ cursor derr fill frame graphics graphicsPaper graphicsPen mask onBreakCont ", keyWithSpaces)) {
 	          delete keywords10[key];
@@ -1912,7 +1912,7 @@
 	  }
 	  fnGenerateKeywordSymbols() {
 	    for (const key in this.keywords) {
-	      if (this.keywords.hasOwnProperty(key)) {
+	      if (Object.prototype.hasOwnProperty.call(this.keywords, key)) {
 	        const keywordType = this.keywords[key].charAt(0);
 	        if (keywordType === "f") {
 	          this.createNudSymbol(key, () => this.fnCreateFuncCall(this.previousToken));
@@ -2835,7 +2835,7 @@
 	  }
 	  fnQuotedString() {
 	    const closingQuotes = this.input.indexOf('"', this.pos);
-	    let out = "";
+	    let out;
 	    if (closingQuotes < 0 || closingQuotes >= this.lineEnd) {
 	      out = BasicTokenizer.fnControlsToUnicode(this.fnStringUntilEol());
 	    } else {
@@ -2843,14 +2843,6 @@
 	      this.pos = closingQuotes + 1;
 	    }
 	    out = '"' + out;
-	    if (out.indexOf("\r") >= 0) {
-	      Utils.console.log("BasicTokenizer line", this.line, ": string contains CR, replaced by CHR$(13)");
-	      out = out.replace(/\r/g, '"+chr$(13)+"');
-	    }
-	    if (/\n\d/.test(out)) {
-	      Utils.console.log("BasicTokenizer line", this.line, ": string contains LF<digit>, replaced by CHR$(10)<digit>");
-	      out = out.replace(/\n(\d)/g, '"+chr$(10)+"$1');
-	    }
 	    return out;
 	  }
 	  debugPrintInfo() {
@@ -3241,7 +3233,7 @@
 	    } else if (node.value) {
 	      value += node.value;
 	    }
-	    let right = "";
+	    let right;
 	    if (node.right) {
 	      right = this.parseNode(node.right);
 	      const needSpace1 = this.keywords[right.toLowerCase()] || keyType;
@@ -4197,7 +4189,7 @@
 	        nodeArgs[i] = '"' + nodeArgs[i].replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
 	      }
 	    }
-	    let lineString = String(this.line);
+	    let lineString = this.line;
 	    if (lineString === "direct") {
 	      lineString = '"' + lineString + '"';
 	    }
@@ -5639,7 +5631,7 @@
 	  registerRsx(rsxModule, permanent) {
 	    const rsxRegister = permanent ? this.rsxPermanent : this.rsxTemporary, rsxCommands = rsxModule.getRsxCommands();
 	    for (const command in rsxCommands) {
-	      if (rsxCommands.hasOwnProperty(command)) {
+	      if (Object.prototype.hasOwnProperty.call(rsxCommands, command)) {
 	        rsxRegister[command] = rsxCommands[command];
 	      }
 	    }
@@ -7517,8 +7509,11 @@
 	    });
 	  }
 	  vmPutFileInMemory(input, meta, includeSnapshot) {
-	    const inFile = this.inFile, shouldPutInMemory = input !== null && meta && (meta.typeString === "B" || includeSnapshot && meta.typeString === "S" || inFile.start !== void 0);
-	    if (!shouldPutInMemory || input === null || !meta) {
+	    if (input === null || input === void 0 || !meta) {
+	      return false;
+	    }
+	    const inFile = this.inFile, shouldPutInMemory = meta.typeString === "B" || includeSnapshot && meta.typeString === "S" || inFile.start !== void 0;
+	    if (!shouldPutInMemory) {
 	      return false;
 	    }
 	    const start = inFile.start !== void 0 ? inFile.start : Number(meta.start);
@@ -7791,7 +7786,7 @@
 	    sqTimer.repeat = true;
 	  }
 	  vmOpeninCallback(input) {
-	    if (input !== null) {
+	    if (input !== null && input !== void 0) {
 	      const inFile = this.inFile, eolStr = input.indexOf("\r\n") > 0 ? "\r\n" : "\n";
 	      if (input.endsWith(eolStr)) {
 	        input = input.substring(0, input.length - eolStr.length);
@@ -8392,7 +8387,7 @@
 	        Utils.console.debug("restore: search for dataLine >", line);
 	      }
 	      for (const dataLine in dataLineIndex) {
-	        if (dataLineIndex.hasOwnProperty(dataLine)) {
+	        if (Object.prototype.hasOwnProperty.call(dataLineIndex, dataLine)) {
 	          if (Number(dataLine) >= line) {
 	            dataLineIndex[line] = dataLineIndex[dataLine];
 	            break;
@@ -8477,8 +8472,8 @@
 	    return Math.sign(n) * Number(Math.round(Number(Math.abs(n) + "e" + decimals)) + "e" + (decimals >= 0 ? "-" + decimals : "+" + -decimals));
 	  }
 	  vmRunCallback(input, meta) {
-	    const inFile = this.inFile, line = inFile.line, putInMemory = input !== null && meta && (meta.typeString === "B" || inFile.start !== void 0);
-	    if (input !== null) {
+	    const inFile = this.inFile, line = inFile.line, putInMemory = input !== null && input !== void 0 && Boolean(meta && (meta.typeString === "B" || inFile.start !== void 0));
+	    if (input !== null && input !== void 0) {
 	      const lineParas = {
 	        command: "run",
 	        stream: 0,
@@ -9718,7 +9713,7 @@
 	        firstSector = sector;
 	      }
 	    }
-	    let format = "";
+	    let format;
 	    if (firstSector === 193) {
 	      format = "data";
 	    } else if (firstSector === 65) {
@@ -9866,7 +9861,7 @@
 	  // do not know if we need to sort the extents per file, but...
 	  static sortFileExtents(dir) {
 	    for (const name in dir) {
-	      if (dir.hasOwnProperty(name)) {
+	      if (Object.prototype.hasOwnProperty.call(dir, name)) {
 	        const fileExtents = dir[name];
 	        fileExtents.sort(_DiskImage.fnSortByExtentNumber);
 	      }
@@ -10367,7 +10362,53 @@
 	];
 	let DiskImage = _DiskImage;
 
-	const ModelPropIDdatabase = "database";
+	var ModelPropID = /* @__PURE__ */ ((ModelPropID2) => {
+	  ModelPropID2["arrayBounds"] = "arrayBounds";
+	  ModelPropID2["autorun"] = "autorun";
+	  ModelPropID2["basicVersion"] = "basicVersion";
+	  ModelPropID2["canvasType"] = "canvasType";
+	  ModelPropID2["databaseDirs"] = "databaseDirs";
+	  ModelPropID2["database"] = "database";
+	  ModelPropID2["debug"] = "debug";
+	  ModelPropID2["example"] = "example";
+	  ModelPropID2["exampleIndex"] = "exampleIndex";
+	  ModelPropID2["implicitLines"] = "implicitLines";
+	  ModelPropID2["input"] = "input";
+	  ModelPropID2["integerOverflow"] = "integerOverflow";
+	  ModelPropID2["kbdLayout"] = "kbdLayout";
+	  ModelPropID2["linesOnLoad"] = "linesOnLoad";
+	  ModelPropID2["dragElements"] = "dragElements";
+	  ModelPropID2["palette"] = "palette";
+	  ModelPropID2["prettyBrackets"] = "prettyBrackets";
+	  ModelPropID2["prettyColons"] = "prettyColons";
+	  ModelPropID2["prettyLowercaseVars"] = "prettyLowercaseVars";
+	  ModelPropID2["prettySpace"] = "prettySpace";
+	  ModelPropID2["processFileImports"] = "processFileImports";
+	  ModelPropID2["random"] = "random";
+	  ModelPropID2["selectDataFiles"] = "selectDataFiles";
+	  ModelPropID2["showConsoleLog"] = "showConsoleLog";
+	  ModelPropID2["showCpc"] = "showCpc";
+	  ModelPropID2["showDisass"] = "showDisass";
+	  ModelPropID2["showExport"] = "showExport";
+	  ModelPropID2["showGallery"] = "showGallery";
+	  ModelPropID2["showInput"] = "showInput";
+	  ModelPropID2["showInp2"] = "showInp2";
+	  ModelPropID2["showKbd"] = "showKbd";
+	  ModelPropID2["showKbdSettings"] = "showKbdSettings";
+	  ModelPropID2["showMore"] = "showMore";
+	  ModelPropID2["showOutput"] = "showOutput";
+	  ModelPropID2["showPretty"] = "showPretty";
+	  ModelPropID2["showRenum"] = "showRenum";
+	  ModelPropID2["showResult"] = "showResult";
+	  ModelPropID2["showSettings"] = "showSettings";
+	  ModelPropID2["showVariable"] = "showVariable";
+	  ModelPropID2["showView"] = "showView";
+	  ModelPropID2["sound"] = "sound";
+	  ModelPropID2["speed"] = "speed";
+	  ModelPropID2["trace"] = "trace";
+	  return ModelPropID2;
+	})(ModelPropID || {});
+
 	class Model {
 	  constructor(config) {
 	    this.config = config || {};
@@ -10398,7 +10439,7 @@
 	  getChangedProperties() {
 	    const current = this.config, initial = this.initialConfig, changed = {};
 	    for (const name in current) {
-	      if (current.hasOwnProperty(name)) {
+	      if (Object.prototype.hasOwnProperty.call(current, name)) {
 	        if (current[name] !== initial[name]) {
 	          changed[name] = current[name];
 	        }
@@ -10408,7 +10449,7 @@
 	  }
 	  addDatabases(db) {
 	    for (const par in db) {
-	      if (db.hasOwnProperty(par)) {
+	      if (Object.prototype.hasOwnProperty.call(db, par)) {
 	        const entry = db[par];
 	        this.databases[par] = entry;
 	        this.examples[par] = {};
@@ -10419,19 +10460,19 @@
 	    return this.databases;
 	  }
 	  getDatabase() {
-	    const database = this.getProperty(ModelPropIDdatabase);
+	    const database = this.getProperty(ModelPropID.database);
 	    return this.databases[database];
 	  }
 	  getAllExamples() {
-	    const database = this.getProperty(ModelPropIDdatabase);
+	    const database = this.getProperty(ModelPropID.database);
 	    return this.examples[database];
 	  }
 	  getExample(key) {
-	    const database = this.getProperty(ModelPropIDdatabase);
+	    const database = this.getProperty(ModelPropID.database);
 	    return this.examples[database][key];
 	  }
 	  setExample(example) {
-	    const database = this.getProperty(ModelPropIDdatabase), key = example.key;
+	    const database = this.getProperty(ModelPropID.database), key = example.key;
 	    if (!this.examples[database][key]) {
 	      if (Utils.debug > 1) {
 	        Utils.console.debug("setExample: creating new example:", key);
@@ -10440,7 +10481,7 @@
 	    this.examples[database][key] = example;
 	  }
 	  removeExample(key) {
-	    const database = this.getProperty(ModelPropIDdatabase);
+	    const database = this.getProperty(ModelPropID.database);
 	    if (!this.examples[database][key]) {
 	      Utils.console.warn("removeExample: example does not exist: " + key);
 	    }
@@ -10465,7 +10506,7 @@
 	    if (!Number.isFinite(value)) {
 	      throw new Error("Seed must be a finite number");
 	    }
-	    let mantissa = 0, exponent = 0, sign = 0;
+	    let mantissa = 0, exponent, sign = 0;
 	    if (value !== 0) {
 	      if (value < 0) {
 	        sign = 2147483648;
@@ -10655,7 +10696,7 @@
 	    this.vmChangeMode(mode);
 	  },
 	  renum: function(...args) {
-	    this.renum.apply(this, args);
+	    Reflect.apply(this.renum, this, args);
 	  }
 	};
 	let RsxCpcBasic = _RsxCpcBasic;
@@ -10776,8 +10817,8 @@
 	let Snapshot = _Snapshot;
 
 	class ArrayProxy {
-	  constructor(len) {
-	    return new Proxy(new Array(len), this);
+	  static create(len) {
+	    return new Proxy(new Array(len), new ArrayProxy());
 	  }
 	  // eslint-disable-next-line class-methods-use-this
 	  get(target, prop) {
@@ -10787,18 +10828,17 @@
 	        throw Utils.composeVmError("Variables", Error(), 9, prop);
 	      }
 	    }
-	    return target[prop];
+	    return Reflect.get(target, prop);
 	  }
 	  // eslint-disable-next-line class-methods-use-this
 	  set(target, prop, value) {
-	    if (!isNaN(Number(prop))) {
+	    if (typeof prop === "string" && !isNaN(Number(prop))) {
 	      const numProp = Number(prop);
 	      if (numProp < 0 || numProp >= target.length) {
 	        throw Utils.composeVmError("Variables", Error(), 9, prop);
 	      }
 	    }
-	    target[prop] = value;
-	    return true;
+	    return Reflect.set(target, prop, value);
 	  }
 	}
 	class Variables {
@@ -10830,8 +10870,8 @@
 	    return this.varTypes;
 	  }
 	  createNDimArray(dims, initVal) {
-	    const that = this, fnCreateRec = function(index) {
-	      const len = dims[index], arr = that.options.arrayBounds ? new ArrayProxy(len) : new Array(len);
+	    const fnCreateRec = (index) => {
+	      const len = dims[index], arr = this.options.arrayBounds ? ArrayProxy.create(len) : new Array(len);
 	      index += 1;
 	      if (index < dims.length) {
 	        for (let i = 0; i < len; i += 1) {
@@ -10843,8 +10883,8 @@
 	        }
 	      }
 	      return arr;
-	    }, ret = fnCreateRec(0);
-	    return ret;
+	    };
+	    return fnCreateRec(0);
 	  }
 	  // determine static varType (first letter + optional fixed vartype) from a variable name
 	  // format: (v.|v["])(_)<sname>(A*)(I|R|$)([...]([...])) with optional parts in ()
@@ -11010,7 +11050,7 @@
 	    return this.wregout(nr);
 	  }
 	  onlyPrefix() {
-	    let out = "";
+	    let out;
 	    if (this.prefix === 1) {
 	      out = "[DD]-prefix";
 	    } else if (this.prefix === 2) {
@@ -11023,7 +11063,7 @@
 	  }
 	  // eslint-disable-line array-element-newline
 	  operdisCB() {
-	    let out = "", newop;
+	    let out, newop;
 	    if (this.prefix === 1 || this.prefix === 2) {
 	      newop = this.readByte(this.options.addr + 1) & 254 | 6;
 	    } else {
@@ -11151,7 +11191,7 @@
 	  // Disassemble 00-3F
 	  //
 	  operdis00To3Fpart00(b3b4b5) {
-	    let out = "";
+	    let out;
 	    switch (b3b4b5) {
 	      // test b3,b4,b5
 	      case 0:
@@ -11173,7 +11213,7 @@
 	    return out;
 	  }
 	  operdis00To3Fpart01(dissOp) {
-	    let out = "";
+	    let out;
 	    if (dissOp & 8) {
 	      out = "ADD " + this.wregout(2) + "," + this.wregout(dissOp >> 4);
 	    } else {
@@ -11310,7 +11350,7 @@
 	    return out;
 	  }
 	  operdisC0ToFFpart05(dissOp) {
-	    let out = "";
+	    let out;
 	    const b4b5 = dissOp >> 4 & 3;
 	    if (dissOp & 8) {
 	      if (b4b5 === 0) {
@@ -11623,10 +11663,7 @@
 	        return left;
 	      }
 	    }
-	    const offs = [
-	      void 0,
-	      0
-	    ];
+	    const offs = [0, 0];
 	    for (i = 1; i < 15; i += 1) {
 	      offs[i + 1] = offs[i] + codes.count[i];
 	    }
@@ -11820,7 +11857,7 @@
 	    if (!cdfh) {
 	      throw this.composeError(Error(), "Zip: readData: file does not exist:" + name, "", 0);
 	    }
-	    let dataUTF8 = "";
+	    let dataUTF8;
 	    if (cdfh.compressionMethod === 0) {
 	      dataUTF8 = this.readUTF(cdfh.dataStart, cdfh.size);
 	    } else if (cdfh.compressionMethod === 8) {

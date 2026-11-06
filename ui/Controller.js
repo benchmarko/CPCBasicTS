@@ -206,7 +206,6 @@ export class Controller {
         this.vmOnCanvasClickHandler = onCanvasClick;
         this.vm.getOnCanvasClickHandler();
         this.canvas.setOptions({
-            //onCanvasClick: this.vm.getOnCanvasClickHandler()
             onCanvasClick
         });
         this.vm.setCanvas(this.canvas);
@@ -217,7 +216,6 @@ export class Controller {
         this.initDropZone();
         const example = model.getProperty("example" /* ModelPropID.example */);
         view.setSelectValue("exampleSelect" /* ViewID.exampleSelect */, example);
-        //this.hasStorageDatabase = this.initDatabases();
         this.setDatabaseSelectOptions();
         this.hasStorageDatabase = this.getHasStorageDatabase();
         if (model.getProperty("showCpc" /* ModelPropID.showCpc */)) {
@@ -233,55 +231,11 @@ export class Controller {
     getCanvas() {
         return this.canvas;
     }
-    //TODO
-    /*
-    private static getUniqueDbKey(name: string, databases: DatabasesType) {
-        let key = name,
-            index = 2;
-
-        while (databases[key]) {
-            key = name + index;
-            index += 1;
-        }
-        return key;
-    }
-
-    private initDatabases() {
-        /*
-        const model = this.model,
-            databases: DatabasesType = {},
-            databaseDirs = model.getProperty<string>(ModelPropID.databaseDirs).split(",");
-        let hasStorageDatabase = false;
-
-        for (let i = 0; i < databaseDirs.length; i += 1) {
-            const databaseDir = databaseDirs[i],
-                parts1 = databaseDir.split("="),
-                databaseSrc = parts1[0],
-                assignedName = parts1.length > 1 ? parts1[1] : "",
-                parts2 = databaseSrc.split("/"),
-                name = assignedName || parts2[parts2.length - 1],
-                key = Controller.getUniqueDbKey(name, databases);
-
-            databases[key] = {
-                text: key,
-                title: databaseSrc,
-                src: databaseSrc
-            };
-            if (databaseDir === "storage") {
-                hasStorageDatabase = true;
-            }
-        }
-        this.model.addDatabases(databases);
-
-        this.setDatabaseSelectOptions();
-        return hasStorageDatabase;
-    }
-    */
     getHasStorageDatabase() {
         const databases = this.model.getAllDatabases();
         let hasStorageDatabase = false;
         for (const value in databases) {
-            if (databases.hasOwnProperty(value)) {
+            if (Object.prototype.hasOwnProperty.call(databases, value)) {
                 if (value === "storage") {
                     hasStorageDatabase = true;
                 }
@@ -289,11 +243,6 @@ export class Controller {
         }
         return hasStorageDatabase;
     }
-    /*
-    private initDatabases() {
-        return getHasStorageDatabase
-    }
-    ∂*/
     onUserAction( /* event, id */) {
         this.uiController.deactivateUserAction(); // deactivate user action
         this.sound.setActivatedByUser();
@@ -302,7 +251,7 @@ export class Controller {
     setDatabaseSelectOptions() {
         const items = [], databases = this.model.getAllDatabases(), database = this.model.getProperty("database" /* ModelPropID.database */);
         for (const value in databases) {
-            if (databases.hasOwnProperty(value)) {
+            if (Object.prototype.hasOwnProperty.call(databases, value)) {
                 const db = databases[value], item = {
                     value: value,
                     text: db.text,
@@ -333,7 +282,7 @@ export class Controller {
     setDirectorySelectOptions() {
         const items = [], allExamples = this.model.getAllExamples(), examplePath = Controller.getPathFromExample(this.model.getProperty("example" /* ModelPropID.example */)), directorySeen = {};
         for (const key in allExamples) {
-            if (allExamples.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(allExamples, key)) {
                 const exampleEntry = allExamples[key], value = Controller.getPathFromExample(exampleEntry.key);
                 if (!directorySeen[value]) {
                     const item = {
@@ -354,7 +303,7 @@ export class Controller {
         items = [], exampleName = Controller.getNameFromExample(this.model.getProperty("example" /* ModelPropID.example */)), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue("directorySelect" /* ViewID.directorySelect */), selectDataFiles = this.model.getProperty("selectDataFiles" /* ModelPropID.selectDataFiles */);
         let exampleSelected = false;
         for (const key in allExamples) {
-            if (allExamples.hasOwnProperty(key) && (Controller.getPathFromExample(key) === directoryName)) {
+            if (Object.prototype.hasOwnProperty.call(allExamples, key) && (Controller.getPathFromExample(key) === directoryName)) {
                 const exampleEntry = allExamples[key], exampleName2 = Controller.getNameFromExample(exampleEntry.key);
                 if (selectDataFiles || (exampleEntry.meta !== "D")) { // skip data files
                     const title = (exampleName2 + ": " + exampleEntry.title).substring(0, maxTitleLength), item = {
@@ -1004,16 +953,16 @@ export class Controller {
         }
     }
     selectJsError(script, e) {
-        const lineNumber = e.lineNumber, // only on FireFox
-        columnNumber = e.columnNumber;
+        const firefoxError = e, lineNumber = firefoxError.lineNumber, // only on FireFox
+        columnNumber = firefoxError.columnNumber;
         if (lineNumber || columnNumber) { // only available on Firefox
-            const errLine = lineNumber - 3; // for some reason line 0 is 3
+            const errLine = Number(lineNumber) - 3; // for some reason line 0 is 3
             let pos = 0, line = 0;
             while (pos < script.length && line < errLine) {
                 pos = script.indexOf("\n", pos) + 1;
                 line += 1;
             }
-            pos += columnNumber;
+            pos += Number(columnNumber);
             UiUtils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
             this.view.setAreaSelection("outputText" /* ViewID.outputText */, pos, pos + 1);
         }
@@ -1033,10 +982,10 @@ export class Controller {
             const input = this.model.getProperty("input" /* ModelPropID.input */);
             if (input !== "") {
                 this.view.setAreaValue("inp2Text" /* ViewID.inp2Text */, input);
-                const that = this, timeout = 1;
-                this.host.setTimeout(function () {
-                    that.startEnter();
-                    that.view.setAreaValue("inp2Text" /* ViewID.inp2Text */, ""); // delete input
+                const timeout = 1;
+                this.host.setTimeout(() => {
+                    this.startEnter();
+                    this.view.setAreaValue("inp2Text" /* ViewID.inp2Text */, ""); // delete input
                 }, timeout);
             }
         }
@@ -1065,7 +1014,9 @@ export class Controller {
                 this.updateResultText();
                 return false; // continue direct input
             }
-            UiUtils.console.log("fnDirectInput: execute:", input);
+            if (UiUtils.debug > 0) {
+                UiUtils.console.log("fnDirectInput: execute:", input);
+            }
             const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line, stream, directInput.message, {
                 outputError: (error) => this.outputError(error, true),
                 setOutputText: (text) => this.setOutputText(text),
@@ -1087,7 +1038,9 @@ export class Controller {
     startWithDirectInput() {
         if (this.options.isHeadlessDirectInput) {
             this.stopUpdateCanvas();
-            UiUtils.console.log("We are ready.");
+            if (UiUtils.debug) {
+                UiUtils.console.log("We are ready.");
+            }
             if (this.options.onProgramEnd) {
                 this.options.onProgramEnd();
             }
@@ -1522,7 +1475,7 @@ export class Controller {
     fnDragElementsActive(enabled) {
         const dragElement = this.getDragElement(), dragElementsData = this.dragElementsData;
         for (const entry in dragElementsData.entries) {
-            if (dragElementsData.entries.hasOwnProperty(entry)) {
+            if (Object.prototype.hasOwnProperty.call(dragElementsData.entries, entry)) {
                 dragElementsData.entries[entry].enabled = enabled;
             }
         }

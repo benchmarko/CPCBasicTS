@@ -16,13 +16,13 @@ export type VarTypes = "I"|"R"|"$"; // or string
 export type VariableTypeMap = Record<string, VarTypes>;
 
 
-class ArrayProxy {
-	constructor(len: number) {
-		return new Proxy(new Array(len), this);
+class ArrayProxy implements ProxyHandler<VariableValue[]> {
+	static create(len: number): VariableValue[] {
+		return new Proxy(new Array<VariableValue>(len), new ArrayProxy());
 	}
 
 	// eslint-disable-next-line class-methods-use-this
-	get(target: any, prop: string | symbol | number) {
+	get(target: VariableValue[], prop: string | symbol): unknown {
 		if (typeof prop === "string" && !isNaN(Number(prop))) {
 			const numProp = Number(prop);
 
@@ -30,20 +30,19 @@ class ArrayProxy {
 				throw Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
 			}
 		}
-		return target[prop];
+		return Reflect.get(target, prop);
 	}
 
 	// eslint-disable-next-line class-methods-use-this
-	set(target: any, prop: string, value: VariableValue) {
-		if (!isNaN(Number(prop))) {
+	set(target: VariableValue[], prop: string | symbol, value: unknown): boolean {
+		if (typeof prop === "string" && !isNaN(Number(prop))) {
 			const numProp = Number(prop);
 
 			if (numProp < 0 || numProp >= target.length) {
 				throw Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
 			}
 		}
-		target[prop] = value;
-		return true;
+		return Reflect.set(target, prop, value);
 	}
 }
 
@@ -89,10 +88,9 @@ export class Variables {
 	}
 
 	private createNDimArray(dims: number[], initVal: string | number) { // eslint-disable-line class-methods-use-this
-		const that = this,
-			fnCreateRec = function (index: number) {
+		const fnCreateRec = (index: number): VariableValue[] => {
 				const len = dims[index],
-					arr: VariableValue[] = that.options.arrayBounds ? new ArrayProxy(len) as any as VariableValue[] : new Array(len);
+					arr = this.options.arrayBounds ? ArrayProxy.create(len) : new Array<VariableValue>(len);
 
 				index += 1;
 				if (index < dims.length) { // more dimensions?
@@ -105,10 +103,9 @@ export class Variables {
 					}
 				}
 				return arr;
-			},
-			ret = fnCreateRec(0);
+			};
 
-		return ret;
+		return fnCreateRec(0);
 	}
 
 	// determine static varType (first letter + optional fixed vartype) from a variable name

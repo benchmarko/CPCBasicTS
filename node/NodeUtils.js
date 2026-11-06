@@ -52,7 +52,7 @@ export class NodeUtils {
     static nodeReadFile(name, fnDataLoaded) {
         const nodeFs = eval("require")("fs"), // eslint-disable-line no-eval
         cwd = (myGlobalThis.process && myGlobalThis.process.cwd) ? myGlobalThis.process.cwd() : "", name2 = (cwd && name.indexOf(":") < 0 && !name.startsWith("/")) ? cwd + "/" + name : name;
-        nodeFs.readFile(name2, "utf8", fnDataLoaded);
+        nodeFs.readFile(name2, "utf8", (error, data) => fnDataLoaded(error !== null && error !== void 0 ? error : undefined, data));
     }
     static isUrl(s) {
         return s.startsWith("http"); // http or https
@@ -83,7 +83,8 @@ export class NodeUtils {
         core.init(); // init databases
         //const nodeDocument = new NodeDocumentAdapter();
         //(myGlobalThis as any).document = nodeDocument;
-        myGlobalThis.cpcBasic = {
+        const cpcBasicGlobal = myGlobalThis;
+        cpcBasicGlobal.cpcBasic = {
             addIndex: core.addIndex,
             addItem: (key, input) => {
                 core.addItem(key || NodeUtils.currentScriptKey, input);
@@ -249,9 +250,6 @@ export class NodeUtils {
             sound,
             isHeadlessDirectInput: true,
             loadScript: NodeUtils.loadScript,
-            onOutputText: (_value) => {
-                // TODO
-            },
             onResultText: (value) => {
                 NodeUtils.writeResultDelta(value, outputState);
             },

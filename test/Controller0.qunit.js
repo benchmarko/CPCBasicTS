@@ -78,7 +78,26 @@ function createController(isHeadlessDirectInput = true, loadScript = () => { thr
         }
     };
 }
-QUnit.module("Controller0", function () {
+function captureConsoleLogs(run) {
+    const originalLog = Utils.console.log, logs = [];
+    Utils.console.log = (...args) => { logs.push(args); };
+    try {
+        return { result: run(), logs };
+    }
+    finally {
+        Utils.console.log = originalLog;
+    }
+}
+QUnit.module("Controller0", function (hooks) {
+    let consoleWarnings = [];
+    const originalConsoleWarn = Utils.console.warn;
+    hooks.beforeEach(function () {
+        consoleWarnings = [];
+        Utils.console.warn = (...args) => { consoleWarnings.push(args); };
+    });
+    hooks.afterEach(function () {
+        Utils.console.warn = originalConsoleWarn;
+    });
     QUnit.test("the runtime contract exposes variable identifiers and values without UI controls", function (assert) {
         const host = createController(), runtime = host.controller;
         assert.deepEqual(runtime.getVariableNames(), []);
@@ -216,6 +235,7 @@ QUnit.module("Controller0", function () {
         host.drain();
         assert.strictEqual(diagnostics.length, 1);
         assert.strictEqual(completions, 2);
+        assert.ok(consoleWarnings.length > 0);
     });
     QUnit.test("headless execution does not require notification listeners", function (assert) {
         const host = createController(true, undefined, {
@@ -338,8 +358,11 @@ QUnit.module("Controller0", function () {
         });
         host.core.getModel().getDatabase().loaded = false;
         host.core.getModel().setProperty("exampleIndex", "0index.js");
-        host.controller.loadDatabase("examples");
-        host.drain();
+        const output = captureConsoleLogs(() => {
+            host.controller.loadDatabase("examples");
+            host.drain();
+        });
+        assert.ok(output.logs.some((args) => String(args[0]).includes("fnDatabaseLoaded: database loaded: examples: examples/0index.js")));
         assert.deepEqual(requests, ["examples/0index.js"]);
         assert.strictEqual(host.core.getModel().getDatabase().loaded, true);
         assert.ok(host.result.includes("EXAMPLE"));
@@ -392,6 +415,7 @@ QUnit.module("Controller0", function () {
         assert.strictEqual(host.controller.getInputText(), source);
         assert.strictEqual(host.diagnostics.length, 1);
         assert.ok(host.diagnostics[0].shortMessage.includes("Line does not exist"));
+        assert.ok(consoleWarnings.length > 0);
     });
     QUnit.test("direct GOSUB executes stored program labels", function (assert) {
         const host = createController(false);
@@ -541,8 +565,11 @@ QUnit.module("Controller0", function () {
         host.core.getModel().setProperty("integerOverflow", true);
         host.controller.fnIntegerOverflow();
         host.controller.setInputText("10 value=40000 OR 0:END");
-        host.controller.startParseRun();
-        host.drain();
+        const output = captureConsoleLogs(() => {
+            host.controller.startParseRun();
+            host.drain();
+        });
+        assert.ok(output.logs.some((args) => String(args[0]).includes("BASIC error(6):") && String(args[1]).includes("Overflow in 10")));
         assert.strictEqual(host.diagnostics.length, 1);
         assert.strictEqual((_a = host.diagnostics[0]) === null || _a === void 0 ? void 0 : _a.errCode, 6);
     });
@@ -590,8 +617,11 @@ QUnit.module("Controller0", function () {
     QUnit.test("runtime diagnostics retain BASIC error metadata", function (assert) {
         const host = createController();
         host.controller.setInputText("10 ERROR 5");
-        host.controller.startParseRun();
-        host.drain();
+        const output = captureConsoleLogs(() => {
+            host.controller.startParseRun();
+            host.drain();
+        });
+        assert.ok(output.logs.some((args) => String(args[0]).includes("BASIC error(5):") && String(args[1]).includes("Improper argument in 10")));
         assert.strictEqual(host.diagnostics.length, 1);
         assert.strictEqual(host.diagnostics[0].errCode, 5);
         assert.strictEqual(host.diagnostics[0].line, 10);
@@ -600,8 +630,12 @@ QUnit.module("Controller0", function () {
     QUnit.test("ON ERROR handles runtime failures without emitting visible diagnostics", function (assert) {
         const host = createController();
         host.controller.setInputText('10 ON ERROR GOTO 30\n20 ERROR 5\n30 PRINT "HANDLED":END');
-        host.controller.startParseRun();
-        host.drain();
+        const output = captureConsoleLogs(() => {
+            host.controller.startParseRun();
+            host.drain();
+        });
+        assert.ok(output.logs.some((args) => String(args[0]).includes("BASIC error(5):") && String(args[1]).includes("hidden: true")));
+        assert.ok(output.logs.some((args) => String(args[0]).includes("Improper argument in 30: undefined")));
         assert.deepEqual(host.diagnostics, []);
         assert.ok(host.result.includes("HANDLED"));
     });

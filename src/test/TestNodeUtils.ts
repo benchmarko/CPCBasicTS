@@ -1,13 +1,8 @@
 import { Utils } from "../Utils";
 import type { LoadScriptFn } from "../Interfaces";
 
-interface NodeHttps {
-	get: (url: string, fn: (res: any) => void) => any
-}
-
-interface NodeFs {
-	readFile: (name: string, encoding: string, fn: (res: any) => void) => any
-}
+type NodeHttps = typeof import("node:https");
+type NodeFs = typeof import("node:fs");
 
 export class TestNodeUtils {
 	private static nodeReadUrl(url: string, fnDataLoaded: (error: Error | undefined, data?: string) => void) {
@@ -35,7 +30,7 @@ export class TestNodeUtils {
 			cwd = (myGlobalThis.process && myGlobalThis.process.cwd) ? myGlobalThis.process.cwd() : "",
 			name2 = (cwd && name.indexOf(":") < 0 && !name.startsWith("/")) ? cwd + "/" + name : name;
 
-		nodeFs.readFile(name2, "utf8", fnDataLoaded);
+		nodeFs.readFile(name2, "utf8", (error, data) => fnDataLoaded(error ?? undefined, data));
 	}
 
 	private static isUrl(s: string) {

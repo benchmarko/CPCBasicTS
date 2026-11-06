@@ -176,6 +176,7 @@ const allTests: AllTestsType = {
 		"cursor #2,,1": "CURSOR #2,,1"
 	},
 	"data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
+		"def fno(o,t,v,do)=o+t+v+do+go": "DEF FNo(o,t,v,do)=o+t+v+do+go",
 		"data": "DATA",
 		"data ,": "DATA ,",
 		"data \\": "DATA \\",
@@ -262,6 +263,7 @@ const allTests: AllTestsType = {
 		"drawr x,y,m,g1": "DRAWR x,y,m,g1"
 	},
 	"edit, ei, else, end, ent, env, eof, erase, erl, err, error, every gosub, exp": {
+		"erase o,t,v,do": "ERASE o,t,v,do",
 		"edit 20": "EDIT 20",
 		"ei": "EI",
 		"else": "ELSE",
@@ -291,6 +293,9 @@ const allTests: AllTestsType = {
 		"a=exp(2.3)": "a=EXP(2.3)"
 	},
 	"fill, fix, fn, for, frame, fre": {
+		"for a=&a000 TO &ha00b step &x101": "FOR a=&A000 TO &HA00B STEP &X101",
+		"for a=2 to 1 step -&1": "FOR a=2 TO 1 STEP -&1",
+		"for a=2 to 1 step -&x1": "FOR a=2 TO 1 STEP -&X1",
 		"fill 7": "FILL 7",
 		"a=fix(2.3)": "a=FIX(2.3)",
 		"x=fnclk": "x=FNclk",
@@ -816,7 +821,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (hooks) {
 		});
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const expected = tests[key],
 					output = codeGeneratorBasic.generate(key),
 					result = output.error ? String(output.error) : output.text;
@@ -832,7 +837,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (hooks) {
 		}
 	}
 
-	TestHelper.compareAllTests(TestInput.getAllTests(), allTests);
+	TestHelper.compareAllTests(TestInput.getAllTests(), allTests, "TestInput.ts", "CodeGeneratorBasic.qunit.ts");
 	TestHelper.generateAllTests(allTests, runTestsFor, hooks);
 });
 
@@ -868,7 +873,7 @@ QUnit.module("CodeGeneratorBasic: keepWhiteSpace", function (hooks) {
 		};
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				spaceCount = 1;
 				const expected = TestHelper.handleBinaryLiterals(tests[key]);
 				let keyWithSpaces = key;
@@ -932,7 +937,7 @@ QUnit.module("CodeGeneratorBasic: Not keepColons", function (hooks) {
 		});
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const output = codeGeneratorBasic.generate(key),
 					result = output.error ? String(output.error) : output.text;
 				let expected = tests[key];
@@ -977,7 +982,7 @@ QUnit.module("CodeGeneratorBasic: Not keepBrackets", function (hooks) {
 		});
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const output = codeGeneratorBasic.generate(key),
 					result = output.error ? String(output.error) : output.text;
 				let	expected = tests[key];

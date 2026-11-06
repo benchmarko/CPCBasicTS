@@ -40,7 +40,7 @@ interface CentralDirFileHeader {
 	dataStart: number
 }
 
-type ZipDirectoryType = {[k in string]: CentralDirFileHeader}
+type ZipDirectoryType = Record<string, CentralDirFileHeader>
 
 interface EndOfCentralDir {
 	signature: number
@@ -256,13 +256,10 @@ export class ZipFile {
 			}
 		}
 
-		const offs = [
-			undefined,
-			0
-		];
+		const offs = [0, 0];
 
 		for (i = 1; i < 0xF; i += 1) {
-			offs[i + 1] = offs[i]! + codes.count[i];
+			offs[i + 1] = offs[i] + codes.count[i];
 		}
 
 		for (i = 0; i < n; i += 1) {
@@ -519,7 +516,7 @@ export class ZipFile {
 			throw this.composeError(Error(), "Zip: readData: file does not exist:" + name, "", 0);
 		}
 
-		let dataUTF8 = "";
+		let dataUTF8: string;
 
 		if (cdfh.compressionMethod === 0) { // stored
 			dataUTF8 = this.readUTF(cdfh.dataStart, cdfh.size);

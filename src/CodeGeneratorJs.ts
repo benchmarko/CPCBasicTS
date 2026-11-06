@@ -882,7 +882,7 @@ export class CodeGeneratorJs {
 			}
 		}
 
-		let lineString = String(this.line); // TODO: already string?
+		let lineString = this.line;
 
 		if (lineString === "direct") {
 			lineString = '"' + lineString + '"';

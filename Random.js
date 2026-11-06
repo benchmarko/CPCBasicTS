@@ -24,7 +24,7 @@ class RandomCpc {
         if (!Number.isFinite(value)) {
             throw new Error("Seed must be a finite number");
         }
-        let mantissa = 0, exponent = 0, sign = 0;
+        let mantissa = 0, exponent, sign = 0;
         if (value !== 0) {
             if (value < 0) {
                 sign = 0x80000000;

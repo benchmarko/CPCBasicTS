@@ -78,7 +78,7 @@ function extractFirstFileFromZip(key) {
 QUnit.module("DiskImage: Read files tests", function (hooks) {
     function runTestsFor(category, tests, assert, results) {
         for (const key in tests) {
-            if (tests.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(tests, key)) {
                 const uncompressed = extractFirstFileFromZip(key), disk = new DiskImage({
                     data: uncompressed,
                     diskName: "name",
@@ -145,10 +145,38 @@ function fnBin2Hex(bin) {
     }
     return lineList.join("\n");
 }
+function addAmsdosHeader(name, headerEntry, data) {
+    if (headerEntry.typeString !== "A") {
+        if (data.length !== headerEntry.length) {
+            Utils.console.warn("runTestsFor: " + name + ": Need to adapt length:", data.length);
+            headerEntry.length = data.length;
+            headerEntry.pseudoLen = data.length;
+        }
+        const header = DiskImage.createAmsdosHeader(headerEntry), headerString = DiskImage.combineAmsdosHeader(header);
+        data = headerString + data;
+    }
+    return data;
+}
+function assertDiskImageRoundTrip(assert, category, diskImage, result, expected, input) {
+    const message = category + " DSK";
+    if (Utils.debug > 5) {
+        Utils.console.debug(message + ": result: ", fnBin2Hex(result));
+        Utils.console.debug(message + ": expected: ", fnBin2Hex(expected));
+    }
+    assert.strictEqual(fnBin2Hex(result), fnBin2Hex(expected), message);
+    let result2;
+    try {
+        result2 = readFilesFromDiskImage(diskImage);
+    }
+    catch (e) {
+        result2 = String(e);
+    }
+    assert.strictEqual(result2, input, message);
+}
 QUnit.module("DiskImage: Write files tests", function (hooks) {
     function runTestsFor(category, tests, assert, results) {
         for (const key in tests) {
-            if (tests.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(tests, key)) {
                 if (category === "data" || category === "system") {
                     const input = tests[key], fileInfos = input.split(" --- "), diskImage = new DiskImage({
                         quiet: true,
@@ -182,15 +210,7 @@ QUnit.module("DiskImage: Write files tests", function (hooks) {
                         else {
                             Utils.console.error("runTestsFor: Unknon file type:", headerEntry.typeString);
                         }
-                        if (headerEntry.typeString !== "A") {
-                            if (data.length !== headerEntry.length) {
-                                Utils.console.warn("runTestsFor: " + name + ": Need to adapt length:", data.length);
-                                headerEntry.length = data.length;
-                                headerEntry.pseudoLen = data.length;
-                            }
-                            const header = DiskImage.createAmsdosHeader(headerEntry), headerString = DiskImage.combineAmsdosHeader(header);
-                            data = headerString + data;
-                        }
+                        data = addAmsdosHeader(name, headerEntry, data);
                         diskImage.writeFile(name, data);
                     }
                     const result = diskImage.stripEmptyTracks(), uncompressed = extractFirstFileFromZip(key), expected = uncompressed;
@@ -198,23 +218,7 @@ QUnit.module("DiskImage: Write files tests", function (hooks) {
                         results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
                     }
                     if (assert) {
-                        const message = category + " DSK";
-                        if (Utils.debug > 5) {
-                            Utils.console.debug(message + ": result: ", fnBin2Hex(result));
-                            Utils.console.debug(message + ": expected: ", fnBin2Hex(expected));
-                        }
-                        // compare disk images
-                        assert.strictEqual(fnBin2Hex(result), fnBin2Hex(expected), message);
-                        // read back files anf compare
-                        const expected2 = input;
-                        let result2 = "";
-                        try {
-                            result2 = readFilesFromDiskImage(diskImage);
-                        }
-                        catch (e) {
-                            result2 = String(e);
-                        }
-                        assert.strictEqual(result2, expected2, message);
+                        assertDiskImageRoundTrip(assert, category, diskImage, result, expected, input);
                     }
                 }
                 else if (assert) {

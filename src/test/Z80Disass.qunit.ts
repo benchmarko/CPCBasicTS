@@ -1935,7 +1935,7 @@ QUnit.module("Z80Disass: Tests", function (hooks) {
 		}
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const expected = tests[key],
 					result = runSingleTest(z80Disass, key);
 

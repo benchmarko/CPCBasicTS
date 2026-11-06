@@ -33,7 +33,7 @@ class RandomCpc {
 			throw new Error("Seed must be a finite number");
 		}
 		let mantissa = 0,
-			exponent = 0,
+			exponent: number,
 			sign = 0;
 
 		if (value !== 0) {

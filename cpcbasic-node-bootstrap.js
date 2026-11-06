@@ -79,7 +79,7 @@ const _Utils = class _Utils {
     let len = data.length, offset = 0, out = "";
     while (len) {
       const chunkLen = Math.min(len, callSize), chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen);
-      out += String.fromCharCode.apply(null, chunk);
+      out += String.fromCharCode.apply(null, Array.from(chunk));
       offset += chunkLen;
       len -= chunkLen;
     }
@@ -487,7 +487,6 @@ class BasicFormatter {
   }
 }
 
-const ModelPropIDdatabase$1 = "database";
 class Model {
   constructor(config) {
     this.config = config || {};
@@ -518,7 +517,7 @@ class Model {
   getChangedProperties() {
     const current = this.config, initial = this.initialConfig, changed = {};
     for (const name in current) {
-      if (current.hasOwnProperty(name)) {
+      if (Object.prototype.hasOwnProperty.call(current, name)) {
         if (current[name] !== initial[name]) {
           changed[name] = current[name];
         }
@@ -528,7 +527,7 @@ class Model {
   }
   addDatabases(db) {
     for (const par in db) {
-      if (db.hasOwnProperty(par)) {
+      if (Object.prototype.hasOwnProperty.call(db, par)) {
         const entry = db[par];
         this.databases[par] = entry;
         this.examples[par] = {};
@@ -539,19 +538,19 @@ class Model {
     return this.databases;
   }
   getDatabase() {
-    const database = this.getProperty(ModelPropIDdatabase$1);
+    const database = this.getProperty(ModelPropID.database);
     return this.databases[database];
   }
   getAllExamples() {
-    const database = this.getProperty(ModelPropIDdatabase$1);
+    const database = this.getProperty(ModelPropID.database);
     return this.examples[database];
   }
   getExample(key) {
-    const database = this.getProperty(ModelPropIDdatabase$1);
+    const database = this.getProperty(ModelPropID.database);
     return this.examples[database][key];
   }
   setExample(example) {
-    const database = this.getProperty(ModelPropIDdatabase$1), key = example.key;
+    const database = this.getProperty(ModelPropID.database), key = example.key;
     if (!this.examples[database][key]) {
       if (Utils.debug > 1) {
         Utils.console.debug("setExample: creating new example:", key);
@@ -560,7 +559,7 @@ class Model {
     this.examples[database][key] = example;
   }
   removeExample(key) {
-    const database = this.getProperty(ModelPropIDdatabase$1);
+    const database = this.getProperty(ModelPropID.database);
     if (!this.examples[database][key]) {
       Utils.console.warn("removeExample: example does not exist: " + key);
     }
@@ -1217,7 +1216,7 @@ class BasicTokenizer {
   }
   fnQuotedString() {
     const closingQuotes = this.input.indexOf('"', this.pos);
-    let out = "";
+    let out;
     if (closingQuotes < 0 || closingQuotes >= this.lineEnd) {
       out = BasicTokenizer.fnControlsToUnicode(this.fnStringUntilEol());
     } else {
@@ -1225,14 +1224,6 @@ class BasicTokenizer {
       this.pos = closingQuotes + 1;
     }
     out = '"' + out;
-    if (out.indexOf("\r") >= 0) {
-      Utils.console.log("BasicTokenizer line", this.line, ": string contains CR, replaced by CHR$(13)");
-      out = out.replace(/\r/g, '"+chr$(13)+"');
-    }
-    if (/\n\d/.test(out)) {
-      Utils.console.log("BasicTokenizer line", this.line, ": string contains LF<digit>, replaced by CHR$(10)<digit>");
-      out = out.replace(/\n(\d)/g, '"+chr$(10)+"$1');
-    }
     return out;
   }
   debugPrintInfo() {
@@ -1623,7 +1614,7 @@ const _CodeGeneratorBasic = class _CodeGeneratorBasic {
     } else if (node.value) {
       value += node.value;
     }
-    let right = "";
+    let right;
     if (node.right) {
       right = this.parseNode(node.right);
       const needSpace1 = this.keywords[right.toLowerCase()] || keyType;
@@ -2739,7 +2730,7 @@ const _DiskImage = class _DiskImage {
         firstSector = sector;
       }
     }
-    let format = "";
+    let format;
     if (firstSector === 193) {
       format = "data";
     } else if (firstSector === 65) {
@@ -2887,7 +2878,7 @@ const _DiskImage = class _DiskImage {
   // do not know if we need to sort the extents per file, but...
   static sortFileExtents(dir) {
     for (const name in dir) {
-      if (dir.hasOwnProperty(name)) {
+      if (Object.prototype.hasOwnProperty.call(dir, name)) {
         const fileExtents = dir[name];
         fileExtents.sort(_DiskImage.fnSortByExtentNumber);
       }
@@ -3662,10 +3653,7 @@ class ZipFile {
         return left;
       }
     }
-    const offs = [
-      void 0,
-      0
-    ];
+    const offs = [0, 0];
     for (i = 1; i < 15; i += 1) {
       offs[i + 1] = offs[i] + codes.count[i];
     }
@@ -3859,7 +3847,7 @@ class ZipFile {
     if (!cdfh) {
       throw this.composeError(Error(), "Zip: readData: file does not exist:" + name, "", 0);
     }
-    let dataUTF8 = "";
+    let dataUTF8;
     if (cdfh.compressionMethod === 0) {
       dataUTF8 = this.readUTF(cdfh.dataStart, cdfh.size);
     } else if (cdfh.compressionMethod === 8) {
@@ -4071,7 +4059,7 @@ const _FileHandler = class _FileHandler {
       fileExists[entry] = true;
     }
     for (const key in examples) {
-      if (examples.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(examples, key)) {
         const example = examples[key], name = example.key, matchName = name + (name.indexOf(".") < 0 ? "." : "");
         if (!regExp || regExp.test(matchName)) {
           const entry = name.substring(path.length);
@@ -4290,7 +4278,7 @@ class RandomCpc {
     if (!Number.isFinite(value)) {
       throw new Error("Seed must be a finite number");
     }
-    let mantissa = 0, exponent = 0, sign = 0;
+    let mantissa = 0, exponent, sign = 0;
     if (value !== 0) {
       if (value < 0) {
         sign = 2147483648;
@@ -5106,7 +5094,7 @@ const _BasicParser = class _BasicParser {
       ..._BasicParser.keywordsBasic11
     };
     for (const key in keywords10) {
-      if (keywords10.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(keywords10, key)) {
         const keyWithSpaces = " " + key + " ";
         if (_BasicParser.fnIsInString(" clearInput copychr$ cursor derr fill frame graphics graphicsPaper graphicsPen mask onBreakCont ", keyWithSpaces)) {
           delete keywords10[key];
@@ -6083,7 +6071,7 @@ const _BasicParser = class _BasicParser {
   }
   fnGenerateKeywordSymbols() {
     for (const key in this.keywords) {
-      if (this.keywords.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(this.keywords, key)) {
         const keywordType = this.keywords[key].charAt(0);
         if (keywordType === "f") {
           this.createNudSymbol(key, () => this.fnCreateFuncCall(this.previousToken));
@@ -7291,7 +7279,7 @@ const _CodeGeneratorJs = class _CodeGeneratorJs {
         nodeArgs[i] = '"' + nodeArgs[i].replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
       }
     }
-    let lineString = String(this.line);
+    let lineString = this.line;
     if (lineString === "direct") {
       lineString = '"' + lineString + '"';
     }
@@ -8099,7 +8087,7 @@ class CpcVmRsx {
   registerRsx(rsxModule, permanent) {
     const rsxRegister = permanent ? this.rsxPermanent : this.rsxTemporary, rsxCommands = rsxModule.getRsxCommands();
     for (const command in rsxCommands) {
-      if (rsxCommands.hasOwnProperty(command)) {
+      if (Object.prototype.hasOwnProperty.call(rsxCommands, command)) {
         rsxRegister[command] = rsxCommands[command];
       }
     }
@@ -9977,8 +9965,11 @@ const _CpcVm = class _CpcVm {
     });
   }
   vmPutFileInMemory(input, meta, includeSnapshot) {
-    const inFile = this.inFile, shouldPutInMemory = input !== null && meta && (meta.typeString === "B" || includeSnapshot && meta.typeString === "S" || inFile.start !== void 0);
-    if (!shouldPutInMemory || input === null || !meta) {
+    if (input === null || input === void 0 || !meta) {
+      return false;
+    }
+    const inFile = this.inFile, shouldPutInMemory = meta.typeString === "B" || includeSnapshot && meta.typeString === "S" || inFile.start !== void 0;
+    if (!shouldPutInMemory) {
       return false;
     }
     const start = inFile.start !== void 0 ? inFile.start : Number(meta.start);
@@ -10251,7 +10242,7 @@ const _CpcVm = class _CpcVm {
     sqTimer.repeat = true;
   }
   vmOpeninCallback(input) {
-    if (input !== null) {
+    if (input !== null && input !== void 0) {
       const inFile = this.inFile, eolStr = input.indexOf("\r\n") > 0 ? "\r\n" : "\n";
       if (input.endsWith(eolStr)) {
         input = input.substring(0, input.length - eolStr.length);
@@ -10852,7 +10843,7 @@ const _CpcVm = class _CpcVm {
         Utils.console.debug("restore: search for dataLine >", line);
       }
       for (const dataLine in dataLineIndex) {
-        if (dataLineIndex.hasOwnProperty(dataLine)) {
+        if (Object.prototype.hasOwnProperty.call(dataLineIndex, dataLine)) {
           if (Number(dataLine) >= line) {
             dataLineIndex[line] = dataLineIndex[dataLine];
             break;
@@ -10937,8 +10928,8 @@ const _CpcVm = class _CpcVm {
     return Math.sign(n) * Number(Math.round(Number(Math.abs(n) + "e" + decimals)) + "e" + (decimals >= 0 ? "-" + decimals : "+" + -decimals));
   }
   vmRunCallback(input, meta) {
-    const inFile = this.inFile, line = inFile.line, putInMemory = input !== null && meta && (meta.typeString === "B" || inFile.start !== void 0);
-    if (input !== null) {
+    const inFile = this.inFile, line = inFile.line, putInMemory = input !== null && input !== void 0 && Boolean(meta && (meta.typeString === "B" || inFile.start !== void 0));
+    if (input !== null && input !== void 0) {
       const lineParas = {
         command: "run",
         stream: 0,
@@ -12230,7 +12221,7 @@ _RsxCpcBasic.rsxCommands = {
     this.vmChangeMode(mode);
   },
   renum: function(...args) {
-    this.renum.apply(this, args);
+    Reflect.apply(this.renum, this, args);
   }
 };
 let RsxCpcBasic = _RsxCpcBasic;
@@ -12398,8 +12389,8 @@ class SuspendedState {
 }
 
 class ArrayProxy {
-  constructor(len) {
-    return new Proxy(new Array(len), this);
+  static create(len) {
+    return new Proxy(new Array(len), new ArrayProxy());
   }
   // eslint-disable-next-line class-methods-use-this
   get(target, prop) {
@@ -12409,18 +12400,17 @@ class ArrayProxy {
         throw Utils.composeVmError("Variables", Error(), 9, prop);
       }
     }
-    return target[prop];
+    return Reflect.get(target, prop);
   }
   // eslint-disable-next-line class-methods-use-this
   set(target, prop, value) {
-    if (!isNaN(Number(prop))) {
+    if (typeof prop === "string" && !isNaN(Number(prop))) {
       const numProp = Number(prop);
       if (numProp < 0 || numProp >= target.length) {
         throw Utils.composeVmError("Variables", Error(), 9, prop);
       }
     }
-    target[prop] = value;
-    return true;
+    return Reflect.set(target, prop, value);
   }
 }
 class Variables {
@@ -12452,8 +12442,8 @@ class Variables {
     return this.varTypes;
   }
   createNDimArray(dims, initVal) {
-    const that = this, fnCreateRec = function(index) {
-      const len = dims[index], arr = that.options.arrayBounds ? new ArrayProxy(len) : new Array(len);
+    const fnCreateRec = (index) => {
+      const len = dims[index], arr = this.options.arrayBounds ? ArrayProxy.create(len) : new Array(len);
       index += 1;
       if (index < dims.length) {
         for (let i = 0; i < len; i += 1) {
@@ -12465,8 +12455,8 @@ class Variables {
         }
       }
       return arr;
-    }, ret = fnCreateRec(0);
-    return ret;
+    };
+    return fnCreateRec(0);
   }
   // determine static varType (first letter + optional fixed vartype) from a variable name
   // format: (v.|v["])(_)<sname>(A*)(I|R|$)([...]([...])) with optional parts in ()
@@ -13019,7 +13009,7 @@ class Controller0 {
     const databases = this.core.getModel().getAllDatabases();
     let hasStorageDatabase = false;
     for (const value in databases) {
-      if (databases.hasOwnProperty(value)) {
+      if (Object.prototype.hasOwnProperty.call(databases, value)) {
         if (value === "storage") {
           hasStorageDatabase = true;
         }
@@ -13532,7 +13522,9 @@ class Controller0 {
         this.updateResultText();
         return false;
       }
-      Utils.console.log("fnDirectInput: execute:", input);
+      if (Utils.debug > 0) {
+        Utils.console.log("fnDirectInput: execute:", input);
+      }
       const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line, stream, directInput.message, {
         outputError: (error) => this.outputError(error, true),
         setOutputText: (text) => this.setOutputText(text),
@@ -13553,7 +13545,9 @@ class Controller0 {
   }
   startWithDirectInput() {
     if (this.options.isHeadlessDirectInput) {
-      Utils.console.log("We are ready.");
+      if (Utils.debug) {
+        Utils.console.log("We are ready.");
+      }
       if (this.options.onProgramEnd) {
         this.options.onProgramEnd();
       }
@@ -13813,7 +13807,7 @@ const _NodeUtils = class _NodeUtils {
   }
   static nodeReadFile(name, fnDataLoaded) {
     const nodeFs = eval("require")("fs"), cwd = myGlobalThis.process && myGlobalThis.process.cwd ? myGlobalThis.process.cwd() : "", name2 = cwd && name.indexOf(":") < 0 && !name.startsWith("/") ? cwd + "/" + name : name;
-    nodeFs.readFile(name2, "utf8", fnDataLoaded);
+    nodeFs.readFile(name2, "utf8", (error, data) => fnDataLoaded(error ?? void 0, data));
   }
   static isUrl(s) {
     return s.startsWith("http");
@@ -13842,7 +13836,8 @@ const _NodeUtils = class _NodeUtils {
       Utils.setDebug(debug);
     }
     core.init();
-    myGlobalThis.cpcBasic = {
+    const cpcBasicGlobal = myGlobalThis;
+    cpcBasicGlobal.cpcBasic = {
       addIndex: core.addIndex,
       addItem: (key, input) => {
         core.addItem(key || _NodeUtils.currentScriptKey, input);
@@ -13998,8 +13993,6 @@ const _NodeUtils = class _NodeUtils {
       sound,
       isHeadlessDirectInput: true,
       loadScript: _NodeUtils.loadScript,
-      onOutputText: (_value) => {
-      },
       onResultText: (value) => {
         _NodeUtils.writeResultDelta(value, outputState);
       },

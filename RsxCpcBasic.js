@@ -18,7 +18,7 @@ RsxCpcBasic.rsxCommands = {
         this.vmChangeMode(mode);
     },
     renum: function (...args) {
-        this.renum.apply(this, args);
+        Reflect.apply(this.renum, this, args);
     }
 };
 //# sourceMappingURL=RsxCpcBasic.js.map

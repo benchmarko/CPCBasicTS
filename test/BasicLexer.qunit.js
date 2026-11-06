@@ -173,6 +173,7 @@ const allTests = {
         "cursor #2,,1": '[{"type":"cursor","value":"cursor","pos":0},{"type":"#","value":"#","pos":7},{"type":"number","value":"2","pos":8},{"type":",","value":",","pos":9},{"type":",","value":",","pos":10},{"type":"number","value":"1","pos":11},{"type":"(end)","value":"","pos":12}]'
     },
     "data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
+        "def fno(o,t,v,do)=o+t+v+do+go": '[{"type":"def","value":"def","pos":0},{"type":"fn","value":"fn","pos":4},{"type":"identifier","value":"o","pos":6},{"type":"(","value":"(","pos":7},{"type":"identifier","value":"o","pos":8},{"type":",","value":",","pos":9},{"type":"identifier","value":"t","pos":10},{"type":",","value":",","pos":11},{"type":"identifier","value":"v","pos":12},{"type":",","value":",","pos":13},{"type":"identifier","value":"do","pos":14},{"type":")","value":")","pos":16},{"type":"=","value":"=","pos":17},{"type":"identifier","value":"o","pos":18},{"type":"+","value":"+","pos":19},{"type":"identifier","value":"t","pos":20},{"type":"+","value":"+","pos":21},{"type":"identifier","value":"v","pos":22},{"type":"+","value":"+","pos":23},{"type":"identifier","value":"do","pos":24},{"type":"+","value":"+","pos":26},{"type":"identifier","value":"go","pos":27},{"type":"(end)","value":"","pos":29}]',
         "data": '[{"type":"data","value":"data","pos":0},{"type":"(end)","value":"","pos":4}]',
         "data ,": '[{"type":"data","value":"data","pos":0},{"type":",","value":",","pos":5},{"type":"(end)","value":"","pos":6}]',
         "data \\": '[{"type":"data","value":"data","pos":0},{"type":"unquoted","value":"\\\\","pos":5},{"type":"(end)","value":"","pos":6}]',
@@ -259,6 +260,7 @@ const allTests = {
         "drawr x,y,m,g1": '[{"type":"drawr","value":"drawr","pos":0},{"type":"identifier","value":"x","pos":6},{"type":",","value":",","pos":7},{"type":"identifier","value":"y","pos":8},{"type":",","value":",","pos":9},{"type":"identifier","value":"m","pos":10},{"type":",","value":",","pos":11},{"type":"identifier","value":"g1","pos":12},{"type":"(end)","value":"","pos":14}]'
     },
     "edit, ei, else, end, ent, env, eof, erase, erl, err, error, every gosub, exp": {
+        "erase o,t,v,do": '[{"type":"erase","value":"erase","pos":0},{"type":"identifier","value":"o","pos":6},{"type":",","value":",","pos":7},{"type":"identifier","value":"t","pos":8},{"type":",","value":",","pos":9},{"type":"identifier","value":"v","pos":10},{"type":",","value":",","pos":11},{"type":"identifier","value":"do","pos":12},{"type":"(end)","value":"","pos":14}]',
         "edit 20": '[{"type":"edit","value":"edit","pos":0},{"type":"number","value":"20","pos":5},{"type":"(end)","value":"","pos":7}]',
         "ei": '[{"type":"ei","value":"ei","pos":0},{"type":"(end)","value":"","pos":2}]',
         "else": '[{"type":"else","value":"else","pos":0},{"type":"(end)","value":"","pos":4}]',
@@ -288,6 +290,9 @@ const allTests = {
         "a=exp(2.3)": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"exp","value":"exp","pos":2},{"type":"(","value":"(","pos":5},{"type":"number","value":"2.3","pos":6},{"type":")","value":")","pos":9},{"type":"(end)","value":"","pos":10}]'
     },
     "fill, fix, fn, for, frame, fre": {
+        "for a=&a000 TO &ha00b step &x101": '[{"type":"for","value":"for","pos":0},{"type":"identifier","value":"a","pos":4},{"type":"=","value":"=","pos":5},{"type":"hexnumber","value":"&a000","pos":6},{"type":"to","value":"TO","pos":12},{"type":"hexnumber","value":"&ha00b","pos":15},{"type":"step","value":"step","pos":22},{"type":"binnumber","value":"&x101","pos":27},{"type":"(end)","value":"","pos":32}]',
+        "for a=2 to 1 step -&1": '[{"type":"for","value":"for","pos":0},{"type":"identifier","value":"a","pos":4},{"type":"=","value":"=","pos":5},{"type":"number","value":"2","pos":6},{"type":"to","value":"to","pos":8},{"type":"number","value":"1","pos":11},{"type":"step","value":"step","pos":13},{"type":"-","value":"-","pos":18},{"type":"hexnumber","value":"&1","pos":19},{"type":"(end)","value":"","pos":21}]',
+        "for a=2 to 1 step -&x1": '[{"type":"for","value":"for","pos":0},{"type":"identifier","value":"a","pos":4},{"type":"=","value":"=","pos":5},{"type":"number","value":"2","pos":6},{"type":"to","value":"to","pos":8},{"type":"number","value":"1","pos":11},{"type":"step","value":"step","pos":13},{"type":"-","value":"-","pos":18},{"type":"binnumber","value":"&x1","pos":19},{"type":"(end)","value":"","pos":22}]',
         "fill 7": '[{"type":"fill","value":"fill","pos":0},{"type":"number","value":"7","pos":5},{"type":"(end)","value":"","pos":6}]',
         "a=fix(2.3)": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"fix","value":"fix","pos":2},{"type":"(","value":"(","pos":5},{"type":"number","value":"2.3","pos":6},{"type":")","value":")","pos":9},{"type":"(end)","value":"","pos":10}]',
         "x=fnclk": '[{"type":"identifier","value":"x","pos":0},{"type":"=","value":"=","pos":1},{"type":"fn","value":"fn","pos":2},{"type":"identifier","value":"clk","pos":4},{"type":"(end)","value":"","pos":7}]',
@@ -778,9 +783,10 @@ QUnit.module("BasicLexer: Tests", function (hooks) {
             if (e.message !== expectedEntry.message) {
                 Utils.console.error(e); // only if unexpected
             }
+            const error = e !== null && typeof e === "object" ? e : {};
             // on IE we have additional properties description, number, stack in the object, so we use a positive list...
             // eslint-disable-next-line object-property-newline, object-curly-newline
-            const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(e);
+            const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(error);
             // (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
             result = JSON.stringify(copiedError);
         }
@@ -789,7 +795,7 @@ QUnit.module("BasicLexer: Tests", function (hooks) {
     function runTestsFor(category, tests, assert, results) {
         const basicLexer = hooks.basicLexer;
         for (const key in tests) {
-            if (tests.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(tests, key)) {
                 const expected = TestHelper.handleBinaryLiterals(tests[key]);
                 let expectedEntry;
                 try {
@@ -810,7 +816,7 @@ QUnit.module("BasicLexer: Tests", function (hooks) {
             }
         }
     }
-    TestHelper.compareAllTests(TestInput.getAllTests(), allTests);
+    TestHelper.compareAllTests(TestInput.getAllTests(), allTests, "TestInput.ts", "BasicLexer.qunit.ts");
     TestHelper.generateAllTests(allTests, runTestsFor, hooks);
 });
 QUnit.module("BasicLexer: keepWhiteSpace", function (hooks) {
@@ -873,7 +879,7 @@ QUnit.module("BasicLexer: keepWhiteSpace", function (hooks) {
             return " ".repeat(spaceCount);
         };
         for (const key in tests) {
-            if (tests.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(tests, key)) {
                 spaceCount = 1;
                 const expected = tests[key], keyWithSpaces = key.replace(/([=?+\-*^/\\,;()#])/g, " $1 ").replace(/\s+/g, fnSpaceReplacer), result = runSingleTestForWhitespace(basicLexer, keyWithSpaces, expected);
                 if (results) {
@@ -894,7 +900,7 @@ QUnit.module("BasicLexer: lexer specific tests", function ( /* hooks */) {
         }), inputs = "!$%↕_`{}~";
         for (let i = 0; i < inputs.length; i += 1) {
             const key = inputs.charAt(i);
-            let result = "";
+            let result;
             try {
                 result = String(basicLexer.lex(key));
             }

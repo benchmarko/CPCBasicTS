@@ -32,7 +32,7 @@ QUnit.module("ZipFile: Tests", function (hooks) {
     }
     function runTestsFor(category, tests, assert, results) {
         for (const key in tests) {
-            if (tests.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(tests, key)) {
                 const parts = Utils.split2(key, ","), meta = parts[0], atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob, data = atobFn(parts[1]), // decode base64
                 zip = new ZipFile({
                     data: Utils.string2Uint8Array(data),

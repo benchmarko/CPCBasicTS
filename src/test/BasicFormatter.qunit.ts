@@ -267,7 +267,7 @@ QUnit.module("BasicFormatter:renumber: Tests", function (hooks) {
 			});
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const expected = TestHelper.handleBinaryLiterals(tests[key]),
 					result = runSingleTest(basicFormatter, key);
 
