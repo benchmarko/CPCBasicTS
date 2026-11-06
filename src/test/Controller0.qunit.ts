@@ -419,8 +419,11 @@ QUnit.module("Controller0", function (hooks) {
 			});
 		host.core.getModel().getDatabase().loaded = false;
 		host.core.getModel().setProperty("exampleIndex", "0index.js");
-		host.controller.loadDatabase("examples");
-		host.drain();
+		const output = captureConsoleLogs(() => {
+			host.controller.loadDatabase("examples");
+			host.drain();
+		});
+		assert.ok(output.logs.some((args) => String(args[0]).includes("fnDatabaseLoaded: database loaded: examples: examples/0index.js")));
 		assert.deepEqual(requests, ["examples/0index.js"]);
 		assert.strictEqual(host.core.getModel().getDatabase().loaded, true);
 		assert.ok(host.result.includes("EXAMPLE"));

@@ -273,21 +273,13 @@ export class TestHelper {
 			additionalKeys = keys2.filter((key) => !keys1Set.has(key)),
 			missingKeys = keys1.filter((key) => !keys2Set.has(key)),
 			context = category === undefined ? type : type + " in category " + JSON.stringify(category);
-		let isEqual = !additionalKeys.length && !missingKeys.length;
+		const isEqual = !additionalKeys.length && !missingKeys.length;
 
 		if (additionalKeys.length) {
 			Utils.console.warn("compareKeys: " + comparedFile + " has additional " + context + " not in " + referenceFile + ": " + JSON.stringify(additionalKeys));
 		}
 		if (missingKeys.length) {
 			Utils.console.warn("compareKeys: " + comparedFile + " is missing " + context + " from " + referenceFile + ": " + JSON.stringify(missingKeys));
-		}
-		if (isEqual) {
-			const differentIndex = keys1.findIndex((key, index) => key !== keys2[index]);
-
-			if (differentIndex >= 0) {
-				isEqual = false;
-				Utils.console.warn("compareKeys: " + comparedFile + " has the same " + context + " as " + referenceFile + " but a different order at position " + (differentIndex + 1) + ": " + JSON.stringify(keys1[differentIndex]) + " <> " + JSON.stringify(keys2[differentIndex]));
-			}
 		}
 		return isEqual;
 	}

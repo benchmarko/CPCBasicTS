@@ -177,6 +177,7 @@ const allTests: AllTestsType = {
 		"cursor #2,,1": "E1,20,23,10,2C,2C,0F"
 	},
 	"data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
+		"def fno(o,t,v,do)=o+t+v+do+go": "8D,20,E4,0D,00,00,EF,28,0D,00,00,EF,2C,0D,00,00,F4,2C,0D,00,00,F6,2C,0D,00,00,64,EF,29,EF,0D,00,00,EF,F4,0D,00,00,F4,F4,0D,00,00,F6,F4,0D,00,00,64,EF,F4,0D,00,00,67,EF",
 		"data": "8C",
 		"data ,": "8C,20,2C",
 		"data \\": "8C,20,5C",
@@ -263,6 +264,7 @@ const allTests: AllTestsType = {
 		"drawr x,y,m,g1": "95,20,0D,00,00,F8,2C,0D,00,00,F9,2C,0D,00,00,ED,2C,0D,00,00,67,B1"
 	},
 	"edit, ei, else, end, ent, env, eof, erase, erl, err, error, every gosub, exp": {
+		"erase o,t,v,do": "9B,20,0D,00,00,EF,2C,0D,00,00,F4,2C,0D,00,00,F6,2C,0D,00,00,64,EF",
 		"edit 20": "96,20,1E,14,00",
 		"ei": "DC",
 		"else": "01,97",
@@ -292,6 +294,9 @@ const allTests: AllTestsType = {
 		"a=exp(2.3)": "0D,00,00,E1,EF,FF,07,28,1F,33,33,33,13,82,29"
 	},
 	"fill, fix, fn, for, frame, fre": {
+		"for a=&a000 TO &ha00b step &x101": "9E,20,0D,00,00,E1,EF,1C,00,A0,20,EC,20,1C,0B,A0,20,E6,20,1B,05,00",
+		"for a=2 to 1 step -&1": "9E,20,0D,00,00,E1,EF,10,20,EC,20,0F,20,E6,20,F5,1C,01,00",
+		"for a=2 to 1 step -&x1": "9E,20,0D,00,00,E1,EF,10,20,EC,20,0F,20,E6,20,F5,1B,01,00",
 		"fill 7": "DD,20,15",
 		"a=fix(2.3)": "0D,00,00,E1,EF,FF,08,28,1F,33,33,33,13,82,29",
 		"x=fnclk": "0D,00,00,F8,EF,E4,0D,00,00,63,6C,EB",
