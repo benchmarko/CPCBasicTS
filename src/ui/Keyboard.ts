@@ -33,7 +33,7 @@ interface CpcKeyExpansions {
 }
 
 export class Keyboard implements IKeyboard {
-	private readonly fnKeydownOrKeyupHandler: (event: Event) => boolean;
+	private readonly fnKeydownOrKeyupHandler: EventListener;
 
 	private readonly options: KeyboardOptions;
 
@@ -51,7 +51,7 @@ export class Keyboard implements IKeyboard {
 	private simulatedNumLock?: boolean; // simulated num lock for Mac OS
 
 	constructor(options: KeyboardOptions) {
-		this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this);
+		this.fnKeydownOrKeyupHandler = (event) => this.onKeydownOrKeyup(event as KeyboardEvent);
 
 		this.options = {} as KeyboardOptions;
 		this.setOptions(options);

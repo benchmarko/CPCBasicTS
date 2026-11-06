@@ -17,7 +17,7 @@ export class RsxCpcBasic implements ICpcVmRsx {
 			this.vmChangeMode(mode);
 		},
 		renum: function (this: ICpcVm, ...args: (string | number)[]) {
-			this.renum.apply(this, args);
+			Reflect.apply(this.renum, this, args);
 		}
 	};
 

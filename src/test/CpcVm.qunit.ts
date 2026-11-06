@@ -1961,16 +1961,16 @@ const allTests: AllTestsType = {
 
 // tests added: USING with escape character "_"; VAl...
 
-const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // eslint-disable-line one-var
+const lastTestFunctions: Record<string, unknown[]>[] = [], // eslint-disable-line one-var
 	varTypesMap: Record<string, string> = {},
 	variablesMap: Record<string, string | number | string[] | number[]> = {},
 	mockCanvas = {
-		setOptions: function (...args: any) {
+		setOptions: function (...args: unknown[]) {
 			lastTestFunctions.push({
-				setOptions: args.map((arg: any) => String(arg))
+				setOptions: args.map((arg) => String(arg))
 			});
 		},
-		getOptions: function (...args: any) {
+		getOptions: function (...args: unknown[]) {
 			lastTestFunctions.push({
 				getOptions: args
 			});
@@ -2186,12 +2186,12 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 				windowScrollDown: args
 			});
 		},
-		startUpdateCanvas: function (...args: any) {
+		startUpdateCanvas: function (...args: unknown[]) {
 			lastTestFunctions.push({
 				startUpdateCanvas: args
 			});
 		},
-		stopUpdateCanvas: function (...args: any) {
+		stopUpdateCanvas: function (...args: unknown[]) {
 			lastTestFunctions.push({
 				stopUpdateCanvas: args
 			});
@@ -2206,12 +2206,12 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 				updateColorsAndCanvasImmediately: [String(args)]
 			});
 		},
-		onCanvasClick: function (...args: any) {
+		onCanvasClick: function (...args: unknown[]) {
 			lastTestFunctions.push({
 				onCanvasClick: [String(args)]
 			});
 		},
-		onWindowClick: function (...args: any) {
+		onWindowClick: function (...args: unknown[]) {
 			lastTestFunctions.push({
 				onWindowClick: [String(args)]
 			});
@@ -2233,7 +2233,7 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 				windowScrollUp: args
 			});
 		},
-		takeScreenShot: function (...args: any) {
+		takeScreenShot: function (...args: unknown[]) {
 			lastTestFunctions.push({
 				takeScreenShot: args
 			});
@@ -2457,7 +2457,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 	}
 
 	function combineLastTestFunctions() {
-		return lastTestFunctions.map((lastTestFunction) => Object.keys(lastTestFunction)[0] + ":" + Object.values(lastTestFunction)[0]).join(" , ") || undefined;
+		return lastTestFunctions.map((lastTestFunction) => Object.keys(lastTestFunction)[0] + ":" + String(Object.values(lastTestFunction)[0])).join(" , ") || undefined;
 	}
 
 
@@ -2470,61 +2470,65 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 		return stream;
 	}
 
+	function invokeTestMethod<T extends (...args: never[]) => unknown>(method: T, thisArg: unknown, input: TestFunctionInputType[]): ReturnType<T> {
+		return Reflect.apply(method, thisArg, input) as ReturnType<T>;
+	}
+
 	type TestFunctionType = (cpcVm: CpcVm, input: TestFunctionInputType[]) => number | string | void;
 
 	const allTestFunctions: Record<string, TestFunctionType> = {
 		abs: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.abs.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.abs, cpcVm, input));
 		},
 		addressOf: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.addressOf.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.addressOf, cpcVm, input));
 		},
 		afterGosub: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.afterGosub.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.afterGosub, cpcVm, input);
 		},
 		asc: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.asc.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.asc, cpcVm, input));
 		},
 		atn: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.rad();
-			return String(cpcVm.atn.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.atn, cpcVm, input));
 		},
 		atnDeg: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.deg();
-			return String(cpcVm.atn.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.atn, cpcVm, input));
 		},
 		auto: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return cpcVm.auto.apply(cpcVm, input);
+			return invokeTestMethod(cpcVm.auto, cpcVm, input);
 		},
 		bin$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return cpcVm.bin$.apply(cpcVm, input);
+			return invokeTestMethod(cpcVm.bin$, cpcVm, input);
 		},
 		border: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.border.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.border, cpcVm, input);
 		},
 		call: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.call.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.call, cpcVm, input);
 		},
 		cat: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.cat.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.cat, cpcVm, input);
 		},
 		chain: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.chain.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.chain, cpcVm, input);
 		},
 		chainMerge: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.chainMerge.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.chainMerge, cpcVm, input);
 		},
 		chr$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return cpcVm.chr$.apply(cpcVm, input);
+			return invokeTestMethod(cpcVm.chr$, cpcVm, input);
 		},
 		cint: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.cint.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.cint, cpcVm, input));
 		},
 		clearInput: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.clearInput.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.clearInput, cpcVm, input);
 		},
 		clg: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.clg.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.clg, cpcVm, input);
 		},
 		closein: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			const inFile = cpcVm.vmGetInFileObject();
@@ -2532,7 +2536,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 			inFile.open = true;
 			inFile.command = "test1";
 			inFile.name = "name1";
-			cpcVm.closein.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.closein, cpcVm, input);
 		},
 		closeout: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			const outFile = cpcVm.vmGetOutFileObject(),
@@ -2556,13 +2560,13 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 				Utils.console.error("Unknown testCase:", testCase);
 				break;
 			}
-			cpcVm.closeout.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.closeout, cpcVm, input);
 		},
 		cls: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.cls.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.cls, cpcVm, input);
 		},
 		commaTab: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.vmInternal.commaTab.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.vmInternal.commaTab, cpcVm, input));
 		},
 		cont: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			const testCase = input.shift();
@@ -2579,86 +2583,86 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 				Utils.console.error("Unknown testCase:", testCase);
 				break;
 			}
-			cpcVm.cont.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.cont, cpcVm, input);
 		},
 		copychr$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			const stream = getValidStream(cpcVm, Number(input));
 
 			cpcVm.locate(stream, 2 + 1, 3 + 1);
 			clearLastTestFunctions(); // test only copychr$
-			return cpcVm.copychr$.apply(cpcVm, input);
+			return invokeTestMethod(cpcVm.copychr$, cpcVm, input);
 		},
 		cos: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.rad();
-			return String(cpcVm.cos.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.cos, cpcVm, input));
 		},
 		cosDeg: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.deg();
-			return String(cpcVm.cos.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.cos, cpcVm, input));
 		},
 		creal: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.creal.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.creal, cpcVm, input));
 		},
 		cursor: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			const stream = getValidStream(cpcVm, Number(input));
 
 			cpcVm.locate(stream, 2 + 1, 3 + 1);
 			clearLastTestFunctions();
-			cpcVm.cursor.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.cursor, cpcVm, input);
 		},
 		data: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.data.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.data, cpcVm, input);
 		},
 		dec$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.dec$.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.dec$, cpcVm, input));
 		},
 		defint: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			deleteObjectContents(varTypesMap);
-			cpcVm.defint.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.defint, cpcVm, input);
 			return JSON.stringify(varTypesMap);
 		},
 		defreal: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			deleteObjectContents(varTypesMap);
-			cpcVm.defreal.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.defreal, cpcVm, input);
 			return JSON.stringify(varTypesMap);
 		},
 		defstr: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			deleteObjectContents(varTypesMap);
-			cpcVm.defstr.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.defstr, cpcVm, input);
 			return JSON.stringify(varTypesMap);
 		},
 		"delete": function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.delete.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.delete, cpcVm, input);
 		},
 		derr: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.derr.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.derr, cpcVm, input));
 		},
 		di: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.di.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.di, cpcVm, input);
 		},
 		dim: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.dim.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.dim, cpcVm, input);
 		},
 		draw: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.draw.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.draw, cpcVm, input);
 		},
 		drawr: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.drawr.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.drawr, cpcVm, input);
 		},
 		edit: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.edit.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.edit, cpcVm, input);
 		},
 		ei: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.ei.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.ei, cpcVm, input);
 		},
 		end: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.end.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.end, cpcVm, input);
 		},
 		ent: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.ent.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.ent, cpcVm, input);
 		},
 		env: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.env.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.env, cpcVm, input);
 		},
 		eof: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			const inFile = cpcVm.vmGetInFileObject(),
@@ -2679,7 +2683,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 				break;
 			}
 
-			return String(cpcVm.eof.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.eof, cpcVm, input));
 		},
 		erase: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.dim("abc4AR", 4);
@@ -2688,38 +2692,38 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 			cpcVm.dim("abc52AA$", 5, 2);
 			cpcVm.dim("abc52A$", 5);
 			clearLastTestFunctions();
-			cpcVm.erase.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.erase, cpcVm, input);
 		},
 		erl: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.vmGoto("123aa");
 			cpcVm.vmComposeError(Error(), 1, ""); // set erl
 			cpcVm.vmStop("", 0, true); // initialize stop object modified by vmComposeError
 
-			return String(cpcVm.erl.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.erl, cpcVm, input));
 		},
 		err: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.vmComposeError(Error(), 31, "");
 			cpcVm.vmStop("", 0, true); // initialize stop object modified by vmComposeError
 
-			return String(cpcVm.err.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.err, cpcVm, input));
 		},
 		error: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.error.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.error, cpcVm, input);
 		},
 		everyGosub: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.everyGosub.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.everyGosub, cpcVm, input);
 		},
 		exp: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.exp.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.exp, cpcVm, input));
 		},
 		fill: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.fill.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.fill, cpcVm, input);
 		},
 		fix: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.fix.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.fix, cpcVm, input));
 		},
 		frame: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.frame.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.frame, cpcVm, input);
 		},
 		fre: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			const testCase = input.shift();
@@ -2735,24 +2739,24 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 				break;
 			}
 
-			return String(cpcVm.fre.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.fre, cpcVm, input));
 		},
 		gosub: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.gosub.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.gosub, cpcVm, input);
 			return String(cpcVm.line);
 		},
 		"goto": function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.goto.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.goto, cpcVm, input);
 			return String(cpcVm.line);
 		},
 		graphicsPaper: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.graphicsPaper.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.graphicsPaper, cpcVm, input);
 		},
 		graphicsPen: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.graphicsPen.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.graphicsPen, cpcVm, input);
 		},
 		hex$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return cpcVm.hex$.apply(cpcVm, input);
+			return invokeTestMethod(cpcVm.hex$, cpcVm, input);
 		},
 		himem: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			const testCase = input.shift();
@@ -2767,19 +2771,19 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 				Utils.console.error("Unknown testCase:", testCase);
 				break;
 			}
-			return String(cpcVm.himem.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.himem, cpcVm, input));
 		},
 		ink: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.ink.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.ink, cpcVm, input);
 		},
 		inkey: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.inkey.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.inkey, cpcVm, input));
 		},
 		inkey$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return cpcVm.inkey$.apply(cpcVm, input);
+			return invokeTestMethod(cpcVm.inkey$, cpcVm, input);
 		},
 		inp: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.inp.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.inp, cpcVm, input));
 		},
 		input: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			if (input.length && input[0] === 9) {
@@ -2795,7 +2799,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 				}
 			}
 
-			cpcVm.input.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.input, cpcVm, input);
 
 			const stop = cpcVm.vmGetStopObject();
 
@@ -2824,28 +2828,28 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 			return collectInput.join(" ");
 		},
 		instr: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.instr.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.instr, cpcVm, input));
 		},
 		"int": function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.int.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.int, cpcVm, input));
 		},
 		joy: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.joy.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.joy, cpcVm, input));
 		},
 		key: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.key.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.key, cpcVm, input);
 		},
 		keyDef: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.keyDef.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.keyDef, cpcVm, input);
 		},
 		left$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.left$.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.left$, cpcVm, input));
 		},
 		len: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.len.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.len, cpcVm, input));
 		},
 		lineInput: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.lineInput.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.lineInput, cpcVm, input);
 
 			const stop = cpcVm.vmGetStopObject();
 
@@ -2858,10 +2862,10 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 			return String(cpcVm.vmGetNextInput());
 		},
 		list: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.list.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.list, cpcVm, input);
 		},
 		load: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.load.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.load, cpcVm, input);
 
 			const stop = cpcVm.vmGetStopObject(),
 				inFile = cpcVm.vmGetInFileObject(),
@@ -2882,81 +2886,81 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 		locate: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			const stream = getValidStream(cpcVm, Number(input));
 
-			cpcVm.locate.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.locate, cpcVm, input);
 			return cpcVm.pos(stream) + "," + cpcVm.vpos(stream);
 		},
 		log: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.log.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.log, cpcVm, input));
 		},
 		log10: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.log10.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.log10, cpcVm, input));
 		},
 		lower$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return cpcVm.lower$.apply(cpcVm, input);
+			return invokeTestMethod(cpcVm.lower$, cpcVm, input);
 		},
 		mask: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.mask.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.mask, cpcVm, input);
 		},
 		max: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.max.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.max, cpcVm, input));
 		},
 		memory: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.memory.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.memory, cpcVm, input);
 			return String(cpcVm.himem());
 		},
 		merge: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.merge.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.merge, cpcVm, input);
 		},
 		mid$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return cpcVm.mid$.apply(cpcVm, input);
+			return invokeTestMethod(cpcVm.mid$, cpcVm, input);
 		},
 		mid$Assign: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return cpcVm.mid$Assign.apply(cpcVm, input);
+			return invokeTestMethod(cpcVm.mid$Assign, cpcVm, input);
 		},
 		min: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.min.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.min, cpcVm, input));
 		},
 		mode: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.mode.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.mode, cpcVm, input);
 		},
 		move: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.move.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.move, cpcVm, input);
 		},
 		mover: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.mover.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.mover, cpcVm, input);
 		},
 		"new": function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.new.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.new, cpcVm, input);
 		},
 		onBreakCont: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.onBreakCont.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.onBreakCont, cpcVm, input);
 			return String(cpcVm.vmEscape()) + ", onBreakContSet:" + String(cpcVm.vmOnBreakContSet()) + ", onBreakHandlerActive:" + String(cpcVm.vmOnBreakHandlerActive());
 		},
 		onBreakGosub: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.vmGoto("123");
-			cpcVm.onBreakGosub.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.onBreakGosub, cpcVm, input);
 			return String(cpcVm.vmEscape()) + ", onBreakContSet:" + String(cpcVm.vmOnBreakContSet()) + ", onBreakHandlerActive:" + String(cpcVm.vmOnBreakHandlerActive());
 		},
 		onBreakStop: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.onBreakStop.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.onBreakStop, cpcVm, input);
 			return String(cpcVm.vmEscape()) + ", onBreakContSet:" + String(cpcVm.vmOnBreakContSet()) + ", onBreakHandlerActive:" + String(cpcVm.vmOnBreakHandlerActive());
 		},
 		onErrorGoto: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.onErrorGoto.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.onErrorGoto, cpcVm, input);
 		},
 		onGosub: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.onGosub.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.onGosub, cpcVm, input);
 			return String(cpcVm.line);
 		},
 		onGoto: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.onGoto.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.onGoto, cpcVm, input);
 			return String(cpcVm.line);
 		},
 		onSqGosub: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.onSqGosub.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.onSqGosub, cpcVm, input);
 		},
 		openin: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.openin.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.openin, cpcVm, input);
 
 			const stop = cpcVm.vmGetStopObject(),
 				inFile = cpcVm.vmGetInFileObject();
@@ -2970,55 +2974,55 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 			}
 		},
 		openout: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.openout.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.openout, cpcVm, input);
 		},
 		origin: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.origin.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.origin, cpcVm, input);
 		},
 		out: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.out.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.out, cpcVm, input);
 		},
 		paper: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.paper.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.paper, cpcVm, input);
 		},
 		peek: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.symbolAfter(254);
 			clearLastTestFunctions();
 
-			return String(cpcVm.peek.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.peek, cpcVm, input));
 		},
 		pen: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.pen.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.pen, cpcVm, input);
 		},
 		pi: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.pi.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.pi, cpcVm, input));
 		},
 		plot: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.plot.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.plot, cpcVm, input);
 		},
 		plotr: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.plotr.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.plotr, cpcVm, input);
 		},
 		poke: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.symbolAfter(254);
 			clearLastTestFunctions();
 
-			cpcVm.poke.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.poke, cpcVm, input);
 		},
 		pos: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.pos.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.pos, cpcVm, input));
 		},
 		print: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			if (input && input.length === 2 && String(input[1]).charCodeAt(0) === 0x19) {
 				cpcVm.symbolAfter(254);
 			}
-			cpcVm.print.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.print, cpcVm, input);
 		},
 		rad: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.rad.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.rad, cpcVm, input);
 		},
 		randomize: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.randomize.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.randomize, cpcVm, input);
 
 			const stop = cpcVm.vmGetStopObject();
 
@@ -3037,40 +3041,40 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 			return String(cpcVm.vmGetNextInput());
 		},
 		read: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.read.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.read, cpcVm, input));
 		},
 		release: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.release.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.release, cpcVm, input);
 		},
 		remain: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.remain.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.remain, cpcVm, input));
 		},
 		renum: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.renum.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.renum, cpcVm, input);
 		},
 		restore: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.restore.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.restore, cpcVm, input);
 		},
 		resume: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.resume.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.resume, cpcVm, input);
 		},
 		resumeNext: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.resumeNext.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.resumeNext, cpcVm, input);
 		},
 		"return": function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.return.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.return, cpcVm, input);
 		},
 		right$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.right$.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.right$, cpcVm, input));
 		},
 		rnd: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.rnd.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.rnd, cpcVm, input));
 		},
 		round: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.round.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.round, cpcVm, input));
 		},
 		run: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.run.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.run, cpcVm, input);
 
 			const stop = cpcVm.vmGetStopObject(),
 				inFile = cpcVm.vmGetInFileObject(),
@@ -3091,85 +3095,85 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 			return stopString;
 		},
 		save: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.save.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.save, cpcVm, input);
 		},
 		sgn: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.sgn.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.sgn, cpcVm, input));
 		},
 		sin: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.rad();
-			return String(cpcVm.sin.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.sin, cpcVm, input));
 		},
 		sinDeg: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.deg();
-			return String(cpcVm.sin.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.sin, cpcVm, input));
 		},
 		sound: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.sound.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.sound, cpcVm, input);
 		},
 		space$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.space$.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.space$, cpcVm, input));
 		},
 		spc: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.vmInternal.spc.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.vmInternal.spc, cpcVm, input));
 		},
 		speedInk: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.speedInk.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.speedInk, cpcVm, input);
 		},
 		speedKey: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.speedKey.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.speedKey, cpcVm, input);
 		},
 		speedWrite: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.speedWrite.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.speedWrite, cpcVm, input);
 		},
 		sq: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.sq.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.sq, cpcVm, input));
 		},
 		sqr: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.sqr.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.sqr, cpcVm, input));
 		},
 		stop: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.stop.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.stop, cpcVm, input);
 		},
 		str$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.str$.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.str$, cpcVm, input));
 		},
 		string$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.string$.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.string$, cpcVm, input));
 		},
 		symbol: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.symbolAfter(254); // prepare
 
-			cpcVm.symbol.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.symbol, cpcVm, input);
 		},
 		symbolAfter: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.symbolAfter.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.symbolAfter, cpcVm, input);
 		},
 		tab: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.vmInternal.tab.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.vmInternal.tab, cpcVm, input));
 		},
 		tag: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.tag.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.tag, cpcVm, input);
 		},
 		tagoff: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.tagoff.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.tagoff, cpcVm, input);
 		},
 		tan: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.rad();
-			return String(cpcVm.tan.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.tan, cpcVm, input));
 		},
 		tanDeg: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.deg();
-			return String(cpcVm.tan.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.tan, cpcVm, input));
 		},
 		test: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.test.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.test, cpcVm, input));
 		},
 		testr: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.testr.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.testr, cpcVm, input));
 		},
 		time: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			let time = cpcVm.time.apply(cpcVm, input);
+			let time = invokeTestMethod(cpcVm.time, cpcVm, input);
 
 			if (time) { // we need a fixed value
 				time = 3;
@@ -3177,77 +3181,77 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 			return String(time);
 		},
 		troff: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.troff.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.troff, cpcVm, input);
 		},
 		tron: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.tron.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.tron, cpcVm, input);
 		},
 		unt: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.unt.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.unt, cpcVm, input));
 		},
 		upper$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.upper$.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.upper$, cpcVm, input));
 		},
 		using: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.using.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.using, cpcVm, input));
 		},
 		val: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.val.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.val, cpcVm, input));
 		},
 		vpos: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.vpos.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.vpos, cpcVm, input));
 		},
 		wait: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.wait.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.wait, cpcVm, input);
 		},
 		width: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.width.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.width, cpcVm, input);
 		},
 		window: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.window.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.window, cpcVm, input);
 		},
 		windowSwap: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.windowSwap.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.windowSwap, cpcVm, input);
 		},
 		write: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.write.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.write, cpcVm, input);
 		},
 		xpos: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.xpos.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.xpos, cpcVm, input));
 		},
 		ypos: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.ypos.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.ypos, cpcVm, input));
 		},
 		zone: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.zone.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.zone, cpcVm, input);
 		},
 		vmAssertNumberType: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.defstr("s");
-			cpcVm.vmAssertNumberType.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.vmAssertNumberType, cpcVm, input);
 		},
 		vmAssign: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.defint("i");
 			cpcVm.defstr("s");
-			return String(cpcVm.vmAssign.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.vmAssign, cpcVm, input));
 		},
 		vmGoto: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.vmGoto.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.vmGoto, cpcVm, input);
 			return String(cpcVm.line);
 		},
 		vmLoopCondition: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return String(cpcVm.vmLoopCondition.apply(cpcVm, input));
+			return String(invokeTestMethod(cpcVm.vmLoopCondition, cpcVm, input));
 		},
 		vmReset: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.vmReset.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.vmReset, cpcVm, input);
 		},
 		vmReset4Run: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.vmReset4Run.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.vmReset4Run, cpcVm, input);
 		},
 		vmTrace: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.vmGoto(123);
 			cpcVm.tron();
 
-			cpcVm.vmTrace.apply(cpcVm, input);
+			invokeTestMethod(cpcVm.vmTrace, cpcVm, input);
 
 			cpcVm.troff();
 		}
@@ -3305,7 +3309,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 					_key: key
 				}, timerList[i]);
 
-			timerData.nextTimeMs = undefined; // remove varying property
+			Reflect.deleteProperty(timerData, "nextTimeMs");
 
 			vmState[key] = timerData;
 		}
@@ -3433,7 +3437,7 @@ QUnit.module("CpcVm: vm functions", function (hooks) {
 	QUnit.test("init without options", function (assert) {
 		const minimalCanvas = {
 			reset: () => undefined,
-			setOptions: (..._args: any) => undefined
+			setOptions: (..._args: unknown[]) => undefined
 		} as unknown as ICanvasVm,
 			minimalKeyboard = {
 				reset: () => undefined

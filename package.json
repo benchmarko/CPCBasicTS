@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "./dist/cpcbasic-ui-bootstrap.js",
   "exports": {
@@ -41,6 +41,9 @@
     "rollup-plugin-esbuild": "^6.2.1",
     "typescript": "^5.9.3"
   },
+  "overrides": {
+    "minimatch": "11.0.5"
+  },
   "files": [
     "src/"
   ],
@@ -56,7 +59,7 @@
     "test": "qunit dist/test-bundle.js",
     "testAll": "qunit dist/test-bundle.js testAll=true",
     "deploy": "gh-pages -d dist",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts && tsc --project src/test/tsconfig.json --noEmit --pretty false"
   },
   "repository": {
     "type": "git",

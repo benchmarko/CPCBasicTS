@@ -42,9 +42,9 @@ interface VirtualButtonRowOptions {
 }
 
 export class VirtualKeyboard {
-	private readonly fnVirtualKeyboardKeydownHandler: (event: Event) => boolean;
-	private readonly fnVirtualKeyboardKeyupOrKeyoutHandler: (event: Event) => boolean;
-	private readonly fnKeydownOrKeyupHandler: (event: Event) => boolean;
+	private readonly fnVirtualKeyboardKeydownHandler: EventListener;
+	private readonly fnVirtualKeyboardKeyupOrKeyoutHandler: EventListener;
+	private readonly fnKeydownOrKeyupHandler: EventListener;
 
 	private readonly options: VirtualKeyboardOptions;
 
@@ -54,9 +54,9 @@ export class VirtualKeyboard {
 	private numLock = false;
 
 	constructor(options: VirtualKeyboardOptions) {
-		this.fnVirtualKeyboardKeydownHandler = this.onVirtualKeyboardKeydown.bind(this);
-		this.fnVirtualKeyboardKeyupOrKeyoutHandler = this.onVirtualKeyboardKeyupOrKeyout.bind(this);
-		this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this); // for real Enter and Space
+		this.fnVirtualKeyboardKeydownHandler = (event) => this.onVirtualKeyboardKeydown(event as PointerEvent);
+		this.fnVirtualKeyboardKeyupOrKeyoutHandler = (event) => this.onVirtualKeyboardKeyupOrKeyout(event as PointerEvent);
+		this.fnKeydownOrKeyupHandler = (event) => this.onKeydownOrKeyup(event as KeyboardEvent); // for real Enter and Space
 
 		this.options = {} as VirtualKeyboardOptions;
 		this.setOptions(options);

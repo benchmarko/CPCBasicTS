@@ -1,5 +1,12 @@
 import esbuild from "rollup-plugin-esbuild";
 
+const intentionalEvalSources = [
+	"src/ui/Polyfills.ts",
+	"src/node/NodeUtils.ts",
+	"src/test/TestNodeUtils.ts",
+	"src/test/testParseExamples.qunit.ts"
+];
+
 const createConfig = ({ input, file, format, name, external = [], tsconfig = "./src/tsconfig.json" }) => ({
 	input,
 	output: {
@@ -9,6 +16,14 @@ const createConfig = ({ input, file, format, name, external = [], tsconfig = "./
 		...(name ? { name } : {})
 	},
 	external,
+	onwarn(warning, defaultHandler) {
+		const source = warning.loc?.file || warning.id || "";
+		const isIntentionalEval = warning.code === "EVAL" && intentionalEvalSources.some((file) => source.endsWith(file));
+
+		if (!isIntentionalEval) {
+			defaultHandler(warning);
+		}
+	},
 	plugins: [
 		esbuild({
 			include: /src\/.*\.ts$/,
