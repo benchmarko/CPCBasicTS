@@ -130,7 +130,7 @@ export class Controller0 implements IRuntimeController {
 
 		let hasStorageDatabase = false;
 		for (const value in databases) {
-			if (databases.hasOwnProperty(value)) {
+			if (Object.prototype.hasOwnProperty.call(databases, value)) {
 				if (value === "storage") {
 					hasStorageDatabase = true;
 				}

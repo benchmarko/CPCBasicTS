@@ -816,7 +816,7 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 			basicParser = thisHooks.basicParser;
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const expected = TestHelper.handleBinaryLiterals(tests[key]);
 				let expectedEntry: Record<string, unknown>;
 
@@ -955,7 +955,7 @@ QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
 		};
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				spaceCount = 1;
 				const expected = TestHelper.handleBinaryLiterals(tests[key]),
 					keyWithSpaces = key.replace(/([=?+\-*^/\\,;()#])/g, " $1 ").replace(/ +/g, fnSpaceReplacer).replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/e[ ]+\+[ ]+(\d+)/g, "e+$1"), // with fast hacks

@@ -467,7 +467,7 @@ export class CodeGeneratorBasic {
 			value += node.value;
 		}
 
-		let right = "";
+		let right: string;
 
 		if (node.right) {
 			right = this.parseNode(node.right);

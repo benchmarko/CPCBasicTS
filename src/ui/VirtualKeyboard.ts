@@ -836,7 +836,7 @@ export class VirtualKeyboard {
 		// SliTaz web browser has not key but keyIdentifier
 		const identifier = (event as any).keyIdentifier, // eslint-disable-line @typescript-eslint/no-explicit-any
 			shiftKey = event.shiftKey;
-		let char = "";
+		let char: string;
 
 		if ((/^U\+/i).test(identifier || "")) { // unicode string?
 			char = String.fromCharCode(parseInt(identifier.substr(2), 16));

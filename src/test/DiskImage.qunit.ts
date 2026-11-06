@@ -99,7 +99,7 @@ function extractFirstFileFromZip(key: string) {
 QUnit.module("DiskImage: Read files tests", function (hooks) {
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const uncompressed = extractFirstFileFromZip(key),
 					disk = new DiskImage({
 						data: uncompressed,
@@ -211,7 +211,7 @@ function assertDiskImageRoundTrip(assert: Assert, category: string, diskImage: D
 
 	assert.strictEqual(fnBin2Hex(result), fnBin2Hex(expected), message);
 
-	let result2 = "";
+	let result2: string;
 	try {
 		result2 = readFilesFromDiskImage(diskImage);
 	} catch (e) {
@@ -223,7 +223,7 @@ function assertDiskImageRoundTrip(assert: Assert, category: string, diskImage: D
 QUnit.module("DiskImage: Write files tests", function (hooks) {
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				if (category === "data" || category === "system") {
 					const input = tests[key],
 						fileInfos = input.split(" --- "),

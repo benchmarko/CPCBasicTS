@@ -44,7 +44,7 @@ QUnit.module("ZipFile: Tests", function (hooks) {
 
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const parts = Utils.split2(key, ","),
 					meta = parts[0],
 					atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob,

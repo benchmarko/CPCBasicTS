@@ -391,7 +391,7 @@ export class BasicParser {
 		}; // clone
 
 		for (const key in keywords10) {
-			if (keywords10.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(keywords10, key)) {
 				const keyWithSpaces = " " + key + " ";
 
 				// what about DEC$ ?
@@ -1626,7 +1626,7 @@ export class BasicParser {
 
 	private fnGenerateKeywordSymbols() {
 		for (const key in this.keywords) {
-			if (this.keywords.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(this.keywords, key)) {
 				const keywordType = this.keywords[key].charAt(0);
 
 				if (keywordType === "f") {

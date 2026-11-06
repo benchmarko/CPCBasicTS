@@ -253,7 +253,7 @@ class cpcBasic {
 			keywords = cpcBasic.basicParser.getKeywords();
 
 		for (const key in keywords) {
-			if (keywords.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(keywords, key)) {
 				if (!vmMockExtensions[key]) {
 					vmMockExtensions[key] = function () {
 						return key;
@@ -303,7 +303,7 @@ class cpcBasic {
 
 	private static addIndex2(_dir: string, input: Record<string, unknown>) { // dir maybe ""
 		for (const value in input) {
-			if (input.hasOwnProperty(value)) {
+			if (Object.prototype.hasOwnProperty.call(input, value)) {
 				const item = input[value] as ExampleEntry[];
 
 				for (let i = 0; i < item.length; i += 1) {
@@ -504,7 +504,7 @@ function testParseExample(example: ExampleEntry) {
 		input = testCheckMeta(script),
 		firstLine = input.substring(0, input.indexOf("\n")) || input;
 
-	let	checks = "",
+	let	checks: string,
 		output: IOutput,
 		fnScript: Function; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
 

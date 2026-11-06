@@ -47,7 +47,7 @@ export default [
 		},
 		rules: {
 			"@typescript-eslint/consistent-type-definitions": "off",
-			"@typescript-eslint/consistent-indexed-object-style": "off",
+			"@typescript-eslint/consistent-indexed-object-style": "warn",
 			"@typescript-eslint/no-dynamic-delete": "off",
 			"@typescript-eslint/no-unused-vars": [
 				"error",
@@ -66,13 +66,13 @@ export default [
 			"complexity": "warn",
 			"eqeqeq": "error",
 			"curly": "error",
-			"no-prototype-builtins": "off",
+			"no-prototype-builtins": "warn",
 			"no-eval": "error",
 			"no-implied-eval": "error",
 			"no-process-env": "error",
 			"no-process-exit": "error",
-			"no-var": "off",
-			"no-useless-assignment": "off",
+			"no-var": "warn",
+			"no-useless-assignment": "warn",
 			"no-warning-comments": "warn",
 			"prefer-rest-params": "off",
 			"prefer-spread": "off",
@@ -80,8 +80,9 @@ export default [
 		}
 	},
 	{
-		files: ["src/Polyfills.ts"],
+		files: ["src/ui/Polyfills.ts"],
 		rules: {
+			"no-var": "off",
 			"@typescript-eslint/no-wrapper-object-types": "off"
 		}
 	}

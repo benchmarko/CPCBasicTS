@@ -821,7 +821,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (hooks) {
 		});
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const expected = tests[key],
 					output = codeGeneratorBasic.generate(key),
 					result = output.error ? String(output.error) : output.text;
@@ -873,7 +873,7 @@ QUnit.module("CodeGeneratorBasic: keepWhiteSpace", function (hooks) {
 		};
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				spaceCount = 1;
 				const expected = TestHelper.handleBinaryLiterals(tests[key]);
 				let keyWithSpaces = key;
@@ -937,7 +937,7 @@ QUnit.module("CodeGeneratorBasic: Not keepColons", function (hooks) {
 		});
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const output = codeGeneratorBasic.generate(key),
 					result = output.error ? String(output.error) : output.text;
 				let expected = tests[key];
@@ -982,7 +982,7 @@ QUnit.module("CodeGeneratorBasic: Not keepBrackets", function (hooks) {
 		});
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const output = codeGeneratorBasic.generate(key),
 					result = output.error ? String(output.error) : output.text;
 				let	expected = tests[key];

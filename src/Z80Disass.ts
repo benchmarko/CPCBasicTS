@@ -142,7 +142,7 @@ export class Z80Disass {
 	}
 
 	private onlyPrefix() {
-		let out = "";
+		let out: string;
 
 		if (this.prefix === 1) {
 			out = "[DD]-prefix";
@@ -170,8 +170,8 @@ export class Z80Disass {
 		// rlc,rrc,rl,rr,sla,sra,sls*,srl rrr [rrr=b,c,d,e,h,l,(hl),a]
 		// bit bbb,rrr; res bbb,rrr; set bbb,rrr [rrr=b,c,d,e,h,l,(hl),a]
 
-		let out = "",
-			newop; // new op
+		let out: string,
+			newop: number; // new op
 
 		if (this.prefix === 1 || this.prefix === 2) { // ix/iy-flag (ix or iy !)
 			newop = ((this.readByte(this.options.addr + 1) & 0xfe) | 0x06); // transform code x0..x7=>x6 , x8..xf=>xe  (always ix.., iy.. )
@@ -332,7 +332,7 @@ export class Z80Disass {
 
 	private operdis00To3Fpart00(b3b4b5: number) {
 		// nop; ex af,af'; djnz; jr; jr nz,z,nc,c
-		let out = "";
+		let out: string;
 
 		switch (b3b4b5) { // test b3,b4,b5
 		case 0: // nop
@@ -356,7 +356,7 @@ export class Z80Disass {
 
 	private operdis00To3Fpart01(dissOp: number) {
 		// ld dd,xxyy; add hl,dd [dd=bc,de,hl,sp]
-		let out = "";
+		let out: string;
 
 		if (dissOp & 0x08) { // b3=1  add hl,dd
 			out = "ADD " + this.wregout(2) + "," + this.wregout(dissOp >> 4); // hl maybe ix,iy
@@ -516,7 +516,7 @@ export class Z80Disass {
 
 	private operdisC0ToFFpart05(dissOp: number) {
 		// push ee; call xxyy; ED; [IX IY]
-		let out = "";
+		let out: string;
 		const b4b5 = (dissOp >> 4) & 0x03; // test b4,b5
 
 		if (dissOp & 0x08) { // b3=1  call xxyy; ED; [IX IY]

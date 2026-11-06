@@ -176,7 +176,7 @@ export class BasicTokenizer {
 
 	private fnQuotedString() {
 		const closingQuotes = this.input.indexOf('"', this.pos);
-		let out = "";
+		let out: string;
 
 		if (closingQuotes < 0 || closingQuotes >= this.lineEnd) { // unclosed quoted string (quotes not found or not in this line)
 			out = BasicTokenizer.fnControlsToUnicode(this.fnStringUntilEol()); // take remaining line

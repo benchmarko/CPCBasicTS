@@ -49,7 +49,7 @@ export class Model implements IModel {
 			changed: ConfigType = {};
 
 		for (const name in current) {
-			if (current.hasOwnProperty(name)) {
+			if (Object.prototype.hasOwnProperty.call(current, name)) {
 				if (current[name] !== initial[name]) {
 					changed[name] = current[name];
 				}
@@ -60,7 +60,7 @@ export class Model implements IModel {
 
 	addDatabases(db: DatabasesType): void {
 		for (const par in db) {
-			if (db.hasOwnProperty(par)) {
+			if (Object.prototype.hasOwnProperty.call(db, par)) {
 				const entry = db[par];
 
 				this.databases[par] = entry;
@@ -77,7 +77,7 @@ export class Model implements IModel {
 		return this.databases[database];
 	}
 
-	getAllExamples(): {	[x: string]: ExampleEntry; } {
+	getAllExamples(): Record<string, ExampleEntry> {
 		const database = this.getProperty<string>(ModelPropID.database);
 
 		return this.examples[database];

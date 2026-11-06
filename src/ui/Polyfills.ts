@@ -453,7 +453,7 @@ if (!Object.assign) { // IE11
 			const nextSource = arguments[i];
 
 			for (const nextKey in nextSource) {
-				if (nextSource.hasOwnProperty(nextKey)) {
+				if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
 					to[nextKey] = nextSource[nextKey];
 				}
 			}
@@ -697,7 +697,7 @@ if (!Polyfills.localStorage) {
 
 			clear() {
 				for (const key in this) {
-					if (this.hasOwnProperty(key)) {
+					if (Object.prototype.hasOwnProperty.call(this, key)) {
 						delete this[key];
 					}
 				}
@@ -708,7 +708,7 @@ if (!Polyfills.localStorage) {
 				let i = 0;
 
 				for (const key in this) {
-					if (this.hasOwnProperty(key) && key !== "length") {
+					if (Object.prototype.hasOwnProperty.call(this, key) && key !== "length") {
 						if (i === index) {
 							return key;
 						}
@@ -719,7 +719,7 @@ if (!Polyfills.localStorage) {
 			}
 
 			getItem(key: string) {
-				return this.hasOwnProperty(key) ? this.data[key] as string : null;
+				return Object.prototype.hasOwnProperty.call(this, key) ? this.data[key] as string : null;
 			}
 
 			setItem(key: string, value: string) {

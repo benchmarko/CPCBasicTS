@@ -794,7 +794,7 @@ QUnit.module("BasicTokenizer:decode: Tests", function (hooks) {
 		const basicTokenizer = (hooks as hooksWithBasicTokenizer).basicTokenizer;
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const expected = tests[key],
 					result = runSingleTest(basicTokenizer, key);
 
@@ -824,7 +824,7 @@ QUnit.module("BasicTokenizer:decode: More Tests", function (hooks) {
 		const basicTokenizer = (hooks as hooksWithBasicTokenizer).basicTokenizer;
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const expected = tests[key],
 					result = runSingleTest(basicTokenizer, key);
 

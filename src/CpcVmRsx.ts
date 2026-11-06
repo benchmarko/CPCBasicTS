@@ -23,7 +23,7 @@ export class CpcVmRsx {
 			rsxCommands = rsxModule.getRsxCommands();
 
 		for (const command in rsxCommands) {
-			if (rsxCommands.hasOwnProperty(command)) {
+			if (Object.prototype.hasOwnProperty.call(rsxCommands, command)) {
 				rsxRegister[command] = rsxCommands[command];
 			}
 		}

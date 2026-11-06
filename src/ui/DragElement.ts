@@ -59,7 +59,7 @@ export class DragElement {
 		const entries = this.options.entries;
 
 		for (const key in entries) {
-			if (entries.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(entries, key)) {
 				const item = entries[key];
 
 				if (item.enabled) {

@@ -352,7 +352,7 @@ QUnit.module("Sound: Tests", function (hooks) {
 		sound.setActivatedByUser();
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const expected = tests[key],
 					result = runSingleTest(testFunction, sound, key, expected, category);
 

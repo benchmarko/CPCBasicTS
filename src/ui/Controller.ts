@@ -241,7 +241,7 @@ export class Controller implements IController {
 
 		let hasStorageDatabase = false;
 		for (const value in databases) {
-			if (databases.hasOwnProperty(value)) {
+			if (Object.prototype.hasOwnProperty.call(databases, value)) {
 				if (value === "storage") {
 					hasStorageDatabase = true;
 				}
@@ -262,7 +262,7 @@ export class Controller implements IController {
 			database = this.model.getProperty<string>(ModelPropID.database);
 
 		for (const value in databases) {
-			if (databases.hasOwnProperty(value)) {
+			if (Object.prototype.hasOwnProperty.call(databases, value)) {
 				const db = databases[value],
 					item: SelectOptionElement = {
 						value: value,
@@ -304,7 +304,7 @@ export class Controller implements IController {
 			directorySeen: Record<string, boolean> = {};
 
 		for (const key in allExamples) {
-			if (allExamples.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(allExamples, key)) {
 				const exampleEntry = allExamples[key],
 					value = Controller.getPathFromExample(exampleEntry.key);
 
@@ -336,7 +336,7 @@ export class Controller implements IController {
 		let exampleSelected = false;
 
 		for (const key in allExamples) {
-			if (allExamples.hasOwnProperty(key) && (Controller.getPathFromExample(key) === directoryName)) {
+			if (Object.prototype.hasOwnProperty.call(allExamples, key) && (Controller.getPathFromExample(key) === directoryName)) {
 				const exampleEntry = allExamples[key],
 					exampleName2 = Controller.getNameFromExample(exampleEntry.key);
 
@@ -1913,7 +1913,7 @@ export class Controller implements IController {
 			dragElementsData = this.dragElementsData;
 
 		for (const entry in dragElementsData.entries) {
-			if (dragElementsData.entries.hasOwnProperty(entry)) {
+			if (Object.prototype.hasOwnProperty.call(dragElementsData.entries, entry)) {
 				dragElementsData.entries[entry].enabled = enabled;
 			}
 		}

@@ -2446,7 +2446,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 
 	function deleteObjectContents(obj: Record<string, unknown>) {
 		for (const prop in obj) {
-			if (obj.hasOwnProperty(prop)) {
+			if (Object.prototype.hasOwnProperty.call(obj, prop)) {
 				delete obj[prop];
 			}
 		}
@@ -3323,7 +3323,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 				stateObj1 = vmState1 as Record<string, unknown>;
 
 			for (const key in stateObj1) {
-				if (stateObj1.hasOwnProperty(key)) {
+				if (Object.prototype.hasOwnProperty.call(stateObj1, key)) {
 					if (key !== "_key" && stateObj1[key] === stateObj0[key]) {
 						// same values set to undefined (will be ignored by JSON.stringify)
 						stateObj0[key] = undefined;
@@ -3352,7 +3352,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 		}
 
 		for (const state in vmState0) {
-			if (vmState0.hasOwnProperty(state)) {
+			if (Object.prototype.hasOwnProperty.call(vmState0, state)) {
 				const stateDiff = getStateDiff(vmState0[state], vmState1[state]);
 
 				if (stateDiff !== undefined) {
@@ -3401,7 +3401,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 			testFunction = allTestFunctions[category];
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const expected = tests[key],
 					result = runSingleTest(testFunction, cpcVm, cpcVm.getOptions(), key, expected, category);
 

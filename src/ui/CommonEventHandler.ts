@@ -105,11 +105,11 @@ export class CommonEventHandler implements EventListenerObject {
 		const eventDefInternalMap = this.eventDefInternalMap;
 
 		for (const type in eventDefInternalMap) {
-			if (eventDefInternalMap.hasOwnProperty(type)) {
+			if (Object.prototype.hasOwnProperty.call(eventDefInternalMap, type)) {
 				const eventDefMap4Type = eventDefInternalMap[type];
 
 				for (const id in eventDefMap4Type) {
-					if (eventDefMap4Type.hasOwnProperty(id)) {
+					if (Object.prototype.hasOwnProperty.call(eventDefMap4Type, id)) {
 						const eventDef = eventDefMap4Type[id as ViewID];
 
 						this.initOneToggle(type, id as ViewID, eventDef);
@@ -140,7 +140,7 @@ export class CommonEventHandler implements EventListenerObject {
 			eventDefMapClick = eventDefInternalMap.click;
 
 		for (const id in eventDefMapClick) {
-			if (eventDefMapClick.hasOwnProperty(id)) {
+			if (Object.prototype.hasOwnProperty.call(eventDefMapClick, id)) {
 				const eventDef = eventDefMapClick[id as ViewID];
 
 				if (eventDef.isPopover && (eventDef.toggleId !== exceptId)) {
@@ -301,12 +301,12 @@ export class CommonEventHandler implements EventListenerObject {
 			changed = this.model.getChangedProperties();
 
 		for (const name in initial) {
-			if (initial.hasOwnProperty(name)) {
+			if (Object.prototype.hasOwnProperty.call(initial, name)) {
 				url.searchParams.delete(name);
 			}
 		}
 		for (const name in changed) {
-			if (changed.hasOwnProperty(name)) {
+			if (Object.prototype.hasOwnProperty.call(changed, name)) {
 				url.searchParams.set(name, String(changed[name]));
 			}
 		}
@@ -390,7 +390,7 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private onScreenshotButtonClick() {
-		var example = this.view.getSelectValue(ViewID.exampleSelect),
+		const example = this.view.getSelectValue(ViewID.exampleSelect),
 			image = this.controller.startScreenshot(),
 			link = View.getElementById1(ViewID.screenshotLink),
 			name = example + ".png";
@@ -811,7 +811,7 @@ export class CommonEventHandler implements EventListenerObject {
 			};
 
 		for (const type in eventDefs) {
-			if (eventDefs.hasOwnProperty(type)) {
+			if (Object.prototype.hasOwnProperty.call(eventDefs, type)) {
 				eventDefInternalMap[type] = {} as Record<ViewID, EventDefType>;
 				const eventDefList = eventDefs[type],
 					itemForType = eventDefInternalMap[type];

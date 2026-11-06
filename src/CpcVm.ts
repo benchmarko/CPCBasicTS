@@ -3659,7 +3659,7 @@ export class CpcVm implements ICpcVm {
 				Utils.console.debug("restore: search for dataLine >", line);
 			}
 			for (const dataLine in dataLineIndex) { // linear search a data line > line
-				if (dataLineIndex.hasOwnProperty(dataLine)) {
+				if (Object.prototype.hasOwnProperty.call(dataLineIndex, dataLine)) {
 					if (Number(dataLine) >= line) {
 						dataLineIndex[line] = dataLineIndex[dataLine]; // set data index also for line
 						break;

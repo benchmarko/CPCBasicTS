@@ -53,10 +53,10 @@ export class TestHelper {
 				nameValueList = Utils.split2(nameValue, "="),
 				name = nameValueList[0];
 
-			if (config.hasOwnProperty(name)) {
+			if (Object.prototype.hasOwnProperty.call(config, name)) {
 				let value: string|number|boolean = nameValueList[1];
 
-				if (value !== undefined && config.hasOwnProperty(name)) {
+				if (value !== undefined && Object.prototype.hasOwnProperty.call(config, name)) {
 					switch (typeof config[name]) {
 					case "string":
 						break;
@@ -90,7 +90,7 @@ export class TestHelper {
 			const name = fnDecode(match[1]),
 				value = fnDecode(match[2]);
 
-			if (value !== null && config.hasOwnProperty(name)) {
+			if (value !== null && Object.prototype.hasOwnProperty.call(config, name)) {
 				args.push(name + "=" + value);
 			}
 		}
@@ -99,7 +99,7 @@ export class TestHelper {
 
 	private static generateTests(allTests: AllTestsType, runTestsFor: runTestsForType, results?: ResultType) {
 		for (const category in allTests) {
-			if (allTests.hasOwnProperty(category)) {
+			if (Object.prototype.hasOwnProperty.call(allTests, category)) {
 				if (results) {
 					results[category] = [];
 				}
@@ -216,7 +216,7 @@ export class TestHelper {
 
 	private static listKeys(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const result = "";
 
 				if (results) {
@@ -235,7 +235,7 @@ export class TestHelper {
 		let result = "";
 
 		for (const category in allResults) {
-			if (allResults.hasOwnProperty(category)) {
+			if (Object.prototype.hasOwnProperty.call(allResults, category)) {
 				const results = allResults[category],
 					containsSpace = category.indexOf(" ") >= 0,
 					isJsKeyword = reJsKeywords.test(category);

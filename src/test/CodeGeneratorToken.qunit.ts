@@ -809,7 +809,7 @@ QUnit.module("CodeGeneratorToken: Tests", function (hooks) {
 		const codeGeneratorToken = (hooks as hooksWithCodeGeneratorToken).codeGeneratorToken;
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const expected = tests[key],
 					output = codeGeneratorToken.generate(key),
 					result = output.error ? String(output.error) : fnBin2Hex(output.text);

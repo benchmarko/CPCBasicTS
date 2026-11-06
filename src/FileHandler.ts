@@ -293,7 +293,7 @@ export class FileHandler {
 			fileExists[entry] = true;
 		}
 		for (const key in examples) {
-			if (examples.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(examples, key)) {
 				const example = examples[key],
 					name = example.key,
 					matchName = name + (name.indexOf(".") < 0 ? "." : "");

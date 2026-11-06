@@ -815,7 +815,7 @@ QUnit.module("BasicLexer: Tests", function (hooks) {
 		const basicLexer = (hooks as hooksWithBasicLexer).basicLexer;
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const expected = TestHelper.handleBinaryLiterals(tests[key]);
 				let expectedEntry: Record<string, unknown>;
 
@@ -910,7 +910,7 @@ QUnit.module("BasicLexer: keepWhiteSpace", function (hooks) {
 		};
 
 		for (const key in tests) {
-			if (tests.hasOwnProperty(key)) {
+			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				spaceCount = 1;
 				const expected = tests[key],
 					keyWithSpaces = key.replace(/([=?+\-*^/\\,;()#])/g, " $1 ").replace(/\s+/g, fnSpaceReplacer),
@@ -940,7 +940,7 @@ QUnit.module("BasicLexer: lexer specific tests", function (/* hooks */) {
 		for (let i = 0; i < inputs.length; i += 1) {
 			const key = inputs.charAt(i);
 
-			let result = "";
+			let result: string;
 
 			try {
 				result = String(basicLexer.lex(key));
