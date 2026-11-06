@@ -325,9 +325,6 @@ export class NodeUtils implements INodeUtils {
 			sound,
 			isHeadlessDirectInput: true,
 			loadScript: NodeUtils.loadScript,
-			onOutputText: (_value: string) => {
-				// TODO
-			},
 			onResultText: (value: string) => {
 				NodeUtils.writeResultDelta(value, outputState);
 			},

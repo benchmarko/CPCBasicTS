@@ -820,7 +820,7 @@ QUnit.module("CodeGeneratorToken: Tests", function (hooks) {
 		}
 	}
 
-	TestHelper.compareAllTests(TestInput.getAllTests(), allTests);
+	TestHelper.compareAllTests(TestInput.getAllTests(), allTests, "TestInput.ts", "CodeGeneratorToken.qunit.ts");
 	TestHelper.generateAllTests(allTests, runTestsFor, hooks);
 
 	QUnit.test("program tokenization restores whitespace and punctuation retention", function (assert) {

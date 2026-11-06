@@ -267,36 +267,42 @@ export class TestHelper {
 		TestHelper.generateTests(allTests, TestHelper.config.generateKeys ? TestHelper.listKeys : runTestsFor, allResults);
 	}
 
-	private static compareKeys(keys1: string[], keys2: string[], type: string) {
-		let isEqual = true;
+	private static compareKeys(keys1: string[], keys2: string[], type: string, referenceFile: string, comparedFile: string, category?: string) {
+		const keys1Set = new Set(keys1),
+			keys2Set = new Set(keys2),
+			additionalKeys = keys2.filter((key) => !keys1Set.has(key)),
+			missingKeys = keys1.filter((key) => !keys2Set.has(key)),
+			context = category === undefined ? type : type + " in category " + JSON.stringify(category);
+		let isEqual = !additionalKeys.length && !missingKeys.length;
 
-		for (let i = 0; i < keys1.length; i += 1) {
-			if (keys1[i] !== keys2[i]) {
-				isEqual = false;
-				Utils.console.warn("compareKeys: " + type + ": " + keys1[i] + " <> " + keys2[i]);
-			}
+		if (additionalKeys.length) {
+			Utils.console.warn("compareKeys: " + comparedFile + " has additional " + context + " not in " + referenceFile + ": " + JSON.stringify(additionalKeys));
 		}
-		if (keys1.length !== keys2.length) {
-			isEqual = false;
-			Utils.console.warn("compareKeys: " + type + ": different sizes: " + keys1.length + " <> " + keys2.length);
+		if (missingKeys.length) {
+			Utils.console.warn("compareKeys: " + comparedFile + " is missing " + context + " from " + referenceFile + ": " + JSON.stringify(missingKeys));
+		}
+		if (isEqual) {
+			const differentIndex = keys1.findIndex((key, index) => key !== keys2[index]);
+
+			if (differentIndex >= 0) {
+				isEqual = false;
+				Utils.console.warn("compareKeys: " + comparedFile + " has the same " + context + " as " + referenceFile + " but a different order at position " + (differentIndex + 1) + ": " + JSON.stringify(keys1[differentIndex]) + " <> " + JSON.stringify(keys2[differentIndex]));
+			}
 		}
 		return isEqual;
 	}
 
-	static compareAllTests(allTests1: AllTestsType, allTests2: AllTestsType): boolean {
+	static compareAllTests(allTests1: AllTestsType, allTests2: AllTestsType, referenceFile: string, comparedFile: string): boolean {
 		const categories1 = Object.keys(allTests1),
 			categories2 = Object.keys(allTests2);
-		let isEqual = TestHelper.compareKeys(categories1, categories2, "categories");
+		let isEqual = TestHelper.compareKeys(categories1, categories2, "categories", referenceFile, comparedFile);
 
-		if (isEqual) {
-			for (let i = 0; i < categories1.length; i += 1) {
-				const category = categories1[i],
-					key1 = allTests1[category],
-					key2 = allTests2[category],
-					keys1 = Object.keys(key1),
-					keys2 = Object.keys(key2);
+		for (const category of categories1) {
+			if (Object.prototype.hasOwnProperty.call(allTests2, category)) {
+				const keys1 = Object.keys(allTests1[category]),
+					keys2 = Object.keys(allTests2[category]);
 
-				isEqual = TestHelper.compareKeys(keys1, keys2, "keys");
+				isEqual = TestHelper.compareKeys(keys1, keys2, "input keys", referenceFile, comparedFile, category) && isEqual;
 			}
 		}
 

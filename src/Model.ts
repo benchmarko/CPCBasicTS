@@ -4,9 +4,8 @@
 
 
 import { Utils } from "./Utils";
+import { ModelPropID } from "./Constants";
 import type { ConfigEntryType, ConfigType, DatabaseEntry, DatabasesType, ExampleEntry, ExamplesType, IModel } from "./Interfaces";
-
-const ModelPropIDdatabase = "database"; //TODO
 
 export class Model implements IModel {
 	private config: ConfigType;
@@ -73,23 +72,23 @@ export class Model implements IModel {
 		return this.databases;
 	}
 	getDatabase(): DatabaseEntry {
-		const database = this.getProperty<string>(ModelPropIDdatabase);
+		const database = this.getProperty<string>(ModelPropID.database);
 
 		return this.databases[database];
 	}
 
 	getAllExamples(): {	[x: string]: ExampleEntry; } {
-		const database = this.getProperty<string>(ModelPropIDdatabase);
+		const database = this.getProperty<string>(ModelPropID.database);
 
 		return this.examples[database];
 	}
 	getExample(key: string): ExampleEntry {
-		const database = this.getProperty<string>(ModelPropIDdatabase);
+		const database = this.getProperty<string>(ModelPropID.database);
 
 		return this.examples[database][key];
 	}
 	setExample(example: ExampleEntry): void {
-		const database = this.getProperty<string>(ModelPropIDdatabase),
+		const database = this.getProperty<string>(ModelPropID.database),
 			key = example.key;
 
 		if (!this.examples[database][key]) {
@@ -100,7 +99,7 @@ export class Model implements IModel {
 		this.examples[database][key] = example;
 	}
 	removeExample(key: string): void {
-		const database = this.getProperty<string>(ModelPropIDdatabase);
+		const database = this.getProperty<string>(ModelPropID.database);
 
 		if (!this.examples[database][key]) {
 			Utils.console.warn("removeExample: example does not exist: " + key);

@@ -832,7 +832,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (hooks) {
 		}
 	}
 
-	TestHelper.compareAllTests(TestInput.getAllTests(), allTests);
+	TestHelper.compareAllTests(TestInput.getAllTests(), allTests, "TestInput.ts", "CodeGeneratorBasic.qunit.ts");
 	TestHelper.generateAllTests(allTests, runTestsFor, hooks);
 });
 

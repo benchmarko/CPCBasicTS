@@ -794,9 +794,10 @@ QUnit.module("BasicLexer: Tests", function (hooks) {
 			if ((e as Error).message !== expectedEntry.message) {
 				Utils.console.error(e); // only if unexpected
 			}
+			const error: Record<string, unknown> = e !== null && typeof e === "object" ? e as Record<string, unknown> : {};
 			// on IE we have additional properties description, number, stack in the object, so we use a positive list...
 			// eslint-disable-next-line object-property-newline, object-curly-newline
-			const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(e);
+			const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(error);
 			// (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
 
 			result = JSON.stringify(copiedError);
@@ -835,7 +836,7 @@ QUnit.module("BasicLexer: Tests", function (hooks) {
 		}
 	}
 
-	TestHelper.compareAllTests(TestInput.getAllTests(), allTests);
+	TestHelper.compareAllTests(TestInput.getAllTests(), allTests, "TestInput.ts", "BasicLexer.qunit.ts");
 	TestHelper.generateAllTests(allTests, runTestsFor, hooks);
 });
 

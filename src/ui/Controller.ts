@@ -1274,7 +1274,9 @@ export class Controller implements IController {
 				return false; // continue direct input
 			}
 
-			UiUtils.console.log("fnDirectInput: execute:", input);
+			if (UiUtils.debug > 0) {
+				UiUtils.console.log("fnDirectInput: execute:", input);
+			}
 
 			const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line as number, stream, directInput.message, {
 				outputError: (error) => this.outputError(error, true),
@@ -1300,7 +1302,9 @@ export class Controller implements IController {
 	private startWithDirectInput() {
 		if (this.options.isHeadlessDirectInput) {
 			this.stopUpdateCanvas();
-			UiUtils.console.log("We are ready.");
+			if (UiUtils.debug) {
+				UiUtils.console.log("We are ready.");
+			}
 			if (this.options.onProgramEnd) {
 				this.options.onProgramEnd();
 			}

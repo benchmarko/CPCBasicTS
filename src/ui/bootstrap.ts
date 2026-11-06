@@ -4,8 +4,12 @@ import { UI } from "./UI";
 import { cpcBasic, CpcBasicStartupAdapter } from "../cpcbasic";
 import type { ConfigType } from "../Interfaces";
 
+interface CpcBasicWindow extends Window {
+	cpcConfig?: Partial<ConfigType>
+}
+
 const uiStartupAdapter: CpcBasicStartupAdapter = {
-	getConfigOverrides: () => ({} as Partial<ConfigType>), //TODO window?.cpcConfig || {},
+	getConfigOverrides: () => (window as CpcBasicWindow).cpcConfig || {},
 	getArgs: () => [],
 	getUI: () => new UI(),
 	isNodeRuntime: () => false,

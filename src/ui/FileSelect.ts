@@ -152,7 +152,6 @@ export class FileSelect {
 		}
 	}
 
-	//TODO: can we use View.attachEventHandler() somehow?
 	addFileSelectHandler(element: HTMLElement, type: string): void {
 		element.addEventListener(type, this.fnOnFileSelectHandler, false);
 	}

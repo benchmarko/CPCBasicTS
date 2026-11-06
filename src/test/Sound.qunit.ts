@@ -106,7 +106,7 @@ class AudioContextMock {
 				lastTestFunctions.push({
 					"createBuffer:getChannelData": args2
 				});
-				return buffer; // TODO: new Float32Array()
+				return buffer;
 			}
 		} as AudioBuffer;
 	}

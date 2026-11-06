@@ -841,7 +841,9 @@ export class Controller0 implements IRuntimeController {
 				return false; // continue direct input
 			}
 
-			Utils.console.log("fnDirectInput: execute:", input);
+			if (Utils.debug > 0) {
+				Utils.console.log("fnDirectInput: execute:", input);
+			}
 
 			const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line as number, stream, directInput.message, {
 				outputError: (error) => this.outputError(error, true),
@@ -867,7 +869,9 @@ export class Controller0 implements IRuntimeController {
 	private startWithDirectInput() {
 		if (this.options.isHeadlessDirectInput) {
 			//this.stopUpdateCanvas();
-			Utils.console.log("We are ready.");
+			if (Utils.debug) {
+				Utils.console.log("We are ready.");
+			}
 			if (this.options.onProgramEnd) {
 				this.options.onProgramEnd();
 			}

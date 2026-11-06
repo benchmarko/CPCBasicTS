@@ -817,7 +817,7 @@ QUnit.module("CodeGeneratorJs: Tests", function (hooks) {
 		}
 	}
 
-	TestHelper.compareAllTests(TestInput.getAllTests(), allTests);
+	TestHelper.compareAllTests(TestInput.getAllTests(), allTests, "TestInput.ts", "CodeGeneratorJs.qunit.ts");
 	TestHelper.generateAllTests(allTests, runTestsFor, hooks);
 
 	QUnit.test("direct commands retain the stored program and can reference its labels", function (assert) {

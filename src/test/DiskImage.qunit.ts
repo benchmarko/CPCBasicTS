@@ -186,6 +186,40 @@ function fnBin2Hex(bin: string) {
 }
 
 
+function addAmsdosHeader(name: string, headerEntry: AmsdosHeader, data: string) {
+	if (headerEntry.typeString !== "A") {
+		if (data.length !== headerEntry.length) {
+			Utils.console.warn("runTestsFor: " + name + ": Need to adapt length:", data.length);
+			headerEntry.length = data.length;
+			headerEntry.pseudoLen = data.length;
+		}
+		const header = DiskImage.createAmsdosHeader(headerEntry),
+			headerString = DiskImage.combineAmsdosHeader(header);
+
+		data = headerString + data;
+	}
+	return data;
+}
+
+function assertDiskImageRoundTrip(assert: Assert, category: string, diskImage: DiskImage, result: string, expected: string, input: string) {
+	const message = category + " DSK";
+
+	if (Utils.debug > 5) {
+		Utils.console.debug(message + ": result: ", fnBin2Hex(result));
+		Utils.console.debug(message + ": expected: ", fnBin2Hex(expected));
+	}
+
+	assert.strictEqual(fnBin2Hex(result), fnBin2Hex(expected), message);
+
+	let result2 = "";
+	try {
+		result2 = readFilesFromDiskImage(diskImage);
+	} catch (e) {
+		result2 = String(e);
+	}
+	assert.strictEqual(result2, input, message);
+}
+
 QUnit.module("DiskImage: Write files tests", function (hooks) {
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		for (const key in tests) {
@@ -230,17 +264,7 @@ QUnit.module("DiskImage: Write files tests", function (hooks) {
 							Utils.console.error("runTestsFor: Unknon file type:", headerEntry.typeString);
 						}
 
-						if (headerEntry.typeString !== "A") {
-							if (data.length !== headerEntry.length) {
-								Utils.console.warn("runTestsFor: " + name + ": Need to adapt length:", data.length);
-								headerEntry.length = data.length;
-								headerEntry.pseudoLen = data.length;
-							}
-							const header = DiskImage.createAmsdosHeader(headerEntry),
-								headerString = DiskImage.combineAmsdosHeader(header);
-
-							data = headerString + data;
-						}
+						data = addAmsdosHeader(name, headerEntry, data);
 
 						diskImage.writeFile(name, data);
 					}
@@ -254,26 +278,7 @@ QUnit.module("DiskImage: Write files tests", function (hooks) {
 					}
 
 					if (assert) {
-						const message = category + " DSK";
-
-						if (Utils.debug > 5) {
-							Utils.console.debug(message + ": result: ", fnBin2Hex(result));
-							Utils.console.debug(message + ": expected: ", fnBin2Hex(expected));
-						}
-
-						// compare disk images
-						assert.strictEqual(fnBin2Hex(result), fnBin2Hex(expected), message);
-
-						// read back files anf compare
-						const expected2 = input;
-						let result2 = "";
-
-						try {
-							result2 = readFilesFromDiskImage(diskImage);
-						} catch (e) {
-							result2 = String(e);
-						}
-						assert.strictEqual(result2, expected2, message);
+						assertDiskImageRoundTrip(assert, category, diskImage, result, expected, input);
 					}
 				} else if (assert) {
 					assert.expect(0); // not testing this

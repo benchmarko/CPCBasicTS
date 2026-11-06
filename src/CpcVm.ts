@@ -27,6 +27,8 @@ export interface FileMeta {
 	encoding?: string
 }
 
+type FileCallbackType = (input: string | null | undefined, meta?: FileMeta) => boolean | void;
+
 interface FileBase {
 	open: boolean
 	command: string
@@ -34,7 +36,7 @@ interface FileBase {
 	line: number
 	start: (number | undefined)
 	fileData: string[]
-	fnFileCallback: ((...args: any[]) => void | boolean) | undefined
+	fnFileCallback: FileCallbackType | undefined
 }
 
 interface InFile extends FileBase {
@@ -91,7 +93,7 @@ type PrintObjectType = {type: string, args: (string | number)[]};
 
 type DataEntryType = (string | undefined);
 
-type LoadHandlerType = (input: string, meta: FileMeta) => boolean;
+type LoadHandlerType = (input: string | null | undefined, meta?: FileMeta) => boolean;
 
 export class CpcVm implements ICpcVm {
 	private readonly options: CpcVmOptions;
@@ -2592,11 +2594,14 @@ export class CpcVm implements ICpcVm {
 		});
 	}
 
-	vmPutFileInMemory(input: string | null, meta: FileMeta | undefined, includeSnapshot: boolean): boolean {
+	vmPutFileInMemory(input: string | null | undefined, meta: FileMeta | undefined, includeSnapshot: boolean): boolean {
+		if (input === null || input === undefined || !meta) {
+			return false;
+		}
 		const inFile = this.inFile,
-			shouldPutInMemory = input !== null && meta && (meta.typeString === "B" || (includeSnapshot && meta.typeString === "S") || inFile.start !== undefined);
+			shouldPutInMemory = meta.typeString === "B" || (includeSnapshot && meta.typeString === "S") || inFile.start !== undefined;
 
-		if (!shouldPutInMemory || input === null || !meta) {
+		if (!shouldPutInMemory) {
 			return false;
 		}
 		const start = inFile.start !== undefined ? inFile.start : Number(meta.start);
@@ -2624,7 +2629,7 @@ export class CpcVm implements ICpcVm {
 		return true;
 	}
 
-	private vmLoadCallback(input: string, meta: FileMeta) {
+	private vmLoadCallback(input: string | null | undefined, meta?: FileMeta) {
 		const putInMemory = this.vmPutFileInMemory(input, meta, true);
 
 		this.closein();
@@ -2919,8 +2924,8 @@ export class CpcVm implements ICpcVm {
 		sqTimer.repeat = true; // means reloaded for sq
 	}
 
-	private vmOpeninCallback(input: string | null) {
-		if (input !== null) {
+	private vmOpeninCallback(input: string | null | undefined) {
+		if (input !== null && input !== undefined) {
 			const inFile = this.inFile,
 				eolStr = input.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
 
@@ -3757,12 +3762,12 @@ export class CpcVm implements ICpcVm {
 		return Math.sign(n) * Number(Math.round(Number(Math.abs(n) + "e" + decimals)) + "e" + ((decimals >= 0) ? "-" + decimals : "+" + -decimals));
 	}
 
-	private vmRunCallback(input: string, meta: FileMeta) {
+	private vmRunCallback(input: string | null | undefined, meta?: FileMeta) {
 		const inFile = this.inFile,
 			line = inFile.line,
-			putInMemory = input !== null && meta && (meta.typeString === "B" || inFile.start !== undefined);
+			putInMemory = input !== null && input !== undefined && Boolean(meta && (meta.typeString === "B" || inFile.start !== undefined));
 
-		if (input !== null) {
+		if (input !== null && input !== undefined) {
 			const lineParas: VmLineParas = {
 				command: "run",
 				stream: 0, // unused

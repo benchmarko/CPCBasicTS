@@ -468,7 +468,7 @@ function testCheckMeta(input: string) {
 	if (type === "T") { // tokenized basic?
 		input = cpcBasic.basicTokenizer.decode(input);
 	} else if (type === "P") { // protected BASIC?
-		input = DiskImage.unOrProtectData(input); // TODO
+		input = DiskImage.unOrProtectData(input);
 		input = cpcBasic.basicTokenizer.decode(input);
 	} else if (type === "B") { // binary?
 	} else if (type === "A") { // ASCII?

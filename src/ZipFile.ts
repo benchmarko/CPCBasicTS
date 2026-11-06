@@ -256,13 +256,10 @@ export class ZipFile {
 			}
 		}
 
-		const offs = [
-			undefined,
-			0
-		];
+		const offs = [0, 0];
 
 		for (i = 1; i < 0xF; i += 1) {
-			offs[i + 1] = offs[i]! + codes.count[i];
+			offs[i + 1] = offs[i] + codes.count[i];
 		}
 
 		for (i = 0; i < n; i += 1) {
