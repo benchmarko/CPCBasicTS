@@ -35,7 +35,7 @@ More examples are in the sample library [CPCBasicApps](https://benchmarko.github
 
 There are several great CPC emulators which emulate a complete CPC with exact timing and allow demos to run, pushing CPC hardware to its limits.
 
-With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, can we achieve a similar or faster speed than the assembler programmed functionality that runs on a CPC or emulator?
+With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, we usually achieve a much higher speed than the assembler programmed functionality that runs on a CPC or an emulator.
 
 ## Build locally
 
@@ -58,11 +58,11 @@ The build generates the distribution files in the `dist/` directory, including `
   - Use the *second selection field* to select a directory/path.
   - Use the *third selection field* to select a sample program. It will reset the CPC and run the program.
   - The **Settings** button opens a popover with settings.
-    - The checkbox **Array Bounds** checks array bounds of the running program. This option requires an ES6 compatible browser and is switched off per default.
+    - The checkbox **Array Bounds** checks array bounds of the running program. Activating this option will slow down the program, so it is switched off per default.
     - The checkbox **Implicit Lines** allows to run BASIC programs without line numbers.
     - The checkbox **Trace Mode** switches on trace mode. Ths allows to show the source position in case of runtime errors.
     - The checkbox **Autorun** loads and runs an example when selected.
-    - The checkbox **Sound** enables sound. If you start the app or use the *Reload* button with the sound enabled, the sound needs to be activated by a user action, e.g. a click anywhere. This is a browser limitation.
+    - The checkbox **Sound** enables sound. If you start the app with the sound enabled, the sound needs to be activated by a user action, e.g. a click anywhere. This is a browser limitation.
     - The selection field **Canvas** allows to set the canvas type *Graphics*, *Text* or *None*. This will change the *CPC* window, (see below).
     - The selection field **Palette** allows to set the palette to Color, Green or Grey.
     - The range slider **Speed** allows to reduce the simulation speed (0..100). This is an experimental feature.
@@ -192,7 +192,7 @@ REM CPCBasic-keys: ["a","a","d",""," ","Space",13,"Enter"]
 - Use *OPENIN* and *INPUT#9* to load data from a file in the current "directory" or from Browser local storage
 - If the program is complete (that means, no *MERGE* or *CHAIN MERGE* inside), line number destinations are checked for existence. For example, if the line number in *GOTO line* does not exist, the compilation fails.
 - The commands and functions are checked for correct number of arguments and mostly also for correct argument types.
-- There are some static type checks which prevent a program from being compiled, e.g. when using a string when a number is espected: `ASC(0)`. Or when using a number when a string is expected: `chr$("A")`. If you want to run such a program, make sure you put an *ON ERROR GOTO line* with line>0 just before the erroneous statement.
+- There are some static type checks which prevent a program from being compiled, e.g. when using a string when a number is espected: `chr$("A")`. Or when using a number when a string is expected: `ASC(0)`. If you want to run such a program, make sure you put an *ON ERROR GOTO line* with line>0 just before the erroneous statement.
 
 ## BASIC Features
 
@@ -271,7 +271,7 @@ A list of *CALL*s which are supported. Other *CALL*s are ignored.
 
 ## URL parameters
 
-These URL parameters are also put in the URL when you press the *Reload* button and the setting is not the default.
+These URL parameters are also put in the URL when a setting is not the default.
 
 - arrayBounds=false (check array bounds)
 - autorun=true
