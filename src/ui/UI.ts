@@ -1,5 +1,6 @@
+import "./Polyfills";
 import { UiUtils } from "./UiUtils";
-import type { ConfigEntryType, ICanvasVm, ICore, IUI } from "../Interfaces";
+import type { ConfigEntryType, ICanvasVm, IEngine, IUI } from "../Interfaces";
 import { Controller, ControllerOptions } from "./Controller";
 import { View } from "./View";
 
@@ -114,9 +115,9 @@ export class UI implements IUI {
 		return document.currentScript && document.currentScript.getAttribute("data-key") || "";
 	}
 
-	public onWindowLoadContinue(core: ICore): void {
+	public onWindowLoadContinue(engine: IEngine): void {
 		//this.isMobile = UI.isMobile();
-		//this.core = core;
+		const core = engine.core;
 		const model = core.getModel();
 		const config = model.getAllProperties();
 		const args = UI.parseUri(config);
@@ -131,7 +132,7 @@ export class UI implements IUI {
 
 		const controllerOptions: ControllerOptions = {};
 
-		this.controller = new Controller(core, this.view, controllerOptions);
+		this.controller = new Controller(engine, this.view, controllerOptions);
 		this.controller.onDatabaseSelectChange(); // trigger loading example
 	}
 }

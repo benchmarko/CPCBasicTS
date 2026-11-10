@@ -5,7 +5,7 @@
 
 import type { CustomError, ExampleEntry, IStorage } from "./Interfaces";
 import { Utils } from "./Utils";
-import { FileMeta } from "./CpcVm";
+import type { FileMeta } from "./CpcVm";
 import { DiskImage, AmsdosHeader } from "./DiskImage";
 import { Snapshot } from "./Snapshot";
 import { ZipFile } from "./ZipFile";
@@ -71,13 +71,51 @@ export class FileHandler {
 		Object.assign(this.options, options);
 	}
 
-	getDiskImage(): DiskImage {
+	private getDiskImage(): DiskImage {
 		if (!this.diskImage) {
 			this.diskImage = new DiskImage({
 				data: "" // will be set later
 			});
 		}
 		return this.diskImage;
+	}
+
+	startDiskImage(format: string): void {
+		const diskImage = this.getDiskImage();
+		diskImage.setOptions({
+			diskName: "test",
+			data: diskImage.formatImage(format)
+		});
+	}
+
+	prepareAmsdosFile(name: string, data: string, meta: FileMeta): string {
+		if (meta.typeString === "A" || meta.typeString === "X" || meta.typeString === "Z") {
+			return data;
+		}
+		const [name1, ext1] = DiskImage.getFilenameAndExtension(name),
+			header = DiskImage.createAmsdosHeader({
+				name: name1,
+				ext: ext1,
+				typeString: meta.typeString,
+				start: meta.start,
+				length: meta.length,
+				entry: meta.entry
+			});
+
+		return DiskImage.combineAmsdosHeader(header) + data;
+	}
+
+	addFileToDiskImage(name: string, data: string, meta: FileMeta): string {
+		const diskImage = this.getDiskImage();
+
+		diskImage.writeFile(name, this.prepareAmsdosFile(name, data, meta));
+		return diskImage.getOptions().data;
+	}
+
+	getDiskImageData(stripEmptyTracks: boolean): string {
+		const diskImage = this.getDiskImage();
+
+		return stripEmptyTracks ? diskImage.stripEmptyTracks() : diskImage.getOptions().data;
 	}
 
 	static getStorageName(name: string, defaultExtension?: string): string {

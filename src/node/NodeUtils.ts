@@ -1,4 +1,4 @@
-import type { ICore, INodeUtils, ICpcVmRsx, LoadScriptFn, ICanvasVm, IKeyboard, CpcKeyExpansionsOptions, VolEnvData, ToneEnvData, SoundData, ISound, IStorage, CanvasCharType } from "../Interfaces";
+import type { ICore, IEngine, INodeUtils, ICpcVmRsx, LoadScriptFn, ICanvasVm, IKeyboard, CpcKeyExpansionsOptions, VolEnvData, ToneEnvData, SoundData, ISound, IStorage, CanvasCharType } from "../Interfaces";
 //import "./NodePolyfills";
 import { Utils } from "../Utils";
 import { Controller0, ControllerOptions0 } from "../Controller0";
@@ -113,7 +113,8 @@ export class NodeUtils implements INodeUtils {
 		state.text = text;
 	}
 
-	public nodeMain(core: ICore) {
+	public nodeMain(engine: IEngine) {
+		const core = engine.core;
 		const model = core.getModel(),
 			config = model.getAllProperties();
 
@@ -338,7 +339,7 @@ export class NodeUtils implements INodeUtils {
 			setTimeout: setTimeout
 		};
 
-		const controller = new Controller0(core, controllerOptions);
+		const controller = new Controller0(engine, controllerOptions);
 
 		controller.loadDatabase();
 	}

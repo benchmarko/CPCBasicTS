@@ -44,6 +44,24 @@ function createFileOperations() {
 }
 
 QUnit.module("FileHandler", function () {
+	QUnit.test("AMSDOS and DSK export operations stay behind FileHandler", function (assert) {
+		const host = createFileOperations(),
+			meta = { typeString: "T", start: 0x170, length: 5, entry: 0 } as FileMeta,
+			prepared = host.handler.prepareAmsdosFile("demo.bas", "10 END", meta),
+			header = DiskImage.parseAmsdosHeader(prepared);
+
+		assert.ok(header);
+		assert.strictEqual(header?.typeString, "T");
+
+		host.handler.startDiskImage("data");
+		const imageData = host.handler.addFileToDiskImage("demo.bas", "10 END", meta),
+			diskImage = new DiskImage({ data: imageData });
+
+		assert.ok(Object.keys(diskImage.readDirectory()).some((name) => name.replace(/\s/g, "").toUpperCase() === "DEMO.BAS"));
+		assert.strictEqual(host.handler.getDiskImageData(false), imageData);
+		assert.ok(host.handler.getDiskImageData(true).length > 0);
+	});
+
 	QUnit.test("ERA deletes matching CPC files and reports storage races", function (assert) {
 		const host = createFileOperations(),
 			meta = stored("A", "10 END");

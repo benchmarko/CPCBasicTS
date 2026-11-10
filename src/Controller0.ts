@@ -6,20 +6,11 @@
 
 import { Utils } from "./Utils";
 import { BasicFormatter } from "./BasicFormatter";
-import { BasicLexer } from "./BasicLexer";
-import { BasicParser } from "./BasicParser";
-import { BasicTokenizer } from "./BasicTokenizer";
-import { CodeGeneratorBasic } from "./CodeGeneratorBasic";
-import { CodeGeneratorToken } from "./CodeGeneratorToken";
 import { CpcVm, type FileMeta } from "./CpcVm";
-import { DiskImage } from "./DiskImage";
 import { FileHandler } from "./FileHandler";
-import type { ExampleLoadOptions, ICanvasVm, ICore, IKeyboard, IStorage, IOutput, IRuntimeController, ISound, RenumOptions, RuntimeCallbacks, RuntimeHost, VariableValue, VmBaseParas, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas } from "./Interfaces";
+import type { ExampleLoadOptions, ICanvasVm, ICore, IEngine, IKeyboard, IStorage, IOutput, IRuntimeController, ISound, RenumOptions, RuntimeCallbacks, RuntimeHost, VariableValue, VmBaseParas, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas } from "./Interfaces";
 import { ModelPropID } from "./Constants";
-import { Random } from "./Random";
-import { Snapshot } from "./Snapshot";
 import { Variables } from "./Variables";
-import { Diff } from "./Diff";
 import type { ExecutionState } from "./ExecutionState";
 import { Runtime } from "./Runtime";
 
@@ -44,13 +35,8 @@ export class Controller0 implements IRuntimeController {
 	private variables: Variables;
 	private storage: IStorage;
 
-	private basicFormatter?: BasicFormatter; // for renum
-	private basicTokenizer?: BasicTokenizer; // to decode tokenized BASIC
-	private codeGeneratorToken?: CodeGeneratorToken; // to encode tokenized BASIC
-	private codeGeneratorBasic?: CodeGeneratorBasic; // for pretty print
 	private readonly core: ICore;
-	private readonly basicLexer: BasicLexer;
-	private readonly basicParser: BasicParser;
+	private readonly engine: IEngine;
 
 	private readonly runtime: Runtime;
 
@@ -62,34 +48,32 @@ export class Controller0 implements IRuntimeController {
 	private hasStorageDatabase: boolean;
 	private readonly options: ControllerOptions0;
 
-	constructor(core: ICore, options: ControllerOptions0) {
+	constructor(engine: IEngine, options: ControllerOptions0) {
 		this.fnDirectInputHandler = this.fnDirectInput.bind(this);
 		this.fnPutKeyInBufferHandler = this.fnPutKeysInBuffer.bind(this);
 		this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
 
-		this.core = core;
+		this.engine = engine;
+		this.core = engine.core;
 		const model = this.core.getModel();
 		this.options = options;
 
 		this.fnSpeed();
 
-		const random = new Random(model.getProperty<string>(ModelPropID.random) === "cpc");
-		this.runtime = new Runtime({
+		this.runtime = this.engine.createRuntime({
 			canvas: this.options.canvas,
 			keyboard: this.options.keyboard,
 			sound: this.options.sound,
-			random,
+			randomMode: model.getProperty<"cpc" | "minstd">(ModelPropID.random),
 			arrayBounds: model.getProperty<boolean>(ModelPropID.arrayBounds),
 			basicVersion: model.getProperty<string>(ModelPropID.basicVersion),
 			trace: model.getProperty<boolean>(ModelPropID.trace),
 			implicitLines: model.getProperty<boolean>(ModelPropID.implicitLines),
 			integerOverflow: model.getProperty<boolean>(ModelPropID.integerOverflow),
+			prettyLowercaseVars: model.getProperty<boolean>(ModelPropID.prettyLowercaseVars),
 			onClickKey: this.fnPutKeyInBufferHandler,
-			encodeTokens: (input) => this.encodeTokenizedBasic(input),
 			outputError: this.outputError.bind(this),
 			logger: Utils.console,
-			getCodeGeneratorBasic: () => this.getCodeGeneratorBasic(),
-			getCodeGeneratorToken: () => this.codeGeneratorToken,
 			onTokenized: (sourceLength, tokenLength) => {
 				if (Utils.debug) {
 					Utils.console.debug("parse: input length:", sourceLength, ", tokenized length:", tokenLength);
@@ -111,8 +95,6 @@ export class Controller0 implements IRuntimeController {
 		});
 		this.variables = this.runtime.variables;
 		this.vm = this.runtime.vm;
-		this.basicParser = this.runtime.basicParser;
-		this.basicLexer = this.runtime.basicLexer;
 		this.vm.setCanvas(this.options.canvas);
 		this.runtime.reset();
 
@@ -226,10 +208,6 @@ export class Controller0 implements IRuntimeController {
 		this.runtime.handleWaitSound();
 	}
 
-	private fnWaitKey(): string {
-		return this.runtime.handleWaitKey();
-	}
-
 	private fnWaitInput() {
 		const result = this.runtime.handleWaitInput({
 			onInvalid: (error) => this.outputError(error, true),
@@ -251,7 +229,7 @@ export class Controller0 implements IRuntimeController {
 
 	// merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
 	private mergeScripts(script1: string, script2: string) {
-		return BasicFormatter.mergeScripts(
+		return this.runtime.mergeScripts(
 			script1,
 			script2,
 			this.core.getModel().getProperty<boolean>(ModelPropID.implicitLines),
@@ -261,7 +239,7 @@ export class Controller0 implements IRuntimeController {
 
 	// get line range from a script with sorted line numbers
 	private fnGetLinesInRange(script: string, firstLine: number, lastLine: number) {
-		return BasicFormatter.getLinesInRangeFromScript(
+		return this.runtime.getLinesInRangeFromScript(
 			script,
 			firstLine,
 			lastLine,
@@ -306,90 +284,17 @@ export class Controller0 implements IRuntimeController {
 		});
 	}
 
-	private fnFileRen(paras: VmFileParas): void {
-		this.runtime.renameFile(this.getFileHandler(), paras);
-	}
-
-	private getBasicFormatter() {
-		if (!this.basicFormatter) {
-			this.basicFormatter = new BasicFormatter({
-				lexer: this.basicLexer,
-				parser: this.basicParser
-			});
-		}
-		return this.basicFormatter;
-	}
-
-	private getBasicTokenizer() {
-		if (!this.basicTokenizer) {
-			this.basicTokenizer = new BasicTokenizer();
-		}
-		return this.basicTokenizer;
-	}
-
-	private getCodeGeneratorBasic() {
-		if (!this.codeGeneratorBasic) {
-			this.codeGeneratorBasic = new CodeGeneratorBasic({
-				lexer: this.basicLexer,
-				parser: this.basicParser,
-				lowercaseVars: this.core.getModel().getProperty<boolean>(ModelPropID.prettyLowercaseVars)
-			});
-		}
-		return this.codeGeneratorBasic;
-	}
-
-	private getCodeGeneratorToken() {
-		if (!this.codeGeneratorToken) {
-			this.codeGeneratorToken = new CodeGeneratorToken({
-				lexer: this.basicLexer,
-				parser: this.basicParser,
-				implicitLines: this.core.getModel().getProperty<boolean>(ModelPropID.implicitLines)
-			});
-		}
-		return this.codeGeneratorToken;
-	}
-
 	private decodeTokenizedBasic(input: string) {
-		const basicTokenizer = this.getBasicTokenizer();
-
-		return basicTokenizer.decode(input);
-	}
-
-	private encodeTokenizedBasic(input: string, name = "test") {
-		const output = this.getCodeGeneratorToken().generateProgram(input);
-
-		if (output.error) {
-			this.outputError(output.error);
-		} else if (Utils.debug > 1) {
-			const outputText = output.text,
-				hex = outputText.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","),
-				decoded = this.decodeTokenizedBasic(outputText),
-				diff = Diff.testDiff(input.toUpperCase(), decoded.toUpperCase()); // for testing
-
-			Utils.console.debug("TokenizerInput (" + name + ") [len=" + input.length + "]:\n" + input);
-			Utils.console.debug("TokenizerOutputHex (" + name + ") [len=" + outputText.length + "]:\n" + hex);
-			Utils.console.debug("TokenizerOutputDecoded (" + name + ") [len=" + decoded.length + "]:\n" + decoded);
-			Utils.console.debug("TokenizerDiff (" + name + ") [len=" + diff.length + "]:\n" + diff);
-		}
-
-		return output.text;
+		return this.runtime.basicTokenizer.decode(input);
 	}
 
 	private prettyPrintBasic(input: string, keepWhiteSpace: boolean, keepBrackets: boolean, keepColons: boolean) {
-		const output = this.getCodeGeneratorBasic().generatePretty(input, keepWhiteSpace, keepBrackets, keepColons);
+		const output = this.runtime.codeGeneratorBasic.generatePretty(input, keepWhiteSpace, keepBrackets, keepColons);
 
 		if (output.error) {
 			this.outputError(output.error);
 		}
 		return output.text;
-	}
-
-	private applySnapshot(input: string) {
-		const snapshot = new Snapshot({
-			name: "",
-			data: input
-		});
-		return snapshot.applyToVm(this.vm);
 	}
 
 	private loadFileContinue(input: string | null | undefined) { // eslint-disable-line complexity
@@ -398,7 +303,7 @@ export class Controller0 implements IRuntimeController {
 			decode: (storedInput) => FileHandler.decodeStoredFile(storedInput, {
 				atobFn: (value) => this.options.atobFn(value),
 				decodeTokenizedBasic: (value) => this.decodeTokenizedBasic(value),
-				applySnapshot: (value) => this.applySnapshot(value),
+				applySnapshot: (value) => this.runtime.applySnapshot(value),
 				importArchive: (value, type) => {
 					const imported: string[] = [];
 					this.getFileHandler().fnLoad2(value, inFile.name, type, imported);
@@ -531,7 +436,7 @@ export class Controller0 implements IRuntimeController {
 
 		this.runtime.dispatchFileSave(
 			outFile,
-			(file) => this.getFileHandler().saveFile(file, () => this.getInputText(), (input, storageName) => this.encodeTokenizedBasic(input, storageName)).data,
+			(file) => this.getFileHandler().saveFile(file, () => this.getInputText(), (input, storageName) => this.runtime.encodeTokenizedBasic(input, storageName)).data,
 			(name) => {
 				if (Utils.debug > 0) {
 					Utils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
@@ -592,7 +497,7 @@ export class Controller0 implements IRuntimeController {
 		this.runtime.renumProgram(
 			this.getInputText(),
 			paras,
-			(source, newLine, oldLine, step, keep) => this.getBasicFormatter().renumber(source, newLine, oldLine, step, keep),
+			(source, newLine, oldLine, step, keep) => this.runtime.basicFormatter.renumber(source, newLine, oldLine, step, keep),
 			(source) => this.setInputText(source, true),
 			(error) => {
 				Utils.console.warn(error);
@@ -617,10 +522,6 @@ export class Controller0 implements IRuntimeController {
 				this.fnWaitInput();
 			}
 		}
-	}
-
-	private fnParse(): IOutput {
-		return this.runtime.parseProgram();
 	}
 
 	private presentCompileOutput(output: IOutput): string {
@@ -659,7 +560,7 @@ export class Controller0 implements IRuntimeController {
 		if (output) {
 			this.setInputText(output, true);
 
-			const diff = Diff.testDiff(input.toUpperCase(), output.toUpperCase());
+			const diff = this.runtime.formatDiff(input, output);
 
 			this.setOutputText(diff);
 		}
@@ -675,10 +576,8 @@ export class Controller0 implements IRuntimeController {
 	}
 
 	fnRemoveLines(): void {
-		const basicFormatter = this.getBasicFormatter();
-
 		const input = this.getInputText(),
-			output = basicFormatter.removeUnusedLines(input);
+			output = this.runtime.basicFormatter.removeUnusedLines(input);
 
 		if (output.error) {
 			this.outputError(output.error);
@@ -702,9 +601,9 @@ export class Controller0 implements IRuntimeController {
 				entry: 0
 			};
 
-		let diskImage: DiskImage | undefined,
-			name = "",
+		let name = "",
 			data = "";
+		const fileHandler = this.getFileHandler();
 
 		const btoaFn = this.options.btoaFn;
 
@@ -717,12 +616,7 @@ export class Controller0 implements IRuntimeController {
 		};
 
 		if (exportDSK) {
-			diskImage = this.getFileHandler().getDiskImage();
-
-			diskImage.setOptions({
-				diskName: "test",
-				data: diskImage.formatImage(format) // data or system
-			});
+			fileHandler.startDiskImage(format);
 		}
 
 		for (let i = 0; i < options.length; i += 1) {
@@ -736,7 +630,7 @@ export class Controller0 implements IRuntimeController {
 			data = metaAndData.data;
 
 			if (exportTokenized && meta.typeString === "A") { // do we need to tokenize it?
-				const tokens = this.encodeTokenizedBasic(data);
+				const tokens = this.runtime.encodeTokenizedBasic(data);
 
 				if (tokens) { // successful?
 					data = tokens;
@@ -749,44 +643,27 @@ export class Controller0 implements IRuntimeController {
 				}
 			}
 
-			if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
-				const [name1, ext1] = DiskImage.getFilenameAndExtension(name), // eslint-disable-line array-element-newline
-					header = DiskImage.createAmsdosHeader({
-						name: name1,
-						ext: ext1,
-						typeString: meta.typeString,
-						start: meta.start,
-						length: meta.length,
-						entry: meta.entry
-					}),
-					headerString = DiskImage.combineAmsdosHeader(header);
-
-				data = headerString + data;
-			}
-
-			if (diskImage) {
-				diskImage.writeFile(name, data);
-
-				const diskOptions = diskImage.getOptions();
-
-				data = diskOptions.data; // we need the modified disk image with the file(s) inside
+			if (exportDSK) {
+				data = fileHandler.addFileToDiskImage(name, data, meta);
 				name = name.substring(0, name.indexOf(".") + 1) + "dsk";
 				meta.length = data.length;
 				meta.typeString = "X"; // (extended) disk image
 			} else {
+				data = fileHandler.prepareAmsdosFile(name, data, meta);
 				if (exportBase64) {
 					fnExportBase64();
 				}
 			}
 
-			if (diskImage) {
-				if (stripEmpty) {
-					data = diskImage.stripEmptyTracks();
-				}
+			if (exportDSK && exportBase64) {
+				fnExportBase64();
+			}
+		}
 
-				if (exportBase64) {
-					fnExportBase64();
-				}
+		if (exportDSK) {
+			data = fileHandler.getDiskImageData(stripEmpty);
+			if (exportBase64) {
+				fnExportBase64();
 			}
 		}
 	}
@@ -991,7 +868,7 @@ export class Controller0 implements IRuntimeController {
 
 	private getFileHandler() {
 		if (!this.fileHandler) {
-			this.fileHandler = new FileHandler({
+			this.fileHandler = this.engine.createFileHandler({
 				adaptFilename: this.adaptFilename.bind(this),
 				updateStorageDatabase: this.updateStorageDatabase.bind(this),
 				outputError: this.outputError.bind(this),
@@ -1134,13 +1011,13 @@ export class Controller0 implements IRuntimeController {
 
 	/* eslint-disable no-invalid-this */
 	private readonly handlers: Record<string, (paras: VmBaseParas) => void> = {
-		waitKey: this.fnWaitKey,
+		waitKey: () => this.runtime.handleWaitKey(),
 		waitSound: this.fnWaitSound,
 		waitInput: this.fnWaitInput,
 		fileCat: this.fnFileCat,
 		fileDir: this.fnFileDir,
 		fileEra: this.fnFileEra,
-		fileRen: this.fnFileRen,
+		fileRen: (paras) => this.runtime.renameFile(this.getFileHandler(), paras),
 		renumLines: this.fnRenumLines,
 		deleteLines: this.fnDeleteLines,
 		editLine: this.fnEditLine,
@@ -1149,7 +1026,7 @@ export class Controller0 implements IRuntimeController {
 		fileSave: this.fnFileSave,
 		"new": this.fnNew,
 		run: this.fnRun,
-		parse: this.fnParse,
+		parse: () => this.runtime.parseProgram(),
 		parseRun: this.fnParseRun,
 		reset: this.fnReset
 	};

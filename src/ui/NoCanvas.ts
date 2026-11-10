@@ -3,10 +3,10 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-import { NullCanvas } from "../NullCanvas";
+import { Engine } from "../Engine";
 import type { CanvasOptions, ICanvas } from "./UiInterfaces";
 
-export class NoCanvas extends NullCanvas implements ICanvas {
+export class NoCanvas extends Engine.NullCanvas implements ICanvas {
 	private readonly options: CanvasOptions;
 
 	constructor(options: CanvasOptions) {

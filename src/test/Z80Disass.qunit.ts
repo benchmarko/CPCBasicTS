@@ -2,7 +2,7 @@
 //
 
 import { Utils } from "../Utils";
-import { Z80Disass } from "../Z80Disass";
+import { Z80Disass } from "../ui/Z80Disass";
 import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
 
 QUnit.dump.maxDepth = 10;

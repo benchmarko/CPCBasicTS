@@ -1,15 +1,15 @@
 import { Controller0, type ControllerOptions0 } from "../Controller0";
-import { Core } from "../Core";
+import { Engine } from "../Engine";
 import { FileHandler } from "../FileHandler";
 import { ExecutionStateReporter, type ExecutionState } from "../ExecutionState";
 import type { CustomError, Diagnostic, IKeyboard, ISound, LoadScriptFn } from "../Interfaces";
-import type { IRuntimeController, RuntimeCallbacks } from "../core/main";
+import type { IRuntimeController, RuntimeCallbacks } from "../Interfaces";
 import { Utils } from "../Utils";
 import { NoCanvas } from "../ui/NoCanvas";
 import { ViewID } from "../ui/UiConstants";
 
 function createController(isHeadlessDirectInput = true, loadScript: LoadScriptFn = () => { throw new Error("Unexpected script load"); }, notifications: RuntimeCallbacks = {}) {
-	const core = new Core({
+	const engine = new Engine({
 		databaseDirs: "examples",
 		database: "examples",
 		example: "original",
@@ -21,7 +21,8 @@ function createController(isHeadlessDirectInput = true, loadScript: LoadScriptFn
 		random: "cpc",
 		speed: 100,
 		trace: false
-	});
+	}),
+		core = engine.core;
 	core.init();
 	core.getModel().getDatabase().loaded = true;
 	core.getModel().setExample({
@@ -86,7 +87,7 @@ function createController(isHeadlessDirectInput = true, loadScript: LoadScriptFn
 		setTimeout: (callback) => callbacks.push(callback),
 		...notifications
 	};
-	const controller = new Controller0(core, options);
+	const controller = new Controller0(engine, options);
 	return {
 		controller, core, sources, generated, files, states, diagnostics, storage: options.storage,
 		get result() { return result; },

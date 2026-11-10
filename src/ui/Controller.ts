@@ -6,38 +6,27 @@
 import { ModelPropID } from "../Constants";
 import { ViewID } from "./UiConstants";
 import { UiUtils } from "./UiUtils";
-import { BasicFormatter } from "../BasicFormatter";
-import { BasicLexer } from "../BasicLexer";
-import { BasicParser } from "../BasicParser";
-import { BasicTokenizer } from "../BasicTokenizer";
 import { Canvas } from "./Canvas";
-import { CodeGeneratorBasic } from "../CodeGeneratorBasic";
-import { CodeGeneratorToken } from "../CodeGeneratorToken";
-import { cpcCharset } from "../cpcCharset";
-import { CpcVm, FileMeta } from "../CpcVm";
-import { Diff } from "../Diff";
-import { DiskImage } from "../DiskImage";
-import { FileHandler } from "../FileHandler";
+import { cpcCharset } from "./cpcCharset";
+import type { CpcVm, FileMeta } from "../CpcVm";
+import type { FileHandler as FileHandlerType } from "../FileHandler";
 import { FileSelect } from "./FileSelect";
-import { InputStack } from "../InputStack";
-import type { ExampleLoadOptions, ICore, IModel, IOutput, RenumOptions, RuntimeCallbacks, RuntimeHost, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmBaseParas, VariableValue } from "../Interfaces";
-import { Utils } from "../Utils";
+import type { Runtime as RuntimeType } from "../Runtime";
+import type { ExampleLoadOptions, ICore, IEngine, IModel, IOutput, RenumOptions, RuntimeCallbacks, RuntimeHost, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmBaseParas, VariableValue } from "../Interfaces";
 import type { ICanvas, IController } from "./UiInterfaces";
 import { Keyboard } from "./Keyboard";
 import { NoCanvas } from "./NoCanvas";
 import { TextCanvas } from "./TextCanvas";
 import { VirtualKeyboard } from "./VirtualKeyboard";
-import { Snapshot } from "../Snapshot";
 import { Sound } from "./Sound";
-import { Variables } from "../Variables";
+import { InputStack } from "./InputStack";
+import type { Variables } from "../Variables";
 import { View, SelectOptionElement, AreaInputElement } from "./View";
 import { DragElement, DragElementOptions } from "./DragElement";
-import { Random } from "../Random";
 import { UiController } from "./UiController";
-import { Z80Disass } from "../Z80Disass"; // test
+import { Z80Disass } from "./Z80Disass";
 import type { ExecutionState } from "../ExecutionState";
 import { createBrowserHost } from "./BrowserHost";
-import { Runtime } from "../Runtime";
 
 interface UserKeyType {
 	code: number
@@ -68,19 +57,13 @@ export class Controller implements IController {
 
 	private variables: Variables;
 
-	private basicFormatter?: BasicFormatter; // for renum
-	private basicTokenizer?: BasicTokenizer; // to decode tokenized BASIC
-	private codeGeneratorToken?: CodeGeneratorToken; // to encode tokenized BASIC
-	private codeGeneratorBasic?: CodeGeneratorBasic; // for pretty print
 	private readonly core: ICore;
+	private readonly engine: IEngine;
 	private readonly model: IModel;
 	private readonly view: View;
 	private readonly uiController: UiController;
 
-	private readonly basicLexer: BasicLexer;
-	private readonly basicParser: BasicParser;
-
-	private readonly runtime: Runtime;
+	private readonly runtime: RuntimeType;
 
 	private readonly canvases: Record<string, ICanvas> = {};
 	private canvas: ICanvas;
@@ -100,7 +83,7 @@ export class Controller implements IController {
 	private readonly vmOnCanvasClickHandler: (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
 
 
-	private fileHandler?: FileHandler;
+	private fileHandler?: FileHandlerType;
 	private fileSelect?: FileSelect;
 
 	private hasStorageDatabase: boolean;
@@ -110,7 +93,7 @@ export class Controller implements IController {
 	private z80Disass?: Z80Disass;
 
 
-	constructor(core: ICore, view: View, options: ControllerOptions = {}) {
+	constructor(engine: IEngine, view: View, options: ControllerOptions = {}) {
 		this.fnWaitKeyHandler = this.fnWaitKey.bind(this);
 		this.fnWaitInputHandler = this.fnWaitInput.bind(this);
 		this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
@@ -122,7 +105,8 @@ export class Controller implements IController {
 		this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
 		this.fnOnUserKeyClickHandler = this.onUserKeyClick.bind(this);
 
-		this.core = core;
+		this.engine = engine;
+		this.core = engine.core;
 		const model = this.core.getModel();
 		this.model = model;
 		this.view = view;
@@ -131,7 +115,7 @@ export class Controller implements IController {
 		this.host = createBrowserHost(options);
 		this.view.addEventListenerById("click", this.fnOnUserKeyClickHandler, ViewID.userKeys);
 
-		this.uiController = new UiController(core, view, this, this.fnOnUserActionHandler);
+		this.uiController = new UiController(this.core, view, this, this.fnOnUserActionHandler);
 
 		this.canvas = this.setCanvasType(model.getProperty<string>(ModelPropID.canvasType));
 
@@ -148,24 +132,21 @@ export class Controller implements IController {
 
 		// check first user action, also if sound is not yet on
 
-		const random = new Random(model.getProperty<string>(ModelPropID.random) === "cpc");
-		this.runtime = new Runtime({
+		this.runtime = this.engine.createRuntime({
 			canvas: this.canvas,
 			keyboard: this.keyboard,
 			sound: this.sound,
-			random,
+			randomMode: model.getProperty<"cpc" | "minstd">(ModelPropID.random),
 			arrayBounds: model.getProperty<boolean>(ModelPropID.arrayBounds),
 			basicVersion: model.getProperty<string>(ModelPropID.basicVersion),
 			trace: model.getProperty<boolean>(ModelPropID.trace),
 			implicitLines: model.getProperty<boolean>(ModelPropID.implicitLines),
 			integerOverflow: model.getProperty<boolean>(ModelPropID.integerOverflow),
+			prettyLowercaseVars: model.getProperty<boolean>(ModelPropID.prettyLowercaseVars),
 			onClickKey: this.fnPutKeyInBufferHandler,
-			encodeTokens: (input) => this.encodeTokenizedBasic(input),
 			outputError: this.outputError.bind(this),
 			onJsError: (error) => this.selectJsError(this.getOutputText(), error),
 			logger: UiUtils.console,
-			getCodeGeneratorBasic: () => this.getCodeGeneratorBasic(),
-			getCodeGeneratorToken: () => this.codeGeneratorToken,
 			onVariablesCleared: () => this.uiController.refreshVariables(),
 			onTokenized: (sourceLength, tokenLength) => {
 				if (UiUtils.debug) {
@@ -192,8 +173,6 @@ export class Controller implements IController {
 		});
 		this.variables = this.runtime.variables;
 		this.vm = this.runtime.vm;
-		this.basicParser = this.runtime.basicParser;
-		this.basicLexer = this.runtime.basicLexer;
 		
 		const onCanvasClick = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => {
 			const handler = this.vm.getOnCanvasClickHandler();
@@ -446,7 +425,7 @@ export class Controller implements IController {
 
 				if (!example) {
 					const dataString = storage.getItem(key) || "",
-						data = FileHandler.splitMeta(dataString);
+						data = this.engine.files.splitMeta(dataString);
 
 					example = {
 						key: key,
@@ -575,7 +554,7 @@ export class Controller implements IController {
 
 	// merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
 	private mergeScripts(script1: string, script2: string) {
-		return BasicFormatter.mergeScripts(
+		return this.runtime.mergeScripts(
 			script1,
 			script2,
 			this.model.getProperty<boolean>(ModelPropID.implicitLines),
@@ -585,7 +564,7 @@ export class Controller implements IController {
 
 	// get line range from a script with sorted line numbers
 	private fnGetLinesInRange(script: string, firstLine: number, lastLine: number) {
-		return BasicFormatter.getLinesInRangeFromScript(
+		return this.runtime.getLinesInRangeFromScript(
 			script,
 			firstLine,
 			lastLine,
@@ -600,7 +579,7 @@ export class Controller implements IController {
 	}
 
 	private fnGetStorageDirectoryEntries(mask?: string) {
-		return FileHandler.getStorageDirectoryEntries(this.getStorage(), mask);
+		return this.engine.files.getStorageDirectoryEntries(this.getStorage(), mask);
 	}
 
 	private fnFileCat(paras: VmFileParas): void {
@@ -616,7 +595,7 @@ export class Controller implements IController {
 	private fnFileDir(paras: VmFileParas): void {
 		const stream = paras.stream,
 			example = this.model.getProperty<string>(ModelPropID.example),
-			dirList = FileHandler.getDirectoryEntries(this.getStorage(), this.model.getAllExamples(), example, paras.fileMask);
+			dirList = this.engine.files.getDirectoryEntries(this.getStorage(), this.model.getAllExamples(), example, paras.fileMask);
 		this.runtime.printDirectoryEntries(dirList, stream, false);
 	}
 
@@ -630,99 +609,26 @@ export class Controller implements IController {
 		});
 	}
 
-	private fnFileRen(paras: VmFileParas): void {
-		this.runtime.renameFile(this.getFileHandler(), paras);
-	}
-
-	private getBasicFormatter() {
-		if (!this.basicFormatter) {
-			this.basicFormatter = new BasicFormatter({
-				lexer: this.basicLexer,
-				parser: this.basicParser
-			});
-		}
-		return this.basicFormatter;
-	}
-
-	private getBasicTokenizer() {
-		if (!this.basicTokenizer) {
-			this.basicTokenizer = new BasicTokenizer();
-		}
-		return this.basicTokenizer;
-	}
-
-	private getCodeGeneratorBasic() {
-		if (!this.codeGeneratorBasic) {
-			this.codeGeneratorBasic = new CodeGeneratorBasic({
-				lexer: this.basicLexer,
-				parser: this.basicParser,
-				lowercaseVars: this.model.getProperty<boolean>(ModelPropID.prettyLowercaseVars)
-			});
-		}
-		return this.codeGeneratorBasic;
-	}
-
-	private getCodeGeneratorToken() {
-		if (!this.codeGeneratorToken) {
-			this.codeGeneratorToken = new CodeGeneratorToken({
-				lexer: this.basicLexer,
-				parser: this.basicParser,
-				implicitLines: this.model.getProperty<boolean>(ModelPropID.implicitLines)
-			});
-		}
-		return this.codeGeneratorToken;
-	}
-
 	private decodeTokenizedBasic(input: string) {
-		const basicTokenizer = this.getBasicTokenizer();
-
-		return basicTokenizer.decode(input);
-	}
-
-	private encodeTokenizedBasic(input: string, name = "test") {
-		const output = this.getCodeGeneratorToken().generateProgram(input);
-
-		if (output.error) {
-			this.outputError(output.error);
-		} else if (UiUtils.debug > 1) {
-			const outputText = output.text,
-				hex = outputText.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","),
-				decoded = this.decodeTokenizedBasic(outputText),
-				diff = Diff.testDiff(input.toUpperCase(), decoded.toUpperCase()); // for testing
-
-			UiUtils.console.debug("TokenizerInput (" + name + ") [len=" + input.length + "]:\n" + input);
-			UiUtils.console.debug("TokenizerOutputHex (" + name + ") [len=" + outputText.length + "]:\n" + hex);
-			UiUtils.console.debug("TokenizerOutputDecoded (" + name + ") [len=" + decoded.length + "]:\n" + decoded);
-			UiUtils.console.debug("TokenizerDiff (" + name + ") [len=" + diff.length + "]:\n" + diff);
-		}
-
-		return output.text;
+		return this.runtime.basicTokenizer.decode(input);
 	}
 
 	private prettyPrintBasic(input: string, keepWhiteSpace: boolean, keepBrackets: boolean, keepColons: boolean) {
-		const output = this.getCodeGeneratorBasic().generatePretty(input, keepWhiteSpace, keepBrackets, keepColons);
+		const output = this.runtime.codeGeneratorBasic.generatePretty(input, keepWhiteSpace, keepBrackets, keepColons);
 
 		if (output.error) {
 			this.outputError(output.error);
 		}
 		return output.text;
-	}
-
-	private applySnapshot(input: string) {
-		const snapshot = new Snapshot({
-			name: "",
-			data: input
-		});
-		return snapshot.applyToVm(this.vm);
 	}
 
 	private loadFileContinue(input: string | null | undefined) { // eslint-disable-line complexity
 		const inFile = this.vm.vmGetInFileObject();
 		this.runtime.continueLoad(input, inFile, {
-			decode: (storedInput) => FileHandler.decodeStoredFile(storedInput, {
+			decode: (storedInput) => this.engine.files.decodeStoredFile(storedInput, {
 				atobFn: (value) => this.host.atobFn(value),
 				decodeTokenizedBasic: (value) => this.decodeTokenizedBasic(value),
-				applySnapshot: (value) => this.applySnapshot(value),
+				applySnapshot: (value) => this.runtime.applySnapshot(value),
 				importArchive: (value, type) => {
 					const imported: string[] = [];
 					this.getFileHandler().fnLoad2(value, inFile.name, type, imported);
@@ -800,7 +706,7 @@ export class Controller implements IController {
 	private loadExampleFile() {
 		const inFile = this.vm.vmGetInFileObject(),
 			key = this.model.getProperty<string>(ModelPropID.example),
-			plan = FileHandler.prepareExampleLoad(inFile.name, key, this.model.getAllExamples(), this.model.getDatabase().src),
+			plan = this.engine.files.prepareExampleLoad(inFile.name, key, this.model.getAllExamples(), this.model.getDatabase().src),
 			example = plan.name,
 			exampleEntry = plan.entry,
 			url = plan.url;
@@ -832,7 +738,7 @@ export class Controller implements IController {
 	}
 
 	private tryLoadingFromLocalStorage(name: string) {
-		return FileHandler.loadFromStorage(this.getStorage(), name);
+		return this.engine.files.loadFromStorage(this.getStorage(), name);
 	}
 
 	private fnFileLoad() {
@@ -863,7 +769,7 @@ export class Controller implements IController {
 
 		this.runtime.dispatchFileSave(
 			outFile,
-			(file) => this.getFileHandler().saveFile(file, () => this.getInputText(), (input, storageName) => this.encodeTokenizedBasic(input, storageName)).data,
+			(file) => this.getFileHandler().saveFile(file, () => this.getInputText(), (input, storageName) => this.runtime.encodeTokenizedBasic(input, storageName)).data,
 			(name) => {
 				if (UiUtils.debug > 0) {
 					UiUtils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
@@ -909,13 +815,13 @@ export class Controller implements IController {
 
 	private outputError(error: Error, noSelection?: boolean) {
 		const stream = 0,
-			diagnostic = Utils.createDiagnostic(error, noSelection, error.name === "CpcVm" ? this.vm.err() : undefined),
+			diagnostic = this.engine.createDiagnostic(error, noSelection, error.name === "CpcVm" ? this.vm.err() : undefined),
 			shortError = diagnostic.shortMessage;
 
 		this.uiController.onDiagnostic(diagnostic);
 		this.options.onDiagnostic?.(diagnostic);
 
-		const escapedShortError = Utils.escapeControlCharacters(shortError);
+		const escapedShortError = this.engine.escapeControlCharacters(shortError);
 
 		this.vm.print(stream, escapedShortError + "\r\n");
 		return shortError;
@@ -925,7 +831,7 @@ export class Controller implements IController {
 		this.runtime.renumProgram(
 			this.getInputText(),
 			paras,
-			(source, newLine, oldLine, step, keep) => this.getBasicFormatter().renumber(source, newLine, oldLine, step, keep),
+			(source, newLine, oldLine, step, keep) => this.runtime.basicFormatter.renumber(source, newLine, oldLine, step, keep),
 			(source) => {
 				this.fnPutChangedInputOnStack();
 				this.setInputText(source, true);
@@ -957,10 +863,6 @@ export class Controller implements IController {
 		if (this.runtime.editLine(paras, lines[0], this.fnEditLineCallbackHandler, (error) => this.outputError(error))) {
 			this.fnWaitInput();
 		}
-	}
-
-	private fnParse(): IOutput {
-		return this.runtime.parseProgram();
 	}
 
 	private presentCompileOutput(output: IOutput): string {
@@ -1003,7 +905,7 @@ export class Controller implements IController {
 			this.fnPutChangedInputOnStack();
 
 			// for testing:
-			const diff = Diff.testDiff(input.toUpperCase(), output.toUpperCase());
+			const diff = this.runtime.formatDiff(input, output);
 
 			this.setOutputText(diff);
 		}
@@ -1011,7 +913,7 @@ export class Controller implements IController {
 
 	fnAddLines(): void {
 		const input = this.getInputText(),
-			output = BasicFormatter.addLineNumbers(input);
+			output = this.runtime.addLineNumbers(input);
 
 		if (output) {
 			this.fnPutChangedInputOnStack();
@@ -1021,10 +923,8 @@ export class Controller implements IController {
 	}
 
 	fnRemoveLines(): void {
-		const basicFormatter = this.getBasicFormatter();
-
 		const input = this.getInputText(),
-			output = basicFormatter.removeUnusedLines(input);
+			output = this.runtime.basicFormatter.removeUnusedLines(input);
 
 		if (output.error) {
 			this.outputError(output.error);
@@ -1074,25 +974,20 @@ export class Controller implements IController {
 				entry: 0
 			};
 
-		let diskImage: DiskImage | undefined,
-			name = "",
+		let name = "",
 			data = "";
+		const fileHandler = this.getFileHandler();
 
 		const fnExportBase64 = () => {
 			meta.encoding = "base64";
-			const metaString = FileHandler.joinMeta(meta);
+			const metaString = this.engine.files.joinMeta(meta);
 
 			data = metaString + "," + this.host.btoaFn(data);
 			name += ".b64.txt";
 		};
 
 		if (exportDSK) {
-			diskImage = this.getFileHandler().getDiskImage();
-
-			diskImage.setOptions({
-				diskName: "test",
-				data: diskImage.formatImage(format) // data or system
-			});
+			fileHandler.startDiskImage(format);
 		}
 
 		for (let i = 0; i < options.length; i += 1) {
@@ -1116,14 +1011,14 @@ export class Controller implements IController {
 				} else {
 					name = item.value;
 					data = this.tryLoadingFromLocalStorage(name) || "";
-					const metaAndData = FileHandler.splitMeta(data);
+					const metaAndData = this.engine.files.splitMeta(data);
 
 					Object.assign(meta, metaAndData.meta); // copy meta info
 					data = metaAndData.data;
 				}
 
 				if (exportTokenized && meta.typeString === "A") { // do we need to tokenize it?
-					const tokens = this.encodeTokenizedBasic(data);
+					const tokens = this.runtime.encodeTokenizedBasic(data);
 
 					if (tokens) { // successful?
 						data = tokens;
@@ -1136,31 +1031,13 @@ export class Controller implements IController {
 					}
 				}
 
-				if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
-					const [name1, ext1] = DiskImage.getFilenameAndExtension(name), // eslint-disable-line array-element-newline
-						header = DiskImage.createAmsdosHeader({
-							name: name1,
-							ext: ext1,
-							typeString: meta.typeString,
-							start: meta.start,
-							length: meta.length,
-							entry: meta.entry
-						}),
-						headerString = DiskImage.combineAmsdosHeader(header);
-
-					data = headerString + data;
-				}
-
-				if (diskImage) {
-					diskImage.writeFile(name, data);
-
-					const diskOptions = diskImage.getOptions();
-
-					data = diskOptions.data; // we need the modified disk image with the file(s) inside
+				if (exportDSK) {
+					data = fileHandler.addFileToDiskImage(name, data, meta);
 					name = name.substring(0, name.indexOf(".") + 1) + "dsk";
 					meta.length = data.length;
 					meta.typeString = "X"; // (extended) disk image
 				} else {
+					data = fileHandler.prepareAmsdosFile(name, data, meta);
 					if (exportBase64) {
 						fnExportBase64();
 					}
@@ -1171,10 +1048,8 @@ export class Controller implements IController {
 			}
 		}
 
-		if (diskImage) {
-			if (stripEmpty) {
-				data = diskImage.stripEmptyTracks();
-			}
+		if (exportDSK) {
+			data = fileHandler.getDiskImageData(stripEmpty);
 
 			if (exportBase64) {
 				fnExportBase64();
@@ -1752,7 +1627,7 @@ export class Controller implements IController {
 
 	private getFileHandler() {
 		if (!this.fileHandler) {
-			this.fileHandler = new FileHandler({
+			this.fileHandler = this.engine.createFileHandler({
 				adaptFilename: this.adaptFilename.bind(this),
 				updateStorageDatabase: this.updateStorageDatabase.bind(this),
 				outputError: this.outputError.bind(this),
@@ -1763,7 +1638,7 @@ export class Controller implements IController {
 		return this.fileHandler;
 	}
 
-	private getFileSelect(fileHandler: FileHandler) {
+	private getFileSelect(fileHandler: FileHandlerType) {
 		if (!this.fileSelect) {
 			this.fileSelect = new FileSelect({
 				fnEndOfImport: this.fnEndOfImport.bind(this),
@@ -2029,7 +1904,7 @@ export class Controller implements IController {
 		vm.closein();
 		this.uiController.setPopoversHiddenExcept();
 		inFile.open = true;
-		const request = FileHandler.createExampleLoadRequest(key, dataBaseName, this.model.getExample(key)?.meta, options.autorun ?? this.model.getProperty<boolean>(ModelPropID.autorun));
+			const request = this.engine.files.createExampleLoadRequest(key, dataBaseName, this.model.getExample(key)?.meta, options.autorun ?? this.model.getProperty<boolean>(ModelPropID.autorun));
 		inFile.command = request.command;
 		inFile.name = request.name;
 		inFile.start = undefined;
@@ -2109,7 +1984,7 @@ export class Controller implements IController {
 	fnSpeed(): void {
 		const speed = this.model.getProperty<number>(ModelPropID.speed);
 
-		this.initialLoopTimeout = Runtime.getLoopDelay(speed);
+		this.initialLoopTimeout = this.engine.getLoopDelay(speed);
 	}
 
 	/* eslint-disable no-invalid-this */
@@ -2120,7 +1995,7 @@ export class Controller implements IController {
 		fileCat: this.fnFileCat,
 		fileDir: this.fnFileDir,
 		fileEra: this.fnFileEra,
-		fileRen: this.fnFileRen,
+		fileRen: (paras) => this.runtime.renameFile(this.getFileHandler(), paras),
 		renumLines: this.fnRenumLines,
 		deleteLines: this.fnDeleteLines,
 		editLine: this.fnEditLine,
@@ -2129,7 +2004,7 @@ export class Controller implements IController {
 		fileSave: this.fnFileSave,
 		"new": this.fnNew,
 		run: this.fnRun,
-		parse: this.fnParse,
+		parse: () => this.runtime.parseProgram(),
 		parseRun: this.fnParseRun,
 		reset: this.fnReset
 	};

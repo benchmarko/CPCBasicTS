@@ -13,7 +13,6 @@
   },
   "include": [
     "./*.ts",
-    "core/**/*.ts",
     "ui/**/*.ts",
     "node/**/*.ts",
     "test/**/*.ts"

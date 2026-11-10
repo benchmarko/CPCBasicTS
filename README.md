@@ -134,10 +134,10 @@ Several examples use CPCBasicTS mode 3 when available, e.g. [Art](https://benchm
   - Access screen memory in screen base address range, e.g. &C000-&FFFF or &4000-&7FFF
   - Access character map data starting at *HIMEM*+1 after *SYMBOL AFTER* n with n<256
 - Runs also on the command line with nodeJS:
-  - Remote URL: `node ./dist/cpcbasic-node-bootstrap.js sound=false showCpc=false debug=0 databaseDirs=https://benchmarko.github.io/CPCBasicApps/apps database=apps example=math/euler`
-  - Or with local examples: `node ./dist/cpcbasic-node-bootstrap.js sound=false showCpc=false debug=0 databaseDirs=./examples example=test/testpage` (The test page does not fully work.)
+  - Remote URL: `node ./dist/cpcbasic.js sound=false showCpc=false debug=0 databaseDirs=https://benchmarko.github.io/CPCBasicApps/apps database=apps example=math/euler`
+  - Or with local examples: `node ./dist/cpcbasic.js sound=false showCpc=false debug=0 databaseDirs=./examples example=test/testpage` (The test page does not fully work.)
 
-For deterministic, non-interactive BASIC execution in Node.js, use the separate `cpcbasicts/node` API:
+For deterministic, non-interactive BASIC execution in Node.js, use the `cpcbasicts/node` API. Importing it does not start the command-line application:
 
 ```js
 const { compile } = require("cpcbasicts/node");
@@ -149,6 +149,8 @@ console.log(result.reason, machine.getOutput());
 ```
 
 Each machine has its own runtime state. Compilation failures throw `HeadlessCompileError`; unsupported hardware and timing features are reported by the headless runtime rather than requiring browser APIs.
+
+The browser entrypoints are `cpcbasicUI.js` followed by `cpcbasic.js`. The UI bundle exposes the `cpcbasicUI.UI` implementation; the engine entrypoint consumes that interface, so a different UI can be supplied instead.
 
 ### Program Keys
 

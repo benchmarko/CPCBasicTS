@@ -3,7 +3,12 @@
 
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser } from "./BasicParser";
+import { BasicFormatter } from "./BasicFormatter";
+import { BasicTokenizer } from "./BasicTokenizer";
 import { CodeGeneratorJs } from "./CodeGeneratorJs";
+import { CodeGeneratorBasic } from "./CodeGeneratorBasic";
+import { CodeGeneratorToken } from "./CodeGeneratorToken";
+import { Diff } from "./Diff";
 import { CpcVm } from "./CpcVm";
 import { InputLine } from "./InputLine";
 import type { ExecutionState } from "./ExecutionState";
@@ -17,30 +22,26 @@ import { RsxCpcBasic } from "./RsxCpcBasic";
 import { RuntimeSettings } from "./RuntimeSettings";
 import { RunLoop } from "./RunLoop";
 import { SoundQueue } from "./SoundQueue";
+import { Snapshot } from "./Snapshot";
 import { SuspendedState } from "./SuspendedState";
 import { Utils } from "./Utils";
 import { Variables } from "./Variables";
-import { BasicFormatter } from "./BasicFormatter";
 import { FileHandler, type EraseFilesResult, type RenameFileResult } from "./FileHandler";
-import type { CodeGeneratorBasic } from "./CodeGeneratorBasic";
-import type { CodeGeneratorToken } from "./CodeGeneratorToken";
 
 export interface RuntimeOptions {
 	canvas: ICanvasVm
 	keyboard: IKeyboard
 	sound: ISound
-	random: Random
+	randomMode: "cpc" | "minstd"
 	arrayBounds: boolean
 	basicVersion: string
 	trace: boolean
 	implicitLines: boolean
 	integerOverflow: boolean
+	prettyLowercaseVars: boolean
 	onClickKey: (key: string) => void
-	encodeTokens: (input: string) => string
 	outputError: (error: Error, noSelection?: boolean) => unknown
-	getCodeGeneratorBasic: () => CodeGeneratorBasic
-	getCodeGeneratorToken: () => CodeGeneratorToken | undefined
-	logger: Pick<typeof Utils.console, "error" | "warn" | "log">
+	logger: Pick<typeof Utils.console, "error" | "warn" | "log" | "debug">
 	handlers: Partial<Record<string, (paras: VmBaseParas) => void>>
 	getInitialDelay: () => number
 	setTimeout: (callback: () => void, delay: number) => unknown
@@ -111,21 +112,30 @@ export class Runtime {
 	readonly runLoop: RunLoop;
 	readonly basicParser: BasicParser;
 	readonly basicLexer: BasicLexer;
+	readonly basicFormatter: BasicFormatter;
+	readonly basicTokenizer: BasicTokenizer;
+	readonly codeGeneratorBasic: CodeGeneratorBasic;
+	readonly codeGeneratorToken: CodeGeneratorToken;
 	private readonly codeGeneratorJs: CodeGeneratorJs;
 	private readonly onVariablesCleared?: () => void;
 	private readonly executionStateReporter: ExecutionStateReporter;
 	private readonly programHost: RuntimeProgramHost;
+	private readonly outputError: RuntimeOptions["outputError"];
+	private readonly logger: RuntimeOptions["logger"];
 
 	constructor(options: RuntimeOptions) {
 		this.onVariablesCleared = options.onVariablesCleared;
+		this.outputError = options.outputError;
+		this.logger = options.logger;
 		this.executionStateReporter = new ExecutionStateReporter(options.onExecutionState);
 		this.programHost = options.programHost;
 		this.keyboard = options.keyboard;
 		this.variables = new Variables({ arrayBounds: options.arrayBounds });
+		const random = new Random(options.randomMode === "cpc");
 		this.vm = new CpcVm({
 			canvas: options.canvas,
 			keyboard: options.keyboard,
-			random: options.random,
+			random,
 			sound: options.sound,
 			variables: this.variables,
 			onClickKey: options.onClickKey
@@ -144,6 +154,18 @@ export class Runtime {
 		});
 		this.basicParser = new BasicParser({ basicVersion: options.basicVersion });
 		this.basicLexer = new BasicLexer({ keywords: this.basicParser.getKeywords() });
+		this.basicFormatter = new BasicFormatter({ lexer: this.basicLexer, parser: this.basicParser });
+		this.basicTokenizer = new BasicTokenizer();
+		this.codeGeneratorBasic = new CodeGeneratorBasic({
+			lexer: this.basicLexer,
+			parser: this.basicParser,
+			lowercaseVars: options.prettyLowercaseVars
+		});
+		this.codeGeneratorToken = new CodeGeneratorToken({
+			lexer: this.basicLexer,
+			parser: this.basicParser,
+			implicitLines: options.implicitLines
+		});
 		this.codeGeneratorJs = new CodeGeneratorJs({
 			lexer: this.basicLexer,
 			parser: this.basicParser,
@@ -154,7 +176,7 @@ export class Runtime {
 		this.programCompiler = new ProgramCompiler({
 			generator: this.codeGeneratorJs,
 			vm: this.vm,
-			encodeTokens: options.encodeTokens,
+			encodeTokens: (input) => this.encodeTokenizedBasic(input),
 			onTokenized: options.onTokenized,
 			onMemoryError: options.onMemoryError
 		});
@@ -162,8 +184,8 @@ export class Runtime {
 			codeGeneratorJs: this.codeGeneratorJs,
 			variables: this.variables,
 			vm: this.vm,
-			getCodeGeneratorBasic: options.getCodeGeneratorBasic,
-			getCodeGeneratorToken: options.getCodeGeneratorToken,
+			codeGeneratorBasic: this.codeGeneratorBasic,
+			codeGeneratorToken: this.codeGeneratorToken,
 			onVariablesCleared: options.onVariablesCleared
 		});
 		const handlers: Record<string, (paras: VmBaseParas) => void> = {
@@ -197,6 +219,41 @@ export class Runtime {
 		};
 	}
 
+	addLineNumbers(source: string): string {
+		return BasicFormatter.addLineNumbers(source);
+	}
+
+	mergeScripts(source: string, added: string, implicitLines: boolean, onInvalid?: () => void): string {
+		return BasicFormatter.mergeScripts(source, added, implicitLines, onInvalid);
+	}
+
+	getLinesInRangeFromScript(source: string, firstLine: number, lastLine: number, implicitLines: boolean, onInvalid?: () => void): string[] {
+		return BasicFormatter.getLinesInRangeFromScript(source, firstLine, lastLine, implicitLines, onInvalid);
+	}
+
+	encodeTokenizedBasic(input: string, name = "test"): string {
+		const output = this.codeGeneratorToken.generateProgram(input);
+
+		if (output.error) {
+			this.outputError(output.error);
+		} else if (Utils.debug > 1) {
+			const outputText = output.text,
+				hex = outputText.split("").map((char) => char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")).join(","),
+				decoded = this.basicTokenizer.decode(outputText),
+				diff = Diff.testDiff(input.toUpperCase(), decoded.toUpperCase());
+
+			this.logger.debug("TokenizerInput (" + name + ") [len=" + input.length + "]:\n" + input);
+			this.logger.debug("TokenizerOutputHex (" + name + ") [len=" + outputText.length + "]:\n" + hex);
+			this.logger.debug("TokenizerOutputDecoded (" + name + ") [len=" + decoded.length + "]:\n" + decoded);
+			this.logger.debug("TokenizerDiff (" + name + ") [len=" + diff.length + "]:\n" + diff);
+		}
+		return output.text;
+	}
+
+	formatDiff(source: string, result: string): string {
+		return Diff.testDiff(source.toUpperCase(), result.toUpperCase());
+	}
+
 	startMainLoop(): void {
 		this.runLoop.start();
 	}
@@ -211,6 +268,11 @@ export class Runtime {
 
 	reset(): void {
 		this.vm.vmReset();
+	}
+
+	applySnapshot(data: string, name = ""): string {
+		const snapshot = new Snapshot({ name, data });
+		return snapshot.applyToVm(this.vm);
 	}
 
 	continueLoad(input: string | null | undefined, file: ProgramLoadFile, actions: RuntimeLoadContinuationActions): void {

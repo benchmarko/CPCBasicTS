@@ -1,26 +1,17 @@
 {
   "name": "cpcbasicts",
-  "version": "0.6.9",
+  "version": "0.6.10",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
-  "main": "./dist/cpcbasic-ui-bootstrap.js",
+  "main": "./dist/cpcbasic.js",
   "exports": {
     ".": {
-      "require": "./dist/cpcbasic-ui-bootstrap.js"
-    },
-    "./core": {
-      "require": "./dist/cpcbasic-core.js"
+      "require": "./dist/cpcbasic.js"
     },
     "./ui": {
-      "require": "./dist/cpcbasic-ui.js"
-    },
-    "./ui/bootstrap": {
-      "require": "./dist/cpcbasic-ui-bootstrap.js"
+      "require": "./dist/cpcbasicUI.js"
     },
     "./node": {
-      "require": "./dist/cpcbasic-node.js"
-    },
-    "./node/bootstrap": {
-      "require": "./dist/cpcbasic-node-bootstrap.js"
+      "require": "./dist/cpcbasic.js"
     }
   },
   "directories": {
@@ -45,17 +36,19 @@
     "minimatch": "11.0.5"
   },
   "files": [
-    "src/"
+    "dist/",
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "start": "echo TODO",
     "clean": "rm -rf dist/*",
     "cleancache": "rm -rf node_modules/.cache/gh-pages/",
     "copy": "cp src/*.html src/*.css LICENSE favicon.ico dist/ && mkdirp -p dist/src && cp -r src/*.ts dist/src && mkdirp -p dist/src/test && cp -r src/test/*.ts dist/src/test && cp src/test/*.html dist/test/ && mkdirp -p dist/examples && cp -r examples/* dist/examples && mkdirp -p dist/img && cp img/* dist/img",
-    "build:separate": "tsc --build && tsc --project src/node/tsconfig.json --noEmit",
+    "build:separate": "tsc --build --noEmit && tsc --project src/node/tsconfig.json --noEmit",
     "build:rollup": "rollup -c",
     "build": "npm run build:separate && npm run build:rollup && npm run copy && node updateVersion.mjs",
-    "testnode": "node dist/cpcbasic-node-bootstrap.js example=test/testpage",
+    "testnode": "node dist/cpcbasic.js example=test/testpage",
     "test": "qunit dist/test-bundle.js",
     "testAll": "qunit dist/test-bundle.js testAll=true",
     "deploy": "gh-pages -d dist",

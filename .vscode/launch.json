@@ -16,7 +16,7 @@
             ],
             //"program_XXX": "${workspaceFolder}\\src\\loader\\amd1.js",
             //"program": "${workspaceFolder}\\dist\\cpcbasicts.js",
-            "program": "${workspaceFolder}/dist/cpcbasic-node-bootstrap.js",
+            "program": "${workspaceFolder}/dist/cpcbasic.js",
             //"runtimeArgs": [
             //    "--require=.\\dist\\amdLoader.js"
             //],

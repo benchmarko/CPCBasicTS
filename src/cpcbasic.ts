@@ -4,11 +4,17 @@
 //
 
 import { Utils } from "./Utils";
-import { Core } from "./Core";
+import { Engine } from "./Engine";
 import { cpcconfig } from "./cpcconfig";
+import { NodeUtils } from "./node/NodeUtils";
 import type { ConfigType, ICpcVmRsx, INodeUtils, IUI } from "./Interfaces";
 
 interface WindowProperties {
+	cpcConfig?: Partial<ConfigType>;
+	cpcbasicUI: {
+		UI: new () => IUI
+	};
+	onload: (() => void) | null;
 	cpcBasic: {
 		addIndex: (dir: string, input: Record<string, unknown> | (() => void)) => void,
 		addItem: (key: string, input: string | (() => void)) => void,
@@ -20,7 +26,6 @@ declare const window: WindowProperties | undefined;
 
 export interface CpcBasicStartupAdapter {
 	getConfigOverrides: () => Partial<ConfigType>;
-	getArgs: () => string[];
 	isNodeRuntime: () => boolean;
 	getUI: () => IUI | undefined;
 	getNodeUtils: () => INodeUtils | undefined;
@@ -82,7 +87,8 @@ export class cpcBasic {
 
 		delete startConfig.redirectExamples;
 
-		const core = new Core(startConfig);
+		const engine = new Engine(startConfig),
+			core = engine.core;
 
 		if (redirectExamples) {
 			core.fnRedirectExamples(redirectExamples as unknown as Record<string, Record<"database" | "example", string>>);
@@ -114,7 +120,7 @@ export class cpcBasic {
 						core.addRsx(key, RsxConstructor);
 					}
 				};
-				ui.onWindowLoadContinue(core);
+				ui.onWindowLoadContinue(engine);
 			};
 			winFn();
 		} else { // nodeJS
@@ -122,7 +128,32 @@ export class cpcBasic {
 			if (!nodeUtils) {
 				throw new Error("start: NodeUtils undefined!");
 			}
-			nodeUtils.nodeMain(core);
+			nodeUtils.nodeMain(engine);
 		}
 	}
 }
+
+export { Engine };
+
+const cpcWindow = typeof window !== "undefined" ? window : undefined;
+
+if (cpcWindow) {
+	cpcWindow.onload = () => {
+		cpcBasic.start({
+			getConfigOverrides: () => cpcWindow.cpcConfig || {},
+			isNodeRuntime: () => false,
+			getUI: () => new cpcWindow.cpcbasicUI.UI(),
+			getNodeUtils: () => undefined
+		});
+	};
+} else if (typeof require !== "undefined" && require.main === module) {
+	cpcBasic.start({
+		getConfigOverrides: () => ({}),
+		isNodeRuntime: () => true,
+		getUI: () => undefined,
+		getNodeUtils: () => new NodeUtils()
+	});
+}
+
+export { compile, HeadlessProgram, HeadlessMachine, HeadlessScreen, HeadlessCompileError } from "./node/Headless";
+export type { HeadlessCell, HeadlessMachineOptions, HeadlessRunOptions, HeadlessRunResult } from "./node/Headless";
