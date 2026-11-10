@@ -9199,1171 +9199,6 @@
 	];
 	let Canvas = _Canvas;
 
-	const _CodeGeneratorBasic = class _CodeGeneratorBasic {
-	  // current line (label)
-	  constructor(options) {
-	    this.hasColons = false;
-	    this.keepWhiteSpace = false;
-	    this.line = 0;
-	    /* eslint-disable no-invalid-this */
-	    this.parseFunctions = {
-	      // to call methods, use parseFunctions[].call(this,...)
-	      "(": this.fnParenthesisOpen,
-	      string: _CodeGeneratorBasic.string,
-	      ustring: _CodeGeneratorBasic.ustring,
-	      assign: this.assign,
-	      expnumber: _CodeGeneratorBasic.expnumber,
-	      binnumber: _CodeGeneratorBasic.binHexNumber,
-	      hexnumber: _CodeGeneratorBasic.binHexNumber,
-	      label: this.label,
-	      "|": this.vertical,
-	      afterGosub: this.afterEveryGosub,
-	      chain: this.chainOrChainMerge,
-	      chainMerge: this.chainOrChainMerge,
-	      data: this.data,
-	      def: this.def,
-	      "else": this.fnElse,
-	      elseComment: this.elseComment,
-	      everyGosub: this.afterEveryGosub,
-	      fn: this.fn,
-	      "for": this.fnFor,
-	      "if": this.fnIf,
-	      input: this.inputLineInput,
-	      lineInput: this.inputLineInput,
-	      list: this.list,
-	      mid$Assign: this.mid$Assign,
-	      onBreakCont: this.onBreakOrError,
-	      // 3 parts
-	      onBreakGosub: this.onBreakOrError,
-	      onBreakStop: this.onBreakOrError,
-	      onErrorGoto: this.onBreakOrError,
-	      onGosub: this.onGotoGosub,
-	      onGoto: this.onGotoGosub,
-	      onSqGosub: this.onSqGosub,
-	      print: this.print,
-	      rem: this.rem,
-	      using: this.using,
-	      write: this.write
-	    };
-	    this.options = {
-	      quiet: false
-	    };
-	    this.setOptions(options);
-	    this.keywords = options.parser.getKeywords();
-	  }
-	  getOptions() {
-	    return this.options;
-	  }
-	  setOptions(options) {
-	    Object.assign(this.options, options);
-	  }
-	  generatePretty(input, keepWhiteSpace, keepBrackets, keepColons) {
-	    this.options.lexer.setOptions({ keepWhiteSpace });
-	    this.options.parser.setOptions({ keepTokens: true, keepBrackets, keepColons, keepDataComma: true });
-	    return this.generate(input);
-	  }
-	  composeError(error, message, value, pos) {
-	    return Utils.composeError("CodeGeneratorBasic", error, message, value, pos, void 0, this.line);
-	  }
-	  static fnWs(node) {
-	    return node.ws || "";
-	  }
-	  static fnSpace1(value) {
-	    return (!value.length || value.startsWith(" ") ? "" : " ") + value;
-	  }
-	  static getUcKeyword(node) {
-	    const type = node.type;
-	    return _CodeGeneratorBasic.combinedKeywords[type] || type.toUpperCase();
-	  }
-	  fnParseArgs(args) {
-	    const nodeArgs = [];
-	    if (!args) {
-	      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
-	    }
-	    for (let i = 0; i < args.length; i += 1) {
-	      let value = this.parseNode(args[i]);
-	      if (args[i].type === "'" || args[i].type === "else" || args[i].type === "elseComment") {
-	        if (i > 0 && !nodeArgs[i - 1].endsWith(" ") && !nodeArgs[i - 1].endsWith(":")) {
-	          value = _CodeGeneratorBasic.fnSpace1(value);
-	        }
-	      }
-	      nodeArgs.push(value);
-	    }
-	    return nodeArgs;
-	  }
-	  combineArgsWithColon(args) {
-	    if (!this.hasColons) {
-	      for (let i = 1; i < args.length; i += 1) {
-	        const arg = args[i].trim();
-	        if (!arg.startsWith("ELSE") && !arg.startsWith("'") && arg !== "") {
-	          args[i] = ":" + args[i];
-	        }
-	      }
-	    }
-	    return args.join("");
-	  }
-	  fnParenthesisOpen(node) {
-	    return _CodeGeneratorBasic.fnWs(node) + node.value + (node.args ? this.fnParseArgs(node.args).join("") : "");
-	  }
-	  static string(node) {
-	    return _CodeGeneratorBasic.fnWs(node) + '"' + node.value + '"';
-	  }
-	  static ustring(node) {
-	    return _CodeGeneratorBasic.fnWs(node) + '"' + node.value;
-	  }
-	  assign(node) {
-	    if (node.left.type !== "identifier") {
-	      throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos);
-	    }
-	    return this.parseNode(node.left) + _CodeGeneratorBasic.fnWs(node) + node.value + this.parseNode(node.right);
-	  }
-	  static expnumber(node) {
-	    return _CodeGeneratorBasic.fnWs(node) + Number(node.value).toExponential().toUpperCase().replace(/(\d+)$/, function(x) {
-	      return x.length >= 2 ? x : x.padStart(2, "0");
-	    });
-	  }
-	  static binHexNumber(node) {
-	    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase();
-	  }
-	  label(node) {
-	    this.line = Number(node.value);
-	    const value = this.combineArgsWithColon(this.fnParseArgs(node.args));
-	    return _CodeGeneratorBasic.fnWs(node) + node.value + (node.value !== "" ? _CodeGeneratorBasic.fnSpace1(value) : value);
-	  }
-	  // special keyword functions
-	  vertical(node) {
-	    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + this.fnParseArgs(node.args).join("");
-	  }
-	  afterEveryGosub(node) {
-	    const nodeArgs = this.fnParseArgs(node.args);
-	    nodeArgs[0] = _CodeGeneratorBasic.fnSpace1(nodeArgs[0]);
-	    nodeArgs[nodeArgs.length - 2] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]);
-	    nodeArgs[nodeArgs.length - 1] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]);
-	    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + nodeArgs.join("");
-	  }
-	  chainOrChainMerge(node) {
-	    const nodeArgs = this.fnParseArgs(node.args);
-	    if (nodeArgs.length > 2) {
-	      if (nodeArgs[nodeArgs.length - 2] === "DELETE") {
-	        nodeArgs[nodeArgs.length - 1] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]);
-	      }
-	    }
-	    return _CodeGeneratorBasic.fnWs(node) + _CodeGeneratorBasic.getUcKeyword(node) + (node.right ? _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) : "") + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-	  }
-	  data(node) {
-	    const nodeArgs = this.fnParseArgs(node.args);
-	    for (let i = 0; i < nodeArgs.length; i += 1) {
-	      const value2 = nodeArgs[i];
-	      nodeArgs[i] = value2;
-	    }
-	    let args = nodeArgs.join("");
-	    if (!this.keepWhiteSpace) {
-	      args = Utils.stringTrimEnd(args);
-	    }
-	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(args);
-	  }
-	  def(node) {
-	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + (node.right ? _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + this.fnParseArgs(node.args).join("") : "");
-	  }
-	  elseComment(node) {
-	    if (!node.args) {
-	      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
-	    }
-	    const args = node.args;
-	    let value = "";
-	    for (let i = 0; i < args.length; i += 1) {
-	      const token = args[i];
-	      if (token.value) {
-	        if (this.keepWhiteSpace) {
-	          value += _CodeGeneratorBasic.fnWs(token) + token.value;
-	        } else {
-	          value += _CodeGeneratorBasic.fnSpace1(_CodeGeneratorBasic.fnWs(token) + token.value);
-	        }
-	      }
-	    }
-	    return _CodeGeneratorBasic.fnWs(node) + "else".toUpperCase() + value;
-	  }
-	  fn(node) {
-	    if (!node.right) {
-	      return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase();
-	    }
-	    const nodeArgs = node.args ? this.fnParseArgs(node.args) : [];
-	    let right = this.parseNode(node.right);
-	    if (node.right.pos - node.pos > 2) {
-	      right = _CodeGeneratorBasic.fnSpace1(right);
-	    }
-	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + right + nodeArgs.join("");
-	  }
-	  fnFor(node) {
-	    const nodeArgs = this.fnParseArgs(node.args);
-	    for (let i = 0; i < nodeArgs.length; i += 1) {
-	      if (i !== 1 && i !== 2) {
-	        nodeArgs[i] = _CodeGeneratorBasic.fnSpace1(nodeArgs[i]);
-	      }
-	    }
-	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + nodeArgs.join("");
-	  }
-	  fnElse(node) {
-	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(this.fnParseArgs(node.args)));
-	  }
-	  fnIf(node) {
-	    const nodeArgs = this.fnParseArgs(node.args), partName = nodeArgs.shift();
-	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + _CodeGeneratorBasic.fnSpace1(partName) + _CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(nodeArgs));
-	  }
-	  inputLineInput(node) {
-	    const nodeArgs = node.args ? this.fnParseArgs(node.args) : [], name = node.right ? this.parseNode(node.right) : "";
-	    return _CodeGeneratorBasic.fnWs(node) + _CodeGeneratorBasic.getUcKeyword(node) + _CodeGeneratorBasic.fnSpace1(name) + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-	  }
-	  list(node) {
-	    const nodeArgs = this.fnParseArgs(node.args);
-	    if (nodeArgs.length && nodeArgs[0] === "") {
-	      nodeArgs.shift();
-	    }
-	    if (nodeArgs.length && nodeArgs[nodeArgs.length - 1] === "#") {
-	      nodeArgs.pop();
-	    }
-	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-	  }
-	  mid$Assign(node) {
-	    return _CodeGeneratorBasic.fnWs(node) + _CodeGeneratorBasic.getUcKeyword(node) + this.fnParseArgs(node.args).join("");
-	  }
-	  onBreakOrError(node) {
-	    return _CodeGeneratorBasic.fnWs(node) + "ON" + _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + _CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join(""));
-	  }
-	  onGotoGosub(node) {
-	    const nodeArgs = this.fnParseArgs(node.args), expression = nodeArgs.shift(), instruction = nodeArgs.shift();
-	    return _CodeGeneratorBasic.fnWs(node) + "ON" + _CodeGeneratorBasic.fnSpace1(expression) + _CodeGeneratorBasic.fnSpace1(instruction) + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-	  }
-	  onSqGosub(node) {
-	    const nodeArgs = this.fnParseArgs(node.args);
-	    nodeArgs[nodeArgs.length - 2] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]);
-	    nodeArgs[nodeArgs.length - 1] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]);
-	    return _CodeGeneratorBasic.fnWs(node) + "ON" + _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + nodeArgs.join("");
-	  }
-	  print(node) {
-	    const nodeArgs = this.fnParseArgs(node.args);
-	    let value = "";
-	    for (let i = 0; i < nodeArgs.length; i += 1) {
-	      value += nodeArgs[i];
-	    }
-	    if (node.value !== "?") {
-	      value = _CodeGeneratorBasic.fnSpace1(value);
-	    }
-	    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + value;
-	  }
-	  rem(node) {
-	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + this.fnParseArgs(node.args).join("");
-	  }
-	  using(node) {
-	    const nodeArgs = this.fnParseArgs(node.args), template = nodeArgs.length ? nodeArgs.shift() || "" : "";
-	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(template) + nodeArgs.join("");
-	  }
-	  write(node) {
-	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + (node.args ? _CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join("")) : "");
-	  }
-	  /* eslint-enable no-invalid-this */
-	  fnParseOther(node) {
-	    const type = node.type;
-	    let value = "";
-	    if (node.left) {
-	      value += this.parseNode(node.left);
-	    }
-	    value += _CodeGeneratorBasic.fnWs(node);
-	    const keyType = this.keywords[type];
-	    if (keyType) {
-	      value += _CodeGeneratorBasic.getUcKeyword(node);
-	    } else if (node.value) {
-	      value += node.value;
-	    }
-	    let right;
-	    if (node.right) {
-	      right = this.parseNode(node.right);
-	      const needSpace1 = this.keywords[right.toLowerCase()] || keyType;
-	      value += needSpace1 ? _CodeGeneratorBasic.fnSpace1(right) : right;
-	    }
-	    if (node.args) {
-	      const nodeArgs = this.fnParseArgs(node.args).join(""), needSpace2 = keyType && keyType.charAt(0) !== "f" && node.type !== "'";
-	      value += needSpace2 ? _CodeGeneratorBasic.fnSpace1(nodeArgs) : nodeArgs;
-	    }
-	    return value;
-	  }
-	  static getLeftOrRightOperatorPrecedence(node) {
-	    const precedence = _CodeGeneratorBasic.operatorPrecedence, operators = _CodeGeneratorBasic.operators;
-	    let pr;
-	    if (operators[node.type] && (node.left || node.right)) {
-	      if (node.left) {
-	        pr = precedence[node.type] || 0;
-	      } else {
-	        pr = precedence["p" + node.type] || precedence[node.type] || 0;
-	      }
-	    }
-	    return pr;
-	  }
-	  parseOperator(node) {
-	    const precedence = _CodeGeneratorBasic.operatorPrecedence, operators = _CodeGeneratorBasic.operators;
-	    let value;
-	    if (node.left) {
-	      value = this.parseNode(node.left);
-	      const p = precedence[node.type], pl = _CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(node.left);
-	      if (pl !== void 0 && pl < p) {
-	        value = "(" + value + ")";
-	      }
-	      const right = node.right;
-	      let value2 = this.parseNode(right);
-	      const pr = _CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(right);
-	      if (pr !== void 0) {
-	        if (pr < p) {
-	          value2 = "(" + value2 + ")";
-	        } else if (pr === p) {
-	          const assoc = _CodeGeneratorBasic.operatorAssociativity[node.type];
-	          if (assoc === "right") ; else if (assoc === "left") {
-	            if (/(^|-|\/|\\|mod|=|<>|<|<=|>|>=)$/.test(node.type)) {
-	              value2 = "(" + value2 + ")";
-	            }
-	          } else {
-	            value2 = "(" + value2 + ")";
-	          }
-	        }
-	      }
-	      const operator = _CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
-	      if (/^(and|or|xor|mod)$/.test(node.type)) {
-	        value += _CodeGeneratorBasic.fnSpace1(operator) + _CodeGeneratorBasic.fnSpace1(value2);
-	      } else {
-	        value += operator + value2;
-	      }
-	    } else if (node.right) {
-	      if (node.len === 0) {
-	        value = "";
-	      } else {
-	        const right = node.right;
-	        value = this.parseNode(right);
-	        let pr;
-	        if (right.left) {
-	          pr = precedence[right.type] || 0;
-	        } else {
-	          pr = precedence["p" + right.type] || precedence[right.type] || 0;
-	        }
-	        const p = precedence["p" + node.type] || precedence[node.type] || 0;
-	        if (p && pr && pr < p) {
-	          value = "(" + value + ")";
-	        }
-	        value = _CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase() + (node.type === "not" ? _CodeGeneratorBasic.fnSpace1(value) : value);
-	      }
-	    } else {
-	      value = this.fnParseOther(node);
-	    }
-	    return value;
-	  }
-	  parseNode(node) {
-	    const type = node.type;
-	    if (Utils.debug > 3) {
-	      Utils.console.debug("evaluate: parseNode node=%o type=" + type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
-	    }
-	    let value;
-	    if (_CodeGeneratorBasic.operators[type]) {
-	      value = this.parseOperator(node);
-	    } else if (this.parseFunctions[type]) {
-	      value = this.parseFunctions[type].call(this, node);
-	    } else {
-	      if ((type === "identifier" || type === "letter") && this.options.lowercaseVars) {
-	        node.value = node.value.toLowerCase();
-	      }
-	      value = this.fnParseOther(node);
-	    }
-	    return value;
-	  }
-	  evaluate(parseTree) {
-	    let output = "";
-	    for (let i = 0; i < parseTree.length; i += 1) {
-	      if (Utils.debug > 2) {
-	        Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
-	      }
-	      const line = this.parseNode(parseTree[i]);
-	      if (line !== void 0 && line !== "") {
-	        if (line !== null) {
-	          if (output.length === 0) {
-	            output = line;
-	          } else {
-	            output += line;
-	          }
-	        } else {
-	          output = "";
-	        }
-	      }
-	    }
-	    return output;
-	  }
-	  generate(input) {
-	    const out = {
-	      text: ""
-	    };
-	    this.hasColons = Boolean(this.options.parser.getOptions().keepColons);
-	    this.keepWhiteSpace = Boolean(this.options.lexer.getOptions().keepWhiteSpace);
-	    this.keywords = this.options.parser.getKeywords();
-	    this.line = 0;
-	    try {
-	      const tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);
-	      out.text = output;
-	    } catch (e) {
-	      if (Utils.isCustomError(e)) {
-	        out.error = e;
-	        if (!this.options.quiet) {
-	          Utils.console.warn(e);
-	        }
-	      } else {
-	        out.error = e;
-	        Utils.console.error(e);
-	      }
-	    }
-	    return out;
-	  }
-	};
-	_CodeGeneratorBasic.combinedKeywords = {
-	  chainMerge: "CHAIN",
-	  // "CHAIN MERGE"
-	  clearInput: "CLEAR",
-	  // "CLEAR INPUT"
-	  graphicsPaper: "GRAPHICS",
-	  // "GRAPHICS PAPER"
-	  graphicsPen: "GRAPHICS",
-	  // "GRAPHICS PEN"
-	  keyDef: "KEY",
-	  // "KEY DEF"
-	  lineInput: "LINE",
-	  // "LINE INPUT"
-	  mid$Assign: "MID$",
-	  onBreakCont: "ON",
-	  // ""ON BREAK CONT"
-	  onBreakGosub: "ON",
-	  // ""ON BREAK GOSUB"
-	  onBreakStop: "ON",
-	  // ""ON BREAK STOP"
-	  onErrorGoto: "ON",
-	  // "ON ERROR GOTO"
-	  resumeNext: "RESUME",
-	  // "RESUME NEXT"
-	  speedInk: "SPEED",
-	  // "SPEED INK"
-	  speedKey: "SPEED",
-	  // "SPEED KEY"
-	  speedWrite: "SPEED",
-	  // "SPEED WRITE"
-	  symbolAfter: "SYMBOL",
-	  // "SYMBOL AFTER"
-	  windowSwap: "WINDOW"
-	  // "WINDOW SWAP"
-	};
-	_CodeGeneratorBasic.operators = {
-	  "+": "+",
-	  "-": "-",
-	  "*": "*",
-	  "/": "/",
-	  "\\": "\\",
-	  "^": "^",
-	  and: "AND",
-	  or: "OR",
-	  xor: "XOR",
-	  not: "NOT",
-	  mod: "MOD",
-	  ">": ">",
-	  "<": "<",
-	  ">=": ">=",
-	  "<=": "<=",
-	  "=": "=",
-	  "<>": "<>",
-	  "@": "@",
-	  "#": "#"
-	};
-	_CodeGeneratorBasic.operatorPrecedence = {
-	  "@": 95,
-	  // prefix
-	  "^": 90,
-	  "p-": 80,
-	  // prefix - (fast hack)
-	  "p+": 80,
-	  // prefix + (fast hack)
-	  "*": 70,
-	  "/": 70,
-	  "\\": 60,
-	  mod: 50,
-	  "+": 40,
-	  "-": 40,
-	  "=": 30,
-	  "<>": 30,
-	  "<": 30,
-	  "<=": 30,
-	  ">": 30,
-	  ">=": 30,
-	  not: 23,
-	  // prefix
-	  and: 22,
-	  or: 21,
-	  xor: 20,
-	  "#": 10
-	  // priority?
-	};
-	_CodeGeneratorBasic.operatorAssociativity = {
-	  "^": "right",
-	  // right-associative
-	  "*": "left",
-	  // left-associative (commutative, so parens not needed for equal precedence)
-	  "+": "left",
-	  // left-associative (commutative, so parens not needed for equal precedence)
-	  "/": "left",
-	  // left-associative (non-commutative, so parens ARE needed for equal precedence)
-	  "\\": "left",
-	  // left-associative (non-commutative, so parens ARE needed)
-	  mod: "left",
-	  // left-associative (non-commutative)
-	  "-": "left",
-	  // left-associative (non-commutative, so parens ARE needed for equal precedence)
-	  "=": "none",
-	  // comparison operators are non-associative
-	  "<>": "none",
-	  "<": "none",
-	  "<=": "none",
-	  ">": "none",
-	  ">=": "none",
-	  and: "left",
-	  or: "left",
-	  xor: "left"
-	};
-	let CodeGeneratorBasic = _CodeGeneratorBasic;
-
-	const _CodeGeneratorToken = class _CodeGeneratorToken {
-	  // current line (label)
-	  constructor(options) {
-	    this.label = "0";
-	    /* eslint-disable no-invalid-this */
-	    this.parseFunctions = {
-	      // to call methods, use parseFunctions[].call(this,...)
-	      args: this.fnArgs,
-	      range: this.range,
-	      linerange: this.linerange,
-	      string: _CodeGeneratorToken.string,
-	      ustring: _CodeGeneratorToken.ustring,
-	      "(eol)": _CodeGeneratorToken.fnEol,
-	      // ignore newline "\n"
-	      number: _CodeGeneratorToken.number,
-	      expnumber: _CodeGeneratorToken.number,
-	      // same handling as for number
-	      binnumber: _CodeGeneratorToken.binnumber,
-	      hexnumber: _CodeGeneratorToken.hexnumber,
-	      identifier: this.identifier,
-	      linenumber: _CodeGeneratorToken.linenumber,
-	      label: this.fnLabel,
-	      "|": this.vertical,
-	      "else": this.fnElseOrApostrophe,
-	      elseComment: this.elseComment,
-	      onBreakCont: this.onBreakContOrGosubOrStop,
-	      onBreakGosub: this.onBreakContOrGosubOrStop,
-	      onBreakStop: this.onBreakContOrGosubOrStop,
-	      onErrorGoto: this.onErrorGoto,
-	      onSqGosub: this.onSqGosub,
-	      "'": this.fnElseOrApostrophe
-	    };
-	    this.options = {
-	      allowLineFragments: false,
-	      // only for testing
-	      implicitLines: false,
-	      quiet: false
-	    };
-	    this.setOptions(options);
-	  }
-	  getOptions() {
-	    return this.options;
-	  }
-	  setOptions(options) {
-	    Object.assign(this.options, options);
-	  }
-	  generateProgram(input) {
-	    this.options.lexer.setOptions({ keepWhiteSpace: true });
-	    this.options.parser.setOptions({ keepTokens: true, keepBrackets: true, keepColons: true, keepDataComma: true });
-	    return this.generate(input);
-	  }
-	  composeError(error, message, value, pos) {
-	    return Utils.composeError("CodeGeneratorToken", error, message, value, pos, void 0, this.label);
-	  }
-	  static convUInt8ToString(n) {
-	    return String.fromCharCode(n);
-	  }
-	  static convUInt16ToString(n) {
-	    return String.fromCharCode(n & 255) + String.fromCharCode(n >> 8);
-	  }
-	  static convInt32ToString(n) {
-	    return _CodeGeneratorToken.convUInt16ToString(n & 65535) + _CodeGeneratorToken.convUInt16ToString(n >> 16 & 65535);
-	  }
-	  static token2String(name) {
-	    let token = _CodeGeneratorToken.tokens[name], result = "";
-	    if (token === void 0) {
-	      token = _CodeGeneratorToken.tokensFF[name];
-	      if (token === void 0) {
-	        Utils.console.error("token2String: Not a token: " + name);
-	        return name;
-	      }
-	      result = _CodeGeneratorToken.convUInt8ToString(255);
-	    }
-	    return result + _CodeGeneratorToken.convUInt8ToString(token);
-	  }
-	  static getBit7TerminatedString(s) {
-	    return s.substring(0, s.length - 1) + String.fromCharCode(s.charCodeAt(s.length - 1) | 128);
-	  }
-	  static fnGetWs(node) {
-	    return node.ws || "";
-	  }
-	  fnParseArgs(args) {
-	    const nodeArgs = [];
-	    if (!args) {
-	      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
-	    }
-	    for (let i = 0; i < args.length; i += 1) {
-	      nodeArgs.push(this.parseNode(args[i]));
-	    }
-	    return nodeArgs;
-	  }
-	  fnArgs(node) {
-	    return this.fnParseArgs(node.args).join(node.value);
-	  }
-	  range(node) {
-	    return this.parseNode(node.left) + _CodeGeneratorToken.fnGetWs(node) + node.value + this.parseNode(node.right);
-	  }
-	  linerange(node) {
-	    return this.parseNode(node.left) + _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(node.value) + this.parseNode(node.right);
-	  }
-	  static string(node) {
-	    return _CodeGeneratorToken.fnGetWs(node) + '"' + node.value + '"';
-	  }
-	  static ustring(node) {
-	    return _CodeGeneratorToken.fnGetWs(node) + '"' + node.value;
-	  }
-	  static fnEol() {
-	    return "";
-	  }
-	  static floatToByteString(number) {
-	    let mantissa = 0, exponent = 0, sign = 0;
-	    if (number !== 0) {
-	      if (number < 0) {
-	        sign = 2147483648;
-	        number = -number;
-	      }
-	      exponent = Math.ceil(Math.log(number) / Math.log(2));
-	      mantissa = Math.round(number / Math.pow(2, exponent - 32)) & 2147483647;
-	      if (mantissa === 0) {
-	        exponent += 1;
-	      }
-	      exponent += 128;
-	    }
-	    return _CodeGeneratorToken.convInt32ToString(sign + mantissa) + _CodeGeneratorToken.convUInt8ToString(exponent);
-	  }
-	  static number(node) {
-	    const numberString = node.value.toUpperCase(), number = Number(numberString);
-	    let result = "";
-	    if (number === Math.floor(number)) {
-	      if (number >= 0 && number <= 9) {
-	        result = _CodeGeneratorToken.token2String(numberString);
-	      } else if (number >= 10 && number <= 255) {
-	        result = _CodeGeneratorToken.token2String("_dec8") + _CodeGeneratorToken.convUInt8ToString(number);
-	      } else if (number >= -32767 && number <= 32767) {
-	        result = (number < 0 ? _CodeGeneratorToken.token2String("-") : "") + _CodeGeneratorToken.token2String("_dec16") + _CodeGeneratorToken.convUInt16ToString(number);
-	      }
-	    }
-	    if (result === "") {
-	      result = _CodeGeneratorToken.token2String("_float") + _CodeGeneratorToken.floatToByteString(number);
-	    }
-	    return _CodeGeneratorToken.fnGetWs(node) + result;
-	  }
-	  static binnumber(node) {
-	    const valueString = node.value.slice(2), value = valueString.length ? parseInt(valueString, 2) : 0;
-	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_bin16") + _CodeGeneratorToken.convUInt16ToString(value);
-	  }
-	  static hexnumber(node) {
-	    let valueString = node.value.slice(1);
-	    if (valueString.charAt(0).toLowerCase() === "h") {
-	      valueString = valueString.slice(1);
-	    }
-	    const value = valueString.length ? parseInt(valueString, 16) : 0;
-	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_hex16") + _CodeGeneratorToken.convUInt16ToString(value);
-	  }
-	  identifier(node) {
-	    let name = node.value, mappedTypeName = _CodeGeneratorToken.varTypeMap[name.charAt(name.length - 1)] || "";
-	    if (mappedTypeName) {
-	      name = name.slice(0, -1);
-	    } else {
-	      mappedTypeName = "_anyVar";
-	    }
-	    const offset = 0;
-	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(mappedTypeName) + _CodeGeneratorToken.convUInt16ToString(offset) + _CodeGeneratorToken.getBit7TerminatedString(name) + (node.args ? this.fnParseArgs(node.args).join("") : "");
-	  }
-	  static linenumber(node) {
-	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_line16") + _CodeGeneratorToken.convUInt16ToString(Number(node.value));
-	  }
-	  fnLabel(node) {
-	    if (node.value === "") {
-	      if (this.options.implicitLines) {
-	        node.value = String(Number(this.label) + 1);
-	      } else if (!this.options.allowLineFragments) {
-	        throw this.composeError(Error(), "Direct command found", node.value, node.pos);
-	      }
-	    }
-	    this.label = node.value;
-	    const line = Number(this.label), nodeArgs = this.fnParseArgs(node.args);
-	    let value = nodeArgs.join("");
-	    if (node.value !== "") {
-	      if (value.charAt(0) === " ") {
-	        value = value.substring(1);
-	      }
-	      value = _CodeGeneratorToken.convUInt16ToString(line) + value + _CodeGeneratorToken.token2String("_eol");
-	      value = _CodeGeneratorToken.convUInt16ToString(value.length + 2) + value;
-	    }
-	    return value;
-	  }
-	  // special keyword functions
-	  vertical(node) {
-	    const rsxName = node.value.substring(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0;
-	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(node.type) + (rsxName.length ? _CodeGeneratorToken.convUInt8ToString(offset) : "") + _CodeGeneratorToken.getBit7TerminatedString(rsxName) + nodeArgs.join("");
-	  }
-	  fnElseOrApostrophe(node) {
-	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(":") + _CodeGeneratorToken.token2String(node.type) + this.fnParseArgs(node.args).join("");
-	  }
-	  elseComment(node) {
-	    if (!node.args) {
-	      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
-	    }
-	    const type = "else";
-	    let value = _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(":") + _CodeGeneratorToken.token2String(type);
-	    const args = node.args;
-	    for (let i = 0; i < args.length; i += 1) {
-	      const token = args[i];
-	      let value2 = token.value;
-	      if (value2) {
-	        if (token.type === "linenumber") {
-	          value2 = _CodeGeneratorToken.linenumber(token);
-	        }
-	        value += value2;
-	      }
-	    }
-	    return value;
-	  }
-	  onBreakContOrGosubOrStop(node) {
-	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_onBreak") + (node.right && node.right.right ? this.parseNode(node.right.right) : "") + this.fnParseArgs(node.args).join("");
-	  }
-	  onErrorGoto(node) {
-	    if (node.args && node.args.length && node.args[0].value === "0") {
-	      return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_onErrorGoto0");
-	    }
-	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("on") + this.parseNode(node.right) + this.fnParseArgs(node.args).join("");
-	  }
-	  onSqGosub(node) {
-	    return _CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs(node.right.args).join("") + this.fnParseArgs(node.args).join("");
-	  }
-	  /* eslint-enable no-invalid-this */
-	  fnParseOther(node) {
-	    const type = node.type, isToken = _CodeGeneratorToken.tokens[type] !== void 0 || _CodeGeneratorToken.tokensFF[type] !== void 0;
-	    let value = "";
-	    if (node.left) {
-	      value += this.parseNode(node.left);
-	    }
-	    value += _CodeGeneratorToken.fnGetWs(node);
-	    if (isToken) {
-	      value += _CodeGeneratorToken.token2String(type);
-	    } else if (node.value) {
-	      value += node.value;
-	    }
-	    if (node.right) {
-	      value += this.parseNode(node.right);
-	    }
-	    if (node.args) {
-	      value += this.fnParseArgs(node.args).join("");
-	    }
-	    return value;
-	  }
-	  parseNode(node) {
-	    if (Utils.debug > 3) {
-	      Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
-	    }
-	    const type = node.type;
-	    let value;
-	    if (node.len === 0 && type !== "label") {
-	      value = "";
-	    } else {
-	      value = this.parseFunctions[type] ? this.parseFunctions[type].call(this, node) : this.fnParseOther(node);
-	    }
-	    if (Utils.debug > 2) {
-	      Utils.console.debug("parseNode: type='" + type + "', value='" + node.value + "', ws='" + node.ws + "', resultValue='" + value + "'");
-	    }
-	    return value;
-	  }
-	  evaluate(parseTree) {
-	    let output = "";
-	    for (let i = 0; i < parseTree.length; i += 1) {
-	      if (Utils.debug > 2) {
-	        Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
-	      }
-	      const node = this.parseNode(parseTree[i]);
-	      if (node !== void 0 && node !== "") {
-	        if (node !== null) {
-	          output += node;
-	        } else {
-	          output = "";
-	        }
-	      }
-	    }
-	    if (this.label) {
-	      output += _CodeGeneratorToken.token2String("_eol") + _CodeGeneratorToken.token2String("_eol");
-	    }
-	    return output;
-	  }
-	  generate(input) {
-	    const out = {
-	      text: ""
-	    };
-	    this.label = "0";
-	    try {
-	      const tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);
-	      out.text = output;
-	    } catch (e) {
-	      if (Utils.isCustomError(e)) {
-	        out.error = e;
-	        if (!this.options.quiet) {
-	          Utils.console.warn(e);
-	        }
-	      } else {
-	        out.error = e;
-	        Utils.console.error(e);
-	      }
-	    }
-	    return out;
-	  }
-	};
-	_CodeGeneratorToken.tokens = {
-	  _eol: 0,
-	  // marker for "end of tokenised line"
-	  ":": 1,
-	  // ":" statement seperator
-	  _intVar: 2,
-	  // integer variable definition (defined with "%" suffix)  "(A-Z)+%"
-	  _stringVar: 3,
-	  // string variable definition (defined with "$" suffix)  "(A-Z)+\$"
-	  _floatVar: 4,
-	  // floating point variable definition (defined with "!" suffix) "(A-Z)+!"
-	  // "": 0x05, // "var?"
-	  // "": 0x06, // "var?"
-	  // "": 0x07, // "var?"
-	  // "": 0x08, // "var?"
-	  // "": 0x09, // "var?"
-	  // "": 0x0a, // "var?"
-	  // "": 0x0b, // integer variable definition (no suffix)
-	  // "": 0x0c, // string variable definition (no suffix)
-	  _anyVar: 13,
-	  // floating point or no type (no suffix)
-	  0: 14,
-	  // number constant "0"
-	  1: 15,
-	  // number constant "1"
-	  2: 16,
-	  // number constant "2"
-	  3: 17,
-	  // number constant "3"
-	  4: 18,
-	  // number constant "4"
-	  5: 19,
-	  // number constant "5"
-	  6: 20,
-	  // number constant "6"
-	  7: 21,
-	  // number constant "7"
-	  8: 22,
-	  // number constant "8"
-	  9: 23,
-	  // number constant "9"
-	  10: 24,
-	  // number constant "10" (not sure when this is used)
-	  _dec8: 25,
-	  // 8-bit integer decimal value
-	  _dec16: 26,
-	  // 16-bit integer decimal value
-	  _bin16: 27,
-	  // 16-bit integer binary value (with "&X" prefix)
-	  _hex16: 28,
-	  // num16Hex: 16-bit integer hexadecimal value (with "&H" or "&" prefix)
-	  // "": 0x1d, // 16-bit BASIC program line memory address pointer (should not occur)
-	  _line16: 30,
-	  // 16-bit integer BASIC line number
-	  _float: 31,
-	  // floating point value
-	  // 0x20-0x21 ASCII printable symbols (space, "!")
-	  // "": 0x22, // '"' quoted string value
-	  // 0x23-0x7b ASCII printable symbols
-	  "#": 35,
-	  // "#" character (stream)
-	  "(": 40,
-	  // "(" character
-	  ")": 41,
-	  // ")" character
-	  ",": 44,
-	  // "," character
-	  "?": 63,
-	  // "?" character (print)
-	  "@": 64,
-	  // "@" character (address of)
-	  "[": 91,
-	  // "[" character
-	  "]": 93,
-	  // "]" character
-	  "|": 124,
-	  // "|" symbol; prefix for RSX commands
-	  after: 128,
-	  afterGosub: 128,
-	  auto: 129,
-	  border: 130,
-	  call: 131,
-	  cat: 132,
-	  chain: 133,
-	  chainMerge: 133,
-	  // 0xab85
-	  clear: 134,
-	  clearInput: 134,
-	  // 0xa386
-	  clg: 135,
-	  closein: 136,
-	  closeout: 137,
-	  cls: 138,
-	  cont: 139,
-	  data: 140,
-	  def: 141,
-	  defint: 142,
-	  defreal: 143,
-	  defstr: 144,
-	  deg: 145,
-	  "delete": 146,
-	  dim: 147,
-	  draw: 148,
-	  drawr: 149,
-	  edit: 150,
-	  "else": 151,
-	  end: 152,
-	  ent: 153,
-	  env: 154,
-	  erase: 155,
-	  error: 156,
-	  every: 157,
-	  everyGosub: 157,
-	  "for": 158,
-	  gosub: 159,
-	  "goto": 160,
-	  "if": 161,
-	  ink: 162,
-	  input: 163,
-	  key: 164,
-	  keyDef: 164,
-	  // 0x8da4
-	  let: 165,
-	  line: 166,
-	  lineInput: 166,
-	  // 0xa3a6
-	  list: 167,
-	  load: 168,
-	  locate: 169,
-	  memory: 170,
-	  merge: 171,
-	  mid$: 172,
-	  mid$Assign: 172,
-	  mode: 173,
-	  move: 174,
-	  mover: 175,
-	  next: 176,
-	  "new": 177,
-	  on: 178,
-	  _onBreak: 179,
-	  // onBreakCont, onBreakGosub, onBreakStop
-	  _onErrorGoto0: 180,
-	  // "on error goto 0" (on error goto n > 0 is decoded with separate tokens)
-	  onGosub: 178,
-	  onGoto: 178,
-	  _onSq: 181,
-	  // "on sq" (onSqGosub)
-	  openin: 182,
-	  openout: 183,
-	  origin: 184,
-	  out: 185,
-	  paper: 186,
-	  pen: 187,
-	  plot: 188,
-	  plotr: 189,
-	  poke: 190,
-	  print: 191,
-	  "'": 192,
-	  // apostrophe "'" symbol (same function as REM keyword)
-	  rad: 193,
-	  randomize: 194,
-	  read: 195,
-	  release: 196,
-	  rem: 197,
-	  // rem
-	  renum: 198,
-	  restore: 199,
-	  resume: 200,
-	  resumeNext: 200,
-	  // 0xb0c8
-	  "return": 201,
-	  run: 202,
-	  save: 203,
-	  sound: 204,
-	  speedInk: 205,
-	  // 0xa2cd
-	  speedKey: 205,
-	  // 0xa4cd,
-	  speedWrite: 205,
-	  // 0xd9cd
-	  stop: 206,
-	  swap: 231,
-	  symbol: 207,
-	  symbolAfter: 207,
-	  // 0x80cf
-	  tag: 208,
-	  tagoff: 209,
-	  troff: 210,
-	  tron: 211,
-	  wait: 212,
-	  wend: 213,
-	  "while": 214,
-	  width: 215,
-	  window: 216,
-	  windowSwap: 216,
-	  // 0xe7d8
-	  write: 217,
-	  zone: 218,
-	  di: 219,
-	  ei: 220,
-	  fill: 221,
-	  // (v1.1)
-	  graphics: 222,
-	  // (v1.1)
-	  graphicsPaper: 222,
-	  // 0xbade
-	  graphicsPen: 222,
-	  // 0xbbde
-	  mask: 223,
-	  // (v1.1)
-	  frame: 224,
-	  // (v1.1)
-	  cursor: 225,
-	  // (v1.1)
-	  // "<unused>":         0xe2,
-	  erl: 227,
-	  fn: 228,
-	  spc: 229,
-	  step: 230,
-	  // swap: 0xe7, only: windowSwap...
-	  // "<unused>":         0xe8,
-	  // "<unused>":         0xe9,
-	  tab: 234,
-	  then: 235,
-	  to: 236,
-	  using: 237,
-	  ">": 238,
-	  // (greater than)
-	  "=": 239,
-	  // (equal)
-	  assign: 239,
-	  // equal as assign
-	  ">=": 240,
-	  // (greater or equal)
-	  "<": 241,
-	  // (less than)
-	  "<>": 242,
-	  // (not equal)
-	  "<=": 243,
-	  // =<, <=, < = (less than or equal)
-	  "+": 244,
-	  // (addition)
-	  "-": 245,
-	  // (subtraction or unary minus)
-	  "*": 246,
-	  // (multiplication)
-	  "/": 247,
-	  // (division)
-	  "^": 248,
-	  // (x to the power of y)
-	  "\\": 249,
-	  // (integer division)
-	  and: 250,
-	  mod: 251,
-	  or: 252,
-	  xor: 253,
-	  not: 254
-	  // 0xff: (prefix for additional keywords)
-	};
-	_CodeGeneratorToken.tokensFF = {
-	  // Functions with one argument
-	  abs: 0,
-	  asc: 1,
-	  atn: 2,
-	  chr$: 3,
-	  cint: 4,
-	  cos: 5,
-	  creal: 6,
-	  exp: 7,
-	  fix: 8,
-	  fre: 9,
-	  inkey: 10,
-	  inp: 11,
-	  "int": 12,
-	  joy: 13,
-	  len: 14,
-	  log: 15,
-	  log10: 16,
-	  lower$: 17,
-	  peek: 18,
-	  remain: 19,
-	  sgn: 20,
-	  sin: 21,
-	  space$: 22,
-	  sq: 23,
-	  sqr: 24,
-	  str$: 25,
-	  tan: 26,
-	  unt: 27,
-	  upper$: 28,
-	  val: 29,
-	  // Functions without arguments
-	  eof: 64,
-	  err: 65,
-	  himem: 66,
-	  inkey$: 67,
-	  pi: 68,
-	  rnd: 69,
-	  time: 70,
-	  xpos: 71,
-	  ypos: 72,
-	  derr: 73,
-	  // (v1.1)
-	  // Functions with more arguments
-	  bin$: 113,
-	  dec$: 114,
-	  // (v1.1)
-	  hex$: 115,
-	  instr: 116,
-	  left$: 117,
-	  max: 118,
-	  min: 119,
-	  pos: 120,
-	  right$: 121,
-	  round: 122,
-	  string$: 123,
-	  test: 124,
-	  testr: 125,
-	  copychr$: 126,
-	  // (v1.1)
-	  vpos: 127
-	};
-	_CodeGeneratorToken.varTypeMap = {
-	  "!": "_floatVar",
-	  "%": "_intVar",
-	  $: "_stringVar"
-	};
-	let CodeGeneratorToken = _CodeGeneratorToken;
-
 	const cpcCharset = [
 	  // eslint-disable-line no-unused-vars
 	  [255, 195, 195, 195, 195, 195, 195, 255],
@@ -10880,249 +9715,842 @@
 	  //  0xff
 	];
 
-	class Diff {
-	  // Refer to http://www.xmailserver.org/diff2.pdf
-	  static composeError(error, message, value, pos) {
-	    return Utils.composeError("Diff", error, message, value, pos, void 0, 0);
+	class FileSelect {
+	  // current file
+	  constructor(options) {
+	    this.fileIndex = 0;
+	    this.imported = [];
+	    this.fnOnLoadHandler = this.fnOnLoad.bind(this);
+	    this.fnOnErrorHandler = this.fnOnError.bind(this);
+	    this.fnOnFileSelectHandler = this.fnOnFileSelect.bind(this);
+	    this.options = {};
+	    this.setOptions(options);
 	  }
-	  static inRange(x, l, r) {
-	    return l <= x && x <= r || r <= x && x <= l;
+	  getOptions() {
+	    return this.options;
 	  }
-	  static fnEquals(a, b) {
-	    return a === b;
+	  setOptions(options) {
+	    Object.assign(this.options, options);
 	  }
-	  // Accepts custom comparator
-	  static customIndexOf(arr, item, start, fnEquals) {
-	    for (let i2 = start; i2 < arr.length; i2 += 1) {
-	      if (fnEquals(item, arr[i2])) {
-	        return i2;
+	  fnReadNextFile(reader) {
+	    if (this.files && this.fileIndex < this.files.length) {
+	      const file = this.files[this.fileIndex];
+	      this.fileIndex += 1;
+	      const lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
+	      UiUtils.console.log(text);
+	      if (file.type === "text/plain") {
+	        reader.readAsText(file);
+	      } else if (file.type === "application/x-zip-compressed" || file.type === "application/zip") {
+	        reader.readAsArrayBuffer(file);
+	      } else {
+	        reader.readAsDataURL(file);
+	      }
+	      this.file = file;
+	    } else {
+	      this.options.fnEndOfImport(this.imported);
+	    }
+	  }
+	  fnOnLoad(event) {
+	    if (!this.file) {
+	      UiUtils.console.error("fnOnLoad: Programming error: No file");
+	      return;
+	    }
+	    const file = this.file, name = file.name, reader = event.target;
+	    let data = reader && reader.result || null, type = "";
+	    if ((file.type === "application/x-zip-compressed" || file.type === "application/zip") && data instanceof ArrayBuffer) {
+	      type = "Z";
+	      this.options.fnLoad2(new Uint8Array(data), name, type, this.imported);
+	    } else if (typeof data === "string") {
+	      if (file.type === "text/plain") {
+	        type = "A";
+	      } else if (data.indexOf("data:") === 0) {
+	        const index = data.indexOf(",");
+	        if (index >= 0) {
+	          const info1 = data.substring(0, index);
+	          data = data.substring(index + 1);
+	          if (info1.indexOf("base64") >= 0) {
+	            data = window.atob(data);
+	          }
+	          if (info1.indexOf("text/") >= 0 && info1.indexOf("text/x-basic") < 0) {
+	            type = "A";
+	          }
+	        }
+	      }
+	      this.options.fnLoad2(data, name, type, this.imported);
+	    } else {
+	      UiUtils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
+	    }
+	    if (reader) {
+	      this.fnReadNextFile(reader);
+	    }
+	  }
+	  fnOnError(event) {
+	    const reader = event.target, filename = this.file && this.file.name || "unknown";
+	    let msg = "fnOnError: " + filename;
+	    if (reader && reader.error) {
+	      msg += ": " + String(reader.error);
+	    }
+	    UiUtils.console.error(msg);
+	    if (reader) {
+	      this.fnReadNextFile(reader);
+	    }
+	  }
+	  // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
+	  // https://www.w3.org/TR/file-upload/#dfn-filereader
+	  fnOnFileSelect(event) {
+	    event.stopPropagation();
+	    event.preventDefault();
+	    const dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : View.getEventTarget(event).files;
+	    if (!files || !files.length) {
+	      UiUtils.console.error("fnHandleFileSelect: No files!");
+	      return;
+	    }
+	    this.files = files;
+	    this.fileIndex = 0;
+	    this.imported.length = 0;
+	    if (window.FileReader) {
+	      const reader = new window.FileReader();
+	      reader.onerror = this.fnOnErrorHandler;
+	      reader.onload = this.fnOnLoadHandler;
+	      this.fnReadNextFile(reader);
+	    } else {
+	      UiUtils.console.warn("fnHandleFileSelect: FileReader API not supported.");
+	    }
+	  }
+	  addFileSelectHandler(element, type) {
+	    element.addEventListener(type, this.fnOnFileSelectHandler, false);
+	  }
+	}
+
+	const _Keyboard = class _Keyboard {
+	  // simulated num lock for Mac OS
+	  constructor(options) {
+	    this.keyBuffer = [];
+	    // buffered pressed keys
+	    this.expansionTokens = [];
+	    // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
+	    this.active = false;
+	    this.codeStringsRemoved = false;
+	    this.pressedKeys = {};
+	    this.fnKeydownOrKeyupHandler = (event) => this.onKeydownOrKeyup(event);
+	    this.options = {};
+	    this.setOptions(options);
+	    this.key2CpcKey = _Keyboard.key2CpcKey;
+	    this.cpcKeyExpansions = {
+	      normal: {},
+	      shift: {},
+	      ctrl: {},
+	      repeat: {}
+	    };
+	    const view = this.options.view;
+	    view.addEventListenerById("keydown", this.fnKeydownOrKeyupHandler, ViewID.cpcArea);
+	    view.addEventListenerById("keyup", this.fnKeydownOrKeyupHandler, ViewID.cpcArea);
+	  }
+	  getOptions() {
+	    return this.options;
+	  }
+	  setOptions(options) {
+	    Object.assign(this.options, options);
+	  }
+	  /* eslint-enable array-element-newline */
+	  reset() {
+	    this.options.fnOnKeyDown = void 0;
+	    this.clearInput();
+	    this.pressedKeys = {};
+	    this.resetExpansionTokens();
+	    this.resetCpcKeysExpansions();
+	  }
+	  clearInput() {
+	    this.keyBuffer.length = 0;
+	  }
+	  resetExpansionTokens() {
+	    const expansionTokens = this.expansionTokens;
+	    for (let i = 0; i <= 9; i += 1) {
+	      expansionTokens[i] = String(i);
+	    }
+	    expansionTokens[10] = ".";
+	    expansionTokens[11] = "\r";
+	    expansionTokens[12] = 'RUN"\r';
+	    for (let i = 13; i <= 31; i += 1) {
+	      expansionTokens[i] = "0";
+	    }
+	  }
+	  resetCpcKeysExpansions() {
+	    const cpcKeyExpansions = this.cpcKeyExpansions;
+	    cpcKeyExpansions.normal = {
+	      // cpcKey => ExpansionToken (128-159)
+	      15: 0 + 128,
+	      // F0
+	      13: 1 + 128,
+	      // F1
+	      14: 2 + 128,
+	      // F2
+	      5: 3 + 128,
+	      // F3
+	      20: 4 + 128,
+	      // F4
+	      12: 5 + 128,
+	      // F5
+	      4: 6 + 128,
+	      // F6
+	      10: 7 + 128,
+	      // F7
+	      11: 8 + 128,
+	      // F8
+	      3: 9 + 128,
+	      // F9
+	      7: 10 + 128,
+	      // F.
+	      6: 11 + 128
+	      // Enter
+	    };
+	    cpcKeyExpansions.shift = {};
+	    cpcKeyExpansions.ctrl = {
+	      6: 12 + 128
+	      // ctrl+Enter
+	    };
+	    cpcKeyExpansions.repeat = {};
+	  }
+	  setActive(active) {
+	    this.active = active;
+	  }
+	  removeCodeStringsFromKeymap() {
+	    const key2CpcKey = this.key2CpcKey, newMap = {};
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
+	    }
+	    for (const key in key2CpcKey) {
+	      if (Object.prototype.hasOwnProperty.call(key2CpcKey, key)) {
+	        const keyCode = parseInt(key, 10);
+	        newMap[keyCode] = key2CpcKey[key];
 	      }
 	    }
-	    return -1;
+	    this.key2CpcKey = newMap;
 	  }
-	  /* can we use it here? need to define aA, aB, lcsAtoms, findMidSnake():
-	  	private static lcs(startA: number, endA: number, startB: number, endB: number) {
-	  		const N = endA - startA + 1,
-	  			M = endB - startB + 1;
-	  
-	  		if (N > 0 && M > 0) {
-	  			const middleSnake = findMidSnake(startA, endA, startB, endB),
-	  				// A[x;u] == B[y,v] and is part of LCS
-	  				x = middleSnake[0][0],
-	  				y = middleSnake[0][1],
-	  				u = middleSnake[1][0],
-	  				v = middleSnake[1][1],
-	  				D = middleSnake[2];
-	  
-	  			if (D > 1) {
-	  				Diff.lcs(startA, x - 1, startB, y - 1);
-	  				if (x <= u) {
-	  					[].push.apply(lcsAtoms, aA.slice(x, u + 1));
-	  				}
-	  				lcs(u + 1, endA, v + 1, endB);
-	  			} else if (M > N) {
-	  				[].push.apply(lcsAtoms, aA.slice(startA, endA + 1));
-	  			} else {
-	  				[].push.apply(lcsAtoms, aB.slice(startB, endB + 1));
-	  			}
-	  		}
-	  	}
-	  	*/
-	  // Longest Common Subsequence
-	  // @param A - sequence of atoms - Array
-	  // @param B - sequence of atoms - Array
-	  // @param equals - optional comparator of atoms - returns true or false,
-	  //                 if not specified, triple equals operator is used
-	  // @returns Array - sequence of atoms, one of LCSs, edit script from A to B
-	  static fnLCS(aA, aB, equals) {
-	    const toPoint = function(x) {
-	      return [
-	        x,
-	        x - this
-	        // eslint-disable-line no-invalid-this
-	      ];
-	    }, findMidSnake = function(startA, endA, startB, endB) {
-	      const iN = endA - startA + 1, iM = endB - startB + 1, max = iN + iM, delta = iN - iM, hhalfMaxCeil = (max + 1) / 2 | 0, oV = {}, oU = {};
-	      let overlap, iD;
-	      oV[1] = 0;
-	      oU[delta - 1] = iN;
-	      for (iD = 0; iD <= hhalfMaxCeil; iD += 1) {
-	        for (let k = -iD; k <= iD && !overlap; k += 2) {
-	          let x;
-	          if (k === -iD || k !== iD && oV[k - 1] < oV[k + 1]) {
-	            x = oV[k + 1];
-	          } else {
-	            x = oV[k - 1] + 1;
+	  fnPressCpcKey(event, cpcKeyCode, pressedKey, key) {
+	    const shiftKey = event.shiftKey, ctrlKey = event.ctrlKey, pressedKeys = this.pressedKeys, cpcKeyExpansions = this.cpcKeyExpansions, specialKeys = _Keyboard.specialKeys, cpcKey = String(cpcKeyCode);
+	    let cpcKeyEntry = pressedKeys[cpcKey];
+	    if (!cpcKeyEntry) {
+	      pressedKeys[cpcKey] = {
+	        keys: {},
+	        shift: false,
+	        ctrl: false
+	      };
+	      cpcKeyEntry = pressedKeys[cpcKey];
+	    }
+	    const keyAlreadyPressed = cpcKeyEntry.keys[pressedKey];
+	    cpcKeyEntry.keys[pressedKey] = true;
+	    cpcKeyEntry.shift = shiftKey;
+	    cpcKeyEntry.ctrl = ctrlKey;
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.log("fnPressCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKey);
+	    }
+	    const repeat = cpcKeyExpansions.repeat;
+	    if (keyAlreadyPressed && (cpcKey in repeat && !repeat[cpcKey])) {
+	      key = "";
+	    } else {
+	      let expansions;
+	      if (ctrlKey) {
+	        expansions = cpcKeyExpansions.ctrl;
+	      } else if (shiftKey) {
+	        expansions = cpcKeyExpansions.shift;
+	      } else {
+	        expansions = cpcKeyExpansions.normal;
+	      }
+	      if (cpcKey in expansions) {
+	        const expKey = expansions[cpcKey];
+	        if (expKey >= 128 && expKey <= 159) {
+	          key = this.expansionTokens[expKey - 128];
+	          for (let i = 0; i < key.length; i += 1) {
+	            this.putKeyInBuffer(key.charAt(i));
 	          }
-	          let y = x - k;
-	          if (isNaN(y) || x > iN || y > iM) {
-	            continue;
-	          }
-	          const xx = x;
-	          while (x < iN && y < iM && equals(aA[startA + x], aB[startB + y])) {
-	            x += 1;
-	            y += 1;
-	          }
-	          oV[k] = x;
-	          if ((delta & 1) === 1 && Diff.inRange(k, delta - (iD - 1), delta + (iD - 1))) {
-	            if (oV[k] >= oU[k]) {
-	              overlap = [
-	                xx,
-	                x
-	              ].map(toPoint, k);
-	            }
-	          }
+	        } else {
+	          key = String.fromCharCode(expKey);
+	          this.putKeyInBuffer(key.charAt(0));
 	        }
-	        let SES;
-	        if (overlap) {
-	          SES = iD * 2 - 1;
+	        key = "";
+	      }
+	    }
+	    const shiftCtrlKey = key + (shiftKey ? "Shift" : "") + (ctrlKey ? "Ctrl" : "");
+	    if (shiftCtrlKey in specialKeys) {
+	      key = specialKeys[shiftCtrlKey];
+	    } else if (key in specialKeys) {
+	      key = specialKeys[key];
+	    } else if (ctrlKey) {
+	      if (key >= "a" && key <= "z") {
+	        key = String.fromCharCode(key.charCodeAt(0) - 96);
+	      }
+	    }
+	    if (key.length === 1) {
+	      this.putKeyInBuffer(key);
+	    }
+	    if (cpcKeyCode === 66 && this.options.fnOnEscapeHandler) {
+	      this.options.fnOnEscapeHandler(key, pressedKey);
+	    }
+	    if (this.options.fnOnKeyDown) {
+	      this.options.fnOnKeyDown();
+	    }
+	  }
+	  fnReleaseCpcKey(event, cpcKeyCode, pressedKey, key) {
+	    const shiftKey = event.shiftKey, ctrlKey = event.ctrlKey, pressedKeys = this.pressedKeys, cpcKey = pressedKeys[cpcKeyCode];
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.log("fnReleaseCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKeyCode + ", keys:", cpcKey ? cpcKey.keys : "undef.");
+	    }
+	    if (!cpcKey) {
+	      UiUtils.console.warn("fnReleaseCpcKey: cpcKey was not pressed:", cpcKeyCode);
+	    } else {
+	      delete cpcKey.keys[pressedKey];
+	      if (!Object.keys(cpcKey.keys).length) {
+	        delete pressedKeys[cpcKeyCode];
+	      } else {
+	        cpcKey.shift = shiftKey;
+	        cpcKey.ctrl = ctrlKey;
+	      }
+	    }
+	  }
+	  static keyIdentifier2Char(event) {
+	    const identifier = event.keyIdentifier, shiftKey = event.shiftKey;
+	    let char;
+	    if (/^U\+/i.test(identifier || "")) {
+	      char = String.fromCharCode(parseInt(identifier.substr(2), 16));
+	      if (char === "\0") {
+	        char = "";
+	      }
+	      char = shiftKey ? char.toUpperCase() : char.toLowerCase();
+	    } else {
+	      char = identifier;
+	    }
+	    return char;
+	  }
+	  fnKeyboardKeydown(event) {
+	    const keyCode = event.which || event.keyCode;
+	    let pressedKey = String(keyCode) + (event.code ? event.code : ""), key = event.key || _Keyboard.keyIdentifier2Char(event) || "";
+	    if (!event.code && !this.codeStringsRemoved) {
+	      this.removeCodeStringsFromKeymap();
+	      this.codeStringsRemoved = true;
+	    }
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.log("fnKeyboardKeydown: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
+	    }
+	    if (pressedKey in this.key2CpcKey) {
+	      const numTabOffKey = this.simulatedNumLock === false ? _Keyboard.numPadOffKeyMap[pressedKey] : void 0;
+	      if (numTabOffKey) {
+	        pressedKey = numTabOffKey;
+	      }
+	      let cpcKey = this.key2CpcKey[pressedKey];
+	      if (cpcKey === 85) {
+	        cpcKey = 22;
+	      }
+	      if (cpcKey === 72) {
+	        key = "JoyUp";
+	      } else if (cpcKey === 73) {
+	        key = "JoyDown";
+	      } else if (cpcKey === 74) {
+	        key = "JoyLeft";
+	      } else if (cpcKey === 75) {
+	        key = "JoyRight";
+	      } else if (key === "Dead") {
+	        key += event.code + (event.shiftKey ? "Shift" : "");
+	      } else if (key === "Unidentified") {
+	        if (keyCode === 220) {
+	          key = event.shiftKey ? "\xB0" : "DeadBackquote";
+	        } else if (keyCode === 221) {
+	          key = "DeadEqual" + (event.shiftKey ? "Shift" : "");
+	        } else if (keyCode === 226) {
+	          key = "|";
 	        }
-	        for (let k = -iD; k <= iD && !overlap; k += 2) {
-	          const K = k + delta;
-	          let x;
-	          if (k === iD || k !== -iD && oU[K - 1] < oU[K + 1]) {
-	            x = oU[K - 1];
-	          } else {
-	            x = oU[K + 1] - 1;
-	          }
-	          let y = x - K;
-	          if (isNaN(y) || x < 0 || y < 0) {
-	            continue;
-	          }
-	          const xx = x;
-	          while (x > 0 && y > 0 && equals(aA[startA + x - 1], aB[startB + y - 1])) {
-	            x -= 1;
-	            y -= 1;
-	          }
-	          oU[K] = x;
-	          if (delta % 2 === 0 && Diff.inRange(K, -iD, iD)) {
-	            if (oU[K] <= oV[K]) {
-	              overlap = [
-	                x,
-	                xx
-	              ].map(toPoint, K);
-	            }
-	          }
-	        }
-	        if (overlap) {
-	          SES = SES || iD * 2;
-	          for (let i = 0; i < 2; i += 1) {
-	            for (let j = 0; j < 2; j += 1) {
-	              overlap[i][j] += [
-	                startA,
-	                startB
-	              ][j] - i;
-	            }
-	          }
-	          return overlap.concat([
-	            SES,
-	            (max - SES) / 2
-	          ]);
+	      } else if (key.length === 2) {
+	        if (key.charAt(0) === "^" || key.charAt(0) === "\xB4" || key.charAt(0) === "`") {
+	          key = key.substring(1);
 	        }
 	      }
-	      throw Diff.composeError(Error(), "Programming error in findMidSnake", "", 0);
-	    }, lcsAtoms = [], lcs = function(startA, endA, startB, endB) {
-	      const N = endA - startA + 1, M = endB - startB + 1;
-	      if (N > 0 && M > 0) {
-	        const middleSnake = findMidSnake(startA, endA, startB, endB), x = middleSnake[0][0], y = middleSnake[0][1], u = middleSnake[1][0], v = middleSnake[1][1], D = middleSnake[2];
-	        if (D > 1) {
-	          lcs(startA, x - 1, startB, y - 1);
-	          if (x <= u) {
-	            [].push.apply(lcsAtoms, aA.slice(x, u + 1));
-	          }
-	          lcs(u + 1, endA, v + 1, endB);
-	        } else if (M > N) {
-	          [].push.apply(lcsAtoms, aA.slice(startA, endA + 1));
-	        } else {
-	          [].push.apply(lcsAtoms, aB.slice(startB, endB + 1));
+	      this.fnPressCpcKey(event, cpcKey, pressedKey, key);
+	    } else if (key.length === 1) {
+	      this.putKeyInBuffer(key);
+	      UiUtils.console.log("fnKeyboardKeydown: Partly unhandled key", pressedKey + ":", key);
+	    } else if (pressedKey === "12NumLock") {
+	      this.simulatedNumLock = this.simulatedNumLock !== void 0 ? !this.simulatedNumLock : false;
+	      if (UiUtils.debug > 1) {
+	        UiUtils.console.log("fnKeyboardKeydown: simulatedNumLock=" + this.simulatedNumLock);
+	      }
+	    } else {
+	      UiUtils.console.log("fnKeyboardKeydown: Unhandled key", pressedKey + ":", key);
+	    }
+	  }
+	  fnKeyboardKeyup(event) {
+	    const keyCode = event.which || event.keyCode, key = event.key || _Keyboard.keyIdentifier2Char(event) || "";
+	    let pressedKey = String(keyCode) + (event.code ? event.code : "");
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.log("fnKeyboardKeyup: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
+	    }
+	    if (pressedKey in this.key2CpcKey) {
+	      const numTabOffKey = this.simulatedNumLock === false ? _Keyboard.numPadOffKeyMap[pressedKey] : void 0;
+	      if (numTabOffKey) {
+	        pressedKey = numTabOffKey;
+	      }
+	      let cpcKey = this.key2CpcKey[pressedKey];
+	      if (cpcKey === 85) {
+	        cpcKey = 22;
+	      }
+	      this.fnReleaseCpcKey(event, cpcKey, pressedKey, key);
+	    } else if (pressedKey === "12NumLock") {
+	      if (UiUtils.debug > 1) {
+	        UiUtils.console.log("fnKeyboardKeyup: simulatedNumLock=" + this.simulatedNumLock);
+	      }
+	    } else {
+	      UiUtils.console.log("fnKeyboardKeyup: Unhandled key", pressedKey + ":", key);
+	    }
+	  }
+	  getKeyFromBuffer() {
+	    const keyBuffer = this.keyBuffer, key = keyBuffer.length ? keyBuffer.shift() : "";
+	    return key;
+	  }
+	  putKeyInBuffer(key, triggerOnKeyDown) {
+	    this.keyBuffer.push(key);
+	    if (triggerOnKeyDown) {
+	      const keyDownHandler = this.options.fnOnKeyDown;
+	      if (keyDownHandler) {
+	        keyDownHandler();
+	      }
+	    }
+	  }
+	  putKeysInBuffer(input) {
+	    for (let i = 0; i < input.length; i += 1) {
+	      const key = input.charAt(i);
+	      this.keyBuffer.push(key);
+	    }
+	  }
+	  getKeyState(cpcKeyCode) {
+	    const pressedKeys = this.pressedKeys;
+	    let state = -1;
+	    if (cpcKeyCode in pressedKeys) {
+	      const cpcKeyEntry = pressedKeys[cpcKeyCode];
+	      state = 0 + (cpcKeyEntry.shift ? 32 : 0) + (cpcKeyEntry.ctrl ? 128 : 0);
+	    }
+	    return state;
+	  }
+	  getJoyState(joy) {
+	    const joyKeyList = _Keyboard.joyKeyCodes[joy];
+	    let value = 0;
+	    for (let i = 0; i < joyKeyList.length; i += 1) {
+	      if (this.getKeyState(joyKeyList[i]) !== -1) {
+	        value |= 1 << i;
+	      }
+	    }
+	    if (joy === 0) {
+	      if (this.getKeyState(80) !== -1) {
+	        value |= 1 + 4;
+	      }
+	      if (this.getKeyState(81) !== -1) {
+	        value |= 1 + 8;
+	      }
+	      if (this.getKeyState(82) !== -1) {
+	        value |= 2 + 4;
+	      }
+	      if (this.getKeyState(83) !== -1) {
+	        value |= 2 + 8;
+	      }
+	    }
+	    return value;
+	  }
+	  setExpansionToken(token, string) {
+	    this.expansionTokens[token] = string;
+	  }
+	  setCpcKeyExpansion(options) {
+	    const cpcKeyExpansions = this.cpcKeyExpansions, cpcKey = options.cpcKey;
+	    cpcKeyExpansions.repeat[cpcKey] = options.repeat;
+	    if (options.normal !== void 0) {
+	      cpcKeyExpansions.normal[cpcKey] = options.normal;
+	    }
+	    if (options.shift !== void 0) {
+	      cpcKeyExpansions.shift[cpcKey] = options.shift;
+	    }
+	    if (options.ctrl !== void 0) {
+	      cpcKeyExpansions.ctrl[cpcKey] = options.ctrl;
+	    }
+	  }
+	  onKeydownOrKeyup(event) {
+	    if (this.active) {
+	      if (event.type === "keydown") {
+	        this.fnKeyboardKeydown(event);
+	      } else if (event.type === "keyup") {
+	        this.fnKeyboardKeyup(event);
+	      } else {
+	        UiUtils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
+	      }
+	      event.preventDefault();
+	      return false;
+	    }
+	    return void 0;
+	  }
+	};
+	// use this:
+	_Keyboard.key2CpcKey = {
+	  "38ArrowUp": 0,
+	  "39ArrowRight": 1,
+	  "40ArrowDown": 2,
+	  "105Numpad9": 3,
+	  "120F9": 3,
+	  "102Numpad6": 4,
+	  "117F6": 4,
+	  "99Numpad3": 5,
+	  "114F3": 5,
+	  "13NumpadEnter": 6,
+	  "110NumpadDecimal": 7,
+	  "37ArrowLeft": 8,
+	  "18AltLeft": 9,
+	  "103Numpad7": 10,
+	  "118F7": 10,
+	  "104Numpad8": 11,
+	  "119F8": 11,
+	  "101Numpad5": 12,
+	  "116F5": 12,
+	  "97Numpad1": 13,
+	  "112F1": 13,
+	  "98Numpad2": 14,
+	  "113F2": 14,
+	  "96Numpad0": 15,
+	  "121F10": 15,
+	  "46Delete": 16,
+	  "187BracketRight": 17,
+	  "171BracketRight": 17,
+	  "221BracketRight": 17,
+	  "13Enter": 18,
+	  "191Backslash": 19,
+	  "163Backslash": 19,
+	  "220Backslash": 19,
+	  "100Numpad4": 20,
+	  "115F4": 20,
+	  "16ShiftLeft": 21,
+	  "16ShiftRight": 21,
+	  "220Backquote": 22,
+	  "160Backquote": 22,
+	  "192Backquote": 22,
+	  "17ControlLeft": 23,
+	  "17ControlRight": 23,
+	  "221Equal": 24,
+	  "192Equal": 24,
+	  "187Equal": 24,
+	  "219Minus": 25,
+	  "63Minus": 25,
+	  "189Minus": 25,
+	  "186BracketLeft": 26,
+	  "59BracketLeft": 26,
+	  "219BracketLeft": 26,
+	  "80KeyP": 27,
+	  "222Quote": 28,
+	  "192Quote": 28,
+	  "192Semicolon": 29,
+	  "186Semicolon": 29,
+	  "189Slash": 30,
+	  "173Slash": 30,
+	  "191Slash": 30,
+	  "190Period": 31,
+	  "48Digit0": 32,
+	  "57Digit9": 33,
+	  "79KeyO": 34,
+	  "73KeyI": 35,
+	  "76KeyL": 36,
+	  "75KeyK": 37,
+	  "77KeyM": 38,
+	  "188Comma": 39,
+	  "56Digit8": 40,
+	  "55Digit7": 41,
+	  "85KeyU": 42,
+	  "90KeyY": 43,
+	  "89KeyY": 43,
+	  "72KeyH": 44,
+	  "74KeyJ": 45,
+	  "78KeyN": 46,
+	  "32Space": 47,
+	  "54Digit6": 48,
+	  "53Digit5": 49,
+	  "82KeyR": 50,
+	  "84KeyT": 51,
+	  "71KeyG": 52,
+	  "70KeyF": 53,
+	  "66KeyB": 54,
+	  "86KeyV": 55,
+	  "52Digit4": 56,
+	  "51Digit3": 57,
+	  "69KeyE": 58,
+	  "87KeyW": 59,
+	  "83KeyS": 60,
+	  "68KeyD": 61,
+	  "67KeyC": 62,
+	  "88KeyX": 63,
+	  "49Digit1": 64,
+	  "50Digit2": 65,
+	  "27Escape": 66,
+	  "81KeyQ": 67,
+	  "9Tab": 68,
+	  "65KeyA": 69,
+	  "20CapsLock": 70,
+	  "89KeyZ": 71,
+	  "90KeyZ": 71,
+	  "38Numpad8": 72,
+	  "40Numpad2": 73,
+	  "37Numpad4": 74,
+	  "39Numpad6": 75,
+	  "12Numpad5": 76,
+	  "45Numpad0": 76,
+	  "46NumpadDecimal": 77,
+	  "8Backspace": 79,
+	  "36Numpad7": 80,
+	  "33Numpad9": 81,
+	  "35Numpad1": 82,
+	  "34Numpad3": 83,
+	  "226IntlBackslash": 85,
+	  "60IntlBackslash": 85,
+	  "220IntlBackslash": 85,
+	  "111NumpadDivide": 86,
+	  "106NumpadMultiply": 87,
+	  "109NumpadSubtract": 88,
+	  "107NumpadAdd": 89
+	};
+	_Keyboard.specialKeys = {
+	  Alt: String.fromCharCode(224),
+	  // Copy
+	  ArrowUp: String.fromCharCode(240),
+	  ArrowDown: String.fromCharCode(241),
+	  ArrowLeft: String.fromCharCode(242),
+	  ArrowRight: String.fromCharCode(243),
+	  ArrowUpShift: String.fromCharCode(244),
+	  ArrowDownShift: String.fromCharCode(245),
+	  ArrowLeftShift: String.fromCharCode(246),
+	  ArrowRightShift: String.fromCharCode(247),
+	  ArrowUpCtrl: String.fromCharCode(248),
+	  ArrowDownCtrl: String.fromCharCode(249),
+	  ArrowLeftCtrl: String.fromCharCode(250),
+	  ArrowRightCtrl: String.fromCharCode(251),
+	  Backspace: String.fromCharCode(127),
+	  Delete: String.fromCharCode(16),
+	  Enter: "\r",
+	  JoyUp: String.fromCharCode(11),
+	  JoyDown: String.fromCharCode(10),
+	  JoyLeft: String.fromCharCode(8),
+	  JoyRight: String.fromCharCode(9),
+	  Clear: "X",
+	  // joy fire 2
+	  Spacebar: " ",
+	  // for IE
+	  Tab: String.fromCharCode(9),
+	  \u00E4: ";",
+	  \u00C4: "+",
+	  \u00F6: ":",
+	  \u00D6: "*",
+	  \u00FC: "@",
+	  \u00DC: "|",
+	  \u00DF: "-",
+	  DeadBackquote: "^",
+	  "\xB0": "\xA3",
+	  DeadEqual: String.fromCharCode(161),
+	  // tick
+	  "\xB4": String.fromCharCode(161),
+	  // IE: tick
+	  DeadEqualShift: "`"
+	  // backtick
+	};
+	/* eslint-disable array-element-newline */
+	_Keyboard.joyKeyCodes = [
+	  [72, 73, 74, 75, 76, 77],
+	  [48, 49, 50, 51, 52, 53]
+	];
+	_Keyboard.numPadOffKeyMap = {
+	  "96Numpad0": "45Numpad0",
+	  "97Numpad1": "35Numpad1",
+	  "98Numpad2": "40Numpad2",
+	  "99Numpad3": "34Numpad3",
+	  "100Numpad4": "37Numpad4",
+	  "101Numpad5": "12Numpad5",
+	  "102Numpad6": "39Numpad6",
+	  "103Numpad7": "36Numpad7",
+	  "104Numpad8": "38Numpad8",
+	  "105Numpad9": "33Numpad9",
+	  "110NumpadDecimal": "46NumpadDecimal"
+	};
+	let Keyboard = _Keyboard;
+
+	class Model {
+	  constructor(config) {
+	    this.config = config || {};
+	    this.initialConfig = Object.assign({}, this.config);
+	    this.databases = {};
+	    this.examples = {};
+	  }
+	  // {
+	  getProperty(property) {
+	    return this.config[property];
+	  }
+	  setProperty(property, value) {
+	    const previousValue = this.config[property];
+	    this.config[property] = value;
+	    if (value !== previousValue && this.propertyChangeCallback) {
+	      this.propertyChangeCallback();
+	    }
+	  }
+	  setPropertyChangeCallback(callback) {
+	    this.propertyChangeCallback = callback;
+	  }
+	  getAllProperties() {
+	    return this.config;
+	  }
+	  getAllInitialProperties() {
+	    return this.initialConfig;
+	  }
+	  getChangedProperties() {
+	    const current = this.config, initial = this.initialConfig, changed = {};
+	    for (const name in current) {
+	      if (Object.prototype.hasOwnProperty.call(current, name)) {
+	        if (current[name] !== initial[name]) {
+	          changed[name] = current[name];
+	        }
+	      }
+	    }
+	    return changed;
+	  }
+	  addDatabases(db) {
+	    for (const par in db) {
+	      if (Object.prototype.hasOwnProperty.call(db, par)) {
+	        const entry = db[par];
+	        this.databases[par] = entry;
+	        this.examples[par] = {};
+	      }
+	    }
+	  }
+	  getAllDatabases() {
+	    return this.databases;
+	  }
+	  getDatabase() {
+	    const database = this.getProperty(ModelPropID.database);
+	    return this.databases[database];
+	  }
+	  getAllExamples() {
+	    const database = this.getProperty(ModelPropID.database);
+	    return this.examples[database];
+	  }
+	  getExample(key) {
+	    const database = this.getProperty(ModelPropID.database);
+	    return this.examples[database][key];
+	  }
+	  setExample(example) {
+	    const database = this.getProperty(ModelPropID.database), key = example.key;
+	    if (!this.examples[database][key]) {
+	      if (Utils.debug > 1) {
+	        Utils.console.debug("setExample: creating new example:", key);
+	      }
+	    }
+	    this.examples[database][key] = example;
+	  }
+	  removeExample(key) {
+	    const database = this.getProperty(ModelPropID.database);
+	    if (!this.examples[database][key]) {
+	      Utils.console.warn("removeExample: example does not exist: " + key);
+	    }
+	    delete this.examples[database][key];
+	  }
+	}
+
+	const ModelPropIDdatabase = "database";
+	const ModelPropIDexample = "example";
+	const ModelPropIDdatabaseDirs = "databaseDirs";
+	class Core {
+	  constructor(defaultConfig) {
+	    this.addIndex = (dir, input) => {
+	      if (typeof input === "function") {
+	        input = {
+	          [dir]: JSON.parse(Core.fnHereDoc(input).trim())
+	        };
+	      }
+	      for (const value in input) {
+	        const item = input[value];
+	        for (let i = 0; i < item.length; i += 1) {
+	          this.model.setExample(item[i]);
 	        }
 	      }
 	    };
-	    lcs(0, aA.length - 1, 0, aB.length - 1);
-	    return lcsAtoms;
-	  }
-	  // Diff sequence
-	  // @param A - sequence of atoms - Array
-	  // @param B - sequence of atoms - Array
-	  // [@param equals - optional comparator of atoms - returns true or false,
-	  //                 if not specified, triple equals operator is used]
-	  // @returns Array - sequence of objects in a form of:
-	  //   - operation: one of "none", "add", "delete"
-	  //   - atom: the atom found in either A or B
-	  // Applying operations from diff sequence you should be able to transform A to B
-	  static diff(aA, aB) {
-	    const diff = [], fnEquals = Diff.fnEquals;
-	    let i = 0, j = 0, iN = aA.length, iM = aB.length, iK = 0;
-	    while (i < iN && j < iM && fnEquals(aA[i], aB[j])) {
-	      i += 1;
-	      j += 1;
-	    }
-	    while (i < iN && j < iM && fnEquals(aA[iN - 1], aB[iM - 1])) {
-	      iN -= 1;
-	      iM -= 1;
-	      iK += 1;
-	    }
-	    [].push.apply(diff, aA.slice(0, i).map(function(atom2) {
-	      return {
-	        operation: "none",
-	        atom: atom2
-	      };
-	    }));
-	    const lcs = Diff.fnLCS(aA.slice(i, iN), aB.slice(j, iM), fnEquals);
-	    for (let k = 0; k < lcs.length; k += 1) {
-	      const atom = lcs[k], ni = Diff.customIndexOf(aA, atom, i, fnEquals), nj = Diff.customIndexOf(aB, atom, j, fnEquals);
-	      [].push.apply(diff, aA.slice(i, ni).map(function(atom2) {
-	        return {
-	          operation: "delete",
-	          atom: atom2
-	        };
-	      }));
-	      [].push.apply(diff, aB.slice(j, nj).map(function(atom2) {
-	        return {
-	          operation: "add",
-	          atom: atom2
-	        };
-	      }));
-	      diff.push({
-	        operation: "none",
-	        atom
-	      });
-	      i = ni + 1;
-	      j = nj + 1;
-	    }
-	    [].push.apply(diff, aA.slice(i, iN).map(function(atom2) {
-	      return {
-	        operation: "delete",
-	        atom: atom2
-	      };
-	    }));
-	    [].push.apply(diff, aB.slice(j, iM).map(function(atom2) {
-	      return {
-	        operation: "add",
-	        atom: atom2
-	      };
-	    }));
-	    [].push.apply(diff, aA.slice(iN, iN + iK).map(function(atom2) {
-	      return {
-	        operation: "none",
-	        atom: atom2
-	      };
-	    }));
-	    return diff;
-	  }
-	  static testDiff(text1, text2) {
-	    const textParts1 = text1.split("\n"), textParts2 = text2.split("\n");
-	    let diff = Diff.diff(textParts1, textParts2).map(function(o) {
-	      let result = "";
-	      if (o.operation === "add") {
-	        result = "+ " + o.atom;
-	      } else if (o.operation === "delete") {
-	        result = "- " + o.atom;
+	    this.addItem = (key, input) => {
+	      let inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
+	      inputString = inputString.replace(/^\n/, "").replace(/\n$/, "");
+	      if (!key) {
+	        Utils.console.warn("addItem: no key!");
+	        key = "unknown";
 	      }
-	      return result;
-	    }).join("\n");
-	    diff = diff.replace(/\n\n+/g, "\n");
-	    return diff;
+	      const implicitLines = this.model.getProperty(ModelPropID.implicitLines);
+	      const linesOnLoad = this.model.getProperty(ModelPropID.linesOnLoad);
+	      if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
+	        inputString = BasicFormatter.addLineNumbers(inputString);
+	      }
+	      const example = this.model.getExample(key);
+	      if (example) {
+	        example.script = inputString;
+	      }
+	    };
+	    this.addRsx = (key, RsxConstructor) => {
+	      const example = this.model.getExample(key);
+	      example.key = key;
+	      example.rsx = new RsxConstructor();
+	      example.loaded = true;
+	      Utils.console.log("addItem:", key);
+	      return key;
+	    };
+	    this.model = new Model(defaultConfig);
+	  }
+	  init() {
+	    this.initDatabases();
+	  }
+	  getModel() {
+	    return this.model;
+	  }
+	  setDebug(debug) {
+	    Utils.setDebug(debug);
+	  }
+	  static getUniqueDbKey(name, databases) {
+	    let key = name, index = 2;
+	    while (databases[key]) {
+	      key = name + index;
+	      index += 1;
+	    }
+	    return key;
+	  }
+	  initDatabases() {
+	    const model = this.model, databases = {}, databaseDirs = model.getProperty(ModelPropIDdatabaseDirs).split(",");
+	    for (const databaseDir of databaseDirs) {
+	      const parts1 = databaseDir.split("="), databaseSrc = parts1[0], assignedName = parts1.length > 1 ? parts1[1] : "", parts2 = databaseSrc.split("/"), name = assignedName || parts2[parts2.length - 1], key = Core.getUniqueDbKey(name, databases);
+	      databases[key] = {
+	        text: key,
+	        title: databaseSrc,
+	        src: databaseSrc
+	      };
+	    }
+	    this.model.addDatabases(databases);
+	  }
+	  static fnHereDoc(fn) {
+	    return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
+	  }
+	  parseArgs(args, config) {
+	    for (const arg of args) {
+	      const [name, ...valueParts] = arg.split("=");
+	      const nameType = typeof config[name];
+	      let value = valueParts.join("=");
+	      if (value !== void 0) {
+	        if (nameType === "boolean") {
+	          value = value === "true";
+	        } else if (nameType === "number") {
+	          value = Number(value);
+	        }
+	        config[name] = value;
+	      }
+	    }
+	    return config;
+	  }
+	  fnRedirectExamples(redirectExamples) {
+	    const model = this.getModel();
+	    const name = model.getProperty(ModelPropIDdatabase) + "/" + model.getProperty(ModelPropIDexample);
+	    if (redirectExamples[name]) {
+	      model.setProperty(ModelPropIDdatabase, redirectExamples[name].database);
+	      model.setProperty(ModelPropIDexample, redirectExamples[name].example);
+	    }
 	  }
 	}
 
@@ -12506,6 +11934,36 @@
 	    }
 	    return this.diskImage;
 	  }
+	  startDiskImage(format) {
+	    const diskImage = this.getDiskImage();
+	    diskImage.setOptions({
+	      diskName: "test",
+	      data: diskImage.formatImage(format)
+	    });
+	  }
+	  prepareAmsdosFile(name, data, meta) {
+	    if (meta.typeString === "A" || meta.typeString === "X" || meta.typeString === "Z") {
+	      return data;
+	    }
+	    const [name1, ext1] = DiskImage.getFilenameAndExtension(name), header = DiskImage.createAmsdosHeader({
+	      name: name1,
+	      ext: ext1,
+	      typeString: meta.typeString,
+	      start: meta.start,
+	      length: meta.length,
+	      entry: meta.entry
+	    });
+	    return DiskImage.combineAmsdosHeader(header) + data;
+	  }
+	  addFileToDiskImage(name, data, meta) {
+	    const diskImage = this.getDiskImage();
+	    diskImage.writeFile(name, this.prepareAmsdosFile(name, data, meta));
+	    return diskImage.getOptions().data;
+	  }
+	  getDiskImageData(stripEmptyTracks) {
+	    const diskImage = this.getDiskImage();
+	    return stripEmptyTracks ? diskImage.stripEmptyTracks() : diskImage.getOptions().data;
+	  }
 	  static getStorageName(name, defaultExtension) {
 	    if (name.indexOf(".") < 0) {
 	      name += "." + (defaultExtension || "");
@@ -12884,698 +12342,6 @@
 	_FileHandler.reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/);
 	let FileHandler = _FileHandler;
 
-	class FileSelect {
-	  // current file
-	  constructor(options) {
-	    this.fileIndex = 0;
-	    this.imported = [];
-	    this.fnOnLoadHandler = this.fnOnLoad.bind(this);
-	    this.fnOnErrorHandler = this.fnOnError.bind(this);
-	    this.fnOnFileSelectHandler = this.fnOnFileSelect.bind(this);
-	    this.options = {};
-	    this.setOptions(options);
-	  }
-	  getOptions() {
-	    return this.options;
-	  }
-	  setOptions(options) {
-	    Object.assign(this.options, options);
-	  }
-	  fnReadNextFile(reader) {
-	    if (this.files && this.fileIndex < this.files.length) {
-	      const file = this.files[this.fileIndex];
-	      this.fileIndex += 1;
-	      const lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
-	      UiUtils.console.log(text);
-	      if (file.type === "text/plain") {
-	        reader.readAsText(file);
-	      } else if (file.type === "application/x-zip-compressed" || file.type === "application/zip") {
-	        reader.readAsArrayBuffer(file);
-	      } else {
-	        reader.readAsDataURL(file);
-	      }
-	      this.file = file;
-	    } else {
-	      this.options.fnEndOfImport(this.imported);
-	    }
-	  }
-	  fnOnLoad(event) {
-	    if (!this.file) {
-	      UiUtils.console.error("fnOnLoad: Programming error: No file");
-	      return;
-	    }
-	    const file = this.file, name = file.name, reader = event.target;
-	    let data = reader && reader.result || null, type = "";
-	    if ((file.type === "application/x-zip-compressed" || file.type === "application/zip") && data instanceof ArrayBuffer) {
-	      type = "Z";
-	      this.options.fnLoad2(new Uint8Array(data), name, type, this.imported);
-	    } else if (typeof data === "string") {
-	      if (file.type === "text/plain") {
-	        type = "A";
-	      } else if (data.indexOf("data:") === 0) {
-	        const index = data.indexOf(",");
-	        if (index >= 0) {
-	          const info1 = data.substring(0, index);
-	          data = data.substring(index + 1);
-	          if (info1.indexOf("base64") >= 0) {
-	            data = window.atob(data);
-	          }
-	          if (info1.indexOf("text/") >= 0 && info1.indexOf("text/x-basic") < 0) {
-	            type = "A";
-	          }
-	        }
-	      }
-	      this.options.fnLoad2(data, name, type, this.imported);
-	    } else {
-	      UiUtils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
-	    }
-	    if (reader) {
-	      this.fnReadNextFile(reader);
-	    }
-	  }
-	  fnOnError(event) {
-	    const reader = event.target, filename = this.file && this.file.name || "unknown";
-	    let msg = "fnOnError: " + filename;
-	    if (reader && reader.error) {
-	      msg += ": " + String(reader.error);
-	    }
-	    UiUtils.console.error(msg);
-	    if (reader) {
-	      this.fnReadNextFile(reader);
-	    }
-	  }
-	  // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
-	  // https://www.w3.org/TR/file-upload/#dfn-filereader
-	  fnOnFileSelect(event) {
-	    event.stopPropagation();
-	    event.preventDefault();
-	    const dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : View.getEventTarget(event).files;
-	    if (!files || !files.length) {
-	      UiUtils.console.error("fnHandleFileSelect: No files!");
-	      return;
-	    }
-	    this.files = files;
-	    this.fileIndex = 0;
-	    this.imported.length = 0;
-	    if (window.FileReader) {
-	      const reader = new window.FileReader();
-	      reader.onerror = this.fnOnErrorHandler;
-	      reader.onload = this.fnOnLoadHandler;
-	      this.fnReadNextFile(reader);
-	    } else {
-	      UiUtils.console.warn("fnHandleFileSelect: FileReader API not supported.");
-	    }
-	  }
-	  addFileSelectHandler(element, type) {
-	    element.addEventListener(type, this.fnOnFileSelectHandler, false);
-	  }
-	}
-
-	class InputStack {
-	  constructor() {
-	    this.input = [];
-	    this.stackPosition = -1;
-	  }
-	  reset() {
-	    this.input.length = 0;
-	    this.stackPosition = -1;
-	  }
-	  getInput() {
-	    return this.input[this.stackPosition];
-	  }
-	  clearRedo() {
-	    this.input = this.input.slice(0, this.stackPosition + 1);
-	  }
-	  save(input) {
-	    this.clearRedo();
-	    this.input.push(input);
-	    this.stackPosition += 1;
-	  }
-	  canUndoKeepOne() {
-	    return this.stackPosition > 0;
-	  }
-	  undo() {
-	    this.stackPosition -= 1;
-	    return this.getInput();
-	  }
-	  canRedo() {
-	    return this.stackPosition < this.input.length - 1;
-	  }
-	  redo() {
-	    this.stackPosition += 1;
-	    return this.getInput();
-	  }
-	}
-
-	const _Keyboard = class _Keyboard {
-	  // simulated num lock for Mac OS
-	  constructor(options) {
-	    this.keyBuffer = [];
-	    // buffered pressed keys
-	    this.expansionTokens = [];
-	    // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
-	    this.active = false;
-	    this.codeStringsRemoved = false;
-	    this.pressedKeys = {};
-	    this.fnKeydownOrKeyupHandler = (event) => this.onKeydownOrKeyup(event);
-	    this.options = {};
-	    this.setOptions(options);
-	    this.key2CpcKey = _Keyboard.key2CpcKey;
-	    this.cpcKeyExpansions = {
-	      normal: {},
-	      shift: {},
-	      ctrl: {},
-	      repeat: {}
-	    };
-	    const view = this.options.view;
-	    view.addEventListenerById("keydown", this.fnKeydownOrKeyupHandler, ViewID.cpcArea);
-	    view.addEventListenerById("keyup", this.fnKeydownOrKeyupHandler, ViewID.cpcArea);
-	  }
-	  getOptions() {
-	    return this.options;
-	  }
-	  setOptions(options) {
-	    Object.assign(this.options, options);
-	  }
-	  /* eslint-enable array-element-newline */
-	  reset() {
-	    this.options.fnOnKeyDown = void 0;
-	    this.clearInput();
-	    this.pressedKeys = {};
-	    this.resetExpansionTokens();
-	    this.resetCpcKeysExpansions();
-	  }
-	  clearInput() {
-	    this.keyBuffer.length = 0;
-	  }
-	  resetExpansionTokens() {
-	    const expansionTokens = this.expansionTokens;
-	    for (let i = 0; i <= 9; i += 1) {
-	      expansionTokens[i] = String(i);
-	    }
-	    expansionTokens[10] = ".";
-	    expansionTokens[11] = "\r";
-	    expansionTokens[12] = 'RUN"\r';
-	    for (let i = 13; i <= 31; i += 1) {
-	      expansionTokens[i] = "0";
-	    }
-	  }
-	  resetCpcKeysExpansions() {
-	    const cpcKeyExpansions = this.cpcKeyExpansions;
-	    cpcKeyExpansions.normal = {
-	      // cpcKey => ExpansionToken (128-159)
-	      15: 0 + 128,
-	      // F0
-	      13: 1 + 128,
-	      // F1
-	      14: 2 + 128,
-	      // F2
-	      5: 3 + 128,
-	      // F3
-	      20: 4 + 128,
-	      // F4
-	      12: 5 + 128,
-	      // F5
-	      4: 6 + 128,
-	      // F6
-	      10: 7 + 128,
-	      // F7
-	      11: 8 + 128,
-	      // F8
-	      3: 9 + 128,
-	      // F9
-	      7: 10 + 128,
-	      // F.
-	      6: 11 + 128
-	      // Enter
-	    };
-	    cpcKeyExpansions.shift = {};
-	    cpcKeyExpansions.ctrl = {
-	      6: 12 + 128
-	      // ctrl+Enter
-	    };
-	    cpcKeyExpansions.repeat = {};
-	  }
-	  setActive(active) {
-	    this.active = active;
-	  }
-	  removeCodeStringsFromKeymap() {
-	    const key2CpcKey = this.key2CpcKey, newMap = {};
-	    if (UiUtils.debug > 1) {
-	      UiUtils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
-	    }
-	    for (const key in key2CpcKey) {
-	      if (Object.prototype.hasOwnProperty.call(key2CpcKey, key)) {
-	        const keyCode = parseInt(key, 10);
-	        newMap[keyCode] = key2CpcKey[key];
-	      }
-	    }
-	    this.key2CpcKey = newMap;
-	  }
-	  fnPressCpcKey(event, cpcKeyCode, pressedKey, key) {
-	    const shiftKey = event.shiftKey, ctrlKey = event.ctrlKey, pressedKeys = this.pressedKeys, cpcKeyExpansions = this.cpcKeyExpansions, specialKeys = _Keyboard.specialKeys, cpcKey = String(cpcKeyCode);
-	    let cpcKeyEntry = pressedKeys[cpcKey];
-	    if (!cpcKeyEntry) {
-	      pressedKeys[cpcKey] = {
-	        keys: {},
-	        shift: false,
-	        ctrl: false
-	      };
-	      cpcKeyEntry = pressedKeys[cpcKey];
-	    }
-	    const keyAlreadyPressed = cpcKeyEntry.keys[pressedKey];
-	    cpcKeyEntry.keys[pressedKey] = true;
-	    cpcKeyEntry.shift = shiftKey;
-	    cpcKeyEntry.ctrl = ctrlKey;
-	    if (UiUtils.debug > 1) {
-	      UiUtils.console.log("fnPressCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKey);
-	    }
-	    const repeat = cpcKeyExpansions.repeat;
-	    if (keyAlreadyPressed && (cpcKey in repeat && !repeat[cpcKey])) {
-	      key = "";
-	    } else {
-	      let expansions;
-	      if (ctrlKey) {
-	        expansions = cpcKeyExpansions.ctrl;
-	      } else if (shiftKey) {
-	        expansions = cpcKeyExpansions.shift;
-	      } else {
-	        expansions = cpcKeyExpansions.normal;
-	      }
-	      if (cpcKey in expansions) {
-	        const expKey = expansions[cpcKey];
-	        if (expKey >= 128 && expKey <= 159) {
-	          key = this.expansionTokens[expKey - 128];
-	          for (let i = 0; i < key.length; i += 1) {
-	            this.putKeyInBuffer(key.charAt(i));
-	          }
-	        } else {
-	          key = String.fromCharCode(expKey);
-	          this.putKeyInBuffer(key.charAt(0));
-	        }
-	        key = "";
-	      }
-	    }
-	    const shiftCtrlKey = key + (shiftKey ? "Shift" : "") + (ctrlKey ? "Ctrl" : "");
-	    if (shiftCtrlKey in specialKeys) {
-	      key = specialKeys[shiftCtrlKey];
-	    } else if (key in specialKeys) {
-	      key = specialKeys[key];
-	    } else if (ctrlKey) {
-	      if (key >= "a" && key <= "z") {
-	        key = String.fromCharCode(key.charCodeAt(0) - 96);
-	      }
-	    }
-	    if (key.length === 1) {
-	      this.putKeyInBuffer(key);
-	    }
-	    if (cpcKeyCode === 66 && this.options.fnOnEscapeHandler) {
-	      this.options.fnOnEscapeHandler(key, pressedKey);
-	    }
-	    if (this.options.fnOnKeyDown) {
-	      this.options.fnOnKeyDown();
-	    }
-	  }
-	  fnReleaseCpcKey(event, cpcKeyCode, pressedKey, key) {
-	    const shiftKey = event.shiftKey, ctrlKey = event.ctrlKey, pressedKeys = this.pressedKeys, cpcKey = pressedKeys[cpcKeyCode];
-	    if (UiUtils.debug > 1) {
-	      UiUtils.console.log("fnReleaseCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKeyCode + ", keys:", cpcKey ? cpcKey.keys : "undef.");
-	    }
-	    if (!cpcKey) {
-	      UiUtils.console.warn("fnReleaseCpcKey: cpcKey was not pressed:", cpcKeyCode);
-	    } else {
-	      delete cpcKey.keys[pressedKey];
-	      if (!Object.keys(cpcKey.keys).length) {
-	        delete pressedKeys[cpcKeyCode];
-	      } else {
-	        cpcKey.shift = shiftKey;
-	        cpcKey.ctrl = ctrlKey;
-	      }
-	    }
-	  }
-	  static keyIdentifier2Char(event) {
-	    const identifier = event.keyIdentifier, shiftKey = event.shiftKey;
-	    let char;
-	    if (/^U\+/i.test(identifier || "")) {
-	      char = String.fromCharCode(parseInt(identifier.substr(2), 16));
-	      if (char === "\0") {
-	        char = "";
-	      }
-	      char = shiftKey ? char.toUpperCase() : char.toLowerCase();
-	    } else {
-	      char = identifier;
-	    }
-	    return char;
-	  }
-	  fnKeyboardKeydown(event) {
-	    const keyCode = event.which || event.keyCode;
-	    let pressedKey = String(keyCode) + (event.code ? event.code : ""), key = event.key || _Keyboard.keyIdentifier2Char(event) || "";
-	    if (!event.code && !this.codeStringsRemoved) {
-	      this.removeCodeStringsFromKeymap();
-	      this.codeStringsRemoved = true;
-	    }
-	    if (UiUtils.debug > 1) {
-	      UiUtils.console.log("fnKeyboardKeydown: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
-	    }
-	    if (pressedKey in this.key2CpcKey) {
-	      const numTabOffKey = this.simulatedNumLock === false ? _Keyboard.numPadOffKeyMap[pressedKey] : void 0;
-	      if (numTabOffKey) {
-	        pressedKey = numTabOffKey;
-	      }
-	      let cpcKey = this.key2CpcKey[pressedKey];
-	      if (cpcKey === 85) {
-	        cpcKey = 22;
-	      }
-	      if (cpcKey === 72) {
-	        key = "JoyUp";
-	      } else if (cpcKey === 73) {
-	        key = "JoyDown";
-	      } else if (cpcKey === 74) {
-	        key = "JoyLeft";
-	      } else if (cpcKey === 75) {
-	        key = "JoyRight";
-	      } else if (key === "Dead") {
-	        key += event.code + (event.shiftKey ? "Shift" : "");
-	      } else if (key === "Unidentified") {
-	        if (keyCode === 220) {
-	          key = event.shiftKey ? "\xB0" : "DeadBackquote";
-	        } else if (keyCode === 221) {
-	          key = "DeadEqual" + (event.shiftKey ? "Shift" : "");
-	        } else if (keyCode === 226) {
-	          key = "|";
-	        }
-	      } else if (key.length === 2) {
-	        if (key.charAt(0) === "^" || key.charAt(0) === "\xB4" || key.charAt(0) === "`") {
-	          key = key.substring(1);
-	        }
-	      }
-	      this.fnPressCpcKey(event, cpcKey, pressedKey, key);
-	    } else if (key.length === 1) {
-	      this.putKeyInBuffer(key);
-	      UiUtils.console.log("fnKeyboardKeydown: Partly unhandled key", pressedKey + ":", key);
-	    } else if (pressedKey === "12NumLock") {
-	      this.simulatedNumLock = this.simulatedNumLock !== void 0 ? !this.simulatedNumLock : false;
-	      if (UiUtils.debug > 1) {
-	        UiUtils.console.log("fnKeyboardKeydown: simulatedNumLock=" + this.simulatedNumLock);
-	      }
-	    } else {
-	      UiUtils.console.log("fnKeyboardKeydown: Unhandled key", pressedKey + ":", key);
-	    }
-	  }
-	  fnKeyboardKeyup(event) {
-	    const keyCode = event.which || event.keyCode, key = event.key || _Keyboard.keyIdentifier2Char(event) || "";
-	    let pressedKey = String(keyCode) + (event.code ? event.code : "");
-	    if (UiUtils.debug > 1) {
-	      UiUtils.console.log("fnKeyboardKeyup: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
-	    }
-	    if (pressedKey in this.key2CpcKey) {
-	      const numTabOffKey = this.simulatedNumLock === false ? _Keyboard.numPadOffKeyMap[pressedKey] : void 0;
-	      if (numTabOffKey) {
-	        pressedKey = numTabOffKey;
-	      }
-	      let cpcKey = this.key2CpcKey[pressedKey];
-	      if (cpcKey === 85) {
-	        cpcKey = 22;
-	      }
-	      this.fnReleaseCpcKey(event, cpcKey, pressedKey, key);
-	    } else if (pressedKey === "12NumLock") {
-	      if (UiUtils.debug > 1) {
-	        UiUtils.console.log("fnKeyboardKeyup: simulatedNumLock=" + this.simulatedNumLock);
-	      }
-	    } else {
-	      UiUtils.console.log("fnKeyboardKeyup: Unhandled key", pressedKey + ":", key);
-	    }
-	  }
-	  getKeyFromBuffer() {
-	    const keyBuffer = this.keyBuffer, key = keyBuffer.length ? keyBuffer.shift() : "";
-	    return key;
-	  }
-	  putKeyInBuffer(key, triggerOnKeyDown) {
-	    this.keyBuffer.push(key);
-	    if (triggerOnKeyDown) {
-	      const keyDownHandler = this.options.fnOnKeyDown;
-	      if (keyDownHandler) {
-	        keyDownHandler();
-	      }
-	    }
-	  }
-	  putKeysInBuffer(input) {
-	    for (let i = 0; i < input.length; i += 1) {
-	      const key = input.charAt(i);
-	      this.keyBuffer.push(key);
-	    }
-	  }
-	  getKeyState(cpcKeyCode) {
-	    const pressedKeys = this.pressedKeys;
-	    let state = -1;
-	    if (cpcKeyCode in pressedKeys) {
-	      const cpcKeyEntry = pressedKeys[cpcKeyCode];
-	      state = 0 + (cpcKeyEntry.shift ? 32 : 0) + (cpcKeyEntry.ctrl ? 128 : 0);
-	    }
-	    return state;
-	  }
-	  getJoyState(joy) {
-	    const joyKeyList = _Keyboard.joyKeyCodes[joy];
-	    let value = 0;
-	    for (let i = 0; i < joyKeyList.length; i += 1) {
-	      if (this.getKeyState(joyKeyList[i]) !== -1) {
-	        value |= 1 << i;
-	      }
-	    }
-	    if (joy === 0) {
-	      if (this.getKeyState(80) !== -1) {
-	        value |= 1 + 4;
-	      }
-	      if (this.getKeyState(81) !== -1) {
-	        value |= 1 + 8;
-	      }
-	      if (this.getKeyState(82) !== -1) {
-	        value |= 2 + 4;
-	      }
-	      if (this.getKeyState(83) !== -1) {
-	        value |= 2 + 8;
-	      }
-	    }
-	    return value;
-	  }
-	  setExpansionToken(token, string) {
-	    this.expansionTokens[token] = string;
-	  }
-	  setCpcKeyExpansion(options) {
-	    const cpcKeyExpansions = this.cpcKeyExpansions, cpcKey = options.cpcKey;
-	    cpcKeyExpansions.repeat[cpcKey] = options.repeat;
-	    if (options.normal !== void 0) {
-	      cpcKeyExpansions.normal[cpcKey] = options.normal;
-	    }
-	    if (options.shift !== void 0) {
-	      cpcKeyExpansions.shift[cpcKey] = options.shift;
-	    }
-	    if (options.ctrl !== void 0) {
-	      cpcKeyExpansions.ctrl[cpcKey] = options.ctrl;
-	    }
-	  }
-	  onKeydownOrKeyup(event) {
-	    if (this.active) {
-	      if (event.type === "keydown") {
-	        this.fnKeyboardKeydown(event);
-	      } else if (event.type === "keyup") {
-	        this.fnKeyboardKeyup(event);
-	      } else {
-	        UiUtils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
-	      }
-	      event.preventDefault();
-	      return false;
-	    }
-	    return void 0;
-	  }
-	};
-	// use this:
-	_Keyboard.key2CpcKey = {
-	  "38ArrowUp": 0,
-	  "39ArrowRight": 1,
-	  "40ArrowDown": 2,
-	  "105Numpad9": 3,
-	  "120F9": 3,
-	  "102Numpad6": 4,
-	  "117F6": 4,
-	  "99Numpad3": 5,
-	  "114F3": 5,
-	  "13NumpadEnter": 6,
-	  "110NumpadDecimal": 7,
-	  "37ArrowLeft": 8,
-	  "18AltLeft": 9,
-	  "103Numpad7": 10,
-	  "118F7": 10,
-	  "104Numpad8": 11,
-	  "119F8": 11,
-	  "101Numpad5": 12,
-	  "116F5": 12,
-	  "97Numpad1": 13,
-	  "112F1": 13,
-	  "98Numpad2": 14,
-	  "113F2": 14,
-	  "96Numpad0": 15,
-	  "121F10": 15,
-	  "46Delete": 16,
-	  "187BracketRight": 17,
-	  "171BracketRight": 17,
-	  "221BracketRight": 17,
-	  "13Enter": 18,
-	  "191Backslash": 19,
-	  "163Backslash": 19,
-	  "220Backslash": 19,
-	  "100Numpad4": 20,
-	  "115F4": 20,
-	  "16ShiftLeft": 21,
-	  "16ShiftRight": 21,
-	  "220Backquote": 22,
-	  "160Backquote": 22,
-	  "192Backquote": 22,
-	  "17ControlLeft": 23,
-	  "17ControlRight": 23,
-	  "221Equal": 24,
-	  "192Equal": 24,
-	  "187Equal": 24,
-	  "219Minus": 25,
-	  "63Minus": 25,
-	  "189Minus": 25,
-	  "186BracketLeft": 26,
-	  "59BracketLeft": 26,
-	  "219BracketLeft": 26,
-	  "80KeyP": 27,
-	  "222Quote": 28,
-	  "192Quote": 28,
-	  "192Semicolon": 29,
-	  "186Semicolon": 29,
-	  "189Slash": 30,
-	  "173Slash": 30,
-	  "191Slash": 30,
-	  "190Period": 31,
-	  "48Digit0": 32,
-	  "57Digit9": 33,
-	  "79KeyO": 34,
-	  "73KeyI": 35,
-	  "76KeyL": 36,
-	  "75KeyK": 37,
-	  "77KeyM": 38,
-	  "188Comma": 39,
-	  "56Digit8": 40,
-	  "55Digit7": 41,
-	  "85KeyU": 42,
-	  "90KeyY": 43,
-	  "89KeyY": 43,
-	  "72KeyH": 44,
-	  "74KeyJ": 45,
-	  "78KeyN": 46,
-	  "32Space": 47,
-	  "54Digit6": 48,
-	  "53Digit5": 49,
-	  "82KeyR": 50,
-	  "84KeyT": 51,
-	  "71KeyG": 52,
-	  "70KeyF": 53,
-	  "66KeyB": 54,
-	  "86KeyV": 55,
-	  "52Digit4": 56,
-	  "51Digit3": 57,
-	  "69KeyE": 58,
-	  "87KeyW": 59,
-	  "83KeyS": 60,
-	  "68KeyD": 61,
-	  "67KeyC": 62,
-	  "88KeyX": 63,
-	  "49Digit1": 64,
-	  "50Digit2": 65,
-	  "27Escape": 66,
-	  "81KeyQ": 67,
-	  "9Tab": 68,
-	  "65KeyA": 69,
-	  "20CapsLock": 70,
-	  "89KeyZ": 71,
-	  "90KeyZ": 71,
-	  "38Numpad8": 72,
-	  "40Numpad2": 73,
-	  "37Numpad4": 74,
-	  "39Numpad6": 75,
-	  "12Numpad5": 76,
-	  "45Numpad0": 76,
-	  "46NumpadDecimal": 77,
-	  "8Backspace": 79,
-	  "36Numpad7": 80,
-	  "33Numpad9": 81,
-	  "35Numpad1": 82,
-	  "34Numpad3": 83,
-	  "226IntlBackslash": 85,
-	  "60IntlBackslash": 85,
-	  "220IntlBackslash": 85,
-	  "111NumpadDivide": 86,
-	  "106NumpadMultiply": 87,
-	  "109NumpadSubtract": 88,
-	  "107NumpadAdd": 89
-	};
-	_Keyboard.specialKeys = {
-	  Alt: String.fromCharCode(224),
-	  // Copy
-	  ArrowUp: String.fromCharCode(240),
-	  ArrowDown: String.fromCharCode(241),
-	  ArrowLeft: String.fromCharCode(242),
-	  ArrowRight: String.fromCharCode(243),
-	  ArrowUpShift: String.fromCharCode(244),
-	  ArrowDownShift: String.fromCharCode(245),
-	  ArrowLeftShift: String.fromCharCode(246),
-	  ArrowRightShift: String.fromCharCode(247),
-	  ArrowUpCtrl: String.fromCharCode(248),
-	  ArrowDownCtrl: String.fromCharCode(249),
-	  ArrowLeftCtrl: String.fromCharCode(250),
-	  ArrowRightCtrl: String.fromCharCode(251),
-	  Backspace: String.fromCharCode(127),
-	  Delete: String.fromCharCode(16),
-	  Enter: "\r",
-	  JoyUp: String.fromCharCode(11),
-	  JoyDown: String.fromCharCode(10),
-	  JoyLeft: String.fromCharCode(8),
-	  JoyRight: String.fromCharCode(9),
-	  Clear: "X",
-	  // joy fire 2
-	  Spacebar: " ",
-	  // for IE
-	  Tab: String.fromCharCode(9),
-	  \u00E4: ";",
-	  \u00C4: "+",
-	  \u00F6: ":",
-	  \u00D6: "*",
-	  \u00FC: "@",
-	  \u00DC: "|",
-	  \u00DF: "-",
-	  DeadBackquote: "^",
-	  "\xB0": "\xA3",
-	  DeadEqual: String.fromCharCode(161),
-	  // tick
-	  "\xB4": String.fromCharCode(161),
-	  // IE: tick
-	  DeadEqualShift: "`"
-	  // backtick
-	};
-	/* eslint-disable array-element-newline */
-	_Keyboard.joyKeyCodes = [
-	  [72, 73, 74, 75, 76, 77],
-	  [48, 49, 50, 51, 52, 53]
-	];
-	_Keyboard.numPadOffKeyMap = {
-	  "96Numpad0": "45Numpad0",
-	  "97Numpad1": "35Numpad1",
-	  "98Numpad2": "40Numpad2",
-	  "99Numpad3": "34Numpad3",
-	  "100Numpad4": "37Numpad4",
-	  "101Numpad5": "12Numpad5",
-	  "102Numpad6": "39Numpad6",
-	  "103Numpad7": "36Numpad7",
-	  "104Numpad8": "38Numpad8",
-	  "105Numpad9": "33Numpad9",
-	  "110NumpadDecimal": "46NumpadDecimal"
-	};
-	let Keyboard = _Keyboard;
-
 	class NullCanvas {
 	  reset() {
 	  }
@@ -13674,3202 +12440,6 @@
 	  setMode(_mode) {
 	  }
 	}
-
-	class NoCanvas extends NullCanvas {
-	  constructor(options) {
-	    super();
-	    this.options = {};
-	    this.setOptions(options);
-	    this.reset();
-	  }
-	  getOptions() {
-	    return this.options;
-	  }
-	  setOptions(options) {
-	    Object.assign(this.options, options);
-	  }
-	  onCanvasClick(_event) {
-	  }
-	  takeScreenShot() {
-	    return "";
-	  }
-	  startUpdateCanvas() {
-	  }
-	  stopUpdateCanvas() {
-	  }
-	  onWindowClick(_event) {
-	  }
-	}
-
-	const _TextCanvas = class _TextCanvas {
-	  constructor(options) {
-	    this.fps = 15;
-	    // FPS for canvas update
-	    this.isRunning = false;
-	    this.borderWidth = 1;
-	    this.needUpdate = false;
-	    this.textBuffer = [];
-	    // textbuffer characters at row,column
-	    this.hasFocus = false;
-	    // canvas has focus
-	    this.customCharset = {};
-	    this.options = {};
-	    this.setOptions(options);
-	    this.textText = View.getElementByIdAs(this.options.canvasID);
-	    this.cpcAreaBox = View.getElementById1(ViewID.cpcArea);
-	    this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
-	    this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-	    this.cols = parseFloat(this.textText.getAttribute("cols") || "0");
-	    this.rows = parseFloat(this.textText.getAttribute("rows") || "0");
-	    this.animationTimeoutId = void 0;
-	    this.animationFrame = void 0;
-	    this.reset();
-	  }
-	  getOptions() {
-	    return this.options;
-	  }
-	  setOptions(options) {
-	    Object.assign(this.options, options);
-	  }
-	  reset() {
-	    this.resetTextBuffer();
-	    this.setNeedUpdate();
-	  }
-	  resetCustomChars() {
-	  }
-	  setScreenOffset(_offset) {
-	  }
-	  updateColorsAndCanvasImmediately(_inkList) {
-	  }
-	  updateSpeedInk() {
-	  }
-	  setCustomChar(char, charData) {
-	    this.customCharset[char] = charData;
-	  }
-	  getCharData(char) {
-	    return this.customCharset[char] || this.options.charset[char];
-	  }
-	  setDefaultInks() {
-	  }
-	  getXpos() {
-	    return 0;
-	  }
-	  getYpos() {
-	    return 0;
-	  }
-	  getByte(_addr) {
-	    return 0;
-	  }
-	  setByte(_addr, _byte) {
-	  }
-	  draw(_x, _y) {
-	  }
-	  move(_x, _y) {
-	  }
-	  plot(_x, _y) {
-	  }
-	  test(_x, _y) {
-	    return 0;
-	  }
-	  setInk(_pen, _ink1, _ink2) {
-	    return false;
-	  }
-	  setBorder(_ink1, _ink2) {
-	  }
-	  setGPen(_gPen) {
-	  }
-	  setGPaper(_gPaper) {
-	  }
-	  setGTransparentMode(_transparent) {
-	  }
-	  printGChar(_char) {
-	  }
-	  drawCursor(_x, _y, _pen, _paper) {
-	  }
-	  fill(_fillPen) {
-	  }
-	  setOrigin(_xOrig, _yOrig) {
-	  }
-	  getXOrigin() {
-	    return 0;
-	  }
-	  getYOrigin() {
-	    return 0;
-	  }
-	  setGWindow(_xLeft, _xRight, _yTop, _yBottom) {
-	  }
-	  setGColMode(_gColMode) {
-	  }
-	  clearGraphicsWindow() {
-	  }
-	  setSpeedInk(_time1, _time2) {
-	  }
-	  setMask(_mask) {
-	  }
-	  setMaskFirst(_maskFirst) {
-	  }
-	  getMode() {
-	    return 0;
-	  }
-	  changeMode(_mode) {
-	  }
-	  takeScreenShot() {
-	    return "";
-	  }
-	  resetTextBuffer() {
-	    this.textBuffer.length = 0;
-	  }
-	  setNeedUpdate() {
-	    this.needUpdate = true;
-	  }
-	  updateCanvas2() {
-	    if (!this.isRunning) {
-	      return;
-	    }
-	    this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
-	    if (this.textText.offsetParent) {
-	      if (this.needUpdate) {
-	        this.needUpdate = false;
-	        this.updateTextWindow();
-	      }
-	    }
-	  }
-	  updateCanvas() {
-	    this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1e3 / this.fps);
-	  }
-	  startUpdateCanvas() {
-	    if (!this.isRunning && this.textText.offsetParent !== null) {
-	      this.isRunning = true;
-	      this.updateCanvas();
-	    }
-	  }
-	  stopUpdateCanvas() {
-	    if (this.isRunning) {
-	      this.isRunning = false;
-	      if (this.animationFrame) {
-	        cancelAnimationFrame(this.animationFrame);
-	        this.animationFrame = void 0;
-	      }
-	      clearTimeout(this.animationTimeoutId);
-	      this.animationTimeoutId = void 0;
-	    }
-	  }
-	  updateTextWindow() {
-	    const textBuffer = this.textBuffer, cpc2Unicode = _TextCanvas.cpc2Unicode;
-	    let out = "";
-	    for (let y = 0; y < textBuffer.length; y += 1) {
-	      const textBufferRow = textBuffer[y];
-	      if (textBufferRow) {
-	        for (let x = 0; x < textBufferRow.length; x += 1) {
-	          out += cpc2Unicode[textBufferRow[x] || 32];
-	        }
-	      }
-	      out += "\n";
-	    }
-	    this.textText.value = out;
-	  }
-	  setFocusOnCanvas() {
-	    this.cpcAreaBox.style.background = "#463c3c";
-	    if (this.textText) {
-	      this.textText.focus();
-	    }
-	    this.hasFocus = true;
-	  }
-	  getMousePos(event, canvasWidth, canvasHeight) {
-	    const rect = this.textText.getBoundingClientRect(), pos = {
-	      x: (event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * canvasWidth,
-	      y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * canvasHeight
-	    };
-	    return pos;
-	  }
-	  canvasClickAction(event) {
-	    const canvasWidth = 640, canvasHeight = 400, pos = this.getMousePos(event, canvasWidth, canvasHeight), x = pos.x | 0, y = pos.y | 0;
-	    if (this.options.onCanvasClick) {
-	      const charWidth = canvasWidth / this.cols, charHeight = canvasHeight / this.rows, xTxt = x / charWidth | 0, yTxt = y / charHeight | 0;
-	      this.options.onCanvasClick(event, x, y, xTxt, yTxt);
-	    }
-	  }
-	  onCanvasClick(event) {
-	    if (!this.hasFocus) {
-	      this.setFocusOnCanvas();
-	    } else {
-	      this.canvasClickAction(event);
-	    }
-	    event.stopPropagation();
-	  }
-	  onWindowClick(_event) {
-	    if (this.hasFocus) {
-	      this.hasFocus = false;
-	      this.cpcAreaBox.style.background = "";
-	    }
-	  }
-	  fillTextBox(left, top, width, height, _paper) {
-	    this.clearTextBufferBox(left, top, width, height);
-	  }
-	  clearTextBufferBox(left, top, width, height) {
-	    const textBuffer = this.textBuffer;
-	    for (let y = top; y < top + height; y += 1) {
-	      const textBufferRow = textBuffer[y];
-	      if (textBufferRow) {
-	        for (let x = left; x < left + width; x += 1) {
-	          delete textBufferRow[x];
-	        }
-	      }
-	    }
-	    this.setNeedUpdate();
-	  }
-	  copyTextBufferBoxUp(left, top, width, height, left2, top2) {
-	    const textBuffer = this.textBuffer;
-	    for (let y = 0; y < height; y += 1) {
-	      const sourceRow = textBuffer[top + y];
-	      let destinationRow = textBuffer[top2 + y];
-	      if (sourceRow) {
-	        if (!destinationRow) {
-	          destinationRow = [];
-	          textBuffer[top2 + y] = destinationRow;
-	        }
-	        for (let x = 0; x < width; x += 1) {
-	          destinationRow[left2 + x] = sourceRow[left + x];
-	        }
-	      } else if (destinationRow) {
-	        delete textBuffer[top2 + y];
-	      }
-	    }
-	    this.setNeedUpdate();
-	  }
-	  copyTextBufferBoxDown(left, top, width, height, left2, top2) {
-	    const textBuffer = this.textBuffer;
-	    for (let y = height - 1; y >= 0; y -= 1) {
-	      const sourceRow = textBuffer[top + y];
-	      let destinationRow = textBuffer[top2 + y];
-	      if (sourceRow) {
-	        if (!destinationRow) {
-	          destinationRow = [];
-	          textBuffer[top2 + y] = destinationRow;
-	        }
-	        for (let x = 0; x < width; x += 1) {
-	          destinationRow[left2 + x] = sourceRow[left + x];
-	        }
-	      } else if (destinationRow) {
-	        delete textBuffer[top2 + y];
-	      }
-	    }
-	    this.setNeedUpdate();
-	  }
-	  putCharInTextBuffer(char, x, y) {
-	    const textBuffer = this.textBuffer;
-	    if (!textBuffer[y]) {
-	      textBuffer[y] = [];
-	    }
-	    this.textBuffer[y][x] = char;
-	    this.setNeedUpdate();
-	  }
-	  getCharFromTextBuffer(x, y) {
-	    const textBuffer = this.textBuffer;
-	    let char;
-	    if (textBuffer[y]) {
-	      char = this.textBuffer[y][x];
-	    }
-	    return char;
-	  }
-	  printChar(char, x, y, _pen, _paper, _transparent) {
-	    this.putCharInTextBuffer(char, x, y);
-	  }
-	  readChar(x, y, _pen, _paper) {
-	    let char = this.getCharFromTextBuffer(x, y);
-	    if (char === void 0) {
-	      char = -1;
-	    }
-	    return char;
-	  }
-	  clearTextWindow(left, right, top, bottom, _paper) {
-	    const width = right + 1 - left, height = bottom + 1 - top;
-	    this.fillTextBox(left, top, width, height);
-	  }
-	  setMode(mode) {
-	    const winData = _TextCanvas.winData[mode], cols = winData.right + 1, rows = winData.bottom + 1;
-	    if (this.cols !== cols) {
-	      this.cols = cols;
-	      this.textText.setAttribute("cols", String(cols));
-	    }
-	    if (this.rows !== rows) {
-	      this.rows = rows;
-	      this.textText.setAttribute("rows", String(rows));
-	    }
-	  }
-	  clearFullWindow() {
-	    this.resetTextBuffer();
-	    this.setNeedUpdate();
-	  }
-	  windowScrollUp(left, right, top, bottom, _paper) {
-	    const width = right + 1 - left, height = bottom + 1 - top;
-	    if (height > 1) {
-	      this.copyTextBufferBoxUp(left, top + 1, width, height - 1, left, top);
-	    }
-	    this.fillTextBox(left, bottom, width, 1);
-	  }
-	  windowScrollDown(left, right, top, bottom, _paper) {
-	    const width = right + 1 - left, height = bottom + 1 - top;
-	    if (height > 1) {
-	      this.copyTextBufferBoxDown(left, top, width, height - 1, left, top + 1);
-	    }
-	    this.fillTextBox(left, top, width, 1);
-	  }
-	};
-	// CPC Unicode map for text mode (https://www.unicode.org/L2/L2019/19025-terminals-prop.pdf AMSCPC.TXT) incomplete; wider chars replaced by "."
-	// tooWide = [132,134,135,136,137,139,141,142,224,225,226,227,245];
-	// For equal height we set line-height: 15px;
-	_TextCanvas.cpc2Unicode = "................................ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]\u2195_`abcdefghijklmnopqrstuvwxyz{|}~\u2591\xA0\u2598\u259D\u2580.\u258C....\u2590.\u2584..\u2588\xB7\u2575\u2576\u2514\u2577\u2502\u250C\u251C\u2574\u2518\u2500\u2534\u2510\u2524\u252C\u253C^\xB4\xA8\xA3\xA9\xB6\xA7\u2018\xBC\xBD\xBE\xB1\xF7\xAC\xBF\xA1\u03B1\u03B2\u03B3\u03B4\u03B5\u03B8\u03BB\u03BC\u03C0\u03C3\u03C6\u03C8\u03C7\u03C9\u03A3\u03A9\u1FBA0\u1FBA1\u1FBA3\u1FBA2\u1FBA7\u1FBA5\u1FBA6\u1FBA4\u1FBA8\u1FBA9\u1FBAE\u2573\u2571\u2572\u1FB95\u2592\u23BA\u23B9\u23BD\u23B8....\u1FB8E\u1FB8D\u1FB8F\u1FB8C\u1FB9C\u1FB9D\u1FB9E\u1FB9F\u263A.\u2663\u2666\u2665\u2660\u25CB\u25CF\u25A1\u25A0\u2642\u2640";
-	// same as in CpcVm
-	_TextCanvas.winData = [
-	  // window data for mode mode 0,1,2,3 (we are counting from 0 here)
-	  {
-	    left: 0,
-	    right: 19,
-	    top: 0,
-	    bottom: 24
-	  },
-	  {
-	    left: 0,
-	    right: 39,
-	    top: 0,
-	    bottom: 24
-	  },
-	  {
-	    left: 0,
-	    right: 79,
-	    top: 0,
-	    bottom: 24
-	  },
-	  {
-	    left: 0,
-	    // mode 3 not available on CPC
-	    right: 79,
-	    top: 0,
-	    bottom: 49
-	  }
-	];
-	let TextCanvas = _TextCanvas;
-
-	const _VirtualKeyboard = class _VirtualKeyboard {
-	  constructor(options) {
-	    this.shiftLock = false;
-	    this.numLock = false;
-	    this.fnVirtualKeyboardKeydownHandler = (event) => this.onVirtualKeyboardKeydown(event);
-	    this.fnVirtualKeyboardKeyupOrKeyoutHandler = (event) => this.onVirtualKeyboardKeyupOrKeyout(event);
-	    this.fnKeydownOrKeyupHandler = (event) => this.onKeydownOrKeyup(event);
-	    this.options = {};
-	    this.setOptions(options);
-	    const view = this.options.view;
-	    this.eventNames = this.options.view.fnAttachPointerEvents(ViewID.kbdAreaInner, this.fnVirtualKeyboardKeydownHandler, void 0, this.fnVirtualKeyboardKeyupOrKeyoutHandler);
-	    view.addEventListenerById("keydown", this.fnKeydownOrKeyupHandler, ViewID.kbdAreaInner);
-	    view.addEventListenerById("keyup", this.fnKeydownOrKeyupHandler, ViewID.kbdAreaInner);
-	    this.virtualKeyboardCreate();
-	  }
-	  getOptions() {
-	    return this.options;
-	  }
-	  setOptions(options) {
-	    Object.assign(this.options, options);
-	  }
-	  /* eslint-enable array-element-newline */
-	  reset() {
-	    this.virtualKeyboardAdaptKeys(false, false);
-	  }
-	  mapNumLockCpcKey(cpcKey) {
-	    const key = _VirtualKeyboard.cpcKey2Key[cpcKey];
-	    if (key.numLockCpcKey) {
-	      cpcKey = key.numLockCpcKey;
-	    }
-	    return cpcKey;
-	  }
-	  fnVirtualGetAscii(cpcKey, shiftKey, numLock) {
-	    const keyEntry = _VirtualKeyboard.cpcKey2Key[cpcKey];
-	    let key, text, title;
-	    if (numLock && keyEntry.keyNumLock) {
-	      key = keyEntry.keyNumLock;
-	      text = keyEntry.textNumLock || key;
-	      title = keyEntry.titleNumLock || text;
-	    } else if (shiftKey && keyEntry.keyShift) {
-	      key = keyEntry.keyShift;
-	      text = keyEntry.textShift || key;
-	      title = keyEntry.titleShift || text;
-	    } else {
-	      key = keyEntry.key;
-	      text = keyEntry.text || key;
-	      title = keyEntry.title || text;
-	    }
-	    return {
-	      key,
-	      text,
-	      title
-	    };
-	  }
-	  createButtonRow(id, options) {
-	    const place = View.getElementById1(id);
-	    if (place.insertAdjacentElement) {
-	      const buttonList = document.createElement("div");
-	      buttonList.className = "displayFlex";
-	      for (let i = 0; i < options.length; i += 1) {
-	        const item = options[i], button = document.createElement("button");
-	        button.innerText = item.text;
-	        button.setAttribute("title", item.title);
-	        button.className = item.className;
-	        button.setAttribute("data-key", String(item.key));
-	        buttonList.insertAdjacentElement("beforeend", button);
-	      }
-	      place.insertAdjacentElement("beforeend", buttonList);
-	    } else {
-	      let html = "<div class=displayFlex>\n";
-	      for (let i = 0; i < options.length; i += 1) {
-	        const item = options[i];
-	        html += '<button title="' + item.title + '" class="' + item.className + '" data-key="' + item.key + '">' + item.text + "</button>\n";
-	      }
-	      html += "</div>";
-	      place.innerHTML += html;
-	    }
-	    return this;
-	  }
-	  virtualKeyboardCreatePart(id, virtualKeyboard) {
-	    const keyArea = View.getElementById1(id), shiftLock = this.shiftLock, numLock = this.numLock, cpcKey2Key = _VirtualKeyboard.cpcKey2Key, buttons = keyArea.getElementsByTagName("button");
-	    if (!buttons.length) {
-	      for (let row = 0; row < virtualKeyboard.length; row += 1) {
-	        const rowList = virtualKeyboard[row], optionsList = [];
-	        for (let col = 0; col < rowList.length; col += 1) {
-	          let cpcKeyEntry;
-	          if (typeof rowList[col] === "number") {
-	            cpcKeyEntry = {
-	              key: rowList[col]
-	            };
-	          } else {
-	            cpcKeyEntry = rowList[col];
-	          }
-	          const cpcKey = numLock ? this.mapNumLockCpcKey(cpcKeyEntry.key) : cpcKeyEntry.key, keyEntry = cpcKey2Key[cpcKeyEntry.key], ascii = this.fnVirtualGetAscii(cpcKey, shiftLock, numLock), className = "kbdButton" + (cpcKeyEntry.style || keyEntry.style || "") + (col === rowList.length - 1 ? " kbdNoRightMargin" : ""), options = {
-	            key: cpcKey,
-	            text: ascii.text,
-	            title: ascii.title,
-	            className
-	          };
-	          optionsList.push(options);
-	        }
-	        this.createButtonRow(id, optionsList);
-	      }
-	    }
-	  }
-	  virtualKeyboardCreate() {
-	    this.virtualKeyboardCreatePart(ViewID.kbdAlpha, _VirtualKeyboard.virtualKeyboardAlpha);
-	    this.virtualKeyboardCreatePart(ViewID.kbdNum, _VirtualKeyboard.virtualKeyboardNum);
-	  }
-	  virtualKeyboardAdaptKeys(shiftLock, numLock) {
-	    const keyArea = View.getElementById1(ViewID.kbdAreaInner), buttons = keyArea.getElementsByTagName("button");
-	    for (let i = 0; i < buttons.length; i += 1) {
-	      const button = buttons[i];
-	      let cpcKey = Number(button.getAttribute("data-key"));
-	      if (numLock) {
-	        cpcKey = this.mapNumLockCpcKey(cpcKey);
-	      }
-	      const ascii = this.fnVirtualGetAscii(cpcKey, shiftLock, numLock);
-	      if (ascii.key !== button.innerText) {
-	        button.innerText = ascii.text;
-	        button.title = ascii.title;
-	      }
-	    }
-	  }
-	  fnVirtualGetPressedKey(cpcKey) {
-	    const key = _VirtualKeyboard.cpcKey2Key[cpcKey];
-	    let pressedKey = "";
-	    if (key) {
-	      pressedKey = key.keys;
-	      if (pressedKey.indexOf(",") >= 0) {
-	        pressedKey = pressedKey.substring(0, pressedKey.indexOf(","));
-	      }
-	    }
-	    return pressedKey;
-	  }
-	  onVirtualKeyboardKeydown(event) {
-	    const node = View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
-	    if (UiUtils.debug > 1) {
-	      UiUtils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
-	    }
-	    if (cpcKey !== null) {
-	      let cpcKeyCode = Number(cpcKey);
-	      if (this.numLock) {
-	        cpcKeyCode = this.mapNumLockCpcKey(cpcKeyCode);
-	      }
-	      const pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || event.shiftKey, this.numLock);
-	      this.options.fnPressCpcKey(event, cpcKeyCode, pressedKey, ascii.key);
-	    }
-	    if (this.eventNames.out) {
-	      this.options.view.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node);
-	    }
-	    event.preventDefault();
-	    return false;
-	  }
-	  fnVirtualKeyboardKeyupOrKeyout(event) {
-	    const node = View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
-	    if (cpcKey !== null) {
-	      let cpcKeyCode = Number(cpcKey);
-	      if (this.numLock) {
-	        cpcKeyCode = this.mapNumLockCpcKey(cpcKeyCode);
-	      }
-	      const pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || event.shiftKey, this.numLock);
-	      this.options.fnReleaseCpcKey(event, cpcKeyCode, pressedKey, ascii.key);
-	      if (cpcKeyCode === 70) {
-	        this.shiftLock = !this.shiftLock;
-	        this.virtualKeyboardAdaptKeys(this.shiftLock, this.numLock);
-	      } else if (cpcKeyCode === 90) {
-	        this.numLock = !this.numLock;
-	        this.virtualKeyboardAdaptKeys(this.shiftLock, this.numLock);
-	      }
-	    }
-	  }
-	  onVirtualKeyboardKeyupOrKeyout(event) {
-	    const node = View.getEventTarget(event);
-	    if (UiUtils.debug > 1) {
-	      UiUtils.console.debug("onVirtualKeyboardKeyupOrKeyout: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
-	    }
-	    this.fnVirtualKeyboardKeyupOrKeyout(event);
-	    if (this.eventNames.out) {
-	      this.options.view.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node);
-	    }
-	    event.preventDefault();
-	    return false;
-	  }
-	  static keyIdentifier2Char(event) {
-	    const identifier = event.keyIdentifier, shiftKey = event.shiftKey;
-	    let char;
-	    if (/^U\+/i.test(identifier || "")) {
-	      char = String.fromCharCode(parseInt(identifier.substr(2), 16));
-	      if (char === "\0") {
-	        char = "";
-	      }
-	      char = shiftKey ? char.toUpperCase() : char.toLowerCase();
-	    } else {
-	      char = identifier;
-	    }
-	    return char;
-	  }
-	  onKeydownOrKeyup(event) {
-	    const key = event.key || _VirtualKeyboard.keyIdentifier2Char(event) || "", activeElement = window.document.activeElement;
-	    if (key === "Enter" || key === " ") {
-	      const simPointerEvent = {
-	        type: event.type,
-	        target: activeElement,
-	        // active selected element
-	        preventDefault: function() {
-	        }
-	      };
-	      if (event.type === "keydown") {
-	        this.onVirtualKeyboardKeydown(simPointerEvent);
-	      } else if (event.type === "keyup") {
-	        this.onVirtualKeyboardKeyupOrKeyout(simPointerEvent);
-	      } else {
-	        UiUtils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
-	      }
-	      event.preventDefault();
-	      return false;
-	    }
-	    return void 0;
-	  }
-	};
-	_VirtualKeyboard.cpcKey2Key = [
-	  {
-	    keys: "38ArrowUp",
-	    // 0: cursor up
-	    key: "ArrowUp",
-	    text: "\u2191",
-	    title: "Cursor up"
-	  },
-	  {
-	    keys: "39ArrowRight",
-	    // 1: cursor right
-	    key: "ArrowRight",
-	    text: "\u2192",
-	    title: "Cursor right",
-	    style: 1
-	  },
-	  {
-	    keys: "40ArrowDown",
-	    // 2: cursor down
-	    key: "ArrowDown",
-	    text: "\u2193",
-	    title: "Cursor down"
-	  },
-	  {
-	    keys: "105Numpad9,120F9",
-	    // 3: numpad f9
-	    key: "9",
-	    text: "f9",
-	    style: 1,
-	    numLockCpcKey: 81
-	    // joy 0 up+right
-	  },
-	  {
-	    keys: "102Numpad6,117F6",
-	    // 4: numpad f6
-	    key: "6",
-	    text: "f6",
-	    style: 1,
-	    numLockCpcKey: 75
-	    // joy 0 right
-	  },
-	  {
-	    keys: "99Numpad3,114F3",
-	    // 5: numpad f3
-	    key: "3",
-	    text: "f3",
-	    style: 1,
-	    numLockCpcKey: 83
-	    // joy 0 down+right
-	  },
-	  {
-	    keys: "13NumpadEnter",
-	    // 6: numpad enter
-	    key: "Enter",
-	    style: 4
-	  },
-	  {
-	    keys: "110NumpadDecimal",
-	    // 7: numpad .
-	    key: ".",
-	    numLockCpcKey: 77
-	    // joy 0 fire 1
-	  },
-	  {
-	    keys: "37ArrowLeft",
-	    // 8: cursor left
-	    key: "ArrowLeft",
-	    text: "\u2190",
-	    title: "Cursor left",
-	    style: 1
-	  },
-	  {
-	    keys: "18AltLeft",
-	    // 9: copy
-	    key: "Alt",
-	    text: "Copy",
-	    style: 2
-	  },
-	  {
-	    keys: "103Numpad7,118F7",
-	    // 10: numpad f7
-	    key: "7",
-	    text: "f7",
-	    style: 1,
-	    numLockCpcKey: 80
-	    // joy 0 up+left
-	  },
-	  {
-	    keys: "104Numpad8,119F8",
-	    // 11: numpad f8
-	    key: "8",
-	    text: "f8",
-	    style: 1,
-	    numLockCpcKey: 72
-	    // joy 0 up
-	  },
-	  {
-	    keys: "101Numpad5,116F5",
-	    // 12: numpad f5
-	    key: "5",
-	    text: "f5",
-	    style: 1,
-	    numLockCpcKey: 76
-	    // joy 0 fire 2
-	  },
-	  {
-	    keys: "97Numpad1,112F1",
-	    // 13: numpad f1
-	    key: "1",
-	    text: "f1",
-	    style: 1,
-	    numLockCpcKey: 82
-	    // joy 0 down+left
-	  },
-	  {
-	    keys: "98Numpad2,113F2",
-	    // 14: numpad f2
-	    key: "2",
-	    text: "f2",
-	    style: 1,
-	    numLockCpcKey: 73
-	    // joy 0 down
-	  },
-	  {
-	    keys: "96Numpad0,121F10",
-	    // 15: numpad f0
-	    key: "0",
-	    text: "f0",
-	    style: 1
-	    // numLockCpcKey: 90 // Num lock
-	  },
-	  {
-	    keys: "46Delete",
-	    // 16: clr
-	    key: "Delete",
-	    text: "Clr",
-	    title: "Clear",
-	    style: 1
-	  },
-	  {
-	    keys: "187BracketRight,171BracketRight,221BracketRight",
-	    // 17: [ { (Chrome: 187; FF: 171); EN: 221BracketRight
-	    key: "[",
-	    keyShift: "{"
-	  },
-	  {
-	    keys: "13Enter",
-	    // 18: return
-	    key: "Enter",
-	    text: "Ret",
-	    title: "Return",
-	    style: 2
-	  },
-	  {
-	    keys: "191Backslash,163Backslash,220Backslash",
-	    // 19: ] } => # ' (Chrome: 191; FF: 163); EN: 220Backslash
-	    key: "]",
-	    keyShift: "}"
-	  },
-	  {
-	    keys: "100Numpad4,115F4",
-	    // 20: numpad f4
-	    key: "4",
-	    text: "f4",
-	    style: 1,
-	    numLockCpcKey: 74
-	    // joy 0 left
-	  },
-	  {
-	    keys: "16ShiftLeft,16ShiftRight",
-	    // 21: shift left, shift right (2 keys!)
-	    key: "Shift",
-	    style: 4
-	  },
-	  {
-	    keys: "220Backquote,160Backquote,192Backquote",
-	    // 22: \ ` (different location, key!; Chrome: 220; FF: 160); EN: 192Backquote, 226IntlBackslash?
-	    key: "\\",
-	    keyShift: "`"
-	  },
-	  {
-	    keys: "17ControlLeft,17ControlRight",
-	    // 23: Note: alt-gr also triggers ctrl-left and alt-gr!
-	    key: "Control",
-	    text: "Ctrl",
-	    title: "Control",
-	    style: 4
-	  },
-	  {
-	    keys: "221Equal,192Equal,187Equal",
-	    // 24: ^ £ (pound: \u00A3) (Chrome: 221; FF: 192); EN: 187Equal
-	    key: "^",
-	    keyShift: "\xA3"
-	  },
-	  {
-	    keys: "219Minus,63Minus,189Minus",
-	    // 25: - = (Chrome: 219; FF: 63); EN: 189Minus
-	    key: "-",
-	    keyShift: "="
-	  },
-	  {
-	    keys: "186BracketLeft,59BracketLeft,219BracketLeft",
-	    // 26: @ | (Chrome: 168; FF: 59); EN: 219BracketLeft
-	    key: "@",
-	    keyShift: "|",
-	    style: 1
-	  },
-	  {
-	    keys: "80KeyP",
-	    // 27: P
-	    key: "p",
-	    keyShift: "P"
-	  },
-	  {
-	    keys: "222Quote,192Quote",
-	    // 28: ; + (same on Chrome, FF); Android Bluetooth EN: 192Quote
-	    key: ";",
-	    keyShift: "+"
-	  },
-	  {
-	    keys: "192Semicolon,186Semicolon",
-	    // 29: : * (same on Chrome, FF); EN: 186Semicolon
-	    key: ":",
-	    keyShift: "*"
-	  },
-	  {
-	    keys: "189Slash,173Slash,191Slash",
-	    // 30: / ? (Chrome: 189; FF: 173); EN: 191Slash
-	    key: "/",
-	    keyShift: "?"
-	  },
-	  {
-	    keys: "190Period",
-	    // 31: . <
-	    key: ".",
-	    keyShift: "<"
-	  },
-	  {
-	    keys: "48Digit0",
-	    // 32: 0 _
-	    key: "0",
-	    keyShift: "_"
-	  },
-	  {
-	    keys: "57Digit9",
-	    // 33: 9 )
-	    key: "9",
-	    keyShift: ")"
-	  },
-	  {
-	    keys: "79KeyO",
-	    // 34:
-	    key: "o",
-	    keyShift: "O"
-	  },
-	  {
-	    keys: "73KeyI",
-	    // 35:
-	    key: "i",
-	    keyShift: "I"
-	  },
-	  {
-	    keys: "76KeyL",
-	    // 36:
-	    key: "l",
-	    keyShift: "L"
-	  },
-	  {
-	    keys: "75KeyK",
-	    // 37:
-	    key: "k",
-	    keyShift: "K"
-	  },
-	  {
-	    keys: "77KeyM",
-	    // 38:
-	    key: "m",
-	    keyShift: "M"
-	  },
-	  {
-	    keys: "188Comma",
-	    // 39: , >
-	    key: ",",
-	    keyShift: ">"
-	  },
-	  {
-	    keys: "56Digit8",
-	    // 40: 8 (
-	    key: "8",
-	    keyShift: "("
-	  },
-	  {
-	    keys: "55Digit7",
-	    // 41: 7 '
-	    key: "7",
-	    keyShift: "'"
-	  },
-	  {
-	    keys: "85KeyU",
-	    // 42:
-	    key: "u",
-	    keyShift: "U"
-	  },
-	  {
-	    keys: "90KeyY,89KeyY",
-	    // 43:
-	    key: "y",
-	    keyShift: "Y"
-	  },
-	  {
-	    keys: "72KeyH",
-	    // 44:
-	    key: "h",
-	    keyShift: "H"
-	  },
-	  {
-	    keys: "74KeyJ",
-	    // 45:
-	    key: "j",
-	    keyShift: "J"
-	  },
-	  {
-	    keys: "78KeyN",
-	    // 46:
-	    key: "n",
-	    keyShift: "N"
-	  },
-	  {
-	    keys: "32Space",
-	    // 47: space
-	    key: " ",
-	    text: "Space",
-	    style: 5
-	  },
-	  {
-	    keys: "54Digit6",
-	    // 48: 6 &
-	    key: "6",
-	    keyShift: "("
-	  },
-	  {
-	    keys: "53Digit5",
-	    // 49: 5 %
-	    key: "5",
-	    keyShift: "%"
-	  },
-	  {
-	    keys: "82KeyR",
-	    // 50:
-	    key: "r",
-	    keyShift: "R"
-	  },
-	  {
-	    keys: "84KeyT",
-	    // 51:
-	    key: "t",
-	    keyShift: "T"
-	  },
-	  {
-	    keys: "71KeyG",
-	    // 52:
-	    key: "g",
-	    keyShift: "G"
-	  },
-	  {
-	    keys: "70KeyF",
-	    // 53:
-	    key: "f",
-	    keyShift: "F"
-	  },
-	  {
-	    keys: "66KeyB",
-	    // 54:
-	    key: "b",
-	    keyShift: "B"
-	  },
-	  {
-	    keys: "86KeyV",
-	    // 55:
-	    key: "v",
-	    keyShift: "V"
-	  },
-	  {
-	    keys: "52Digit4",
-	    // 56: 4 $
-	    key: "4",
-	    keyShift: "$"
-	  },
-	  {
-	    keys: "51Digit3",
-	    // 57: 3 #
-	    key: "3",
-	    keyShift: "#"
-	  },
-	  {
-	    keys: "69KeyE",
-	    // 58:
-	    key: "e",
-	    keyShift: "E"
-	  },
-	  {
-	    keys: "87KeyW",
-	    // 59:
-	    key: "w",
-	    keyShift: "W"
-	  },
-	  {
-	    keys: "83KeyS",
-	    // 60:
-	    key: "s",
-	    keyShift: "S"
-	  },
-	  {
-	    keys: "68KeyD",
-	    // 61:
-	    key: "d",
-	    keyShift: "D"
-	  },
-	  {
-	    keys: "67KeyC",
-	    // 62:
-	    key: "c",
-	    keyShift: "C"
-	  },
-	  {
-	    keys: "88KeyX",
-	    // 63:
-	    key: "x",
-	    keyShift: "X"
-	  },
-	  {
-	    keys: "49Digit1",
-	    // 64: 1 !
-	    key: "1",
-	    keyShift: "!"
-	  },
-	  {
-	    keys: "50Digit2",
-	    // 65: 2 "
-	    key: "2",
-	    keyShift: '"'
-	  },
-	  {
-	    keys: "27Escape",
-	    // 66: esc
-	    key: "Escape",
-	    text: "Esc",
-	    title: "Escape",
-	    style: 1
-	  },
-	  {
-	    keys: "81KeyQ",
-	    // 67:
-	    key: "q",
-	    keyShift: "Q"
-	  },
-	  {
-	    keys: "9Tab",
-	    // 68:
-	    key: "Tab",
-	    style: 2
-	  },
-	  {
-	    keys: "65KeyA",
-	    // 69:
-	    key: "a",
-	    keyShift: "A"
-	  },
-	  {
-	    keys: "20CapsLock",
-	    // 70: caps lock
-	    key: "CapsLock",
-	    text: "Caps",
-	    title: "Caps Lock",
-	    style: 3
-	  },
-	  {
-	    keys: "89KeyZ,90KeyZ",
-	    // 71: DE,EN
-	    key: "z",
-	    keyShift: "Z"
-	  },
-	  {
-	    keys: "38Numpad8",
-	    // 72: joy 0 up (arrow up)
-	    key: "JoyUp",
-	    text: "\u21D1",
-	    title: "Joy up"
-	  },
-	  {
-	    keys: "40Numpad2",
-	    // 73: joy 0 down
-	    key: "JoyDown",
-	    text: "\u21D3",
-	    title: "Joy down"
-	  },
-	  {
-	    keys: "37Numpad4",
-	    // 74: joy 0 left
-	    key: "JoyLeft",
-	    text: "\u21D0",
-	    title: "Joy left"
-	  },
-	  {
-	    keys: "39Numpad6",
-	    // 75: joy 0 right
-	    key: "JoyRight",
-	    text: "\u21D2",
-	    title: "Joy right"
-	  },
-	  {
-	    keys: "12Numpad5,45Numpad0",
-	    // 76: joy 0 fire 2 (clear,...)
-	    key: "X",
-	    text: "\u29BF",
-	    title: "Joy fire"
-	  },
-	  {
-	    keys: "46NumpadDecimal",
-	    // 77: joy 0 fire 1
-	    key: "Z",
-	    text: "\u25E6",
-	    title: "Joy fire 1"
-	  },
-	  {
-	    keys: "",
-	    // 78: ""? not null? (joy 0 fire 3?)
-	    key: ""
-	  },
-	  {
-	    keys: "8Backspace",
-	    // 79: del
-	    key: "Backspace",
-	    // 79: del
-	    text: "Del",
-	    title: "Delete",
-	    style: 1
-	  },
-	  // starting with 80, not on CPC
-	  // not on CPC:
-	  {
-	    keys: "36Numpad7",
-	    // 80: joy 0 up+left
-	    key: "",
-	    text: "\u21D6",
-	    title: "Joy up+left"
-	  },
-	  {
-	    keys: "33Numpad9",
-	    // 81: joy 0 up+right
-	    key: "",
-	    text: "\u21D7",
-	    title: "Joy up+right"
-	  },
-	  {
-	    keys: "35Numpad1",
-	    // 82: joy 0 down+left
-	    key: "",
-	    text: "\u21D9",
-	    title: "Joy down+leftt"
-	  },
-	  {
-	    keys: "34Numpad3",
-	    // 83: joy 0 down+right
-	    key: "",
-	    text: "\u21D8",
-	    title: "Joy down+right"
-	  },
-	  {
-	    keys: "",
-	    // 84: (not null?)
-	    key: ""
-	  },
-	  {
-	    keys: "226IntlBackslash,60IntlBackslash,220IntlBackslash",
-	    // 85: < > | // key not on CPC! (Chrome: 226, FF: 60);  Android Bluetooth EN: 220IntlBackslash
-	    key: ""
-	  },
-	  {
-	    keys: "111NumpadDivide",
-	    // 86:
-	    key: ""
-	  },
-	  {
-	    keys: "106NumpadMultiply",
-	    // 87:
-	    key: ""
-	  },
-	  {
-	    keys: "109NumpadSubtract",
-	    // 88:
-	    key: ""
-	  },
-	  {
-	    keys: "107NumpadAdd",
-	    // 89:
-	    key: ""
-	  },
-	  {
-	    keys: "",
-	    key: "",
-	    // 90: special num lock key to switch between joystick and numpad
-	    text: "Num",
-	    title: "Num / Joy",
-	    style: 1
-	  }
-	  // only on PC:
-	  // "226IntlBackslash", "122F11", "123F12", "44PrintScreen", "145ScrollLock", "19Pause", "45Insert", "36Home", "33PageUp", "35End", "34PageDown", "111NumpadDivide", "106NumpadMultiply", "109NumpadSubtract", "107NumpadAdd"
-	];
-	/* eslint-disable array-element-newline */
-	_VirtualKeyboard.virtualKeyboardAlpha = [
-	  [66, 64, 65, 57, 56, 49, 48, 41, 40, 33, 32, 25, 24, 16, 79],
-	  [68, 67, 59, 58, 50, 51, 43, 42, 35, 34, 27, 26, 17, 18],
-	  [70, 69, 60, 61, 53, 52, 44, 45, 37, 36, 29, 28, 19, 90],
-	  // 90=virtual numpad button
-	  [
-	    21,
-	    71,
-	    63,
-	    62,
-	    55,
-	    54,
-	    46,
-	    38,
-	    39,
-	    31,
-	    30,
-	    22,
-	    {
-	      key: 21,
-	      // right shift has same code and style
-	      style: 2
-	    }
-	  ],
-	  [23, 9, 47, 6]
-	];
-	_VirtualKeyboard.virtualKeyboardNum = [
-	  // numpad
-	  [10, 11, 3],
-	  [20, 12, 4],
-	  [13, 14, 5],
-	  [15, 0, 7],
-	  [8, 2, 1]
-	];
-	let VirtualKeyboard = _VirtualKeyboard;
-
-	class Sound {
-	  constructor(options) {
-	    this.isSoundOn = false;
-	    this.isActivatedByUserFlag = false;
-	    this.contextNotAvailable = false;
-	    this.contextStartTime = 0;
-	    this.gainNodes = [];
-	    this.oscillators = [];
-	    // 3 oscillators left, middle, right
-	    this.queues = [];
-	    // node queues and info for the three channels
-	    this.fScheduleAheadTime = 0.1;
-	    // 100 ms
-	    this.volEnv = [];
-	    this.toneEnv = [];
-	    this.options = {};
-	    this.setOptions(options);
-	    for (let i = 0; i < 3; i += 1) {
-	      this.queues[i] = {
-	        soundData: [],
-	        fNextNoteTime: 0,
-	        onHold: false,
-	        rendevousMask: 0
-	      };
-	    }
-	    if (UiUtils.debug > 1) {
-	      this.debugLogList = [];
-	    }
-	  }
-	  /*
-	  private getOptions(): SoundOptions {
-	  	return this.options;
-	  }
-	  */
-	  setOptions(options) {
-	    Object.assign(this.options, options);
-	  }
-	  reset() {
-	    const oscillators = this.oscillators, volEnvData = {
-	      steps: 1,
-	      diff: 0,
-	      time: 200
-	    };
-	    this.resetQueue();
-	    for (let i = 0; i < 3; i += 1) {
-	      if (oscillators[i]) {
-	        this.stopOscillator(i);
-	      }
-	    }
-	    this.volEnv.length = 0;
-	    this.setVolEnv(0, [volEnvData]);
-	    this.toneEnv.length = 0;
-	    if (this.debugLogList) {
-	      this.debugLogList.length = 0;
-	    }
-	  }
-	  stopOscillator(n) {
-	    const oscillators = this.oscillators, oscillatorNode = oscillators[n];
-	    if (oscillatorNode) {
-	      oscillatorNode.frequency.value = 0;
-	      oscillatorNode.stop();
-	      oscillatorNode.disconnect();
-	      oscillators[n] = void 0;
-	    }
-	  }
-	  debugLog(msg) {
-	    if (this.debugLogList) {
-	      this.debugLogList.push([
-	        this.context ? this.context.currentTime : 0,
-	        msg
-	      ]);
-	    }
-	  }
-	  resetQueue() {
-	    const queues = this.queues;
-	    for (let i = 0; i < queues.length; i += 1) {
-	      const queue = queues[i];
-	      queue.soundData.length = 0;
-	      queue.fNextNoteTime = 0;
-	      queue.onHold = false;
-	      queue.rendevousMask = 0;
-	    }
-	  }
-	  createSoundContext() {
-	    const channelMap2Cpc = [
-	      // channel map for CPC: left, middle (center), right; so swap middle and right
-	      0,
-	      2,
-	      1
-	    ], AudioContextConstructor = this.options.AudioContextConstructor;
-	    let context;
-	    if (!AudioContextConstructor) {
-	      if (!this.contextNotAvailable) {
-	        UiUtils.console.warn("createSoundContext: AudioContext not available");
-	      }
-	      this.contextNotAvailable = true;
-	      return context;
-	    }
-	    try {
-	      context = new AudioContextConstructor();
-	      const mergerNode = context.createChannelMerger(6);
-	      this.mergerNode = mergerNode;
-	      for (let i = 0; i < 3; i += 1) {
-	        const gainNode = context.createGain();
-	        gainNode.connect(mergerNode, 0, channelMap2Cpc[i]);
-	        this.gainNodes[i] = gainNode;
-	      }
-	    } catch (e) {
-	      UiUtils.console.warn("createSoundContext:", e);
-	      this.contextNotAvailable = true;
-	    }
-	    const oldContextStartTime = this.contextStartTime;
-	    this.contextStartTime = Date.now() / 1e3;
-	    if (oldContextStartTime && context) {
-	      const correctionTime = context.currentTime + (this.contextStartTime - oldContextStartTime), queues = this.queues;
-	      for (let i = 0; i < 3; i += 1) {
-	        if (queues[i].soundData.length) {
-	          queues[i].fNextNoteTime -= correctionTime;
-	        }
-	      }
-	    }
-	    return context;
-	  }
-	  playNoise(oscillator, fTime, fDuration, noise) {
-	    const context = this.context, bufferSize = context.sampleRate * fDuration, buffer = context.createBuffer(1, bufferSize, context.sampleRate), data = buffer.getChannelData(0), noiseNode = context.createBufferSource();
-	    for (let i = 0; i < bufferSize; i += 1) {
-	      data[i] = Math.random() * 2 - 1;
-	    }
-	    noiseNode.buffer = buffer;
-	    if (noise > 1) {
-	      const bandHz = 2e4 / noise, bandpass = context.createBiquadFilter();
-	      bandpass.type = "bandpass";
-	      bandpass.frequency.value = bandHz;
-	      noiseNode.connect(bandpass).connect(this.gainNodes[oscillator]);
-	    } else {
-	      noiseNode.connect(this.gainNodes[oscillator]);
-	    }
-	    noiseNode.start(fTime);
-	    noiseNode.stop(fTime + fDuration);
-	  }
-	  simulateApplyVolEnv(volData, duration, volEnvRepeat) {
-	    let time = 0;
-	    for (let loop = 0; loop < volEnvRepeat; loop += 1) {
-	      for (let part = 0; part < volData.length; part += 1) {
-	        const group = volData[part];
-	        if (group.steps !== void 0) {
-	          const group1 = group, volTime = group1.time;
-	          let volSteps = group1.steps;
-	          if (!volSteps) {
-	            volSteps = 1;
-	          }
-	          for (let i = 0; i < volSteps; i += 1) {
-	            time += volTime;
-	            if (duration && time >= duration) {
-	              loop = volEnvRepeat;
-	              part = volData.length;
-	              break;
-	            }
-	          }
-	        } else {
-	          const group2 = group, register = group2.register, period = group2.period, volTime = period;
-	          if (register === 0) {
-	            time += volTime;
-	          }
-	        }
-	      }
-	    }
-	    if (duration === 0) {
-	      duration = time;
-	    }
-	    return duration;
-	  }
-	  applyVolEnv(volData, gain, fTime, volume, duration, volEnvRepeat) {
-	    const maxVolume = 15, i100ms2sec = 100;
-	    let time = 0;
-	    for (let loop = 0; loop < volEnvRepeat; loop += 1) {
-	      for (let part = 0; part < volData.length; part += 1) {
-	        const group = volData[part];
-	        if (group.steps !== void 0) {
-	          const group1 = group, volDiff = group1.diff, volTime = group1.time;
-	          let volSteps = group1.steps;
-	          if (!volSteps) {
-	            volSteps = 1;
-	            volume = 0;
-	          }
-	          for (let i = 0; i < volSteps; i += 1) {
-	            volume = (volume + volDiff) % (maxVolume + 1);
-	            const fVolume = volume / maxVolume;
-	            gain.setValueAtTime(fVolume * fVolume, fTime + time / i100ms2sec);
-	            time += volTime;
-	            if (duration && time >= duration) {
-	              loop = volEnvRepeat;
-	              part = volData.length;
-	              break;
-	            }
-	          }
-	        } else {
-	          const group2 = group, register = group2.register, period = group2.period, volTime = period;
-	          if (register === 0) {
-	            volume = 15;
-	            let fVolume = volume / maxVolume;
-	            gain.setValueAtTime(fVolume * fVolume, fTime + time / i100ms2sec);
-	            time += volTime;
-	            fVolume = 0;
-	            gain.linearRampToValueAtTime(fVolume, fTime + time / i100ms2sec);
-	          }
-	        }
-	      }
-	    }
-	    if (duration === 0) {
-	      duration = time;
-	    }
-	    return duration;
-	  }
-	  applyToneEnv(toneData, frequency, fTime, period, duration) {
-	    const i100ms2sec = 100, repeat = toneData[0], toneEnvRepeat = repeat ? 5 : 1;
-	    let time = 0;
-	    for (let loop = 0; loop < toneEnvRepeat; loop += 1) {
-	      for (let part = 0; part < toneData.length; part += 1) {
-	        const group = toneData[part];
-	        if (group.steps !== void 0) {
-	          const group1 = group, toneSteps = group1.steps || 1, toneDiff = group1.diff, toneTime = group1.time;
-	          for (let i = 0; i < toneSteps; i += 1) {
-	            const fFrequency = period >= 3 ? 62500 / period : 0;
-	            frequency.setValueAtTime(fFrequency, fTime + time / i100ms2sec);
-	            period += toneDiff;
-	            time += toneTime;
-	            if (duration && time >= duration) {
-	              loop = toneEnvRepeat;
-	              part = toneData.length;
-	              break;
-	            }
-	          }
-	        } else {
-	          const group2 = group, toneTime = group2.time;
-	          period = group2.period;
-	          const fFrequency = period >= 3 ? 62500 / period : 0;
-	          frequency.setValueAtTime(fFrequency, fTime + time / i100ms2sec);
-	          time += toneTime;
-	        }
-	      }
-	    }
-	  }
-	  // simulate schedule note when sound is off
-	  simulateScheduleNote(soundData) {
-	    let duration = soundData.duration, volEnv = soundData.volEnv, volEnvRepeat = 1;
-	    if (duration < 0) {
-	      volEnvRepeat = Math.min(5, -duration);
-	      duration = 0;
-	    }
-	    if (volEnv || !duration) {
-	      if (!this.volEnv[volEnv]) {
-	        volEnv = 0;
-	      }
-	      duration = this.simulateApplyVolEnv(this.volEnv[volEnv], duration, volEnvRepeat);
-	    }
-	    const i100ms2sec = 100, fDuration = duration / i100ms2sec;
-	    return fDuration;
-	  }
-	  scheduleNote(oscillator, fTime, soundData) {
-	    if (UiUtils.debug > 1) {
-	      this.debugLog("scheduleNote: " + oscillator + " " + fTime);
-	    }
-	    if (!this.isSoundOn) {
-	      return this.simulateScheduleNote(soundData);
-	    }
-	    const context = this.context, oscillatorNode = context.createOscillator();
-	    oscillatorNode.type = "square";
-	    oscillatorNode.frequency.value = soundData.period >= 3 ? 62500 / soundData.period : 0;
-	    oscillatorNode.connect(this.gainNodes[oscillator]);
-	    if (fTime < context.currentTime) {
-	      if (UiUtils.debug) {
-	        UiUtils.console.debug("Test: sound: scheduleNote:", fTime, "<", context.currentTime);
-	      }
-	    }
-	    const volume = soundData.volume, gain = this.gainNodes[oscillator].gain, maxVolume = 15, fVolume = volume / maxVolume;
-	    gain.setValueAtTime(fVolume * fVolume, fTime);
-	    let duration = soundData.duration, volEnv = soundData.volEnv, volEnvRepeat = 1;
-	    if (duration < 0) {
-	      volEnvRepeat = Math.min(5, -duration);
-	      duration = 0;
-	    }
-	    if (volEnv || !duration) {
-	      if (!this.volEnv[volEnv]) {
-	        volEnv = 0;
-	      }
-	      duration = this.applyVolEnv(this.volEnv[volEnv], gain, fTime, volume, duration, volEnvRepeat);
-	    }
-	    const toneEnv = soundData.toneEnv;
-	    if (toneEnv && this.toneEnv[toneEnv]) {
-	      this.applyToneEnv(this.toneEnv[toneEnv], oscillatorNode.frequency, fTime, soundData.period, duration);
-	    }
-	    const i100ms2sec = 100, fDuration = duration / i100ms2sec;
-	    oscillatorNode.start(fTime);
-	    oscillatorNode.stop(fTime + fDuration);
-	    this.oscillators[oscillator] = oscillatorNode;
-	    if (soundData.noise) {
-	      this.playNoise(oscillator, fTime, fDuration, soundData.noise);
-	    }
-	    return fDuration;
-	  }
-	  testCanQueue(state) {
-	    let canQueue = true;
-	    if (this.isSoundOn && !this.isActivatedByUserFlag) {
-	      canQueue = false;
-	    } else if (!(state & 128)) {
-	      const queues = this.queues;
-	      if (state & 1 && queues[0].soundData.length >= 4 || state & 2 && queues[1].soundData.length >= 4 || state & 4 && queues[2].soundData.length >= 4) {
-	        canQueue = false;
-	      }
-	    }
-	    return canQueue;
-	  }
-	  sound(soundData) {
-	    const queues = this.queues, state = soundData.state;
-	    for (let i = 0; i < 3; i += 1) {
-	      if (state >> i & 1) {
-	        const queue = queues[i];
-	        if (state & 128) {
-	          queue.soundData.length = 0;
-	          queue.fNextNoteTime = 0;
-	          this.stopOscillator(i);
-	        }
-	        queue.soundData.push(soundData);
-	        if (UiUtils.debug > 1) {
-	          this.debugLog("sound: " + i + " " + state + ":" + queue.soundData.length);
-	        }
-	        this.updateQueueStatus(i, queue);
-	      }
-	    }
-	    this.scheduler();
-	  }
-	  setVolEnv(volEnv, volEnvData) {
-	    this.volEnv[volEnv] = volEnvData;
-	  }
-	  setToneEnv(toneEnv, toneEnvData) {
-	    this.toneEnv[toneEnv] = toneEnvData;
-	  }
-	  updateQueueStatus(i, queue) {
-	    const soundData = queue.soundData;
-	    if (soundData.length) {
-	      queue.onHold = Boolean(soundData[0].state & 64);
-	      queue.rendevousMask = soundData[0].state & 7;
-	      queue.rendevousMask &= ~(1 << i);
-	      queue.rendevousMask |= soundData[0].state >> 3 & 7;
-	    } else {
-	      queue.onHold = false;
-	      queue.rendevousMask = 0;
-	    }
-	  }
-	  // idea from: https://www.html5rocks.com/en/tutorials/audio/scheduling/
-	  scheduler() {
-	    if (!this.isActivatedByUserFlag) {
-	      return;
-	    }
-	    const context = this.context, fCurrentTime = context ? context.currentTime : Date.now() / 1e3 - this.contextStartTime, queues = this.queues;
-	    let canPlayMask = 0;
-	    for (let i = 0; i < 3; i += 1) {
-	      const queue = queues[i];
-	      while (queue.soundData.length && !queue.onHold && queue.fNextNoteTime < fCurrentTime + this.fScheduleAheadTime) {
-	        if (!queue.rendevousMask) {
-	          if (queue.fNextNoteTime < fCurrentTime) {
-	            queue.fNextNoteTime = fCurrentTime;
-	          }
-	          const soundData = queue.soundData.shift();
-	          queue.fNextNoteTime += this.scheduleNote(i, queue.fNextNoteTime, soundData);
-	          this.updateQueueStatus(i, queue);
-	        } else {
-	          canPlayMask |= 1 << i;
-	          break;
-	        }
-	      }
-	    }
-	    if (!canPlayMask) {
-	      return;
-	    }
-	    for (let i = 0; i < 3; i += 1) {
-	      const queue = queues[i];
-	      if (canPlayMask >> i & 1 && (queue.rendevousMask & canPlayMask) === queue.rendevousMask) {
-	        if (queue.fNextNoteTime < fCurrentTime) {
-	          queue.fNextNoteTime = fCurrentTime;
-	        }
-	        const soundData = queue.soundData.shift();
-	        queue.fNextNoteTime += this.scheduleNote(i, queue.fNextNoteTime, soundData);
-	        this.updateQueueStatus(i, queue);
-	      }
-	    }
-	  }
-	  release(releaseMask) {
-	    const queues = this.queues;
-	    if (!queues.length) {
-	      return;
-	    }
-	    if (UiUtils.debug > 1) {
-	      this.debugLog("release: " + releaseMask);
-	    }
-	    for (let i = 0; i < 3; i += 1) {
-	      const queue = queues[i], soundData = queue.soundData;
-	      if (releaseMask >> i & 1 && soundData.length && queue.onHold) {
-	        queue.onHold = false;
-	      }
-	    }
-	    this.scheduler();
-	  }
-	  sq(n) {
-	    const queues = this.queues, queue = queues[n], soundData = queue.soundData, context = this.context;
-	    let sq = 4 - soundData.length;
-	    if (sq < 0) {
-	      sq = 0;
-	    }
-	    sq |= queue.rendevousMask << 3;
-	    if (this.oscillators[n] && queues[n].fNextNoteTime > context.currentTime) {
-	      sq |= 128;
-	    } else if (soundData.length && soundData[0].state & 64) {
-	      sq |= 64;
-	    }
-	    return sq;
-	  }
-	  setActivatedByUser() {
-	    this.isActivatedByUserFlag = true;
-	    if (!this.contextStartTime) {
-	      this.contextStartTime = Date.now() / 1e3;
-	    }
-	  }
-	  isActivatedByUser() {
-	    return this.isActivatedByUserFlag;
-	  }
-	  soundOn() {
-	    if (!this.isSoundOn) {
-	      if (!this.context && !this.contextNotAvailable) {
-	        this.context = this.createSoundContext();
-	      }
-	      if (this.context) {
-	        this.mergerNode.connect(this.context.destination);
-	      }
-	      this.isSoundOn = true;
-	      if (UiUtils.debug) {
-	        UiUtils.console.debug("soundOn: Sound switched on");
-	      }
-	    }
-	    return Boolean(this.context);
-	  }
-	  soundOff() {
-	    if (this.isSoundOn) {
-	      if (this.context) {
-	        this.mergerNode.disconnect(this.context.destination);
-	      }
-	      this.isSoundOn = false;
-	      if (UiUtils.debug) {
-	        UiUtils.console.debug("soundOff: Sound switched off");
-	      }
-	    }
-	  }
-	}
-
-	class DragElement {
-	  constructor(options) {
-	    this.containerId = ViewID.window;
-	    this.initialX = 0;
-	    this.initialY = 0;
-	    this.currentX = 0;
-	    this.currentY = 0;
-	    this.fnDragStartHandler = this.dragStart.bind(this);
-	    this.fnDragMoveHandler = this.dragMove.bind(this);
-	    this.fnDragEndHandler = this.dragEnd.bind(this);
-	    this.options = {};
-	    this.setOptions(options);
-	  }
-	  getOptions() {
-	    return this.options;
-	  }
-	  setOptions(options) {
-	    Object.assign(this.options, options);
-	    const entries = this.options.entries;
-	    for (const key in entries) {
-	      if (Object.prototype.hasOwnProperty.call(entries, key)) {
-	        const item = entries[key];
-	        if (item.enabled) {
-	          this.options.view.fnAttachPointerEvents(item.itemId, this.fnDragStartHandler);
-	        } else {
-	          this.options.view.fnDetachPointerEvents(item.itemId, this.fnDragStartHandler);
-	        }
-	      }
-	    }
-	  }
-	  dragStart(event) {
-	    const node = View.getEventTarget(event), entries = this.options.entries;
-	    let entry = entries[node.id];
-	    if (!entry) {
-	      const parentElement = node.parentElement;
-	      if (parentElement && entries[parentElement.id]) {
-	        entry = entries[parentElement.id];
-	        this.dragItem = parentElement;
-	      } else {
-	        return;
-	      }
-	    } else {
-	      this.dragItem = node;
-	    }
-	    this.dragInfo = entry;
-	    const dragInfo = this.dragInfo, clientObject = event.type === "touchstart" ? event.touches[0] : event;
-	    this.initialX = clientObject.clientX - dragInfo.xOffset;
-	    this.initialY = clientObject.clientY - dragInfo.yOffset;
-	    this.options.view.fnAttachPointerEvents(this.containerId, void 0, this.fnDragMoveHandler, this.fnDragEndHandler);
-	    if (UiUtils.debug > 0) {
-	      UiUtils.console.debug("dragStart: " + dragInfo.itemId + ": x=" + this.initialX + ", y=" + this.initialY);
-	    }
-	  }
-	  static setDragTranslate(xPos, yPos, el) {
-	    el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
-	  }
-	  dragMove(event) {
-	    const dragInfo = this.dragInfo;
-	    if (dragInfo) {
-	      event.preventDefault();
-	      const clientObject = event.type === "touchstart" ? event.touches[0] : event;
-	      this.currentX = clientObject.clientX - this.initialX;
-	      this.currentY = clientObject.clientY - this.initialY;
-	      dragInfo.xOffset = this.currentX;
-	      dragInfo.yOffset = this.currentY;
-	      DragElement.setDragTranslate(this.currentX, this.currentY, this.dragItem);
-	    }
-	  }
-	  dragEnd(_event) {
-	    const dragInfo = this.dragInfo;
-	    if (dragInfo) {
-	      this.options.view.fnDetachPointerEvents(this.containerId, void 0, this.fnDragMoveHandler, this.fnDragEndHandler);
-	      if (UiUtils.debug > 0) {
-	        UiUtils.console.debug("dragEnd: " + dragInfo.itemId + ": x=" + this.currentX + ", y=" + this.currentY);
-	      }
-	    }
-	  }
-	}
-
-	const randomCpcInitState = 1812433253;
-	class RandomCpc {
-	  constructor(seed) {
-	    this.state = randomCpcInitState;
-	    this.init(seed);
-	  }
-	  init(seed) {
-	    this.state = randomCpcInitState;
-	    seed || (seed = 0);
-	    if (seed !== 0) {
-	      this.randomizeMantissa(RandomCpc.encodeCpcMantissa(seed));
-	    }
-	  }
-	  static encodeCpcMantissa(value) {
-	    if (!Number.isFinite(value)) {
-	      throw new Error("Seed must be a finite number");
-	    }
-	    let mantissa = 0, exponent, sign = 0;
-	    if (value !== 0) {
-	      if (value < 0) {
-	        sign = 2147483648;
-	        value = -value;
-	      }
-	      exponent = Math.ceil(Math.log(value) / Math.log(2));
-	      mantissa = Math.round(value / Math.pow(2, exponent - 32)) & 2147483647;
-	    }
-	    const signMantissa = sign + mantissa, result = [
-	      signMantissa & 255,
-	      signMantissa >> 8 & 255,
-	      signMantissa >> 16 & 255,
-	      signMantissa >> 24 & 255
-	    ];
-	    return result;
-	  }
-	  randomizeMantissa(bytes) {
-	    const xorMask = ((bytes[1] << 8 | bytes[0]) << 16 | (bytes[3] << 8 | bytes[2])) >>> 0;
-	    this.state = (this.state ^ xorMask) >>> 0;
-	  }
-	  static nextStateU32(state) {
-	    const initLow = 35173, initHigh = 27655, mulLow = 62828, high = state >>> 16, low = state & 65535, highAcc = high * initLow + initLow, newHigh = highAcc & 65535, newLow = low * mulLow + initHigh + (highAcc >>> 16) & 65535;
-	    return (newHigh << 16 | newLow) >>> 0;
-	  }
-	  random() {
-	    this.state = RandomCpc.nextStateU32(this.state);
-	    const high = this.state >>> 16, low = this.state & 65535;
-	    return ((low << 16 | high) >>> 0) / 4294967296;
-	  }
-	}
-	class RandomMinStd {
-	  constructor(seed) {
-	    this.init(seed);
-	  }
-	  // https://en.wikipedia.org/wiki/Jenkins_hash_function
-	  static vmHashCode(s) {
-	    let hash = 0;
-	    for (let i = 0; i < s.length; i += 1) {
-	      hash += s.charCodeAt(i);
-	      hash += hash << 10;
-	      hash ^= hash >> 6;
-	    }
-	    hash += hash << 3;
-	    hash ^= hash >> 11;
-	    hash += hash << 15;
-	    return hash;
-	  }
-	  init(seed) {
-	    seed = RandomMinStd.vmHashCode(String(seed));
-	    this.x = seed || 2305125383;
-	  }
-	  random() {
-	    const m = 2147483647, a = 16807, q = 127773, r = 2836;
-	    let x = this.x;
-	    x = a * (x % q) - r * (x / q | 0);
-	    if (x <= 0) {
-	      x += m;
-	    }
-	    this.x = x;
-	    return x / m;
-	  }
-	}
-	class Random {
-	  constructor(useCpcRandom = true) {
-	    if (useCpcRandom) {
-	      this.rndGen = new RandomCpc();
-	    } else {
-	      this.rndGen = new RandomMinStd();
-	    }
-	  }
-	  init(seed) {
-	    return this.rndGen.init(seed);
-	  }
-	  random() {
-	    return this.rndGen.random();
-	  }
-	}
-
-	class CommonEventHandler {
-	  constructor(options) {
-	    this.eventDefInternalMap = {};
-	    this.fnUserAction = void 0;
-	    this.options = {};
-	    this.setOptions(options);
-	    this.model = this.options.model;
-	    this.view = this.options.view;
-	    this.controller = this.options.controller;
-	    this.model.setPropertyChangeCallback(() => this.updateUrlFromConfig());
-	    this.createEventDefMap();
-	  }
-	  getOptions() {
-	    return this.options;
-	  }
-	  setOptions(options) {
-	    Object.assign(this.options, options);
-	  }
-	  fnSetUserAction(fnAction) {
-	    this.fnUserAction = fnAction;
-	  }
-	  initOneToggle(_type, id, eventDef) {
-	    if (eventDef.property) {
-	      if (eventDef.toggleId) {
-	        const isEnabled = this.model.getProperty(eventDef.property);
-	        this.view.setHidden(eventDef.toggleId, !isEnabled, eventDef.display);
-	        if (UiUtils.debug > 3) {
-	          UiUtils.console.debug("initToggles: setHidden: togglId:", eventDef.toggleId, ", property:", eventDef.property, ", hidden:", !isEnabled, ", display:", eventDef.display);
-	        }
-	      }
-	      if (eventDef.viewType === "checked") {
-	        const isEnabled2 = this.model.getProperty(eventDef.property);
-	        this.view.setInputChecked(id, isEnabled2);
-	        if (UiUtils.debug > 3) {
-	          UiUtils.console.debug("initToggles: checked: id:", id, ", property:", eventDef.property, ", checked:", isEnabled2);
-	        }
-	      } else if (eventDef.viewType === "select") {
-	        const value = this.model.getProperty(eventDef.property);
-	        this.view.setSelectValue(id, value);
-	        if (UiUtils.debug > 3) {
-	          UiUtils.console.debug("initToggles: select: id:", id, ", property:", eventDef.property, ", value:", value);
-	        }
-	      } else if (eventDef.viewType === "numberInput") {
-	        const value = this.model.getProperty(eventDef.property);
-	        this.view.setInputValue(id, String(value));
-	        if (UiUtils.debug > 3) {
-	          UiUtils.console.debug("initToggles: numberInput: id:", id, ", property:", eventDef.property, ", value:", value);
-	        }
-	      }
-	    }
-	  }
-	  initToggles() {
-	    const eventDefInternalMap = this.eventDefInternalMap;
-	    for (const type in eventDefInternalMap) {
-	      if (Object.prototype.hasOwnProperty.call(eventDefInternalMap, type)) {
-	        const eventDefMap4Type = eventDefInternalMap[type];
-	        for (const id in eventDefMap4Type) {
-	          if (Object.prototype.hasOwnProperty.call(eventDefMap4Type, id)) {
-	            const eventDef = eventDefMap4Type[id];
-	            this.initOneToggle(type, id, eventDef);
-	          }
-	        }
-	      }
-	    }
-	  }
-	  static getToggleId(eventDef) {
-	    if (!eventDef.toggleId) {
-	      UiUtils.console.error("getToggleId: id=" + eventDef.id + ": toggleId missing!");
-	      return "";
-	    }
-	    return eventDef.toggleId;
-	  }
-	  static getproperty(eventDef) {
-	    if (!eventDef.property) {
-	      UiUtils.console.error("setPopoversHiddenExcept: id=" + eventDef.id + ": property missing!");
-	      return "";
-	    }
-	    return eventDef.property;
-	  }
-	  setPopoversHiddenExcept(exceptId) {
-	    const eventDefInternalMap = this.eventDefInternalMap, eventDefMapClick = eventDefInternalMap.click;
-	    for (const id in eventDefMapClick) {
-	      if (Object.prototype.hasOwnProperty.call(eventDefMapClick, id)) {
-	        const eventDef = eventDefMapClick[id];
-	        if (eventDef.isPopover && eventDef.toggleId !== exceptId) {
-	          const toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef);
-	          if (!this.view.getHidden(toggleId)) {
-	            this.model.setProperty(property, false);
-	            this.view.setHidden(toggleId, true, eventDef.display);
-	          }
-	        }
-	      }
-	    }
-	  }
-	  toggleAreaHidden(eventDef) {
-	    const toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef), visible = !this.model.getProperty(property);
-	    this.model.setProperty(property, visible);
-	    this.view.setHidden(toggleId, !visible, eventDef.display);
-	    if (visible && eventDef.display === "flex" && this.view.getHidden(toggleId)) {
-	      this.view.setHidden(toggleId, !visible);
-	    }
-	    if (visible && eventDef.isPopover) {
-	      this.setPopoversHiddenExcept(toggleId);
-	    }
-	    return visible;
-	  }
-	  // maybe we can avoid this...
-	  getEventDefById(type, id) {
-	    const eventDefForType = this.eventDefInternalMap[type], eventDef = eventDefForType[id];
-	    if (!eventDef) {
-	      UiUtils.console.error("getEventDefById: type=" + type + ", id=" + id + ": No eventDef!");
-	    }
-	    return eventDef;
-	  }
-	  toggleAreaHiddenById(type, id) {
-	    const eventDef = this.getEventDefById(type, id);
-	    return this.toggleAreaHidden(eventDef);
-	  }
-	  onCheckedChange(eventDef) {
-	    const id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), checked = this.view.getInputChecked(id);
-	    this.model.setProperty(property, checked);
-	    return checked;
-	  }
-	  onNumberInputChange(eventDef) {
-	    const id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), valueAsString = this.view.getInputValue(id), value = Number(valueAsString);
-	    this.model.setProperty(property, value);
-	    return value;
-	  }
-	  onSelectChange(eventDef) {
-	    const id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), value = this.view.getSelectValue(id);
-	    this.model.setProperty(property, value);
-	    this.view.setSelectTitleFromSelectedOption(id);
-	    return value;
-	  }
-	  onExportButtonClick(eventDef) {
-	    if (this.toggleAreaHidden(eventDef)) {
-	      this.controller.setExportSelectOptions(ViewID.exportFileSelect);
-	    }
-	  }
-	  onGalleryButtonClick(eventDef) {
-	    if (this.toggleAreaHidden(eventDef)) {
-	      this.controller.setGalleryAreaInputs();
-	    }
-	  }
-	  fnUpdateAreaText(input) {
-	    this.controller.setInputText(input, true);
-	    this.controller.setOutputText("");
-	  }
-	  onOutputTextChange() {
-	    this.controller.setOutputText(this.view.getAreaValue(ViewID.outputText));
-	  }
-	  onUndoButtonClick() {
-	    const input = this.controller.undoStackElement();
-	    this.fnUpdateAreaText(input);
-	  }
-	  onRedoButtonClick() {
-	    const input = this.controller.redoStackElement();
-	    this.fnUpdateAreaText(input);
-	  }
-	  onContinueButtonClick(eventDef, event) {
-	    this.controller.startContinue();
-	    this.onCpcCanvasClick(eventDef, event);
-	  }
-	  onParseRunButtonClick(eventDef, event) {
-	    this.controller.startParseRun();
-	    this.onCpcCanvasClick(eventDef, event);
-	  }
-	  static onHelpButtonClick() {
-	    window.open("https://github.com/benchmarko/CPCBasicTS/#readme");
-	  }
-	  onGalleryItemClick(_eventDef, event) {
-	    const target = View.getEventTarget(event), value = target.value;
-	    this.view.setSelectValue(ViewID.exampleSelect, value);
-	    this.setPopoversHiddenExcept();
-	    this.controller.onExampleSelectChange();
-	  }
-	  // eslint-disable-next-line class-methods-use-this
-	  onCopyTextButtonClick() {
-	    const textText = View.getElementByIdAs(ViewID.textText);
-	    textText.select();
-	    this.view.setAreaSelection(ViewID.textText, 0, 99999);
-	    if (window.navigator && window.navigator.clipboard) {
-	      window.navigator.clipboard.writeText(textText.value);
-	    } else {
-	      UiUtils.console.warn("Copy to clipboard not available");
-	    }
-	  }
-	  updateUrlFromConfig() {
-	    const url = new URL(window.location.href), initial = this.model.getAllInitialProperties(), changed = this.model.getChangedProperties();
-	    for (const name in initial) {
-	      if (Object.prototype.hasOwnProperty.call(initial, name)) {
-	        url.searchParams.delete(name);
-	      }
-	    }
-	    for (const name in changed) {
-	      if (Object.prototype.hasOwnProperty.call(changed, name)) {
-	        url.searchParams.set(name, String(changed[name]));
-	      }
-	    }
-	    if (url.href !== window.location.href) {
-	      window.history.replaceState(window.history.state, "", url.href);
-	    }
-	  }
-	  onVarSelectChange() {
-	    const par = this.view.getSelectValue(ViewID.varSelect), value = this.controller.getVariable(par), valueString = value !== void 0 ? String(value) : "";
-	    this.view.setAreaValue(ViewID.varText, valueString);
-	  }
-	  onKbdLayoutSelectChange(eventDef) {
-	    const value = this.onSelectChange(eventDef);
-	    this.view.setHidden(ViewID.kbdAlpha, value === "num");
-	    this.view.setHidden(ViewID.kbdNum, value === "alpha");
-	  }
-	  onBasicVersionSelectChange(eventDef) {
-	    const value = this.onSelectChange(eventDef);
-	    this.controller.setBasicVersion(value);
-	  }
-	  onPaletteSelectChange(eventDef) {
-	    const value = this.onSelectChange(eventDef);
-	    this.controller.setPalette(value);
-	  }
-	  onCanvasTypeSelectChange(eventDef) {
-	    const value = this.onSelectChange(eventDef);
-	    this.controller.setCanvasType(value);
-	  }
-	  onDebugInputChange(eventDef) {
-	    const value = this.onNumberInputChange(eventDef);
-	    UiUtils.debug = value;
-	  }
-	  onDragElementsInputChange(eventDef) {
-	    const checked = this.onCheckedChange(eventDef);
-	    this.controller.fnDragElementsActive(checked);
-	  }
-	  onShowCpcInputChange(eventDef) {
-	    if (this.toggleAreaHidden(eventDef)) {
-	      this.controller.startUpdateCanvas();
-	    } else {
-	      this.controller.stopUpdateCanvas();
-	    }
-	  }
-	  onShowKbdInputChange(eventDef) {
-	    if (this.toggleAreaHidden(eventDef)) {
-	      this.controller.getVirtualKeyboard();
-	    }
-	  }
-	  onDisassInputChange() {
-	    const addressStr = this.view.getInputValue(ViewID.disassInput), addrList = addressStr.split("-"), addr = parseInt(addrList[0], 16), endAddr = addrList[1] ? parseInt(addrList[1], 16) : void 0;
-	    this.controller.setDisassAddr(addr, endAddr);
-	  }
-	  onSoundInputChange(eventDef) {
-	    this.onCheckedChange(eventDef);
-	    this.controller.setSoundActive();
-	  }
-	  onScreenshotButtonClick() {
-	    const example = this.view.getSelectValue(ViewID.exampleSelect), image = this.controller.startScreenshot(), link = View.getElementById1(ViewID.screenshotLink), name = example + ".png";
-	    if (image) {
-	      link.setAttribute("download", name);
-	      link.setAttribute("href", image);
-	      link.click();
-	    }
-	  }
-	  onClearInputButtonClick() {
-	    this.view.setAreaValue(ViewID.inp2Text, "");
-	  }
-	  onFullscreenButtonClick() {
-	    let id;
-	    if (!this.view.getHidden(ViewID.cpcCanvas)) {
-	      id = ViewID.cpcCanvas;
-	    } else if (!this.view.getHidden(ViewID.textText)) {
-	      id = ViewID.textCanvasDiv;
-	    } else {
-	      UiUtils.console.warn("Fullscreen only possible for graphics or text canvas");
-	      return;
-	    }
-	    const switched = this.view.requestFullscreenForId(id);
-	    if (!switched) {
-	      UiUtils.console.warn("Switch to fullscreen not available");
-	    }
-	  }
-	  onCpcCanvasClick(_eventDef, event) {
-	    this.setPopoversHiddenExcept();
-	    this.controller.onCpcCanvasClick(event);
-	  }
-	  createEventDefMap() {
-	    const eventDefInternalMap = this.eventDefInternalMap, eventDefs = {
-	      click: [
-	        {
-	          id: ViewID.clearInputButton,
-	          func: this.onClearInputButtonClick
-	        },
-	        {
-	          id: ViewID.continueButton,
-	          func: this.onContinueButtonClick
-	        },
-	        {
-	          id: ViewID.cpcCanvas,
-	          func: this.onCpcCanvasClick
-	        },
-	        {
-	          id: ViewID.copyTextButton,
-	          func: this.onCopyTextButtonClick
-	        },
-	        {
-	          id: ViewID.downloadButton,
-	          controllerFunc: this.controller.fnDownload
-	        },
-	        {
-	          id: ViewID.enterButton,
-	          controllerFunc: this.controller.startEnter
-	        },
-	        {
-	          id: ViewID.exportButton,
-	          toggleId: ViewID.exportArea,
-	          property: ModelPropID.showExport,
-	          display: "flex",
-	          isPopover: true,
-	          func: this.onExportButtonClick
-	        },
-	        {
-	          id: ViewID.fullscreenButton,
-	          func: this.onFullscreenButtonClick
-	        },
-	        {
-	          id: ViewID.galleryButton,
-	          toggleId: ViewID.galleryArea,
-	          property: ModelPropID.showGallery,
-	          display: "flex",
-	          isPopover: true,
-	          func: this.onGalleryButtonClick
-	        },
-	        {
-	          id: ViewID.galleryItem,
-	          func: this.onGalleryItemClick
-	        },
-	        {
-	          id: ViewID.helpButton,
-	          func: CommonEventHandler.onHelpButtonClick
-	        },
-	        {
-	          id: ViewID.lineNumberAddButton,
-	          controllerFunc: this.controller.fnAddLines
-	        },
-	        {
-	          id: ViewID.lineNumberRemoveButton,
-	          controllerFunc: this.controller.fnRemoveLines
-	        },
-	        {
-	          id: ViewID.moreButton,
-	          toggleId: ViewID.moreArea,
-	          property: ModelPropID.showMore,
-	          display: "flex",
-	          isPopover: true,
-	          func: this.toggleAreaHidden
-	        },
-	        {
-	          id: ViewID.parseButton,
-	          controllerFunc: this.controller.startParse
-	        },
-	        {
-	          id: ViewID.parseRunButton,
-	          func: this.onParseRunButtonClick
-	        },
-	        {
-	          id: ViewID.prettyButton,
-	          controllerFunc: this.controller.fnPretty
-	        },
-	        {
-	          id: ViewID.prettyPopoverButton,
-	          toggleId: ViewID.prettyArea,
-	          property: ModelPropID.showPretty,
-	          display: "flex",
-	          isPopover: true,
-	          func: this.toggleAreaHidden
-	        },
-	        {
-	          id: ViewID.redoButton,
-	          func: this.onRedoButtonClick
-	        },
-	        {
-	          id: ViewID.redoButton2,
-	          func: this.onRedoButtonClick
-	          // same redo
-	        },
-	        {
-	          id: ViewID.renumButton,
-	          controllerFunc: () => this.controller.startRenum()
-	        },
-	        {
-	          id: ViewID.renumPopoverButton,
-	          toggleId: ViewID.renumArea,
-	          property: ModelPropID.showRenum,
-	          display: "flex",
-	          isPopover: true,
-	          func: this.toggleAreaHidden
-	        },
-	        {
-	          id: ViewID.resetButton,
-	          controllerFunc: this.controller.startReset
-	        },
-	        {
-	          id: ViewID.runButton,
-	          controllerFunc: this.controller.startRun
-	        },
-	        {
-	          id: ViewID.screenshotButton,
-	          func: this.onScreenshotButtonClick
-	        },
-	        {
-	          id: ViewID.screenshotLink
-	          // nothing
-	        },
-	        {
-	          id: ViewID.settingsButton,
-	          toggleId: ViewID.settingsArea,
-	          property: ModelPropID.showSettings,
-	          display: "flex",
-	          isPopover: true,
-	          func: this.toggleAreaHidden
-	        },
-	        {
-	          id: ViewID.stopButton,
-	          controllerFunc: this.controller.startBreak
-	        },
-	        {
-	          id: ViewID.textText,
-	          func: this.onCpcCanvasClick
-	          // same as for cpcCanvas
-	        },
-	        {
-	          id: ViewID.undoButton,
-	          func: this.onUndoButtonClick
-	        },
-	        {
-	          id: ViewID.undoButton2,
-	          func: this.onUndoButtonClick
-	          // same undo
-	        },
-	        {
-	          id: ViewID.viewButton,
-	          toggleId: ViewID.viewArea,
-	          property: ModelPropID.showView,
-	          display: "flex",
-	          isPopover: true,
-	          func: this.toggleAreaHidden
-	        },
-	        {
-	          id: ViewID.window,
-	          //TTT do we need this?
-	          controllerFunc: this.controller.onWindowClick
-	        }
-	      ],
-	      change: [
-	        {
-	          id: ViewID.arrayBoundsInput,
-	          viewType: "checked",
-	          property: ModelPropID.arrayBounds,
-	          func: this.onCheckedChange,
-	          controllerFunc: this.controller.fnArrayBounds
-	        },
-	        {
-	          id: ViewID.autorunInput,
-	          viewType: "checked",
-	          property: ModelPropID.autorun,
-	          func: this.onCheckedChange
-	        },
-	        {
-	          id: ViewID.basicVersionSelect,
-	          viewType: "select",
-	          property: ModelPropID.basicVersion,
-	          func: this.onBasicVersionSelectChange
-	        },
-	        {
-	          id: ViewID.canvasTypeSelect,
-	          viewType: "select",
-	          property: ModelPropID.canvasType,
-	          func: this.onCanvasTypeSelectChange
-	        },
-	        {
-	          id: ViewID.databaseSelect,
-	          controllerFunc: this.controller.onDatabaseSelectChange
-	        },
-	        {
-	          id: ViewID.debugInput,
-	          viewType: "numberInput",
-	          property: ModelPropID.debug,
-	          func: this.onDebugInputChange
-	        },
-	        {
-	          id: ViewID.directorySelect,
-	          controllerFunc: this.controller.onDirectorySelectChange
-	        },
-	        {
-	          id: ViewID.disassInput,
-	          func: this.onDisassInputChange
-	        },
-	        {
-	          id: ViewID.exampleSelect,
-	          controllerFunc: this.controller.onExampleSelectChange
-	        },
-	        {
-	          id: ViewID.implicitLinesInput,
-	          viewType: "checked",
-	          property: ModelPropID.implicitLines,
-	          func: this.onCheckedChange,
-	          controllerFunc: this.controller.fnImplicitLines
-	        },
-	        {
-	          id: ViewID.integerOverflowInput,
-	          viewType: "checked",
-	          property: ModelPropID.integerOverflow,
-	          func: this.onCheckedChange,
-	          controllerFunc: this.controller.fnIntegerOverflow
-	        },
-	        {
-	          id: ViewID.kbdLayoutSelect,
-	          viewType: "select",
-	          property: ModelPropID.kbdLayout,
-	          func: this.onKbdLayoutSelectChange
-	        },
-	        {
-	          id: ViewID.linesOnLoadInput,
-	          viewType: "checked",
-	          property: ModelPropID.linesOnLoad,
-	          func: this.onCheckedChange
-	        },
-	        {
-	          id: ViewID.dragElementsInput,
-	          viewType: "checked",
-	          property: ModelPropID.dragElements,
-	          func: this.onDragElementsInputChange
-	        },
-	        {
-	          id: ViewID.outputText,
-	          func: this.onOutputTextChange
-	        },
-	        {
-	          id: ViewID.paletteSelect,
-	          viewType: "select",
-	          property: ModelPropID.palette,
-	          func: this.onPaletteSelectChange
-	        },
-	        {
-	          id: ViewID.prettyBracketsInput,
-	          viewType: "checked",
-	          property: ModelPropID.prettyBrackets,
-	          func: this.onCheckedChange
-	        },
-	        {
-	          id: ViewID.prettyColonsInput,
-	          viewType: "checked",
-	          property: ModelPropID.prettyColons,
-	          func: this.onCheckedChange
-	        },
-	        {
-	          id: ViewID.prettyLowercaseVarsInput,
-	          viewType: "checked",
-	          property: ModelPropID.prettyLowercaseVars,
-	          func: this.onCheckedChange,
-	          controllerFunc: this.controller.fnPrettyLowercaseVars
-	        },
-	        {
-	          id: ViewID.prettySpaceInput,
-	          viewType: "checked",
-	          property: ModelPropID.prettySpace,
-	          func: this.onCheckedChange
-	        },
-	        {
-	          id: ViewID.selectDataFilesInput,
-	          viewType: "checked",
-	          property: ModelPropID.selectDataFiles,
-	          func: this.onCheckedChange
-	        },
-	        {
-	          id: ViewID.showConsoleLogInput,
-	          viewType: "checked",
-	          toggleId: ViewID.consoleLogArea,
-	          property: ModelPropID.showConsoleLog,
-	          func: this.toggleAreaHidden
-	        },
-	        {
-	          id: ViewID.showCpcInput,
-	          viewType: "checked",
-	          toggleId: ViewID.cpcArea,
-	          property: ModelPropID.showCpc,
-	          func: this.onShowCpcInputChange
-	        },
-	        {
-	          id: ViewID.showDisassInput,
-	          viewType: "checked",
-	          toggleId: ViewID.disassArea,
-	          property: ModelPropID.showDisass,
-	          func: this.toggleAreaHidden
-	        },
-	        {
-	          id: ViewID.showInp2Input,
-	          viewType: "checked",
-	          toggleId: ViewID.inp2Area,
-	          property: ModelPropID.showInp2,
-	          func: this.toggleAreaHidden
-	        },
-	        {
-	          id: ViewID.showInputInput,
-	          viewType: "checked",
-	          toggleId: ViewID.inputArea,
-	          property: ModelPropID.showInput,
-	          func: this.toggleAreaHidden
-	        },
-	        {
-	          id: ViewID.showKbdInput,
-	          viewType: "checked",
-	          toggleId: ViewID.kbdArea,
-	          property: ModelPropID.showKbd,
-	          func: this.onShowKbdInputChange
-	        },
-	        {
-	          id: ViewID.showOutputInput,
-	          viewType: "checked",
-	          toggleId: ViewID.outputArea,
-	          property: ModelPropID.showOutput,
-	          func: this.toggleAreaHidden
-	        },
-	        {
-	          id: ViewID.showResultInput,
-	          viewType: "checked",
-	          toggleId: ViewID.resultArea,
-	          property: ModelPropID.showResult,
-	          func: this.toggleAreaHidden
-	        },
-	        {
-	          id: ViewID.showVariableInput,
-	          viewType: "checked",
-	          toggleId: ViewID.variableArea,
-	          property: ModelPropID.showVariable,
-	          func: this.toggleAreaHidden
-	        },
-	        {
-	          id: ViewID.soundInput,
-	          viewType: "checked",
-	          property: ModelPropID.sound,
-	          func: this.onSoundInputChange
-	        },
-	        {
-	          id: ViewID.speedInput,
-	          viewType: "numberInput",
-	          property: ModelPropID.speed,
-	          func: this.onNumberInputChange,
-	          controllerFunc: this.controller.fnSpeed
-	        },
-	        {
-	          id: ViewID.traceInput,
-	          viewType: "checked",
-	          property: ModelPropID.trace,
-	          func: this.onCheckedChange,
-	          controllerFunc: this.controller.fnTrace
-	        },
-	        {
-	          id: ViewID.varSelect,
-	          func: this.onVarSelectChange
-	        },
-	        {
-	          id: ViewID.varText,
-	          controllerFunc: this.controller.changeVariable
-	        }
-	      ]
-	    };
-	    for (const type in eventDefs) {
-	      if (Object.prototype.hasOwnProperty.call(eventDefs, type)) {
-	        eventDefInternalMap[type] = {};
-	        const eventDefList = eventDefs[type], itemForType = eventDefInternalMap[type];
-	        for (let i = 0; i < eventDefList.length; i += 1) {
-	          itemForType[eventDefList[i].id] = eventDefList[i];
-	        }
-	      }
-	    }
-	  }
-	  handleEvent(event) {
-	    const target = View.getEventTarget(event), type = event.type;
-	    let id = target ? target.getAttribute("id") : String(target);
-	    if (this.fnUserAction) {
-	      this.fnUserAction(event, id);
-	    }
-	    if (id) {
-	      if (target.disabled) {
-	        return;
-	      }
-	      if (id.startsWith("galleryItem")) {
-	        id = "galleryItem";
-	      }
-	      if (this.eventDefInternalMap[type] && this.eventDefInternalMap[type][id]) {
-	        const eventDef = this.eventDefInternalMap[type][id];
-	        if (UiUtils.debug) {
-	          UiUtils.console.debug("handleEvent: " + type + ", " + id + ":", eventDef);
-	        }
-	        if (eventDef.func) {
-	          eventDef.func.call(this, eventDef, event);
-	        }
-	        if (eventDef.controllerFunc) {
-	          eventDef.controllerFunc.call(this.controller, eventDef, event);
-	        }
-	        this.updateUrlFromConfig();
-	      } else if (!id.endsWith("Select") && !id.endsWith("Input")) {
-	        UiUtils.console.log("handleEvent: " + type + ", " + id + ": No handler");
-	      }
-	    } else if (UiUtils.debug) {
-	      UiUtils.console.log("handleEvent: " + type + ": unknown target:", target.tagName, target.id);
-	    }
-	    if (type === "click") {
-	      if (id !== ViewID.cpcCanvas && id !== ViewID.textText) {
-	        this.controller.onWindowClick(event);
-	      }
-	    }
-	  }
-	}
-
-	class ExecutionControls {
-	  constructor(view) {
-	    this.view = view;
-	  }
-	  update(state) {
-	    if (state.reason === "direct") {
-	      return;
-	    }
-	    const reason = state.reason;
-	    this.view.setDisabled(ViewID.runButton, state.isRunning || reason === "reset");
-	    this.view.setDisabled(ViewID.stopButton, !state.isRunning && reason !== "fileLoad" && reason !== "fileSave");
-	    this.view.setDisabled(ViewID.continueButton, state.isRunning || reason === "end" || reason === "fileLoad" || reason === "fileSave" || reason === "parse" || reason === "renumLines" || reason === "reset");
-	  }
-	  programEdited() {
-	    this.view.setDisabled(ViewID.continueButton, true);
-	  }
-	}
-
-	class UiController {
-	  constructor(core, view, controller, onUserAction) {
-	    this.view = view;
-	    this.controller = controller;
-	    this.executionControls = new ExecutionControls(view);
-	    this.commonEventHandler = new CommonEventHandler({
-	      model: core.getModel(),
-	      view,
-	      controller
-	    });
-	    view.addEventListener("click", this.commonEventHandler);
-	    view.addEventListener("change", this.commonEventHandler);
-	    this.commonEventHandler.initToggles();
-	    this.commonEventHandler.onKbdLayoutSelectChange(this.commonEventHandler.getEventDefById("change", ViewID.kbdLayoutSelect));
-	    this.commonEventHandler.fnSetUserAction(onUserAction);
-	  }
-	  deactivateUserAction() {
-	    this.commonEventHandler.fnSetUserAction(void 0);
-	  }
-	  onExecutionState(state) {
-	    this.executionControls.update(state);
-	  }
-	  onDiagnostic(diagnostic) {
-	    if (diagnostic.selectSource && diagnostic.pos !== void 0) {
-	      const length = diagnostic.len || (diagnostic.value !== void 0 ? String(diagnostic.value).length : 0);
-	      this.view.setAreaSelection(ViewID.inputText, diagnostic.pos, diagnostic.pos + length);
-	    }
-	  }
-	  onProgramEdited() {
-	    this.executionControls.programEdited();
-	  }
-	  getRenumOptions() {
-	    return {
-	      newLine: Number(this.view.getInputValue(ViewID.renumNewInput)),
-	      oldLine: Number(this.view.getInputValue(ViewID.renumStartInput)),
-	      step: Number(this.view.getInputValue(ViewID.renumStepInput)),
-	      keep: Number(this.view.getInputValue(ViewID.renumKeepInput))
-	    };
-	  }
-	  onVarSelectChange() {
-	    this.commonEventHandler.onVarSelectChange();
-	  }
-	  refreshVariables() {
-	    const items = this.controller.getVariableNames().map((name) => {
-	      const title = name + "=" + this.controller.getVariable(name), label = title.length > 35 ? title.substring(0, 35) + " ..." : title;
-	      return { value: name, text: label, title: label, selected: false };
-	    });
-	    items.sort((first, second) => first.value < second.value ? -1 : first.value > second.value ? 1 : 0);
-	    this.view.setSelectOptions(ViewID.varSelect, items);
-	  }
-	  setPopoversHiddenExcept(exceptId) {
-	    this.commonEventHandler.setPopoversHiddenExcept(exceptId);
-	  }
-	  toggleAreaHiddenById(type, id) {
-	    return this.commonEventHandler.toggleAreaHiddenById(type, id);
-	  }
-	}
-
-	const _Z80Disass = class _Z80Disass {
-	  // actual prefix: 0=none, 1=0xDD, 2=0xFD, 4=0xED
-	  constructor(options) {
-	    // hex-marker, "&" or "#" or ""
-	    this.dissOp = 0;
-	    // actual op-code
-	    this.prefix = 0;
-	    this.options = {
-	      format: 7
-	    };
-	    this.setOptions(options);
-	  }
-	  getOptions() {
-	    return this.options;
-	  }
-	  setOptions(options) {
-	    Object.assign(this.options, options);
-	  }
-	  readByte(i) {
-	    const data = this.options.data;
-	    return data[i] | 0;
-	  }
-	  readWord(i) {
-	    const data = this.options.data;
-	    return data[i] | data[i + 1] << 8;
-	  }
-	  bget() {
-	    const by = this.readByte(this.options.addr);
-	    this.options.addr += 1;
-	    return by;
-	  }
-	  // byte-out: returns byte xx at PC; PC++
-	  bout() {
-	    const by = this.bget();
-	    return _Z80Disass.hexMark + by.toString(16).toUpperCase().padStart(2, "0");
-	  }
-	  // word-out: returns word xxyy from PC, PC+=2
-	  wout() {
-	    const wo = this.readWord(this.options.addr);
-	    this.options.addr += 2;
-	    return _Z80Disass.hexMark + wo.toString(16).toUpperCase().padStart(4, "0");
-	  }
-	  // relative-address-out : gets it from PC and returns PC+(signed)tt ; PC++
-	  radrout() {
-	    let dis = this.bget();
-	    dis = dis << 24 >> 24;
-	    let addr = this.options.addr + dis;
-	    if (addr < 0) {
-	      addr += 65536;
-	    }
-	    return _Z80Disass.hexMark + addr.toString(16).toUpperCase().padStart(4, "0");
-	  }
-	  /* eslint-enable array-element-newline */
-	  // byte-register-out : returns string to an 8-bit register
-	  // handles prefix, special op-codes with IX,IY and h,l
-	  bregout(nr) {
-	    const dissOp = this.dissOp;
-	    nr &= 7;
-	    let prefix = this.prefix;
-	    if (prefix === 4 || (this.prefix === 1 || this.prefix === 2) && (dissOp === 102 || dissOp === 110 || dissOp === 116 || dissOp === 117) && nr !== 6) {
-	      prefix = 0;
-	    }
-	    return _Z80Disass.bregtab[prefix][nr] + (prefix && nr === 6 ? this.bout() + ")" : "");
-	  }
-	  /* eslint-enable array-element-newline */
-	  // word-register-out : returns string to a 16-bit-register
-	  // handles prefix
-	  wregout(nr) {
-	    const prefix = this.prefix === 1 || this.prefix === 2 ? this.prefix : 0;
-	    return _Z80Disass.wregtab[prefix][nr & 3];
-	  }
-	  // push-pop-register-out: like wregout, only SP substituted by AF
-	  pupoRegout(nr) {
-	    nr &= 3;
-	    if (nr === 3) {
-	      return "AF";
-	    }
-	    return this.wregout(nr);
-	  }
-	  onlyPrefix() {
-	    let out;
-	    if (this.prefix === 1) {
-	      out = "[DD]-prefix";
-	    } else if (this.prefix === 2) {
-	      out = "[FD]-prefix";
-	    } else {
-	      out = "[ED]-prefix";
-	    }
-	    this.options.addr -= 1;
-	    return out;
-	  }
-	  // eslint-disable-line array-element-newline
-	  operdisCB() {
-	    let out, newop;
-	    if (this.prefix === 1 || this.prefix === 2) {
-	      newop = this.readByte(this.options.addr + 1) & 254 | 6;
-	    } else {
-	      newop = this.readByte(this.options.addr);
-	    }
-	    const b6b7 = newop >> 6, b3b4b5 = newop >> 3 & 7;
-	    if (b6b7 === 0) {
-	      out = _Z80Disass.rlcTable[b3b4b5] + " " + this.bregout(newop);
-	    } else {
-	      out = _Z80Disass.bitResSetTable[b6b7 - 1] + " " + b3b4b5 + "," + this.bregout(newop);
-	    }
-	    if (this.prefix === 1 || this.prefix === 2) {
-	      if (newop !== this.readByte(this.options.addr) && newop >> 6 !== 1) {
-	        const premem = this.prefix;
-	        this.prefix = 0;
-	        out += " & LD " + this.bregout(this.readByte(this.options.addr));
-	        this.prefix = premem;
-	      }
-	    }
-	    this.options.addr += 1;
-	    return out;
-	  }
-	  // eslint-disable-line array-element-newline
-	  operdisEDpart40To7F(dissOp) {
-	    let out = "";
-	    switch (dissOp & 7) {
-	      // test b0,b1,b2
-	      case 0:
-	        if (dissOp === 112) {
-	          out = "*IN X,(C)";
-	        } else {
-	          out = "IN " + this.bregout(dissOp >> 3) + ",(C)";
-	        }
-	        break;
-	      case 1:
-	        if (dissOp === 113) {
-	          out = "*OUT (C),0";
-	        } else {
-	          out = "OUT (C)," + this.bregout(dissOp >> 3);
-	        }
-	        break;
-	      case 2:
-	        out = (dissOp & 8 ? "ADC" : "SBC") + " HL," + this.wregout(dissOp >> 4);
-	        break;
-	      case 3:
-	        if (dissOp & 8) {
-	          out = "LD " + this.wregout(dissOp >> 4) + ",(" + this.wout() + ")";
-	        } else {
-	          out = "LD (" + this.wout() + ")," + this.wregout(dissOp >> 4);
-	        }
-	        break;
-	      case 4:
-	        out = dissOp === 68 ? "NEG" : "*NEG";
-	        break;
-	      case 5:
-	        if (dissOp === 69) {
-	          out = "RETN";
-	        } else if (dissOp === 77) {
-	          out = "RETI";
-	        } else if ((dissOp & 15) === 5) {
-	          out = "*RETN";
-	        } else {
-	          out = "*RETI";
-	        }
-	        break;
-	      case 6:
-	        switch (dissOp) {
-	          case 70:
-	            out = "IM 0";
-	            break;
-	          case 86:
-	            out = "IM 1";
-	            break;
-	          case 94:
-	            out = "IM 2";
-	            break;
-	          case 78:
-	          // *im 0
-	          case 102:
-	          case 110:
-	            out = "*IM 0";
-	            break;
-	          case 118:
-	            out = "*IM 1";
-	            break;
-	          case 126:
-	            out = "*IM 2";
-	            break;
-	        }
-	        break;
-	      case 7:
-	        out = _Z80Disass.ldIaTable[dissOp >> 3 & 7];
-	        break;
-	    }
-	    return out;
-	  }
-	  /* eslint-enable array-element-newline */
-	  operdisED(dissOp) {
-	    let out = "";
-	    switch (dissOp >> 6) {
-	      // test b6,7
-	      case 0:
-	        out = _Z80Disass.unknownOp;
-	        break;
-	      case 1:
-	        out = this.operdisEDpart40To7F(dissOp);
-	        break;
-	      default:
-	        break;
-	      case 2:
-	        if ((dissOp & 36) === 32) {
-	          out = _Z80Disass.repeatTable[dissOp & 3][dissOp >> 3 & 3];
-	        } else {
-	          out = _Z80Disass.unknownOp;
-	        }
-	        break;
-	      case 3:
-	        out = _Z80Disass.unknownOp;
-	        break;
-	    }
-	    return out;
-	  }
-	  // eslint-disable-line array-element-newline
-	  //
-	  // Disassemble 00-3F
-	  //
-	  operdis00To3Fpart00(b3b4b5) {
-	    let out;
-	    switch (b3b4b5) {
-	      // test b3,b4,b5
-	      case 0:
-	        out = "NOP";
-	        break;
-	      case 1:
-	        out = "EX AF,AF'";
-	        break;
-	      case 2:
-	        out = "DJNZ " + this.radrout();
-	        break;
-	      case 3:
-	        out = "JR " + this.radrout();
-	        break;
-	      default:
-	        out = "JR " + _Z80Disass.conditionTable[b3b4b5 & 3] + "," + this.radrout();
-	        break;
-	    }
-	    return out;
-	  }
-	  operdis00To3Fpart01(dissOp) {
-	    let out;
-	    if (dissOp & 8) {
-	      out = "ADD " + this.wregout(2) + "," + this.wregout(dissOp >> 4);
-	    } else {
-	      out = "LD " + this.wregout(dissOp >> 4) + "," + this.wout();
-	    }
-	    return out;
-	  }
-	  operdis00To3Fpart02(b3b4b5) {
-	    let out = "";
-	    if (b3b4b5 & 4) {
-	      switch (b3b4b5 & 3) {
-	        // test b3,b4
-	        case 0:
-	          out = "LD (" + this.wout() + ")," + this.wregout(2);
-	          break;
-	        case 1:
-	          out = "LD " + this.wregout(2) + ",(" + this.wout() + ")";
-	          break;
-	        case 2:
-	          out = "LD (" + this.wout() + "),A";
-	          break;
-	        case 3:
-	          out = "LD A,(" + this.wout() + ")";
-	          break;
-	      }
-	    } else {
-	      switch (b3b4b5 & 3) {
-	        // test b3,b4
-	        case 0:
-	          out = "LD (BC),A";
-	          break;
-	        case 1:
-	          out = "LD A,(BC)";
-	          break;
-	        case 2:
-	          out = "LD (DE),A";
-	          break;
-	        case 3:
-	          out = "LD A,(DE)";
-	          break;
-	      }
-	    }
-	    return out;
-	  }
-	  // eslint-disable-line array-element-newline
-	  operdis00To3F(dissOp) {
-	    let out = "";
-	    switch (dissOp & 7) {
-	      // test b0,b1,b2
-	      case 0:
-	        out = this.operdis00To3Fpart00(dissOp >> 3 & 7);
-	        break;
-	      case 1:
-	        out = this.operdis00To3Fpart01(dissOp);
-	        break;
-	      case 2:
-	        out = this.operdis00To3Fpart02(dissOp >> 3 & 7);
-	        break;
-	      case 3:
-	        out = (dissOp & 8 ? "DEC " : "INC ") + this.wregout(dissOp >> 4);
-	        break;
-	      case 4:
-	        out = "INC " + this.bregout(dissOp >> 3);
-	        break;
-	      case 5:
-	        out = "DEC " + this.bregout(dissOp >> 3);
-	        break;
-	      case 6:
-	        out = "LD " + this.bregout(dissOp >> 3) + "," + this.bout();
-	        break;
-	      case 7:
-	        out = _Z80Disass.rlcaTable[dissOp >> 3 & 7];
-	        break;
-	    }
-	    return out;
-	  }
-	  // eslint-disable-line array-element-newline
-	  //
-	  // Disassemble C0-FF
-	  //
-	  operdisC0ToFFpart01(dissOp) {
-	    let out = "";
-	    const b4b5 = dissOp >> 4 & 3;
-	    if (dissOp & 8) {
-	      switch (b4b5) {
-	        // test b4,b5
-	        case 0:
-	          out = "RET";
-	          break;
-	        case 1:
-	          out = "EXX";
-	          break;
-	        case 2:
-	          out = "JP (" + this.wregout(2) + ")";
-	          break;
-	        case 3:
-	          out = "LD SP," + this.wregout(2);
-	          break;
-	      }
-	    } else {
-	      out = "POP " + this.pupoRegout(b4b5);
-	    }
-	    return out;
-	  }
-	  operdisC0ToFFpart03(b3b4b5) {
-	    let out = "";
-	    switch (b3b4b5) {
-	      // test b3,b4,b5
-	      case 0:
-	        out = "JP " + this.wout();
-	        break;
-	      case 1:
-	        out = this.operdisCB();
-	        break;
-	      case 2:
-	        out = "OUT (" + this.bout() + "),A";
-	        break;
-	      case 3:
-	        out = "IN A,(" + this.bout() + ")";
-	        break;
-	      case 4:
-	        out = "EX (SP)," + this.wregout(2);
-	        break;
-	      case 5:
-	        out = "EX DE,HL";
-	        break;
-	      case 6:
-	        out = "DI";
-	        break;
-	      case 7:
-	        out = "EI";
-	        break;
-	    }
-	    return out;
-	  }
-	  operdisC0ToFFpart05(dissOp) {
-	    let out;
-	    const b4b5 = dissOp >> 4 & 3;
-	    if (dissOp & 8) {
-	      if (b4b5 === 0) {
-	        out = "CALL " + this.wout();
-	      } else {
-	        out = this.onlyPrefix();
-	      }
-	    } else {
-	      out = "PUSH " + this.pupoRegout(b4b5);
-	    }
-	    return out;
-	  }
-	  operdisC0ToFF(dissOp) {
-	    let out = "";
-	    switch (dissOp & 7) {
-	      // test b0,b1,b2
-	      case 0:
-	        out = "RET " + _Z80Disass.conditionTable[dissOp >> 3 & 7];
-	        break;
-	      case 1:
-	        out = this.operdisC0ToFFpart01(dissOp);
-	        break;
-	      case 2:
-	        out = "JP " + _Z80Disass.conditionTable[dissOp >> 3 & 7] + "," + this.wout();
-	        break;
-	      case 3:
-	        out = this.operdisC0ToFFpart03(dissOp >> 3 & 7);
-	        break;
-	      case 4:
-	        out = "CALL " + _Z80Disass.conditionTable[dissOp >> 3 & 7] + "," + this.wout();
-	        break;
-	      case 5:
-	        out = this.operdisC0ToFFpart05(dissOp);
-	        break;
-	      case 6:
-	        out = _Z80Disass.arithMTab[dissOp >> 3 & 7] + this.bout();
-	        break;
-	      case 7:
-	        out = "RST " + _Z80Disass.hexMark + (dissOp & 56).toString(16).toUpperCase().padStart(2, "0");
-	        break;
-	    }
-	    return out;
-	  }
-	  // disassembles next instruction
-	  getNextLine() {
-	    let dissOp = this.bget();
-	    const prefix = _Z80Disass.prefixMap[dissOp] || 0;
-	    if (prefix) {
-	      dissOp = this.bget();
-	    }
-	    this.prefix = prefix;
-	    this.dissOp = dissOp;
-	    let out = "";
-	    if (prefix === 4) {
-	      out = this.operdisED(dissOp);
-	    } else {
-	      switch (dissOp >> 6) {
-	        // test b6,7
-	        case 0:
-	          out = this.operdis00To3F(dissOp);
-	          break;
-	        case 1:
-	          out = dissOp === 118 ? "HALT" : "LD " + this.bregout(dissOp >> 3) + "," + this.bregout(dissOp);
-	          break;
-	        case 2:
-	          out = _Z80Disass.arithMTab[dissOp >> 3 & 7] + this.bregout(dissOp);
-	          break;
-	        case 3:
-	          out = this.operdisC0ToFF(dissOp);
-	          break;
-	      }
-	    }
-	    return out;
-	  }
-	  disassLine() {
-	    const format = this.options.format ?? 7, startAddr = this.options.addr, line = this.getNextLine();
-	    let out = "";
-	    if (format & 1) {
-	      out += startAddr.toString(16).toUpperCase().padStart(4, "0");
-	    }
-	    if (format & 2) {
-	      const byteHex = [];
-	      if (out.length) {
-	        out += "  ";
-	      }
-	      for (let i = startAddr; i < this.options.addr; i += 1) {
-	        const byte = this.readByte(i) || 0;
-	        byteHex.push(byte.toString(16).toUpperCase().padStart(2, "0"));
-	      }
-	      while (byteHex.length < 4) {
-	        byteHex.push("  ");
-	      }
-	      out += byteHex.join(" ");
-	    }
-	    if (format & 4) {
-	      if (out.length) {
-	        out += "  ";
-	      }
-	      out += line;
-	    }
-	    return out;
-	  }
-	};
-	_Z80Disass.hexMark = "&";
-	/* eslint-disable array-element-newline */
-	_Z80Disass.bregtab = [
-	  // byte-register-table
-	  ["B", "C", "D", "E", "H", "L", "(HL)", "A"],
-	  ["B", "C", "D", "E", "HX", "LX", "(IX+", "A"],
-	  // DD-Prefix
-	  ["B", "C", "D", "E", "HY", "LY", "(IY+", "A"]
-	  // FD-Prefix
-	];
-	/* eslint-disable array-element-newline */
-	_Z80Disass.wregtab = [
-	  // byte-register-table
-	  ["BC", "DE", "HL", "SP"],
-	  ["BC", "DE", "IX", "SP"],
-	  // DD-Prefix
-	  ["BC", "DE", "IY", "SP"]
-	  // FD-Prefix
-	];
-	_Z80Disass.unknownOp = "unknown";
-	//
-	// Disassemble CB
-	//
-	_Z80Disass.rlcTable = ["RLC", "RRC", "RL", "RR", "SLA", "SRA", "SLS*", "SRL"];
-	// eslint-disable-line array-element-newline
-	_Z80Disass.bitResSetTable = ["BIT", "RES", "SET"];
-	//
-	// Disassemble ED
-	//
-	_Z80Disass.ldIaTable = ["LD I,A", "LD R,A", "LD A,I", "LD A,R", "RRD", "RLD", _Z80Disass.unknownOp, _Z80Disass.unknownOp];
-	/* eslint-disable array-element-newline */
-	_Z80Disass.repeatTable = [
-	  ["LDI", "LDD", "LDIR", "LDDR"],
-	  ["CPI", "CPD", "CPIR", "CPDR"],
-	  ["INI", "IND", "INIR", "INDR"],
-	  ["OUTI", "OUTD", "OTIR", "OTDR"]
-	];
-	_Z80Disass.conditionTable = ["NZ", "Z", "NC", "C", "PO", "PE", "P", "M"];
-	_Z80Disass.rlcaTable = ["RLCA", "RRCA", "RLA", "RRA", "DAA", "CPL", "SCF", "CCF"];
-	_Z80Disass.arithMTab = ["ADD A,", "ADC A,", "SUB ", "SBC A,", "AND ", "XOR ", "OR ", "CP "];
-	//
-	// Disassemble main
-	//
-	_Z80Disass.prefixMap = {
-	  221: 1,
-	  253: 2,
-	  237: 4
-	};
-	let Z80Disass = _Z80Disass;
 
 	const _CodeGeneratorJs = class _CodeGeneratorJs {
 	  constructor(options) {
@@ -18364,6 +13934,1417 @@
 	  // or "S"?
 	};
 	let CodeGeneratorJs = _CodeGeneratorJs;
+
+	const _CodeGeneratorBasic = class _CodeGeneratorBasic {
+	  // current line (label)
+	  constructor(options) {
+	    this.hasColons = false;
+	    this.keepWhiteSpace = false;
+	    this.line = 0;
+	    /* eslint-disable no-invalid-this */
+	    this.parseFunctions = {
+	      // to call methods, use parseFunctions[].call(this,...)
+	      "(": this.fnParenthesisOpen,
+	      string: _CodeGeneratorBasic.string,
+	      ustring: _CodeGeneratorBasic.ustring,
+	      assign: this.assign,
+	      expnumber: _CodeGeneratorBasic.expnumber,
+	      binnumber: _CodeGeneratorBasic.binHexNumber,
+	      hexnumber: _CodeGeneratorBasic.binHexNumber,
+	      label: this.label,
+	      "|": this.vertical,
+	      afterGosub: this.afterEveryGosub,
+	      chain: this.chainOrChainMerge,
+	      chainMerge: this.chainOrChainMerge,
+	      data: this.data,
+	      def: this.def,
+	      "else": this.fnElse,
+	      elseComment: this.elseComment,
+	      everyGosub: this.afterEveryGosub,
+	      fn: this.fn,
+	      "for": this.fnFor,
+	      "if": this.fnIf,
+	      input: this.inputLineInput,
+	      lineInput: this.inputLineInput,
+	      list: this.list,
+	      mid$Assign: this.mid$Assign,
+	      onBreakCont: this.onBreakOrError,
+	      // 3 parts
+	      onBreakGosub: this.onBreakOrError,
+	      onBreakStop: this.onBreakOrError,
+	      onErrorGoto: this.onBreakOrError,
+	      onGosub: this.onGotoGosub,
+	      onGoto: this.onGotoGosub,
+	      onSqGosub: this.onSqGosub,
+	      print: this.print,
+	      rem: this.rem,
+	      using: this.using,
+	      write: this.write
+	    };
+	    this.options = {
+	      quiet: false
+	    };
+	    this.setOptions(options);
+	    this.keywords = options.parser.getKeywords();
+	  }
+	  getOptions() {
+	    return this.options;
+	  }
+	  setOptions(options) {
+	    Object.assign(this.options, options);
+	  }
+	  generatePretty(input, keepWhiteSpace, keepBrackets, keepColons) {
+	    this.options.lexer.setOptions({ keepWhiteSpace });
+	    this.options.parser.setOptions({ keepTokens: true, keepBrackets, keepColons, keepDataComma: true });
+	    return this.generate(input);
+	  }
+	  composeError(error, message, value, pos) {
+	    return Utils.composeError("CodeGeneratorBasic", error, message, value, pos, void 0, this.line);
+	  }
+	  static fnWs(node) {
+	    return node.ws || "";
+	  }
+	  static fnSpace1(value) {
+	    return (!value.length || value.startsWith(" ") ? "" : " ") + value;
+	  }
+	  static getUcKeyword(node) {
+	    const type = node.type;
+	    return _CodeGeneratorBasic.combinedKeywords[type] || type.toUpperCase();
+	  }
+	  fnParseArgs(args) {
+	    const nodeArgs = [];
+	    if (!args) {
+	      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
+	    }
+	    for (let i = 0; i < args.length; i += 1) {
+	      let value = this.parseNode(args[i]);
+	      if (args[i].type === "'" || args[i].type === "else" || args[i].type === "elseComment") {
+	        if (i > 0 && !nodeArgs[i - 1].endsWith(" ") && !nodeArgs[i - 1].endsWith(":")) {
+	          value = _CodeGeneratorBasic.fnSpace1(value);
+	        }
+	      }
+	      nodeArgs.push(value);
+	    }
+	    return nodeArgs;
+	  }
+	  combineArgsWithColon(args) {
+	    if (!this.hasColons) {
+	      for (let i = 1; i < args.length; i += 1) {
+	        const arg = args[i].trim();
+	        if (!arg.startsWith("ELSE") && !arg.startsWith("'") && arg !== "") {
+	          args[i] = ":" + args[i];
+	        }
+	      }
+	    }
+	    return args.join("");
+	  }
+	  fnParenthesisOpen(node) {
+	    return _CodeGeneratorBasic.fnWs(node) + node.value + (node.args ? this.fnParseArgs(node.args).join("") : "");
+	  }
+	  static string(node) {
+	    return _CodeGeneratorBasic.fnWs(node) + '"' + node.value + '"';
+	  }
+	  static ustring(node) {
+	    return _CodeGeneratorBasic.fnWs(node) + '"' + node.value;
+	  }
+	  assign(node) {
+	    if (node.left.type !== "identifier") {
+	      throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos);
+	    }
+	    return this.parseNode(node.left) + _CodeGeneratorBasic.fnWs(node) + node.value + this.parseNode(node.right);
+	  }
+	  static expnumber(node) {
+	    return _CodeGeneratorBasic.fnWs(node) + Number(node.value).toExponential().toUpperCase().replace(/(\d+)$/, function(x) {
+	      return x.length >= 2 ? x : x.padStart(2, "0");
+	    });
+	  }
+	  static binHexNumber(node) {
+	    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase();
+	  }
+	  label(node) {
+	    this.line = Number(node.value);
+	    const value = this.combineArgsWithColon(this.fnParseArgs(node.args));
+	    return _CodeGeneratorBasic.fnWs(node) + node.value + (node.value !== "" ? _CodeGeneratorBasic.fnSpace1(value) : value);
+	  }
+	  // special keyword functions
+	  vertical(node) {
+	    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + this.fnParseArgs(node.args).join("");
+	  }
+	  afterEveryGosub(node) {
+	    const nodeArgs = this.fnParseArgs(node.args);
+	    nodeArgs[0] = _CodeGeneratorBasic.fnSpace1(nodeArgs[0]);
+	    nodeArgs[nodeArgs.length - 2] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]);
+	    nodeArgs[nodeArgs.length - 1] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]);
+	    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + nodeArgs.join("");
+	  }
+	  chainOrChainMerge(node) {
+	    const nodeArgs = this.fnParseArgs(node.args);
+	    if (nodeArgs.length > 2) {
+	      if (nodeArgs[nodeArgs.length - 2] === "DELETE") {
+	        nodeArgs[nodeArgs.length - 1] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]);
+	      }
+	    }
+	    return _CodeGeneratorBasic.fnWs(node) + _CodeGeneratorBasic.getUcKeyword(node) + (node.right ? _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) : "") + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
+	  }
+	  data(node) {
+	    const nodeArgs = this.fnParseArgs(node.args);
+	    for (let i = 0; i < nodeArgs.length; i += 1) {
+	      const value2 = nodeArgs[i];
+	      nodeArgs[i] = value2;
+	    }
+	    let args = nodeArgs.join("");
+	    if (!this.keepWhiteSpace) {
+	      args = Utils.stringTrimEnd(args);
+	    }
+	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(args);
+	  }
+	  def(node) {
+	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + (node.right ? _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + this.fnParseArgs(node.args).join("") : "");
+	  }
+	  elseComment(node) {
+	    if (!node.args) {
+	      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
+	    }
+	    const args = node.args;
+	    let value = "";
+	    for (let i = 0; i < args.length; i += 1) {
+	      const token = args[i];
+	      if (token.value) {
+	        if (this.keepWhiteSpace) {
+	          value += _CodeGeneratorBasic.fnWs(token) + token.value;
+	        } else {
+	          value += _CodeGeneratorBasic.fnSpace1(_CodeGeneratorBasic.fnWs(token) + token.value);
+	        }
+	      }
+	    }
+	    return _CodeGeneratorBasic.fnWs(node) + "else".toUpperCase() + value;
+	  }
+	  fn(node) {
+	    if (!node.right) {
+	      return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase();
+	    }
+	    const nodeArgs = node.args ? this.fnParseArgs(node.args) : [];
+	    let right = this.parseNode(node.right);
+	    if (node.right.pos - node.pos > 2) {
+	      right = _CodeGeneratorBasic.fnSpace1(right);
+	    }
+	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + right + nodeArgs.join("");
+	  }
+	  fnFor(node) {
+	    const nodeArgs = this.fnParseArgs(node.args);
+	    for (let i = 0; i < nodeArgs.length; i += 1) {
+	      if (i !== 1 && i !== 2) {
+	        nodeArgs[i] = _CodeGeneratorBasic.fnSpace1(nodeArgs[i]);
+	      }
+	    }
+	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + nodeArgs.join("");
+	  }
+	  fnElse(node) {
+	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(this.fnParseArgs(node.args)));
+	  }
+	  fnIf(node) {
+	    const nodeArgs = this.fnParseArgs(node.args), partName = nodeArgs.shift();
+	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + _CodeGeneratorBasic.fnSpace1(partName) + _CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(nodeArgs));
+	  }
+	  inputLineInput(node) {
+	    const nodeArgs = node.args ? this.fnParseArgs(node.args) : [], name = node.right ? this.parseNode(node.right) : "";
+	    return _CodeGeneratorBasic.fnWs(node) + _CodeGeneratorBasic.getUcKeyword(node) + _CodeGeneratorBasic.fnSpace1(name) + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
+	  }
+	  list(node) {
+	    const nodeArgs = this.fnParseArgs(node.args);
+	    if (nodeArgs.length && nodeArgs[0] === "") {
+	      nodeArgs.shift();
+	    }
+	    if (nodeArgs.length && nodeArgs[nodeArgs.length - 1] === "#") {
+	      nodeArgs.pop();
+	    }
+	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
+	  }
+	  mid$Assign(node) {
+	    return _CodeGeneratorBasic.fnWs(node) + _CodeGeneratorBasic.getUcKeyword(node) + this.fnParseArgs(node.args).join("");
+	  }
+	  onBreakOrError(node) {
+	    return _CodeGeneratorBasic.fnWs(node) + "ON" + _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + _CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join(""));
+	  }
+	  onGotoGosub(node) {
+	    const nodeArgs = this.fnParseArgs(node.args), expression = nodeArgs.shift(), instruction = nodeArgs.shift();
+	    return _CodeGeneratorBasic.fnWs(node) + "ON" + _CodeGeneratorBasic.fnSpace1(expression) + _CodeGeneratorBasic.fnSpace1(instruction) + _CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
+	  }
+	  onSqGosub(node) {
+	    const nodeArgs = this.fnParseArgs(node.args);
+	    nodeArgs[nodeArgs.length - 2] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]);
+	    nodeArgs[nodeArgs.length - 1] = _CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]);
+	    return _CodeGeneratorBasic.fnWs(node) + "ON" + _CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + nodeArgs.join("");
+	  }
+	  print(node) {
+	    const nodeArgs = this.fnParseArgs(node.args);
+	    let value = "";
+	    for (let i = 0; i < nodeArgs.length; i += 1) {
+	      value += nodeArgs[i];
+	    }
+	    if (node.value !== "?") {
+	      value = _CodeGeneratorBasic.fnSpace1(value);
+	    }
+	    return _CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + value;
+	  }
+	  rem(node) {
+	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + this.fnParseArgs(node.args).join("");
+	  }
+	  using(node) {
+	    const nodeArgs = this.fnParseArgs(node.args), template = nodeArgs.length ? nodeArgs.shift() || "" : "";
+	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + _CodeGeneratorBasic.fnSpace1(template) + nodeArgs.join("");
+	  }
+	  write(node) {
+	    return _CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + (node.args ? _CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join("")) : "");
+	  }
+	  /* eslint-enable no-invalid-this */
+	  fnParseOther(node) {
+	    const type = node.type;
+	    let value = "";
+	    if (node.left) {
+	      value += this.parseNode(node.left);
+	    }
+	    value += _CodeGeneratorBasic.fnWs(node);
+	    const keyType = this.keywords[type];
+	    if (keyType) {
+	      value += _CodeGeneratorBasic.getUcKeyword(node);
+	    } else if (node.value) {
+	      value += node.value;
+	    }
+	    let right;
+	    if (node.right) {
+	      right = this.parseNode(node.right);
+	      const needSpace1 = this.keywords[right.toLowerCase()] || keyType;
+	      value += needSpace1 ? _CodeGeneratorBasic.fnSpace1(right) : right;
+	    }
+	    if (node.args) {
+	      const nodeArgs = this.fnParseArgs(node.args).join(""), needSpace2 = keyType && keyType.charAt(0) !== "f" && node.type !== "'";
+	      value += needSpace2 ? _CodeGeneratorBasic.fnSpace1(nodeArgs) : nodeArgs;
+	    }
+	    return value;
+	  }
+	  static getLeftOrRightOperatorPrecedence(node) {
+	    const precedence = _CodeGeneratorBasic.operatorPrecedence, operators = _CodeGeneratorBasic.operators;
+	    let pr;
+	    if (operators[node.type] && (node.left || node.right)) {
+	      if (node.left) {
+	        pr = precedence[node.type] || 0;
+	      } else {
+	        pr = precedence["p" + node.type] || precedence[node.type] || 0;
+	      }
+	    }
+	    return pr;
+	  }
+	  parseOperator(node) {
+	    const precedence = _CodeGeneratorBasic.operatorPrecedence, operators = _CodeGeneratorBasic.operators;
+	    let value;
+	    if (node.left) {
+	      value = this.parseNode(node.left);
+	      const p = precedence[node.type], pl = _CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(node.left);
+	      if (pl !== void 0 && pl < p) {
+	        value = "(" + value + ")";
+	      }
+	      const right = node.right;
+	      let value2 = this.parseNode(right);
+	      const pr = _CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(right);
+	      if (pr !== void 0) {
+	        if (pr < p) {
+	          value2 = "(" + value2 + ")";
+	        } else if (pr === p) {
+	          const assoc = _CodeGeneratorBasic.operatorAssociativity[node.type];
+	          if (assoc === "right") ; else if (assoc === "left") {
+	            if (/(^|-|\/|\\|mod|=|<>|<|<=|>|>=)$/.test(node.type)) {
+	              value2 = "(" + value2 + ")";
+	            }
+	          } else {
+	            value2 = "(" + value2 + ")";
+	          }
+	        }
+	      }
+	      const operator = _CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
+	      if (/^(and|or|xor|mod)$/.test(node.type)) {
+	        value += _CodeGeneratorBasic.fnSpace1(operator) + _CodeGeneratorBasic.fnSpace1(value2);
+	      } else {
+	        value += operator + value2;
+	      }
+	    } else if (node.right) {
+	      if (node.len === 0) {
+	        value = "";
+	      } else {
+	        const right = node.right;
+	        value = this.parseNode(right);
+	        let pr;
+	        if (right.left) {
+	          pr = precedence[right.type] || 0;
+	        } else {
+	          pr = precedence["p" + right.type] || precedence[right.type] || 0;
+	        }
+	        const p = precedence["p" + node.type] || precedence[node.type] || 0;
+	        if (p && pr && pr < p) {
+	          value = "(" + value + ")";
+	        }
+	        value = _CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase() + (node.type === "not" ? _CodeGeneratorBasic.fnSpace1(value) : value);
+	      }
+	    } else {
+	      value = this.fnParseOther(node);
+	    }
+	    return value;
+	  }
+	  parseNode(node) {
+	    const type = node.type;
+	    if (Utils.debug > 3) {
+	      Utils.console.debug("evaluate: parseNode node=%o type=" + type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
+	    }
+	    let value;
+	    if (_CodeGeneratorBasic.operators[type]) {
+	      value = this.parseOperator(node);
+	    } else if (this.parseFunctions[type]) {
+	      value = this.parseFunctions[type].call(this, node);
+	    } else {
+	      if ((type === "identifier" || type === "letter") && this.options.lowercaseVars) {
+	        node.value = node.value.toLowerCase();
+	      }
+	      value = this.fnParseOther(node);
+	    }
+	    return value;
+	  }
+	  evaluate(parseTree) {
+	    let output = "";
+	    for (let i = 0; i < parseTree.length; i += 1) {
+	      if (Utils.debug > 2) {
+	        Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
+	      }
+	      const line = this.parseNode(parseTree[i]);
+	      if (line !== void 0 && line !== "") {
+	        if (line !== null) {
+	          if (output.length === 0) {
+	            output = line;
+	          } else {
+	            output += line;
+	          }
+	        } else {
+	          output = "";
+	        }
+	      }
+	    }
+	    return output;
+	  }
+	  generate(input) {
+	    const out = {
+	      text: ""
+	    };
+	    this.hasColons = Boolean(this.options.parser.getOptions().keepColons);
+	    this.keepWhiteSpace = Boolean(this.options.lexer.getOptions().keepWhiteSpace);
+	    this.keywords = this.options.parser.getKeywords();
+	    this.line = 0;
+	    try {
+	      const tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);
+	      out.text = output;
+	    } catch (e) {
+	      if (Utils.isCustomError(e)) {
+	        out.error = e;
+	        if (!this.options.quiet) {
+	          Utils.console.warn(e);
+	        }
+	      } else {
+	        out.error = e;
+	        Utils.console.error(e);
+	      }
+	    }
+	    return out;
+	  }
+	};
+	_CodeGeneratorBasic.combinedKeywords = {
+	  chainMerge: "CHAIN",
+	  // "CHAIN MERGE"
+	  clearInput: "CLEAR",
+	  // "CLEAR INPUT"
+	  graphicsPaper: "GRAPHICS",
+	  // "GRAPHICS PAPER"
+	  graphicsPen: "GRAPHICS",
+	  // "GRAPHICS PEN"
+	  keyDef: "KEY",
+	  // "KEY DEF"
+	  lineInput: "LINE",
+	  // "LINE INPUT"
+	  mid$Assign: "MID$",
+	  onBreakCont: "ON",
+	  // ""ON BREAK CONT"
+	  onBreakGosub: "ON",
+	  // ""ON BREAK GOSUB"
+	  onBreakStop: "ON",
+	  // ""ON BREAK STOP"
+	  onErrorGoto: "ON",
+	  // "ON ERROR GOTO"
+	  resumeNext: "RESUME",
+	  // "RESUME NEXT"
+	  speedInk: "SPEED",
+	  // "SPEED INK"
+	  speedKey: "SPEED",
+	  // "SPEED KEY"
+	  speedWrite: "SPEED",
+	  // "SPEED WRITE"
+	  symbolAfter: "SYMBOL",
+	  // "SYMBOL AFTER"
+	  windowSwap: "WINDOW"
+	  // "WINDOW SWAP"
+	};
+	_CodeGeneratorBasic.operators = {
+	  "+": "+",
+	  "-": "-",
+	  "*": "*",
+	  "/": "/",
+	  "\\": "\\",
+	  "^": "^",
+	  and: "AND",
+	  or: "OR",
+	  xor: "XOR",
+	  not: "NOT",
+	  mod: "MOD",
+	  ">": ">",
+	  "<": "<",
+	  ">=": ">=",
+	  "<=": "<=",
+	  "=": "=",
+	  "<>": "<>",
+	  "@": "@",
+	  "#": "#"
+	};
+	_CodeGeneratorBasic.operatorPrecedence = {
+	  "@": 95,
+	  // prefix
+	  "^": 90,
+	  "p-": 80,
+	  // prefix - (fast hack)
+	  "p+": 80,
+	  // prefix + (fast hack)
+	  "*": 70,
+	  "/": 70,
+	  "\\": 60,
+	  mod: 50,
+	  "+": 40,
+	  "-": 40,
+	  "=": 30,
+	  "<>": 30,
+	  "<": 30,
+	  "<=": 30,
+	  ">": 30,
+	  ">=": 30,
+	  not: 23,
+	  // prefix
+	  and: 22,
+	  or: 21,
+	  xor: 20,
+	  "#": 10
+	  // priority?
+	};
+	_CodeGeneratorBasic.operatorAssociativity = {
+	  "^": "right",
+	  // right-associative
+	  "*": "left",
+	  // left-associative (commutative, so parens not needed for equal precedence)
+	  "+": "left",
+	  // left-associative (commutative, so parens not needed for equal precedence)
+	  "/": "left",
+	  // left-associative (non-commutative, so parens ARE needed for equal precedence)
+	  "\\": "left",
+	  // left-associative (non-commutative, so parens ARE needed)
+	  mod: "left",
+	  // left-associative (non-commutative)
+	  "-": "left",
+	  // left-associative (non-commutative, so parens ARE needed for equal precedence)
+	  "=": "none",
+	  // comparison operators are non-associative
+	  "<>": "none",
+	  "<": "none",
+	  "<=": "none",
+	  ">": "none",
+	  ">=": "none",
+	  and: "left",
+	  or: "left",
+	  xor: "left"
+	};
+	let CodeGeneratorBasic = _CodeGeneratorBasic;
+
+	const _CodeGeneratorToken = class _CodeGeneratorToken {
+	  // current line (label)
+	  constructor(options) {
+	    this.label = "0";
+	    /* eslint-disable no-invalid-this */
+	    this.parseFunctions = {
+	      // to call methods, use parseFunctions[].call(this,...)
+	      args: this.fnArgs,
+	      range: this.range,
+	      linerange: this.linerange,
+	      string: _CodeGeneratorToken.string,
+	      ustring: _CodeGeneratorToken.ustring,
+	      "(eol)": _CodeGeneratorToken.fnEol,
+	      // ignore newline "\n"
+	      number: _CodeGeneratorToken.number,
+	      expnumber: _CodeGeneratorToken.number,
+	      // same handling as for number
+	      binnumber: _CodeGeneratorToken.binnumber,
+	      hexnumber: _CodeGeneratorToken.hexnumber,
+	      identifier: this.identifier,
+	      linenumber: _CodeGeneratorToken.linenumber,
+	      label: this.fnLabel,
+	      "|": this.vertical,
+	      "else": this.fnElseOrApostrophe,
+	      elseComment: this.elseComment,
+	      onBreakCont: this.onBreakContOrGosubOrStop,
+	      onBreakGosub: this.onBreakContOrGosubOrStop,
+	      onBreakStop: this.onBreakContOrGosubOrStop,
+	      onErrorGoto: this.onErrorGoto,
+	      onSqGosub: this.onSqGosub,
+	      "'": this.fnElseOrApostrophe
+	    };
+	    this.options = {
+	      allowLineFragments: false,
+	      // only for testing
+	      implicitLines: false,
+	      quiet: false
+	    };
+	    this.setOptions(options);
+	  }
+	  getOptions() {
+	    return this.options;
+	  }
+	  setOptions(options) {
+	    Object.assign(this.options, options);
+	  }
+	  generateProgram(input) {
+	    this.options.lexer.setOptions({ keepWhiteSpace: true });
+	    this.options.parser.setOptions({ keepTokens: true, keepBrackets: true, keepColons: true, keepDataComma: true });
+	    return this.generate(input);
+	  }
+	  composeError(error, message, value, pos) {
+	    return Utils.composeError("CodeGeneratorToken", error, message, value, pos, void 0, this.label);
+	  }
+	  static convUInt8ToString(n) {
+	    return String.fromCharCode(n);
+	  }
+	  static convUInt16ToString(n) {
+	    return String.fromCharCode(n & 255) + String.fromCharCode(n >> 8);
+	  }
+	  static convInt32ToString(n) {
+	    return _CodeGeneratorToken.convUInt16ToString(n & 65535) + _CodeGeneratorToken.convUInt16ToString(n >> 16 & 65535);
+	  }
+	  static token2String(name) {
+	    let token = _CodeGeneratorToken.tokens[name], result = "";
+	    if (token === void 0) {
+	      token = _CodeGeneratorToken.tokensFF[name];
+	      if (token === void 0) {
+	        Utils.console.error("token2String: Not a token: " + name);
+	        return name;
+	      }
+	      result = _CodeGeneratorToken.convUInt8ToString(255);
+	    }
+	    return result + _CodeGeneratorToken.convUInt8ToString(token);
+	  }
+	  static getBit7TerminatedString(s) {
+	    return s.substring(0, s.length - 1) + String.fromCharCode(s.charCodeAt(s.length - 1) | 128);
+	  }
+	  static fnGetWs(node) {
+	    return node.ws || "";
+	  }
+	  fnParseArgs(args) {
+	    const nodeArgs = [];
+	    if (!args) {
+	      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
+	    }
+	    for (let i = 0; i < args.length; i += 1) {
+	      nodeArgs.push(this.parseNode(args[i]));
+	    }
+	    return nodeArgs;
+	  }
+	  fnArgs(node) {
+	    return this.fnParseArgs(node.args).join(node.value);
+	  }
+	  range(node) {
+	    return this.parseNode(node.left) + _CodeGeneratorToken.fnGetWs(node) + node.value + this.parseNode(node.right);
+	  }
+	  linerange(node) {
+	    return this.parseNode(node.left) + _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(node.value) + this.parseNode(node.right);
+	  }
+	  static string(node) {
+	    return _CodeGeneratorToken.fnGetWs(node) + '"' + node.value + '"';
+	  }
+	  static ustring(node) {
+	    return _CodeGeneratorToken.fnGetWs(node) + '"' + node.value;
+	  }
+	  static fnEol() {
+	    return "";
+	  }
+	  static floatToByteString(number) {
+	    let mantissa = 0, exponent = 0, sign = 0;
+	    if (number !== 0) {
+	      if (number < 0) {
+	        sign = 2147483648;
+	        number = -number;
+	      }
+	      exponent = Math.ceil(Math.log(number) / Math.log(2));
+	      mantissa = Math.round(number / Math.pow(2, exponent - 32)) & 2147483647;
+	      if (mantissa === 0) {
+	        exponent += 1;
+	      }
+	      exponent += 128;
+	    }
+	    return _CodeGeneratorToken.convInt32ToString(sign + mantissa) + _CodeGeneratorToken.convUInt8ToString(exponent);
+	  }
+	  static number(node) {
+	    const numberString = node.value.toUpperCase(), number = Number(numberString);
+	    let result = "";
+	    if (number === Math.floor(number)) {
+	      if (number >= 0 && number <= 9) {
+	        result = _CodeGeneratorToken.token2String(numberString);
+	      } else if (number >= 10 && number <= 255) {
+	        result = _CodeGeneratorToken.token2String("_dec8") + _CodeGeneratorToken.convUInt8ToString(number);
+	      } else if (number >= -32767 && number <= 32767) {
+	        result = (number < 0 ? _CodeGeneratorToken.token2String("-") : "") + _CodeGeneratorToken.token2String("_dec16") + _CodeGeneratorToken.convUInt16ToString(number);
+	      }
+	    }
+	    if (result === "") {
+	      result = _CodeGeneratorToken.token2String("_float") + _CodeGeneratorToken.floatToByteString(number);
+	    }
+	    return _CodeGeneratorToken.fnGetWs(node) + result;
+	  }
+	  static binnumber(node) {
+	    const valueString = node.value.slice(2), value = valueString.length ? parseInt(valueString, 2) : 0;
+	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_bin16") + _CodeGeneratorToken.convUInt16ToString(value);
+	  }
+	  static hexnumber(node) {
+	    let valueString = node.value.slice(1);
+	    if (valueString.charAt(0).toLowerCase() === "h") {
+	      valueString = valueString.slice(1);
+	    }
+	    const value = valueString.length ? parseInt(valueString, 16) : 0;
+	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_hex16") + _CodeGeneratorToken.convUInt16ToString(value);
+	  }
+	  identifier(node) {
+	    let name = node.value, mappedTypeName = _CodeGeneratorToken.varTypeMap[name.charAt(name.length - 1)] || "";
+	    if (mappedTypeName) {
+	      name = name.slice(0, -1);
+	    } else {
+	      mappedTypeName = "_anyVar";
+	    }
+	    const offset = 0;
+	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(mappedTypeName) + _CodeGeneratorToken.convUInt16ToString(offset) + _CodeGeneratorToken.getBit7TerminatedString(name) + (node.args ? this.fnParseArgs(node.args).join("") : "");
+	  }
+	  static linenumber(node) {
+	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_line16") + _CodeGeneratorToken.convUInt16ToString(Number(node.value));
+	  }
+	  fnLabel(node) {
+	    if (node.value === "") {
+	      if (this.options.implicitLines) {
+	        node.value = String(Number(this.label) + 1);
+	      } else if (!this.options.allowLineFragments) {
+	        throw this.composeError(Error(), "Direct command found", node.value, node.pos);
+	      }
+	    }
+	    this.label = node.value;
+	    const line = Number(this.label), nodeArgs = this.fnParseArgs(node.args);
+	    let value = nodeArgs.join("");
+	    if (node.value !== "") {
+	      if (value.charAt(0) === " ") {
+	        value = value.substring(1);
+	      }
+	      value = _CodeGeneratorToken.convUInt16ToString(line) + value + _CodeGeneratorToken.token2String("_eol");
+	      value = _CodeGeneratorToken.convUInt16ToString(value.length + 2) + value;
+	    }
+	    return value;
+	  }
+	  // special keyword functions
+	  vertical(node) {
+	    const rsxName = node.value.substring(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0;
+	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(node.type) + (rsxName.length ? _CodeGeneratorToken.convUInt8ToString(offset) : "") + _CodeGeneratorToken.getBit7TerminatedString(rsxName) + nodeArgs.join("");
+	  }
+	  fnElseOrApostrophe(node) {
+	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(":") + _CodeGeneratorToken.token2String(node.type) + this.fnParseArgs(node.args).join("");
+	  }
+	  elseComment(node) {
+	    if (!node.args) {
+	      throw this.composeError(Error(), "Programming error: Undefined args", "", -1);
+	    }
+	    const type = "else";
+	    let value = _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String(":") + _CodeGeneratorToken.token2String(type);
+	    const args = node.args;
+	    for (let i = 0; i < args.length; i += 1) {
+	      const token = args[i];
+	      let value2 = token.value;
+	      if (value2) {
+	        if (token.type === "linenumber") {
+	          value2 = _CodeGeneratorToken.linenumber(token);
+	        }
+	        value += value2;
+	      }
+	    }
+	    return value;
+	  }
+	  onBreakContOrGosubOrStop(node) {
+	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_onBreak") + (node.right && node.right.right ? this.parseNode(node.right.right) : "") + this.fnParseArgs(node.args).join("");
+	  }
+	  onErrorGoto(node) {
+	    if (node.args && node.args.length && node.args[0].value === "0") {
+	      return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("_onErrorGoto0");
+	    }
+	    return _CodeGeneratorToken.fnGetWs(node) + _CodeGeneratorToken.token2String("on") + this.parseNode(node.right) + this.fnParseArgs(node.args).join("");
+	  }
+	  onSqGosub(node) {
+	    return _CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs(node.right.args).join("") + this.fnParseArgs(node.args).join("");
+	  }
+	  /* eslint-enable no-invalid-this */
+	  fnParseOther(node) {
+	    const type = node.type, isToken = _CodeGeneratorToken.tokens[type] !== void 0 || _CodeGeneratorToken.tokensFF[type] !== void 0;
+	    let value = "";
+	    if (node.left) {
+	      value += this.parseNode(node.left);
+	    }
+	    value += _CodeGeneratorToken.fnGetWs(node);
+	    if (isToken) {
+	      value += _CodeGeneratorToken.token2String(type);
+	    } else if (node.value) {
+	      value += node.value;
+	    }
+	    if (node.right) {
+	      value += this.parseNode(node.right);
+	    }
+	    if (node.args) {
+	      value += this.fnParseArgs(node.args).join("");
+	    }
+	    return value;
+	  }
+	  parseNode(node) {
+	    if (Utils.debug > 3) {
+	      Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
+	    }
+	    const type = node.type;
+	    let value;
+	    if (node.len === 0 && type !== "label") {
+	      value = "";
+	    } else {
+	      value = this.parseFunctions[type] ? this.parseFunctions[type].call(this, node) : this.fnParseOther(node);
+	    }
+	    if (Utils.debug > 2) {
+	      Utils.console.debug("parseNode: type='" + type + "', value='" + node.value + "', ws='" + node.ws + "', resultValue='" + value + "'");
+	    }
+	    return value;
+	  }
+	  evaluate(parseTree) {
+	    let output = "";
+	    for (let i = 0; i < parseTree.length; i += 1) {
+	      if (Utils.debug > 2) {
+	        Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
+	      }
+	      const node = this.parseNode(parseTree[i]);
+	      if (node !== void 0 && node !== "") {
+	        if (node !== null) {
+	          output += node;
+	        } else {
+	          output = "";
+	        }
+	      }
+	    }
+	    if (this.label) {
+	      output += _CodeGeneratorToken.token2String("_eol") + _CodeGeneratorToken.token2String("_eol");
+	    }
+	    return output;
+	  }
+	  generate(input) {
+	    const out = {
+	      text: ""
+	    };
+	    this.label = "0";
+	    try {
+	      const tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);
+	      out.text = output;
+	    } catch (e) {
+	      if (Utils.isCustomError(e)) {
+	        out.error = e;
+	        if (!this.options.quiet) {
+	          Utils.console.warn(e);
+	        }
+	      } else {
+	        out.error = e;
+	        Utils.console.error(e);
+	      }
+	    }
+	    return out;
+	  }
+	};
+	_CodeGeneratorToken.tokens = {
+	  _eol: 0,
+	  // marker for "end of tokenised line"
+	  ":": 1,
+	  // ":" statement seperator
+	  _intVar: 2,
+	  // integer variable definition (defined with "%" suffix)  "(A-Z)+%"
+	  _stringVar: 3,
+	  // string variable definition (defined with "$" suffix)  "(A-Z)+\$"
+	  _floatVar: 4,
+	  // floating point variable definition (defined with "!" suffix) "(A-Z)+!"
+	  // "": 0x05, // "var?"
+	  // "": 0x06, // "var?"
+	  // "": 0x07, // "var?"
+	  // "": 0x08, // "var?"
+	  // "": 0x09, // "var?"
+	  // "": 0x0a, // "var?"
+	  // "": 0x0b, // integer variable definition (no suffix)
+	  // "": 0x0c, // string variable definition (no suffix)
+	  _anyVar: 13,
+	  // floating point or no type (no suffix)
+	  0: 14,
+	  // number constant "0"
+	  1: 15,
+	  // number constant "1"
+	  2: 16,
+	  // number constant "2"
+	  3: 17,
+	  // number constant "3"
+	  4: 18,
+	  // number constant "4"
+	  5: 19,
+	  // number constant "5"
+	  6: 20,
+	  // number constant "6"
+	  7: 21,
+	  // number constant "7"
+	  8: 22,
+	  // number constant "8"
+	  9: 23,
+	  // number constant "9"
+	  10: 24,
+	  // number constant "10" (not sure when this is used)
+	  _dec8: 25,
+	  // 8-bit integer decimal value
+	  _dec16: 26,
+	  // 16-bit integer decimal value
+	  _bin16: 27,
+	  // 16-bit integer binary value (with "&X" prefix)
+	  _hex16: 28,
+	  // num16Hex: 16-bit integer hexadecimal value (with "&H" or "&" prefix)
+	  // "": 0x1d, // 16-bit BASIC program line memory address pointer (should not occur)
+	  _line16: 30,
+	  // 16-bit integer BASIC line number
+	  _float: 31,
+	  // floating point value
+	  // 0x20-0x21 ASCII printable symbols (space, "!")
+	  // "": 0x22, // '"' quoted string value
+	  // 0x23-0x7b ASCII printable symbols
+	  "#": 35,
+	  // "#" character (stream)
+	  "(": 40,
+	  // "(" character
+	  ")": 41,
+	  // ")" character
+	  ",": 44,
+	  // "," character
+	  "?": 63,
+	  // "?" character (print)
+	  "@": 64,
+	  // "@" character (address of)
+	  "[": 91,
+	  // "[" character
+	  "]": 93,
+	  // "]" character
+	  "|": 124,
+	  // "|" symbol; prefix for RSX commands
+	  after: 128,
+	  afterGosub: 128,
+	  auto: 129,
+	  border: 130,
+	  call: 131,
+	  cat: 132,
+	  chain: 133,
+	  chainMerge: 133,
+	  // 0xab85
+	  clear: 134,
+	  clearInput: 134,
+	  // 0xa386
+	  clg: 135,
+	  closein: 136,
+	  closeout: 137,
+	  cls: 138,
+	  cont: 139,
+	  data: 140,
+	  def: 141,
+	  defint: 142,
+	  defreal: 143,
+	  defstr: 144,
+	  deg: 145,
+	  "delete": 146,
+	  dim: 147,
+	  draw: 148,
+	  drawr: 149,
+	  edit: 150,
+	  "else": 151,
+	  end: 152,
+	  ent: 153,
+	  env: 154,
+	  erase: 155,
+	  error: 156,
+	  every: 157,
+	  everyGosub: 157,
+	  "for": 158,
+	  gosub: 159,
+	  "goto": 160,
+	  "if": 161,
+	  ink: 162,
+	  input: 163,
+	  key: 164,
+	  keyDef: 164,
+	  // 0x8da4
+	  let: 165,
+	  line: 166,
+	  lineInput: 166,
+	  // 0xa3a6
+	  list: 167,
+	  load: 168,
+	  locate: 169,
+	  memory: 170,
+	  merge: 171,
+	  mid$: 172,
+	  mid$Assign: 172,
+	  mode: 173,
+	  move: 174,
+	  mover: 175,
+	  next: 176,
+	  "new": 177,
+	  on: 178,
+	  _onBreak: 179,
+	  // onBreakCont, onBreakGosub, onBreakStop
+	  _onErrorGoto0: 180,
+	  // "on error goto 0" (on error goto n > 0 is decoded with separate tokens)
+	  onGosub: 178,
+	  onGoto: 178,
+	  _onSq: 181,
+	  // "on sq" (onSqGosub)
+	  openin: 182,
+	  openout: 183,
+	  origin: 184,
+	  out: 185,
+	  paper: 186,
+	  pen: 187,
+	  plot: 188,
+	  plotr: 189,
+	  poke: 190,
+	  print: 191,
+	  "'": 192,
+	  // apostrophe "'" symbol (same function as REM keyword)
+	  rad: 193,
+	  randomize: 194,
+	  read: 195,
+	  release: 196,
+	  rem: 197,
+	  // rem
+	  renum: 198,
+	  restore: 199,
+	  resume: 200,
+	  resumeNext: 200,
+	  // 0xb0c8
+	  "return": 201,
+	  run: 202,
+	  save: 203,
+	  sound: 204,
+	  speedInk: 205,
+	  // 0xa2cd
+	  speedKey: 205,
+	  // 0xa4cd,
+	  speedWrite: 205,
+	  // 0xd9cd
+	  stop: 206,
+	  swap: 231,
+	  symbol: 207,
+	  symbolAfter: 207,
+	  // 0x80cf
+	  tag: 208,
+	  tagoff: 209,
+	  troff: 210,
+	  tron: 211,
+	  wait: 212,
+	  wend: 213,
+	  "while": 214,
+	  width: 215,
+	  window: 216,
+	  windowSwap: 216,
+	  // 0xe7d8
+	  write: 217,
+	  zone: 218,
+	  di: 219,
+	  ei: 220,
+	  fill: 221,
+	  // (v1.1)
+	  graphics: 222,
+	  // (v1.1)
+	  graphicsPaper: 222,
+	  // 0xbade
+	  graphicsPen: 222,
+	  // 0xbbde
+	  mask: 223,
+	  // (v1.1)
+	  frame: 224,
+	  // (v1.1)
+	  cursor: 225,
+	  // (v1.1)
+	  // "<unused>":         0xe2,
+	  erl: 227,
+	  fn: 228,
+	  spc: 229,
+	  step: 230,
+	  // swap: 0xe7, only: windowSwap...
+	  // "<unused>":         0xe8,
+	  // "<unused>":         0xe9,
+	  tab: 234,
+	  then: 235,
+	  to: 236,
+	  using: 237,
+	  ">": 238,
+	  // (greater than)
+	  "=": 239,
+	  // (equal)
+	  assign: 239,
+	  // equal as assign
+	  ">=": 240,
+	  // (greater or equal)
+	  "<": 241,
+	  // (less than)
+	  "<>": 242,
+	  // (not equal)
+	  "<=": 243,
+	  // =<, <=, < = (less than or equal)
+	  "+": 244,
+	  // (addition)
+	  "-": 245,
+	  // (subtraction or unary minus)
+	  "*": 246,
+	  // (multiplication)
+	  "/": 247,
+	  // (division)
+	  "^": 248,
+	  // (x to the power of y)
+	  "\\": 249,
+	  // (integer division)
+	  and: 250,
+	  mod: 251,
+	  or: 252,
+	  xor: 253,
+	  not: 254
+	  // 0xff: (prefix for additional keywords)
+	};
+	_CodeGeneratorToken.tokensFF = {
+	  // Functions with one argument
+	  abs: 0,
+	  asc: 1,
+	  atn: 2,
+	  chr$: 3,
+	  cint: 4,
+	  cos: 5,
+	  creal: 6,
+	  exp: 7,
+	  fix: 8,
+	  fre: 9,
+	  inkey: 10,
+	  inp: 11,
+	  "int": 12,
+	  joy: 13,
+	  len: 14,
+	  log: 15,
+	  log10: 16,
+	  lower$: 17,
+	  peek: 18,
+	  remain: 19,
+	  sgn: 20,
+	  sin: 21,
+	  space$: 22,
+	  sq: 23,
+	  sqr: 24,
+	  str$: 25,
+	  tan: 26,
+	  unt: 27,
+	  upper$: 28,
+	  val: 29,
+	  // Functions without arguments
+	  eof: 64,
+	  err: 65,
+	  himem: 66,
+	  inkey$: 67,
+	  pi: 68,
+	  rnd: 69,
+	  time: 70,
+	  xpos: 71,
+	  ypos: 72,
+	  derr: 73,
+	  // (v1.1)
+	  // Functions with more arguments
+	  bin$: 113,
+	  dec$: 114,
+	  // (v1.1)
+	  hex$: 115,
+	  instr: 116,
+	  left$: 117,
+	  max: 118,
+	  min: 119,
+	  pos: 120,
+	  right$: 121,
+	  round: 122,
+	  string$: 123,
+	  test: 124,
+	  testr: 125,
+	  copychr$: 126,
+	  // (v1.1)
+	  vpos: 127
+	};
+	_CodeGeneratorToken.varTypeMap = {
+	  "!": "_floatVar",
+	  "%": "_intVar",
+	  $: "_stringVar"
+	};
+	let CodeGeneratorToken = _CodeGeneratorToken;
+
+	class Diff {
+	  // Refer to http://www.xmailserver.org/diff2.pdf
+	  static composeError(error, message, value, pos) {
+	    return Utils.composeError("Diff", error, message, value, pos, void 0, 0);
+	  }
+	  static inRange(x, l, r) {
+	    return l <= x && x <= r || r <= x && x <= l;
+	  }
+	  static fnEquals(a, b) {
+	    return a === b;
+	  }
+	  // Accepts custom comparator
+	  static customIndexOf(arr, item, start, fnEquals) {
+	    for (let i2 = start; i2 < arr.length; i2 += 1) {
+	      if (fnEquals(item, arr[i2])) {
+	        return i2;
+	      }
+	    }
+	    return -1;
+	  }
+	  /* can we use it here? need to define aA, aB, lcsAtoms, findMidSnake():
+	  	private static lcs(startA: number, endA: number, startB: number, endB: number) {
+	  		const N = endA - startA + 1,
+	  			M = endB - startB + 1;
+	  
+	  		if (N > 0 && M > 0) {
+	  			const middleSnake = findMidSnake(startA, endA, startB, endB),
+	  				// A[x;u] == B[y,v] and is part of LCS
+	  				x = middleSnake[0][0],
+	  				y = middleSnake[0][1],
+	  				u = middleSnake[1][0],
+	  				v = middleSnake[1][1],
+	  				D = middleSnake[2];
+	  
+	  			if (D > 1) {
+	  				Diff.lcs(startA, x - 1, startB, y - 1);
+	  				if (x <= u) {
+	  					[].push.apply(lcsAtoms, aA.slice(x, u + 1));
+	  				}
+	  				lcs(u + 1, endA, v + 1, endB);
+	  			} else if (M > N) {
+	  				[].push.apply(lcsAtoms, aA.slice(startA, endA + 1));
+	  			} else {
+	  				[].push.apply(lcsAtoms, aB.slice(startB, endB + 1));
+	  			}
+	  		}
+	  	}
+	  	*/
+	  // Longest Common Subsequence
+	  // @param A - sequence of atoms - Array
+	  // @param B - sequence of atoms - Array
+	  // @param equals - optional comparator of atoms - returns true or false,
+	  //                 if not specified, triple equals operator is used
+	  // @returns Array - sequence of atoms, one of LCSs, edit script from A to B
+	  static fnLCS(aA, aB, equals) {
+	    const toPoint = function(x) {
+	      return [
+	        x,
+	        x - this
+	        // eslint-disable-line no-invalid-this
+	      ];
+	    }, findMidSnake = function(startA, endA, startB, endB) {
+	      const iN = endA - startA + 1, iM = endB - startB + 1, max = iN + iM, delta = iN - iM, hhalfMaxCeil = (max + 1) / 2 | 0, oV = {}, oU = {};
+	      let overlap, iD;
+	      oV[1] = 0;
+	      oU[delta - 1] = iN;
+	      for (iD = 0; iD <= hhalfMaxCeil; iD += 1) {
+	        for (let k = -iD; k <= iD && !overlap; k += 2) {
+	          let x;
+	          if (k === -iD || k !== iD && oV[k - 1] < oV[k + 1]) {
+	            x = oV[k + 1];
+	          } else {
+	            x = oV[k - 1] + 1;
+	          }
+	          let y = x - k;
+	          if (isNaN(y) || x > iN || y > iM) {
+	            continue;
+	          }
+	          const xx = x;
+	          while (x < iN && y < iM && equals(aA[startA + x], aB[startB + y])) {
+	            x += 1;
+	            y += 1;
+	          }
+	          oV[k] = x;
+	          if ((delta & 1) === 1 && Diff.inRange(k, delta - (iD - 1), delta + (iD - 1))) {
+	            if (oV[k] >= oU[k]) {
+	              overlap = [
+	                xx,
+	                x
+	              ].map(toPoint, k);
+	            }
+	          }
+	        }
+	        let SES;
+	        if (overlap) {
+	          SES = iD * 2 - 1;
+	        }
+	        for (let k = -iD; k <= iD && !overlap; k += 2) {
+	          const K = k + delta;
+	          let x;
+	          if (k === iD || k !== -iD && oU[K - 1] < oU[K + 1]) {
+	            x = oU[K - 1];
+	          } else {
+	            x = oU[K + 1] - 1;
+	          }
+	          let y = x - K;
+	          if (isNaN(y) || x < 0 || y < 0) {
+	            continue;
+	          }
+	          const xx = x;
+	          while (x > 0 && y > 0 && equals(aA[startA + x - 1], aB[startB + y - 1])) {
+	            x -= 1;
+	            y -= 1;
+	          }
+	          oU[K] = x;
+	          if (delta % 2 === 0 && Diff.inRange(K, -iD, iD)) {
+	            if (oU[K] <= oV[K]) {
+	              overlap = [
+	                x,
+	                xx
+	              ].map(toPoint, K);
+	            }
+	          }
+	        }
+	        if (overlap) {
+	          SES = SES || iD * 2;
+	          for (let i = 0; i < 2; i += 1) {
+	            for (let j = 0; j < 2; j += 1) {
+	              overlap[i][j] += [
+	                startA,
+	                startB
+	              ][j] - i;
+	            }
+	          }
+	          return overlap.concat([
+	            SES,
+	            (max - SES) / 2
+	          ]);
+	        }
+	      }
+	      throw Diff.composeError(Error(), "Programming error in findMidSnake", "", 0);
+	    }, lcsAtoms = [], lcs = function(startA, endA, startB, endB) {
+	      const N = endA - startA + 1, M = endB - startB + 1;
+	      if (N > 0 && M > 0) {
+	        const middleSnake = findMidSnake(startA, endA, startB, endB), x = middleSnake[0][0], y = middleSnake[0][1], u = middleSnake[1][0], v = middleSnake[1][1], D = middleSnake[2];
+	        if (D > 1) {
+	          lcs(startA, x - 1, startB, y - 1);
+	          if (x <= u) {
+	            [].push.apply(lcsAtoms, aA.slice(x, u + 1));
+	          }
+	          lcs(u + 1, endA, v + 1, endB);
+	        } else if (M > N) {
+	          [].push.apply(lcsAtoms, aA.slice(startA, endA + 1));
+	        } else {
+	          [].push.apply(lcsAtoms, aB.slice(startB, endB + 1));
+	        }
+	      }
+	    };
+	    lcs(0, aA.length - 1, 0, aB.length - 1);
+	    return lcsAtoms;
+	  }
+	  // Diff sequence
+	  // @param A - sequence of atoms - Array
+	  // @param B - sequence of atoms - Array
+	  // [@param equals - optional comparator of atoms - returns true or false,
+	  //                 if not specified, triple equals operator is used]
+	  // @returns Array - sequence of objects in a form of:
+	  //   - operation: one of "none", "add", "delete"
+	  //   - atom: the atom found in either A or B
+	  // Applying operations from diff sequence you should be able to transform A to B
+	  static diff(aA, aB) {
+	    const diff = [], fnEquals = Diff.fnEquals;
+	    let i = 0, j = 0, iN = aA.length, iM = aB.length, iK = 0;
+	    while (i < iN && j < iM && fnEquals(aA[i], aB[j])) {
+	      i += 1;
+	      j += 1;
+	    }
+	    while (i < iN && j < iM && fnEquals(aA[iN - 1], aB[iM - 1])) {
+	      iN -= 1;
+	      iM -= 1;
+	      iK += 1;
+	    }
+	    [].push.apply(diff, aA.slice(0, i).map(function(atom2) {
+	      return {
+	        operation: "none",
+	        atom: atom2
+	      };
+	    }));
+	    const lcs = Diff.fnLCS(aA.slice(i, iN), aB.slice(j, iM), fnEquals);
+	    for (let k = 0; k < lcs.length; k += 1) {
+	      const atom = lcs[k], ni = Diff.customIndexOf(aA, atom, i, fnEquals), nj = Diff.customIndexOf(aB, atom, j, fnEquals);
+	      [].push.apply(diff, aA.slice(i, ni).map(function(atom2) {
+	        return {
+	          operation: "delete",
+	          atom: atom2
+	        };
+	      }));
+	      [].push.apply(diff, aB.slice(j, nj).map(function(atom2) {
+	        return {
+	          operation: "add",
+	          atom: atom2
+	        };
+	      }));
+	      diff.push({
+	        operation: "none",
+	        atom
+	      });
+	      i = ni + 1;
+	      j = nj + 1;
+	    }
+	    [].push.apply(diff, aA.slice(i, iN).map(function(atom2) {
+	      return {
+	        operation: "delete",
+	        atom: atom2
+	      };
+	    }));
+	    [].push.apply(diff, aB.slice(j, iM).map(function(atom2) {
+	      return {
+	        operation: "add",
+	        atom: atom2
+	      };
+	    }));
+	    [].push.apply(diff, aA.slice(iN, iN + iK).map(function(atom2) {
+	      return {
+	        operation: "none",
+	        atom: atom2
+	      };
+	    }));
+	    return diff;
+	  }
+	  static testDiff(text1, text2) {
+	    const textParts1 = text1.split("\n"), textParts2 = text2.split("\n");
+	    let diff = Diff.diff(textParts1, textParts2).map(function(o) {
+	      let result = "";
+	      if (o.operation === "add") {
+	        result = "+ " + o.atom;
+	      } else if (o.operation === "delete") {
+	        result = "- " + o.atom;
+	      }
+	      return result;
+	    }).join("\n");
+	    diff = diff.replace(/\n\n+/g, "\n");
+	    return diff;
+	  }
+	}
 
 	class CpcVmRsx {
 	  constructor() {
@@ -22403,6 +19384,102 @@
 	  }
 	}
 
+	const randomCpcInitState = 1812433253;
+	class RandomCpc {
+	  constructor(seed) {
+	    this.state = randomCpcInitState;
+	    this.init(seed);
+	  }
+	  init(seed) {
+	    this.state = randomCpcInitState;
+	    seed || (seed = 0);
+	    if (seed !== 0) {
+	      this.randomizeMantissa(RandomCpc.encodeCpcMantissa(seed));
+	    }
+	  }
+	  static encodeCpcMantissa(value) {
+	    if (!Number.isFinite(value)) {
+	      throw new Error("Seed must be a finite number");
+	    }
+	    let mantissa = 0, exponent, sign = 0;
+	    if (value !== 0) {
+	      if (value < 0) {
+	        sign = 2147483648;
+	        value = -value;
+	      }
+	      exponent = Math.ceil(Math.log(value) / Math.log(2));
+	      mantissa = Math.round(value / Math.pow(2, exponent - 32)) & 2147483647;
+	    }
+	    const signMantissa = sign + mantissa, result = [
+	      signMantissa & 255,
+	      signMantissa >> 8 & 255,
+	      signMantissa >> 16 & 255,
+	      signMantissa >> 24 & 255
+	    ];
+	    return result;
+	  }
+	  randomizeMantissa(bytes) {
+	    const xorMask = ((bytes[1] << 8 | bytes[0]) << 16 | (bytes[3] << 8 | bytes[2])) >>> 0;
+	    this.state = (this.state ^ xorMask) >>> 0;
+	  }
+	  static nextStateU32(state) {
+	    const initLow = 35173, initHigh = 27655, mulLow = 62828, high = state >>> 16, low = state & 65535, highAcc = high * initLow + initLow, newHigh = highAcc & 65535, newLow = low * mulLow + initHigh + (highAcc >>> 16) & 65535;
+	    return (newHigh << 16 | newLow) >>> 0;
+	  }
+	  random() {
+	    this.state = RandomCpc.nextStateU32(this.state);
+	    const high = this.state >>> 16, low = this.state & 65535;
+	    return ((low << 16 | high) >>> 0) / 4294967296;
+	  }
+	}
+	class RandomMinStd {
+	  constructor(seed) {
+	    this.init(seed);
+	  }
+	  // https://en.wikipedia.org/wiki/Jenkins_hash_function
+	  static vmHashCode(s) {
+	    let hash = 0;
+	    for (let i = 0; i < s.length; i += 1) {
+	      hash += s.charCodeAt(i);
+	      hash += hash << 10;
+	      hash ^= hash >> 6;
+	    }
+	    hash += hash << 3;
+	    hash ^= hash >> 11;
+	    hash += hash << 15;
+	    return hash;
+	  }
+	  init(seed) {
+	    seed = RandomMinStd.vmHashCode(String(seed));
+	    this.x = seed || 2305125383;
+	  }
+	  random() {
+	    const m = 2147483647, a = 16807, q = 127773, r = 2836;
+	    let x = this.x;
+	    x = a * (x % q) - r * (x / q | 0);
+	    if (x <= 0) {
+	      x += m;
+	    }
+	    this.x = x;
+	    return x / m;
+	  }
+	}
+	class Random {
+	  constructor(useCpcRandom = true) {
+	    if (useCpcRandom) {
+	      this.rndGen = new RandomCpc();
+	    } else {
+	      this.rndGen = new RandomMinStd();
+	    }
+	  }
+	  init(seed) {
+	    return this.rndGen.init(seed);
+	  }
+	  random() {
+	    return this.rndGen.random();
+	  }
+	}
+
 	const _RsxAmsdos = class _RsxAmsdos {
 	  static fnGetParameterAsString(vm, stringOrAddress) {
 	    let string = "";
@@ -22525,7 +19602,7 @@
 	  }
 	  setImplicitLines(value) {
 	    this.options.codeGeneratorJs.setOptions({ implicitLines: value });
-	    this.options.getCodeGeneratorToken()?.setOptions({ implicitLines: value });
+	    this.options.codeGeneratorToken.setOptions({ implicitLines: value });
 	  }
 	  setIntegerOverflow(value) {
 	    this.options.codeGeneratorJs.setOptions({ integerOverflow: value });
@@ -22534,7 +19611,7 @@
 	    this.options.codeGeneratorJs.setOptions({ trace: value });
 	  }
 	  setPrettyLowercaseVars(value) {
-	    this.options.getCodeGeneratorBasic().setOptions({ lowercaseVars: value });
+	    this.options.codeGeneratorBasic.setOptions({ lowercaseVars: value });
 	  }
 	  setArrayBounds(value) {
 	    const variables = this.options.variables;
@@ -22838,14 +19915,17 @@
 	class Runtime {
 	  constructor(options) {
 	    this.onVariablesCleared = options.onVariablesCleared;
+	    this.outputError = options.outputError;
+	    this.logger = options.logger;
 	    this.executionStateReporter = new ExecutionStateReporter(options.onExecutionState);
 	    this.programHost = options.programHost;
 	    this.keyboard = options.keyboard;
 	    this.variables = new Variables({ arrayBounds: options.arrayBounds });
+	    const random = new Random(options.randomMode === "cpc");
 	    this.vm = new CpcVm({
 	      canvas: options.canvas,
 	      keyboard: options.keyboard,
-	      random: options.random,
+	      random,
 	      sound: options.sound,
 	      variables: this.variables,
 	      onClickKey: options.onClickKey
@@ -22863,6 +19943,18 @@
 	    });
 	    this.basicParser = new BasicParser({ basicVersion: options.basicVersion });
 	    this.basicLexer = new BasicLexer({ keywords: this.basicParser.getKeywords() });
+	    this.basicFormatter = new BasicFormatter({ lexer: this.basicLexer, parser: this.basicParser });
+	    this.basicTokenizer = new BasicTokenizer();
+	    this.codeGeneratorBasic = new CodeGeneratorBasic({
+	      lexer: this.basicLexer,
+	      parser: this.basicParser,
+	      lowercaseVars: options.prettyLowercaseVars
+	    });
+	    this.codeGeneratorToken = new CodeGeneratorToken({
+	      lexer: this.basicLexer,
+	      parser: this.basicParser,
+	      implicitLines: options.implicitLines
+	    });
 	    this.codeGeneratorJs = new CodeGeneratorJs({
 	      lexer: this.basicLexer,
 	      parser: this.basicParser,
@@ -22873,7 +19965,7 @@
 	    this.programCompiler = new ProgramCompiler({
 	      generator: this.codeGeneratorJs,
 	      vm: this.vm,
-	      encodeTokens: options.encodeTokens,
+	      encodeTokens: (input) => this.encodeTokenizedBasic(input),
 	      onTokenized: options.onTokenized,
 	      onMemoryError: options.onMemoryError
 	    });
@@ -22881,8 +19973,8 @@
 	      codeGeneratorJs: this.codeGeneratorJs,
 	      variables: this.variables,
 	      vm: this.vm,
-	      getCodeGeneratorBasic: options.getCodeGeneratorBasic,
-	      getCodeGeneratorToken: options.getCodeGeneratorToken,
+	      codeGeneratorBasic: this.codeGeneratorBasic,
+	      codeGeneratorToken: this.codeGeneratorToken,
 	      onVariablesCleared: options.onVariablesCleared
 	    });
 	    const handlers = {
@@ -22914,6 +20006,31 @@
 	      isRunning: this.runLoop.isRunning
 	    };
 	  }
+	  addLineNumbers(source) {
+	    return BasicFormatter.addLineNumbers(source);
+	  }
+	  mergeScripts(source, added, implicitLines, onInvalid) {
+	    return BasicFormatter.mergeScripts(source, added, implicitLines, onInvalid);
+	  }
+	  getLinesInRangeFromScript(source, firstLine, lastLine, implicitLines, onInvalid) {
+	    return BasicFormatter.getLinesInRangeFromScript(source, firstLine, lastLine, implicitLines, onInvalid);
+	  }
+	  encodeTokenizedBasic(input, name = "test") {
+	    const output = this.codeGeneratorToken.generateProgram(input);
+	    if (output.error) {
+	      this.outputError(output.error);
+	    } else if (Utils.debug > 1) {
+	      const outputText = output.text, hex = outputText.split("").map((char) => char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")).join(","), decoded = this.basicTokenizer.decode(outputText), diff = Diff.testDiff(input.toUpperCase(), decoded.toUpperCase());
+	      this.logger.debug("TokenizerInput (" + name + ") [len=" + input.length + "]:\n" + input);
+	      this.logger.debug("TokenizerOutputHex (" + name + ") [len=" + outputText.length + "]:\n" + hex);
+	      this.logger.debug("TokenizerOutputDecoded (" + name + ") [len=" + decoded.length + "]:\n" + decoded);
+	      this.logger.debug("TokenizerDiff (" + name + ") [len=" + diff.length + "]:\n" + diff);
+	    }
+	    return output.text;
+	  }
+	  formatDiff(source, result) {
+	    return Diff.testDiff(source.toUpperCase(), result.toUpperCase());
+	  }
 	  startMainLoop() {
 	    this.runLoop.start();
 	  }
@@ -22924,6 +20041,10 @@
 	  }
 	  reset() {
 	    this.vm.vmReset();
+	  }
+	  applySnapshot(data, name = "") {
+	    const snapshot = new Snapshot({ name, data });
+	    return snapshot.applyToVm(this.vm);
 	  }
 	  continueLoad(input, file, actions) {
 	    ProgramRunner.continueLoad(input, file, {
@@ -23217,8 +20338,3176 @@
 	  }
 	}
 
+	class Engine {
+	  constructor(defaultConfig) {
+	    this.files = {
+	      createExampleLoadRequest: FileHandler.createExampleLoadRequest,
+	      prepareExampleLoad: FileHandler.prepareExampleLoad,
+	      loadFromStorage: FileHandler.loadFromStorage,
+	      splitMeta: FileHandler.splitMeta,
+	      decodeStoredFile: FileHandler.decodeStoredFile,
+	      getStorageDirectoryEntries: FileHandler.getStorageDirectoryEntries,
+	      getDirectoryEntries: FileHandler.getDirectoryEntries,
+	      joinMeta: FileHandler.joinMeta
+	    };
+	    this.core = new Core(defaultConfig);
+	  }
+	  createRuntime(options) {
+	    return new Runtime(options);
+	  }
+	  createFileHandler(options) {
+	    return new FileHandler(options);
+	  }
+	  createDiagnostic(error, noSelection = false, errCode) {
+	    return Utils.createDiagnostic(error, noSelection, errCode);
+	  }
+	  escapeControlCharacters(input) {
+	    return Utils.escapeControlCharacters(input);
+	  }
+	  getLoopDelay(speed) {
+	    return Runtime.getLoopDelay(speed);
+	  }
+	}
+	Engine.NullCanvas = NullCanvas;
+
+	class NoCanvas extends Engine.NullCanvas {
+	  constructor(options) {
+	    super();
+	    this.options = {};
+	    this.setOptions(options);
+	    this.reset();
+	  }
+	  getOptions() {
+	    return this.options;
+	  }
+	  setOptions(options) {
+	    Object.assign(this.options, options);
+	  }
+	  onCanvasClick(_event) {
+	  }
+	  takeScreenShot() {
+	    return "";
+	  }
+	  startUpdateCanvas() {
+	  }
+	  stopUpdateCanvas() {
+	  }
+	  onWindowClick(_event) {
+	  }
+	}
+
+	const _TextCanvas = class _TextCanvas {
+	  constructor(options) {
+	    this.fps = 15;
+	    // FPS for canvas update
+	    this.isRunning = false;
+	    this.borderWidth = 1;
+	    this.needUpdate = false;
+	    this.textBuffer = [];
+	    // textbuffer characters at row,column
+	    this.hasFocus = false;
+	    // canvas has focus
+	    this.customCharset = {};
+	    this.options = {};
+	    this.setOptions(options);
+	    this.textText = View.getElementByIdAs(this.options.canvasID);
+	    this.cpcAreaBox = View.getElementById1(ViewID.cpcArea);
+	    this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
+	    this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
+	    this.cols = parseFloat(this.textText.getAttribute("cols") || "0");
+	    this.rows = parseFloat(this.textText.getAttribute("rows") || "0");
+	    this.animationTimeoutId = void 0;
+	    this.animationFrame = void 0;
+	    this.reset();
+	  }
+	  getOptions() {
+	    return this.options;
+	  }
+	  setOptions(options) {
+	    Object.assign(this.options, options);
+	  }
+	  reset() {
+	    this.resetTextBuffer();
+	    this.setNeedUpdate();
+	  }
+	  resetCustomChars() {
+	  }
+	  setScreenOffset(_offset) {
+	  }
+	  updateColorsAndCanvasImmediately(_inkList) {
+	  }
+	  updateSpeedInk() {
+	  }
+	  setCustomChar(char, charData) {
+	    this.customCharset[char] = charData;
+	  }
+	  getCharData(char) {
+	    return this.customCharset[char] || this.options.charset[char];
+	  }
+	  setDefaultInks() {
+	  }
+	  getXpos() {
+	    return 0;
+	  }
+	  getYpos() {
+	    return 0;
+	  }
+	  getByte(_addr) {
+	    return 0;
+	  }
+	  setByte(_addr, _byte) {
+	  }
+	  draw(_x, _y) {
+	  }
+	  move(_x, _y) {
+	  }
+	  plot(_x, _y) {
+	  }
+	  test(_x, _y) {
+	    return 0;
+	  }
+	  setInk(_pen, _ink1, _ink2) {
+	    return false;
+	  }
+	  setBorder(_ink1, _ink2) {
+	  }
+	  setGPen(_gPen) {
+	  }
+	  setGPaper(_gPaper) {
+	  }
+	  setGTransparentMode(_transparent) {
+	  }
+	  printGChar(_char) {
+	  }
+	  drawCursor(_x, _y, _pen, _paper) {
+	  }
+	  fill(_fillPen) {
+	  }
+	  setOrigin(_xOrig, _yOrig) {
+	  }
+	  getXOrigin() {
+	    return 0;
+	  }
+	  getYOrigin() {
+	    return 0;
+	  }
+	  setGWindow(_xLeft, _xRight, _yTop, _yBottom) {
+	  }
+	  setGColMode(_gColMode) {
+	  }
+	  clearGraphicsWindow() {
+	  }
+	  setSpeedInk(_time1, _time2) {
+	  }
+	  setMask(_mask) {
+	  }
+	  setMaskFirst(_maskFirst) {
+	  }
+	  getMode() {
+	    return 0;
+	  }
+	  changeMode(_mode) {
+	  }
+	  takeScreenShot() {
+	    return "";
+	  }
+	  resetTextBuffer() {
+	    this.textBuffer.length = 0;
+	  }
+	  setNeedUpdate() {
+	    this.needUpdate = true;
+	  }
+	  updateCanvas2() {
+	    if (!this.isRunning) {
+	      return;
+	    }
+	    this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
+	    if (this.textText.offsetParent) {
+	      if (this.needUpdate) {
+	        this.needUpdate = false;
+	        this.updateTextWindow();
+	      }
+	    }
+	  }
+	  updateCanvas() {
+	    this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1e3 / this.fps);
+	  }
+	  startUpdateCanvas() {
+	    if (!this.isRunning && this.textText.offsetParent !== null) {
+	      this.isRunning = true;
+	      this.updateCanvas();
+	    }
+	  }
+	  stopUpdateCanvas() {
+	    if (this.isRunning) {
+	      this.isRunning = false;
+	      if (this.animationFrame) {
+	        cancelAnimationFrame(this.animationFrame);
+	        this.animationFrame = void 0;
+	      }
+	      clearTimeout(this.animationTimeoutId);
+	      this.animationTimeoutId = void 0;
+	    }
+	  }
+	  updateTextWindow() {
+	    const textBuffer = this.textBuffer, cpc2Unicode = _TextCanvas.cpc2Unicode;
+	    let out = "";
+	    for (let y = 0; y < textBuffer.length; y += 1) {
+	      const textBufferRow = textBuffer[y];
+	      if (textBufferRow) {
+	        for (let x = 0; x < textBufferRow.length; x += 1) {
+	          out += cpc2Unicode[textBufferRow[x] || 32];
+	        }
+	      }
+	      out += "\n";
+	    }
+	    this.textText.value = out;
+	  }
+	  setFocusOnCanvas() {
+	    this.cpcAreaBox.style.background = "#463c3c";
+	    if (this.textText) {
+	      this.textText.focus();
+	    }
+	    this.hasFocus = true;
+	  }
+	  getMousePos(event, canvasWidth, canvasHeight) {
+	    const rect = this.textText.getBoundingClientRect(), pos = {
+	      x: (event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * canvasWidth,
+	      y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * canvasHeight
+	    };
+	    return pos;
+	  }
+	  canvasClickAction(event) {
+	    const canvasWidth = 640, canvasHeight = 400, pos = this.getMousePos(event, canvasWidth, canvasHeight), x = pos.x | 0, y = pos.y | 0;
+	    if (this.options.onCanvasClick) {
+	      const charWidth = canvasWidth / this.cols, charHeight = canvasHeight / this.rows, xTxt = x / charWidth | 0, yTxt = y / charHeight | 0;
+	      this.options.onCanvasClick(event, x, y, xTxt, yTxt);
+	    }
+	  }
+	  onCanvasClick(event) {
+	    if (!this.hasFocus) {
+	      this.setFocusOnCanvas();
+	    } else {
+	      this.canvasClickAction(event);
+	    }
+	    event.stopPropagation();
+	  }
+	  onWindowClick(_event) {
+	    if (this.hasFocus) {
+	      this.hasFocus = false;
+	      this.cpcAreaBox.style.background = "";
+	    }
+	  }
+	  fillTextBox(left, top, width, height, _paper) {
+	    this.clearTextBufferBox(left, top, width, height);
+	  }
+	  clearTextBufferBox(left, top, width, height) {
+	    const textBuffer = this.textBuffer;
+	    for (let y = top; y < top + height; y += 1) {
+	      const textBufferRow = textBuffer[y];
+	      if (textBufferRow) {
+	        for (let x = left; x < left + width; x += 1) {
+	          delete textBufferRow[x];
+	        }
+	      }
+	    }
+	    this.setNeedUpdate();
+	  }
+	  copyTextBufferBoxUp(left, top, width, height, left2, top2) {
+	    const textBuffer = this.textBuffer;
+	    for (let y = 0; y < height; y += 1) {
+	      const sourceRow = textBuffer[top + y];
+	      let destinationRow = textBuffer[top2 + y];
+	      if (sourceRow) {
+	        if (!destinationRow) {
+	          destinationRow = [];
+	          textBuffer[top2 + y] = destinationRow;
+	        }
+	        for (let x = 0; x < width; x += 1) {
+	          destinationRow[left2 + x] = sourceRow[left + x];
+	        }
+	      } else if (destinationRow) {
+	        delete textBuffer[top2 + y];
+	      }
+	    }
+	    this.setNeedUpdate();
+	  }
+	  copyTextBufferBoxDown(left, top, width, height, left2, top2) {
+	    const textBuffer = this.textBuffer;
+	    for (let y = height - 1; y >= 0; y -= 1) {
+	      const sourceRow = textBuffer[top + y];
+	      let destinationRow = textBuffer[top2 + y];
+	      if (sourceRow) {
+	        if (!destinationRow) {
+	          destinationRow = [];
+	          textBuffer[top2 + y] = destinationRow;
+	        }
+	        for (let x = 0; x < width; x += 1) {
+	          destinationRow[left2 + x] = sourceRow[left + x];
+	        }
+	      } else if (destinationRow) {
+	        delete textBuffer[top2 + y];
+	      }
+	    }
+	    this.setNeedUpdate();
+	  }
+	  putCharInTextBuffer(char, x, y) {
+	    const textBuffer = this.textBuffer;
+	    if (!textBuffer[y]) {
+	      textBuffer[y] = [];
+	    }
+	    this.textBuffer[y][x] = char;
+	    this.setNeedUpdate();
+	  }
+	  getCharFromTextBuffer(x, y) {
+	    const textBuffer = this.textBuffer;
+	    let char;
+	    if (textBuffer[y]) {
+	      char = this.textBuffer[y][x];
+	    }
+	    return char;
+	  }
+	  printChar(char, x, y, _pen, _paper, _transparent) {
+	    this.putCharInTextBuffer(char, x, y);
+	  }
+	  readChar(x, y, _pen, _paper) {
+	    let char = this.getCharFromTextBuffer(x, y);
+	    if (char === void 0) {
+	      char = -1;
+	    }
+	    return char;
+	  }
+	  clearTextWindow(left, right, top, bottom, _paper) {
+	    const width = right + 1 - left, height = bottom + 1 - top;
+	    this.fillTextBox(left, top, width, height);
+	  }
+	  setMode(mode) {
+	    const winData = _TextCanvas.winData[mode], cols = winData.right + 1, rows = winData.bottom + 1;
+	    if (this.cols !== cols) {
+	      this.cols = cols;
+	      this.textText.setAttribute("cols", String(cols));
+	    }
+	    if (this.rows !== rows) {
+	      this.rows = rows;
+	      this.textText.setAttribute("rows", String(rows));
+	    }
+	  }
+	  clearFullWindow() {
+	    this.resetTextBuffer();
+	    this.setNeedUpdate();
+	  }
+	  windowScrollUp(left, right, top, bottom, _paper) {
+	    const width = right + 1 - left, height = bottom + 1 - top;
+	    if (height > 1) {
+	      this.copyTextBufferBoxUp(left, top + 1, width, height - 1, left, top);
+	    }
+	    this.fillTextBox(left, bottom, width, 1);
+	  }
+	  windowScrollDown(left, right, top, bottom, _paper) {
+	    const width = right + 1 - left, height = bottom + 1 - top;
+	    if (height > 1) {
+	      this.copyTextBufferBoxDown(left, top, width, height - 1, left, top + 1);
+	    }
+	    this.fillTextBox(left, top, width, 1);
+	  }
+	};
+	// CPC Unicode map for text mode (https://www.unicode.org/L2/L2019/19025-terminals-prop.pdf AMSCPC.TXT) incomplete; wider chars replaced by "."
+	// tooWide = [132,134,135,136,137,139,141,142,224,225,226,227,245];
+	// For equal height we set line-height: 15px;
+	_TextCanvas.cpc2Unicode = "................................ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]\u2195_`abcdefghijklmnopqrstuvwxyz{|}~\u2591\xA0\u2598\u259D\u2580.\u258C....\u2590.\u2584..\u2588\xB7\u2575\u2576\u2514\u2577\u2502\u250C\u251C\u2574\u2518\u2500\u2534\u2510\u2524\u252C\u253C^\xB4\xA8\xA3\xA9\xB6\xA7\u2018\xBC\xBD\xBE\xB1\xF7\xAC\xBF\xA1\u03B1\u03B2\u03B3\u03B4\u03B5\u03B8\u03BB\u03BC\u03C0\u03C3\u03C6\u03C8\u03C7\u03C9\u03A3\u03A9\u1FBA0\u1FBA1\u1FBA3\u1FBA2\u1FBA7\u1FBA5\u1FBA6\u1FBA4\u1FBA8\u1FBA9\u1FBAE\u2573\u2571\u2572\u1FB95\u2592\u23BA\u23B9\u23BD\u23B8....\u1FB8E\u1FB8D\u1FB8F\u1FB8C\u1FB9C\u1FB9D\u1FB9E\u1FB9F\u263A.\u2663\u2666\u2665\u2660\u25CB\u25CF\u25A1\u25A0\u2642\u2640";
+	// same as in CpcVm
+	_TextCanvas.winData = [
+	  // window data for mode mode 0,1,2,3 (we are counting from 0 here)
+	  {
+	    left: 0,
+	    right: 19,
+	    top: 0,
+	    bottom: 24
+	  },
+	  {
+	    left: 0,
+	    right: 39,
+	    top: 0,
+	    bottom: 24
+	  },
+	  {
+	    left: 0,
+	    right: 79,
+	    top: 0,
+	    bottom: 24
+	  },
+	  {
+	    left: 0,
+	    // mode 3 not available on CPC
+	    right: 79,
+	    top: 0,
+	    bottom: 49
+	  }
+	];
+	let TextCanvas = _TextCanvas;
+
+	const _VirtualKeyboard = class _VirtualKeyboard {
+	  constructor(options) {
+	    this.shiftLock = false;
+	    this.numLock = false;
+	    this.fnVirtualKeyboardKeydownHandler = (event) => this.onVirtualKeyboardKeydown(event);
+	    this.fnVirtualKeyboardKeyupOrKeyoutHandler = (event) => this.onVirtualKeyboardKeyupOrKeyout(event);
+	    this.fnKeydownOrKeyupHandler = (event) => this.onKeydownOrKeyup(event);
+	    this.options = {};
+	    this.setOptions(options);
+	    const view = this.options.view;
+	    this.eventNames = this.options.view.fnAttachPointerEvents(ViewID.kbdAreaInner, this.fnVirtualKeyboardKeydownHandler, void 0, this.fnVirtualKeyboardKeyupOrKeyoutHandler);
+	    view.addEventListenerById("keydown", this.fnKeydownOrKeyupHandler, ViewID.kbdAreaInner);
+	    view.addEventListenerById("keyup", this.fnKeydownOrKeyupHandler, ViewID.kbdAreaInner);
+	    this.virtualKeyboardCreate();
+	  }
+	  getOptions() {
+	    return this.options;
+	  }
+	  setOptions(options) {
+	    Object.assign(this.options, options);
+	  }
+	  /* eslint-enable array-element-newline */
+	  reset() {
+	    this.virtualKeyboardAdaptKeys(false, false);
+	  }
+	  mapNumLockCpcKey(cpcKey) {
+	    const key = _VirtualKeyboard.cpcKey2Key[cpcKey];
+	    if (key.numLockCpcKey) {
+	      cpcKey = key.numLockCpcKey;
+	    }
+	    return cpcKey;
+	  }
+	  fnVirtualGetAscii(cpcKey, shiftKey, numLock) {
+	    const keyEntry = _VirtualKeyboard.cpcKey2Key[cpcKey];
+	    let key, text, title;
+	    if (numLock && keyEntry.keyNumLock) {
+	      key = keyEntry.keyNumLock;
+	      text = keyEntry.textNumLock || key;
+	      title = keyEntry.titleNumLock || text;
+	    } else if (shiftKey && keyEntry.keyShift) {
+	      key = keyEntry.keyShift;
+	      text = keyEntry.textShift || key;
+	      title = keyEntry.titleShift || text;
+	    } else {
+	      key = keyEntry.key;
+	      text = keyEntry.text || key;
+	      title = keyEntry.title || text;
+	    }
+	    return {
+	      key,
+	      text,
+	      title
+	    };
+	  }
+	  createButtonRow(id, options) {
+	    const place = View.getElementById1(id);
+	    if (place.insertAdjacentElement) {
+	      const buttonList = document.createElement("div");
+	      buttonList.className = "displayFlex";
+	      for (let i = 0; i < options.length; i += 1) {
+	        const item = options[i], button = document.createElement("button");
+	        button.innerText = item.text;
+	        button.setAttribute("title", item.title);
+	        button.className = item.className;
+	        button.setAttribute("data-key", String(item.key));
+	        buttonList.insertAdjacentElement("beforeend", button);
+	      }
+	      place.insertAdjacentElement("beforeend", buttonList);
+	    } else {
+	      let html = "<div class=displayFlex>\n";
+	      for (let i = 0; i < options.length; i += 1) {
+	        const item = options[i];
+	        html += '<button title="' + item.title + '" class="' + item.className + '" data-key="' + item.key + '">' + item.text + "</button>\n";
+	      }
+	      html += "</div>";
+	      place.innerHTML += html;
+	    }
+	    return this;
+	  }
+	  virtualKeyboardCreatePart(id, virtualKeyboard) {
+	    const keyArea = View.getElementById1(id), shiftLock = this.shiftLock, numLock = this.numLock, cpcKey2Key = _VirtualKeyboard.cpcKey2Key, buttons = keyArea.getElementsByTagName("button");
+	    if (!buttons.length) {
+	      for (let row = 0; row < virtualKeyboard.length; row += 1) {
+	        const rowList = virtualKeyboard[row], optionsList = [];
+	        for (let col = 0; col < rowList.length; col += 1) {
+	          let cpcKeyEntry;
+	          if (typeof rowList[col] === "number") {
+	            cpcKeyEntry = {
+	              key: rowList[col]
+	            };
+	          } else {
+	            cpcKeyEntry = rowList[col];
+	          }
+	          const cpcKey = numLock ? this.mapNumLockCpcKey(cpcKeyEntry.key) : cpcKeyEntry.key, keyEntry = cpcKey2Key[cpcKeyEntry.key], ascii = this.fnVirtualGetAscii(cpcKey, shiftLock, numLock), className = "kbdButton" + (cpcKeyEntry.style || keyEntry.style || "") + (col === rowList.length - 1 ? " kbdNoRightMargin" : ""), options = {
+	            key: cpcKey,
+	            text: ascii.text,
+	            title: ascii.title,
+	            className
+	          };
+	          optionsList.push(options);
+	        }
+	        this.createButtonRow(id, optionsList);
+	      }
+	    }
+	  }
+	  virtualKeyboardCreate() {
+	    this.virtualKeyboardCreatePart(ViewID.kbdAlpha, _VirtualKeyboard.virtualKeyboardAlpha);
+	    this.virtualKeyboardCreatePart(ViewID.kbdNum, _VirtualKeyboard.virtualKeyboardNum);
+	  }
+	  virtualKeyboardAdaptKeys(shiftLock, numLock) {
+	    const keyArea = View.getElementById1(ViewID.kbdAreaInner), buttons = keyArea.getElementsByTagName("button");
+	    for (let i = 0; i < buttons.length; i += 1) {
+	      const button = buttons[i];
+	      let cpcKey = Number(button.getAttribute("data-key"));
+	      if (numLock) {
+	        cpcKey = this.mapNumLockCpcKey(cpcKey);
+	      }
+	      const ascii = this.fnVirtualGetAscii(cpcKey, shiftLock, numLock);
+	      if (ascii.key !== button.innerText) {
+	        button.innerText = ascii.text;
+	        button.title = ascii.title;
+	      }
+	    }
+	  }
+	  fnVirtualGetPressedKey(cpcKey) {
+	    const key = _VirtualKeyboard.cpcKey2Key[cpcKey];
+	    let pressedKey = "";
+	    if (key) {
+	      pressedKey = key.keys;
+	      if (pressedKey.indexOf(",") >= 0) {
+	        pressedKey = pressedKey.substring(0, pressedKey.indexOf(","));
+	      }
+	    }
+	    return pressedKey;
+	  }
+	  onVirtualKeyboardKeydown(event) {
+	    const node = View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
+	    }
+	    if (cpcKey !== null) {
+	      let cpcKeyCode = Number(cpcKey);
+	      if (this.numLock) {
+	        cpcKeyCode = this.mapNumLockCpcKey(cpcKeyCode);
+	      }
+	      const pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || event.shiftKey, this.numLock);
+	      this.options.fnPressCpcKey(event, cpcKeyCode, pressedKey, ascii.key);
+	    }
+	    if (this.eventNames.out) {
+	      this.options.view.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node);
+	    }
+	    event.preventDefault();
+	    return false;
+	  }
+	  fnVirtualKeyboardKeyupOrKeyout(event) {
+	    const node = View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
+	    if (cpcKey !== null) {
+	      let cpcKeyCode = Number(cpcKey);
+	      if (this.numLock) {
+	        cpcKeyCode = this.mapNumLockCpcKey(cpcKeyCode);
+	      }
+	      const pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || event.shiftKey, this.numLock);
+	      this.options.fnReleaseCpcKey(event, cpcKeyCode, pressedKey, ascii.key);
+	      if (cpcKeyCode === 70) {
+	        this.shiftLock = !this.shiftLock;
+	        this.virtualKeyboardAdaptKeys(this.shiftLock, this.numLock);
+	      } else if (cpcKeyCode === 90) {
+	        this.numLock = !this.numLock;
+	        this.virtualKeyboardAdaptKeys(this.shiftLock, this.numLock);
+	      }
+	    }
+	  }
+	  onVirtualKeyboardKeyupOrKeyout(event) {
+	    const node = View.getEventTarget(event);
+	    if (UiUtils.debug > 1) {
+	      UiUtils.console.debug("onVirtualKeyboardKeyupOrKeyout: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
+	    }
+	    this.fnVirtualKeyboardKeyupOrKeyout(event);
+	    if (this.eventNames.out) {
+	      this.options.view.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node);
+	    }
+	    event.preventDefault();
+	    return false;
+	  }
+	  static keyIdentifier2Char(event) {
+	    const identifier = event.keyIdentifier, shiftKey = event.shiftKey;
+	    let char;
+	    if (/^U\+/i.test(identifier || "")) {
+	      char = String.fromCharCode(parseInt(identifier.substr(2), 16));
+	      if (char === "\0") {
+	        char = "";
+	      }
+	      char = shiftKey ? char.toUpperCase() : char.toLowerCase();
+	    } else {
+	      char = identifier;
+	    }
+	    return char;
+	  }
+	  onKeydownOrKeyup(event) {
+	    const key = event.key || _VirtualKeyboard.keyIdentifier2Char(event) || "", activeElement = window.document.activeElement;
+	    if (key === "Enter" || key === " ") {
+	      const simPointerEvent = {
+	        type: event.type,
+	        target: activeElement,
+	        // active selected element
+	        preventDefault: function() {
+	        }
+	      };
+	      if (event.type === "keydown") {
+	        this.onVirtualKeyboardKeydown(simPointerEvent);
+	      } else if (event.type === "keyup") {
+	        this.onVirtualKeyboardKeyupOrKeyout(simPointerEvent);
+	      } else {
+	        UiUtils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
+	      }
+	      event.preventDefault();
+	      return false;
+	    }
+	    return void 0;
+	  }
+	};
+	_VirtualKeyboard.cpcKey2Key = [
+	  {
+	    keys: "38ArrowUp",
+	    // 0: cursor up
+	    key: "ArrowUp",
+	    text: "\u2191",
+	    title: "Cursor up"
+	  },
+	  {
+	    keys: "39ArrowRight",
+	    // 1: cursor right
+	    key: "ArrowRight",
+	    text: "\u2192",
+	    title: "Cursor right",
+	    style: 1
+	  },
+	  {
+	    keys: "40ArrowDown",
+	    // 2: cursor down
+	    key: "ArrowDown",
+	    text: "\u2193",
+	    title: "Cursor down"
+	  },
+	  {
+	    keys: "105Numpad9,120F9",
+	    // 3: numpad f9
+	    key: "9",
+	    text: "f9",
+	    style: 1,
+	    numLockCpcKey: 81
+	    // joy 0 up+right
+	  },
+	  {
+	    keys: "102Numpad6,117F6",
+	    // 4: numpad f6
+	    key: "6",
+	    text: "f6",
+	    style: 1,
+	    numLockCpcKey: 75
+	    // joy 0 right
+	  },
+	  {
+	    keys: "99Numpad3,114F3",
+	    // 5: numpad f3
+	    key: "3",
+	    text: "f3",
+	    style: 1,
+	    numLockCpcKey: 83
+	    // joy 0 down+right
+	  },
+	  {
+	    keys: "13NumpadEnter",
+	    // 6: numpad enter
+	    key: "Enter",
+	    style: 4
+	  },
+	  {
+	    keys: "110NumpadDecimal",
+	    // 7: numpad .
+	    key: ".",
+	    numLockCpcKey: 77
+	    // joy 0 fire 1
+	  },
+	  {
+	    keys: "37ArrowLeft",
+	    // 8: cursor left
+	    key: "ArrowLeft",
+	    text: "\u2190",
+	    title: "Cursor left",
+	    style: 1
+	  },
+	  {
+	    keys: "18AltLeft",
+	    // 9: copy
+	    key: "Alt",
+	    text: "Copy",
+	    style: 2
+	  },
+	  {
+	    keys: "103Numpad7,118F7",
+	    // 10: numpad f7
+	    key: "7",
+	    text: "f7",
+	    style: 1,
+	    numLockCpcKey: 80
+	    // joy 0 up+left
+	  },
+	  {
+	    keys: "104Numpad8,119F8",
+	    // 11: numpad f8
+	    key: "8",
+	    text: "f8",
+	    style: 1,
+	    numLockCpcKey: 72
+	    // joy 0 up
+	  },
+	  {
+	    keys: "101Numpad5,116F5",
+	    // 12: numpad f5
+	    key: "5",
+	    text: "f5",
+	    style: 1,
+	    numLockCpcKey: 76
+	    // joy 0 fire 2
+	  },
+	  {
+	    keys: "97Numpad1,112F1",
+	    // 13: numpad f1
+	    key: "1",
+	    text: "f1",
+	    style: 1,
+	    numLockCpcKey: 82
+	    // joy 0 down+left
+	  },
+	  {
+	    keys: "98Numpad2,113F2",
+	    // 14: numpad f2
+	    key: "2",
+	    text: "f2",
+	    style: 1,
+	    numLockCpcKey: 73
+	    // joy 0 down
+	  },
+	  {
+	    keys: "96Numpad0,121F10",
+	    // 15: numpad f0
+	    key: "0",
+	    text: "f0",
+	    style: 1
+	    // numLockCpcKey: 90 // Num lock
+	  },
+	  {
+	    keys: "46Delete",
+	    // 16: clr
+	    key: "Delete",
+	    text: "Clr",
+	    title: "Clear",
+	    style: 1
+	  },
+	  {
+	    keys: "187BracketRight,171BracketRight,221BracketRight",
+	    // 17: [ { (Chrome: 187; FF: 171); EN: 221BracketRight
+	    key: "[",
+	    keyShift: "{"
+	  },
+	  {
+	    keys: "13Enter",
+	    // 18: return
+	    key: "Enter",
+	    text: "Ret",
+	    title: "Return",
+	    style: 2
+	  },
+	  {
+	    keys: "191Backslash,163Backslash,220Backslash",
+	    // 19: ] } => # ' (Chrome: 191; FF: 163); EN: 220Backslash
+	    key: "]",
+	    keyShift: "}"
+	  },
+	  {
+	    keys: "100Numpad4,115F4",
+	    // 20: numpad f4
+	    key: "4",
+	    text: "f4",
+	    style: 1,
+	    numLockCpcKey: 74
+	    // joy 0 left
+	  },
+	  {
+	    keys: "16ShiftLeft,16ShiftRight",
+	    // 21: shift left, shift right (2 keys!)
+	    key: "Shift",
+	    style: 4
+	  },
+	  {
+	    keys: "220Backquote,160Backquote,192Backquote",
+	    // 22: \ ` (different location, key!; Chrome: 220; FF: 160); EN: 192Backquote, 226IntlBackslash?
+	    key: "\\",
+	    keyShift: "`"
+	  },
+	  {
+	    keys: "17ControlLeft,17ControlRight",
+	    // 23: Note: alt-gr also triggers ctrl-left and alt-gr!
+	    key: "Control",
+	    text: "Ctrl",
+	    title: "Control",
+	    style: 4
+	  },
+	  {
+	    keys: "221Equal,192Equal,187Equal",
+	    // 24: ^ £ (pound: \u00A3) (Chrome: 221; FF: 192); EN: 187Equal
+	    key: "^",
+	    keyShift: "\xA3"
+	  },
+	  {
+	    keys: "219Minus,63Minus,189Minus",
+	    // 25: - = (Chrome: 219; FF: 63); EN: 189Minus
+	    key: "-",
+	    keyShift: "="
+	  },
+	  {
+	    keys: "186BracketLeft,59BracketLeft,219BracketLeft",
+	    // 26: @ | (Chrome: 168; FF: 59); EN: 219BracketLeft
+	    key: "@",
+	    keyShift: "|",
+	    style: 1
+	  },
+	  {
+	    keys: "80KeyP",
+	    // 27: P
+	    key: "p",
+	    keyShift: "P"
+	  },
+	  {
+	    keys: "222Quote,192Quote",
+	    // 28: ; + (same on Chrome, FF); Android Bluetooth EN: 192Quote
+	    key: ";",
+	    keyShift: "+"
+	  },
+	  {
+	    keys: "192Semicolon,186Semicolon",
+	    // 29: : * (same on Chrome, FF); EN: 186Semicolon
+	    key: ":",
+	    keyShift: "*"
+	  },
+	  {
+	    keys: "189Slash,173Slash,191Slash",
+	    // 30: / ? (Chrome: 189; FF: 173); EN: 191Slash
+	    key: "/",
+	    keyShift: "?"
+	  },
+	  {
+	    keys: "190Period",
+	    // 31: . <
+	    key: ".",
+	    keyShift: "<"
+	  },
+	  {
+	    keys: "48Digit0",
+	    // 32: 0 _
+	    key: "0",
+	    keyShift: "_"
+	  },
+	  {
+	    keys: "57Digit9",
+	    // 33: 9 )
+	    key: "9",
+	    keyShift: ")"
+	  },
+	  {
+	    keys: "79KeyO",
+	    // 34:
+	    key: "o",
+	    keyShift: "O"
+	  },
+	  {
+	    keys: "73KeyI",
+	    // 35:
+	    key: "i",
+	    keyShift: "I"
+	  },
+	  {
+	    keys: "76KeyL",
+	    // 36:
+	    key: "l",
+	    keyShift: "L"
+	  },
+	  {
+	    keys: "75KeyK",
+	    // 37:
+	    key: "k",
+	    keyShift: "K"
+	  },
+	  {
+	    keys: "77KeyM",
+	    // 38:
+	    key: "m",
+	    keyShift: "M"
+	  },
+	  {
+	    keys: "188Comma",
+	    // 39: , >
+	    key: ",",
+	    keyShift: ">"
+	  },
+	  {
+	    keys: "56Digit8",
+	    // 40: 8 (
+	    key: "8",
+	    keyShift: "("
+	  },
+	  {
+	    keys: "55Digit7",
+	    // 41: 7 '
+	    key: "7",
+	    keyShift: "'"
+	  },
+	  {
+	    keys: "85KeyU",
+	    // 42:
+	    key: "u",
+	    keyShift: "U"
+	  },
+	  {
+	    keys: "90KeyY,89KeyY",
+	    // 43:
+	    key: "y",
+	    keyShift: "Y"
+	  },
+	  {
+	    keys: "72KeyH",
+	    // 44:
+	    key: "h",
+	    keyShift: "H"
+	  },
+	  {
+	    keys: "74KeyJ",
+	    // 45:
+	    key: "j",
+	    keyShift: "J"
+	  },
+	  {
+	    keys: "78KeyN",
+	    // 46:
+	    key: "n",
+	    keyShift: "N"
+	  },
+	  {
+	    keys: "32Space",
+	    // 47: space
+	    key: " ",
+	    text: "Space",
+	    style: 5
+	  },
+	  {
+	    keys: "54Digit6",
+	    // 48: 6 &
+	    key: "6",
+	    keyShift: "("
+	  },
+	  {
+	    keys: "53Digit5",
+	    // 49: 5 %
+	    key: "5",
+	    keyShift: "%"
+	  },
+	  {
+	    keys: "82KeyR",
+	    // 50:
+	    key: "r",
+	    keyShift: "R"
+	  },
+	  {
+	    keys: "84KeyT",
+	    // 51:
+	    key: "t",
+	    keyShift: "T"
+	  },
+	  {
+	    keys: "71KeyG",
+	    // 52:
+	    key: "g",
+	    keyShift: "G"
+	  },
+	  {
+	    keys: "70KeyF",
+	    // 53:
+	    key: "f",
+	    keyShift: "F"
+	  },
+	  {
+	    keys: "66KeyB",
+	    // 54:
+	    key: "b",
+	    keyShift: "B"
+	  },
+	  {
+	    keys: "86KeyV",
+	    // 55:
+	    key: "v",
+	    keyShift: "V"
+	  },
+	  {
+	    keys: "52Digit4",
+	    // 56: 4 $
+	    key: "4",
+	    keyShift: "$"
+	  },
+	  {
+	    keys: "51Digit3",
+	    // 57: 3 #
+	    key: "3",
+	    keyShift: "#"
+	  },
+	  {
+	    keys: "69KeyE",
+	    // 58:
+	    key: "e",
+	    keyShift: "E"
+	  },
+	  {
+	    keys: "87KeyW",
+	    // 59:
+	    key: "w",
+	    keyShift: "W"
+	  },
+	  {
+	    keys: "83KeyS",
+	    // 60:
+	    key: "s",
+	    keyShift: "S"
+	  },
+	  {
+	    keys: "68KeyD",
+	    // 61:
+	    key: "d",
+	    keyShift: "D"
+	  },
+	  {
+	    keys: "67KeyC",
+	    // 62:
+	    key: "c",
+	    keyShift: "C"
+	  },
+	  {
+	    keys: "88KeyX",
+	    // 63:
+	    key: "x",
+	    keyShift: "X"
+	  },
+	  {
+	    keys: "49Digit1",
+	    // 64: 1 !
+	    key: "1",
+	    keyShift: "!"
+	  },
+	  {
+	    keys: "50Digit2",
+	    // 65: 2 "
+	    key: "2",
+	    keyShift: '"'
+	  },
+	  {
+	    keys: "27Escape",
+	    // 66: esc
+	    key: "Escape",
+	    text: "Esc",
+	    title: "Escape",
+	    style: 1
+	  },
+	  {
+	    keys: "81KeyQ",
+	    // 67:
+	    key: "q",
+	    keyShift: "Q"
+	  },
+	  {
+	    keys: "9Tab",
+	    // 68:
+	    key: "Tab",
+	    style: 2
+	  },
+	  {
+	    keys: "65KeyA",
+	    // 69:
+	    key: "a",
+	    keyShift: "A"
+	  },
+	  {
+	    keys: "20CapsLock",
+	    // 70: caps lock
+	    key: "CapsLock",
+	    text: "Caps",
+	    title: "Caps Lock",
+	    style: 3
+	  },
+	  {
+	    keys: "89KeyZ,90KeyZ",
+	    // 71: DE,EN
+	    key: "z",
+	    keyShift: "Z"
+	  },
+	  {
+	    keys: "38Numpad8",
+	    // 72: joy 0 up (arrow up)
+	    key: "JoyUp",
+	    text: "\u21D1",
+	    title: "Joy up"
+	  },
+	  {
+	    keys: "40Numpad2",
+	    // 73: joy 0 down
+	    key: "JoyDown",
+	    text: "\u21D3",
+	    title: "Joy down"
+	  },
+	  {
+	    keys: "37Numpad4",
+	    // 74: joy 0 left
+	    key: "JoyLeft",
+	    text: "\u21D0",
+	    title: "Joy left"
+	  },
+	  {
+	    keys: "39Numpad6",
+	    // 75: joy 0 right
+	    key: "JoyRight",
+	    text: "\u21D2",
+	    title: "Joy right"
+	  },
+	  {
+	    keys: "12Numpad5,45Numpad0",
+	    // 76: joy 0 fire 2 (clear,...)
+	    key: "X",
+	    text: "\u29BF",
+	    title: "Joy fire"
+	  },
+	  {
+	    keys: "46NumpadDecimal",
+	    // 77: joy 0 fire 1
+	    key: "Z",
+	    text: "\u25E6",
+	    title: "Joy fire 1"
+	  },
+	  {
+	    keys: "",
+	    // 78: ""? not null? (joy 0 fire 3?)
+	    key: ""
+	  },
+	  {
+	    keys: "8Backspace",
+	    // 79: del
+	    key: "Backspace",
+	    // 79: del
+	    text: "Del",
+	    title: "Delete",
+	    style: 1
+	  },
+	  // starting with 80, not on CPC
+	  // not on CPC:
+	  {
+	    keys: "36Numpad7",
+	    // 80: joy 0 up+left
+	    key: "",
+	    text: "\u21D6",
+	    title: "Joy up+left"
+	  },
+	  {
+	    keys: "33Numpad9",
+	    // 81: joy 0 up+right
+	    key: "",
+	    text: "\u21D7",
+	    title: "Joy up+right"
+	  },
+	  {
+	    keys: "35Numpad1",
+	    // 82: joy 0 down+left
+	    key: "",
+	    text: "\u21D9",
+	    title: "Joy down+leftt"
+	  },
+	  {
+	    keys: "34Numpad3",
+	    // 83: joy 0 down+right
+	    key: "",
+	    text: "\u21D8",
+	    title: "Joy down+right"
+	  },
+	  {
+	    keys: "",
+	    // 84: (not null?)
+	    key: ""
+	  },
+	  {
+	    keys: "226IntlBackslash,60IntlBackslash,220IntlBackslash",
+	    // 85: < > | // key not on CPC! (Chrome: 226, FF: 60);  Android Bluetooth EN: 220IntlBackslash
+	    key: ""
+	  },
+	  {
+	    keys: "111NumpadDivide",
+	    // 86:
+	    key: ""
+	  },
+	  {
+	    keys: "106NumpadMultiply",
+	    // 87:
+	    key: ""
+	  },
+	  {
+	    keys: "109NumpadSubtract",
+	    // 88:
+	    key: ""
+	  },
+	  {
+	    keys: "107NumpadAdd",
+	    // 89:
+	    key: ""
+	  },
+	  {
+	    keys: "",
+	    key: "",
+	    // 90: special num lock key to switch between joystick and numpad
+	    text: "Num",
+	    title: "Num / Joy",
+	    style: 1
+	  }
+	  // only on PC:
+	  // "226IntlBackslash", "122F11", "123F12", "44PrintScreen", "145ScrollLock", "19Pause", "45Insert", "36Home", "33PageUp", "35End", "34PageDown", "111NumpadDivide", "106NumpadMultiply", "109NumpadSubtract", "107NumpadAdd"
+	];
+	/* eslint-disable array-element-newline */
+	_VirtualKeyboard.virtualKeyboardAlpha = [
+	  [66, 64, 65, 57, 56, 49, 48, 41, 40, 33, 32, 25, 24, 16, 79],
+	  [68, 67, 59, 58, 50, 51, 43, 42, 35, 34, 27, 26, 17, 18],
+	  [70, 69, 60, 61, 53, 52, 44, 45, 37, 36, 29, 28, 19, 90],
+	  // 90=virtual numpad button
+	  [
+	    21,
+	    71,
+	    63,
+	    62,
+	    55,
+	    54,
+	    46,
+	    38,
+	    39,
+	    31,
+	    30,
+	    22,
+	    {
+	      key: 21,
+	      // right shift has same code and style
+	      style: 2
+	    }
+	  ],
+	  [23, 9, 47, 6]
+	];
+	_VirtualKeyboard.virtualKeyboardNum = [
+	  // numpad
+	  [10, 11, 3],
+	  [20, 12, 4],
+	  [13, 14, 5],
+	  [15, 0, 7],
+	  [8, 2, 1]
+	];
+	let VirtualKeyboard = _VirtualKeyboard;
+
+	class Sound {
+	  constructor(options) {
+	    this.isSoundOn = false;
+	    this.isActivatedByUserFlag = false;
+	    this.contextNotAvailable = false;
+	    this.contextStartTime = 0;
+	    this.gainNodes = [];
+	    this.oscillators = [];
+	    // 3 oscillators left, middle, right
+	    this.queues = [];
+	    // node queues and info for the three channels
+	    this.fScheduleAheadTime = 0.1;
+	    // 100 ms
+	    this.volEnv = [];
+	    this.toneEnv = [];
+	    this.options = {};
+	    this.setOptions(options);
+	    for (let i = 0; i < 3; i += 1) {
+	      this.queues[i] = {
+	        soundData: [],
+	        fNextNoteTime: 0,
+	        onHold: false,
+	        rendevousMask: 0
+	      };
+	    }
+	    if (UiUtils.debug > 1) {
+	      this.debugLogList = [];
+	    }
+	  }
+	  /*
+	  private getOptions(): SoundOptions {
+	  	return this.options;
+	  }
+	  */
+	  setOptions(options) {
+	    Object.assign(this.options, options);
+	  }
+	  reset() {
+	    const oscillators = this.oscillators, volEnvData = {
+	      steps: 1,
+	      diff: 0,
+	      time: 200
+	    };
+	    this.resetQueue();
+	    for (let i = 0; i < 3; i += 1) {
+	      if (oscillators[i]) {
+	        this.stopOscillator(i);
+	      }
+	    }
+	    this.volEnv.length = 0;
+	    this.setVolEnv(0, [volEnvData]);
+	    this.toneEnv.length = 0;
+	    if (this.debugLogList) {
+	      this.debugLogList.length = 0;
+	    }
+	  }
+	  stopOscillator(n) {
+	    const oscillators = this.oscillators, oscillatorNode = oscillators[n];
+	    if (oscillatorNode) {
+	      oscillatorNode.frequency.value = 0;
+	      oscillatorNode.stop();
+	      oscillatorNode.disconnect();
+	      oscillators[n] = void 0;
+	    }
+	  }
+	  debugLog(msg) {
+	    if (this.debugLogList) {
+	      this.debugLogList.push([
+	        this.context ? this.context.currentTime : 0,
+	        msg
+	      ]);
+	    }
+	  }
+	  resetQueue() {
+	    const queues = this.queues;
+	    for (let i = 0; i < queues.length; i += 1) {
+	      const queue = queues[i];
+	      queue.soundData.length = 0;
+	      queue.fNextNoteTime = 0;
+	      queue.onHold = false;
+	      queue.rendevousMask = 0;
+	    }
+	  }
+	  createSoundContext() {
+	    const channelMap2Cpc = [
+	      // channel map for CPC: left, middle (center), right; so swap middle and right
+	      0,
+	      2,
+	      1
+	    ], AudioContextConstructor = this.options.AudioContextConstructor;
+	    let context;
+	    if (!AudioContextConstructor) {
+	      if (!this.contextNotAvailable) {
+	        UiUtils.console.warn("createSoundContext: AudioContext not available");
+	      }
+	      this.contextNotAvailable = true;
+	      return context;
+	    }
+	    try {
+	      context = new AudioContextConstructor();
+	      const mergerNode = context.createChannelMerger(6);
+	      this.mergerNode = mergerNode;
+	      for (let i = 0; i < 3; i += 1) {
+	        const gainNode = context.createGain();
+	        gainNode.connect(mergerNode, 0, channelMap2Cpc[i]);
+	        this.gainNodes[i] = gainNode;
+	      }
+	    } catch (e) {
+	      UiUtils.console.warn("createSoundContext:", e);
+	      this.contextNotAvailable = true;
+	    }
+	    const oldContextStartTime = this.contextStartTime;
+	    this.contextStartTime = Date.now() / 1e3;
+	    if (oldContextStartTime && context) {
+	      const correctionTime = context.currentTime + (this.contextStartTime - oldContextStartTime), queues = this.queues;
+	      for (let i = 0; i < 3; i += 1) {
+	        if (queues[i].soundData.length) {
+	          queues[i].fNextNoteTime -= correctionTime;
+	        }
+	      }
+	    }
+	    return context;
+	  }
+	  playNoise(oscillator, fTime, fDuration, noise) {
+	    const context = this.context, bufferSize = context.sampleRate * fDuration, buffer = context.createBuffer(1, bufferSize, context.sampleRate), data = buffer.getChannelData(0), noiseNode = context.createBufferSource();
+	    for (let i = 0; i < bufferSize; i += 1) {
+	      data[i] = Math.random() * 2 - 1;
+	    }
+	    noiseNode.buffer = buffer;
+	    if (noise > 1) {
+	      const bandHz = 2e4 / noise, bandpass = context.createBiquadFilter();
+	      bandpass.type = "bandpass";
+	      bandpass.frequency.value = bandHz;
+	      noiseNode.connect(bandpass).connect(this.gainNodes[oscillator]);
+	    } else {
+	      noiseNode.connect(this.gainNodes[oscillator]);
+	    }
+	    noiseNode.start(fTime);
+	    noiseNode.stop(fTime + fDuration);
+	  }
+	  simulateApplyVolEnv(volData, duration, volEnvRepeat) {
+	    let time = 0;
+	    for (let loop = 0; loop < volEnvRepeat; loop += 1) {
+	      for (let part = 0; part < volData.length; part += 1) {
+	        const group = volData[part];
+	        if (group.steps !== void 0) {
+	          const group1 = group, volTime = group1.time;
+	          let volSteps = group1.steps;
+	          if (!volSteps) {
+	            volSteps = 1;
+	          }
+	          for (let i = 0; i < volSteps; i += 1) {
+	            time += volTime;
+	            if (duration && time >= duration) {
+	              loop = volEnvRepeat;
+	              part = volData.length;
+	              break;
+	            }
+	          }
+	        } else {
+	          const group2 = group, register = group2.register, period = group2.period, volTime = period;
+	          if (register === 0) {
+	            time += volTime;
+	          }
+	        }
+	      }
+	    }
+	    if (duration === 0) {
+	      duration = time;
+	    }
+	    return duration;
+	  }
+	  applyVolEnv(volData, gain, fTime, volume, duration, volEnvRepeat) {
+	    const maxVolume = 15, i100ms2sec = 100;
+	    let time = 0;
+	    for (let loop = 0; loop < volEnvRepeat; loop += 1) {
+	      for (let part = 0; part < volData.length; part += 1) {
+	        const group = volData[part];
+	        if (group.steps !== void 0) {
+	          const group1 = group, volDiff = group1.diff, volTime = group1.time;
+	          let volSteps = group1.steps;
+	          if (!volSteps) {
+	            volSteps = 1;
+	            volume = 0;
+	          }
+	          for (let i = 0; i < volSteps; i += 1) {
+	            volume = (volume + volDiff) % (maxVolume + 1);
+	            const fVolume = volume / maxVolume;
+	            gain.setValueAtTime(fVolume * fVolume, fTime + time / i100ms2sec);
+	            time += volTime;
+	            if (duration && time >= duration) {
+	              loop = volEnvRepeat;
+	              part = volData.length;
+	              break;
+	            }
+	          }
+	        } else {
+	          const group2 = group, register = group2.register, period = group2.period, volTime = period;
+	          if (register === 0) {
+	            volume = 15;
+	            let fVolume = volume / maxVolume;
+	            gain.setValueAtTime(fVolume * fVolume, fTime + time / i100ms2sec);
+	            time += volTime;
+	            fVolume = 0;
+	            gain.linearRampToValueAtTime(fVolume, fTime + time / i100ms2sec);
+	          }
+	        }
+	      }
+	    }
+	    if (duration === 0) {
+	      duration = time;
+	    }
+	    return duration;
+	  }
+	  applyToneEnv(toneData, frequency, fTime, period, duration) {
+	    const i100ms2sec = 100, repeat = toneData[0], toneEnvRepeat = repeat ? 5 : 1;
+	    let time = 0;
+	    for (let loop = 0; loop < toneEnvRepeat; loop += 1) {
+	      for (let part = 0; part < toneData.length; part += 1) {
+	        const group = toneData[part];
+	        if (group.steps !== void 0) {
+	          const group1 = group, toneSteps = group1.steps || 1, toneDiff = group1.diff, toneTime = group1.time;
+	          for (let i = 0; i < toneSteps; i += 1) {
+	            const fFrequency = period >= 3 ? 62500 / period : 0;
+	            frequency.setValueAtTime(fFrequency, fTime + time / i100ms2sec);
+	            period += toneDiff;
+	            time += toneTime;
+	            if (duration && time >= duration) {
+	              loop = toneEnvRepeat;
+	              part = toneData.length;
+	              break;
+	            }
+	          }
+	        } else {
+	          const group2 = group, toneTime = group2.time;
+	          period = group2.period;
+	          const fFrequency = period >= 3 ? 62500 / period : 0;
+	          frequency.setValueAtTime(fFrequency, fTime + time / i100ms2sec);
+	          time += toneTime;
+	        }
+	      }
+	    }
+	  }
+	  // simulate schedule note when sound is off
+	  simulateScheduleNote(soundData) {
+	    let duration = soundData.duration, volEnv = soundData.volEnv, volEnvRepeat = 1;
+	    if (duration < 0) {
+	      volEnvRepeat = Math.min(5, -duration);
+	      duration = 0;
+	    }
+	    if (volEnv || !duration) {
+	      if (!this.volEnv[volEnv]) {
+	        volEnv = 0;
+	      }
+	      duration = this.simulateApplyVolEnv(this.volEnv[volEnv], duration, volEnvRepeat);
+	    }
+	    const i100ms2sec = 100, fDuration = duration / i100ms2sec;
+	    return fDuration;
+	  }
+	  scheduleNote(oscillator, fTime, soundData) {
+	    if (UiUtils.debug > 1) {
+	      this.debugLog("scheduleNote: " + oscillator + " " + fTime);
+	    }
+	    if (!this.isSoundOn) {
+	      return this.simulateScheduleNote(soundData);
+	    }
+	    const context = this.context, oscillatorNode = context.createOscillator();
+	    oscillatorNode.type = "square";
+	    oscillatorNode.frequency.value = soundData.period >= 3 ? 62500 / soundData.period : 0;
+	    oscillatorNode.connect(this.gainNodes[oscillator]);
+	    if (fTime < context.currentTime) {
+	      if (UiUtils.debug) {
+	        UiUtils.console.debug("Test: sound: scheduleNote:", fTime, "<", context.currentTime);
+	      }
+	    }
+	    const volume = soundData.volume, gain = this.gainNodes[oscillator].gain, maxVolume = 15, fVolume = volume / maxVolume;
+	    gain.setValueAtTime(fVolume * fVolume, fTime);
+	    let duration = soundData.duration, volEnv = soundData.volEnv, volEnvRepeat = 1;
+	    if (duration < 0) {
+	      volEnvRepeat = Math.min(5, -duration);
+	      duration = 0;
+	    }
+	    if (volEnv || !duration) {
+	      if (!this.volEnv[volEnv]) {
+	        volEnv = 0;
+	      }
+	      duration = this.applyVolEnv(this.volEnv[volEnv], gain, fTime, volume, duration, volEnvRepeat);
+	    }
+	    const toneEnv = soundData.toneEnv;
+	    if (toneEnv && this.toneEnv[toneEnv]) {
+	      this.applyToneEnv(this.toneEnv[toneEnv], oscillatorNode.frequency, fTime, soundData.period, duration);
+	    }
+	    const i100ms2sec = 100, fDuration = duration / i100ms2sec;
+	    oscillatorNode.start(fTime);
+	    oscillatorNode.stop(fTime + fDuration);
+	    this.oscillators[oscillator] = oscillatorNode;
+	    if (soundData.noise) {
+	      this.playNoise(oscillator, fTime, fDuration, soundData.noise);
+	    }
+	    return fDuration;
+	  }
+	  testCanQueue(state) {
+	    let canQueue = true;
+	    if (this.isSoundOn && !this.isActivatedByUserFlag) {
+	      canQueue = false;
+	    } else if (!(state & 128)) {
+	      const queues = this.queues;
+	      if (state & 1 && queues[0].soundData.length >= 4 || state & 2 && queues[1].soundData.length >= 4 || state & 4 && queues[2].soundData.length >= 4) {
+	        canQueue = false;
+	      }
+	    }
+	    return canQueue;
+	  }
+	  sound(soundData) {
+	    const queues = this.queues, state = soundData.state;
+	    for (let i = 0; i < 3; i += 1) {
+	      if (state >> i & 1) {
+	        const queue = queues[i];
+	        if (state & 128) {
+	          queue.soundData.length = 0;
+	          queue.fNextNoteTime = 0;
+	          this.stopOscillator(i);
+	        }
+	        queue.soundData.push(soundData);
+	        if (UiUtils.debug > 1) {
+	          this.debugLog("sound: " + i + " " + state + ":" + queue.soundData.length);
+	        }
+	        this.updateQueueStatus(i, queue);
+	      }
+	    }
+	    this.scheduler();
+	  }
+	  setVolEnv(volEnv, volEnvData) {
+	    this.volEnv[volEnv] = volEnvData;
+	  }
+	  setToneEnv(toneEnv, toneEnvData) {
+	    this.toneEnv[toneEnv] = toneEnvData;
+	  }
+	  updateQueueStatus(i, queue) {
+	    const soundData = queue.soundData;
+	    if (soundData.length) {
+	      queue.onHold = Boolean(soundData[0].state & 64);
+	      queue.rendevousMask = soundData[0].state & 7;
+	      queue.rendevousMask &= ~(1 << i);
+	      queue.rendevousMask |= soundData[0].state >> 3 & 7;
+	    } else {
+	      queue.onHold = false;
+	      queue.rendevousMask = 0;
+	    }
+	  }
+	  // idea from: https://www.html5rocks.com/en/tutorials/audio/scheduling/
+	  scheduler() {
+	    if (!this.isActivatedByUserFlag) {
+	      return;
+	    }
+	    const context = this.context, fCurrentTime = context ? context.currentTime : Date.now() / 1e3 - this.contextStartTime, queues = this.queues;
+	    let canPlayMask = 0;
+	    for (let i = 0; i < 3; i += 1) {
+	      const queue = queues[i];
+	      while (queue.soundData.length && !queue.onHold && queue.fNextNoteTime < fCurrentTime + this.fScheduleAheadTime) {
+	        if (!queue.rendevousMask) {
+	          if (queue.fNextNoteTime < fCurrentTime) {
+	            queue.fNextNoteTime = fCurrentTime;
+	          }
+	          const soundData = queue.soundData.shift();
+	          queue.fNextNoteTime += this.scheduleNote(i, queue.fNextNoteTime, soundData);
+	          this.updateQueueStatus(i, queue);
+	        } else {
+	          canPlayMask |= 1 << i;
+	          break;
+	        }
+	      }
+	    }
+	    if (!canPlayMask) {
+	      return;
+	    }
+	    for (let i = 0; i < 3; i += 1) {
+	      const queue = queues[i];
+	      if (canPlayMask >> i & 1 && (queue.rendevousMask & canPlayMask) === queue.rendevousMask) {
+	        if (queue.fNextNoteTime < fCurrentTime) {
+	          queue.fNextNoteTime = fCurrentTime;
+	        }
+	        const soundData = queue.soundData.shift();
+	        queue.fNextNoteTime += this.scheduleNote(i, queue.fNextNoteTime, soundData);
+	        this.updateQueueStatus(i, queue);
+	      }
+	    }
+	  }
+	  release(releaseMask) {
+	    const queues = this.queues;
+	    if (!queues.length) {
+	      return;
+	    }
+	    if (UiUtils.debug > 1) {
+	      this.debugLog("release: " + releaseMask);
+	    }
+	    for (let i = 0; i < 3; i += 1) {
+	      const queue = queues[i], soundData = queue.soundData;
+	      if (releaseMask >> i & 1 && soundData.length && queue.onHold) {
+	        queue.onHold = false;
+	      }
+	    }
+	    this.scheduler();
+	  }
+	  sq(n) {
+	    const queues = this.queues, queue = queues[n], soundData = queue.soundData, context = this.context;
+	    let sq = 4 - soundData.length;
+	    if (sq < 0) {
+	      sq = 0;
+	    }
+	    sq |= queue.rendevousMask << 3;
+	    if (this.oscillators[n] && queues[n].fNextNoteTime > context.currentTime) {
+	      sq |= 128;
+	    } else if (soundData.length && soundData[0].state & 64) {
+	      sq |= 64;
+	    }
+	    return sq;
+	  }
+	  setActivatedByUser() {
+	    this.isActivatedByUserFlag = true;
+	    if (!this.contextStartTime) {
+	      this.contextStartTime = Date.now() / 1e3;
+	    }
+	  }
+	  isActivatedByUser() {
+	    return this.isActivatedByUserFlag;
+	  }
+	  soundOn() {
+	    if (!this.isSoundOn) {
+	      if (!this.context && !this.contextNotAvailable) {
+	        this.context = this.createSoundContext();
+	      }
+	      if (this.context) {
+	        this.mergerNode.connect(this.context.destination);
+	      }
+	      this.isSoundOn = true;
+	      if (UiUtils.debug) {
+	        UiUtils.console.debug("soundOn: Sound switched on");
+	      }
+	    }
+	    return Boolean(this.context);
+	  }
+	  soundOff() {
+	    if (this.isSoundOn) {
+	      if (this.context) {
+	        this.mergerNode.disconnect(this.context.destination);
+	      }
+	      this.isSoundOn = false;
+	      if (UiUtils.debug) {
+	        UiUtils.console.debug("soundOff: Sound switched off");
+	      }
+	    }
+	  }
+	}
+
+	class InputStack {
+	  constructor() {
+	    this.input = [];
+	    this.stackPosition = -1;
+	  }
+	  reset() {
+	    this.input.length = 0;
+	    this.stackPosition = -1;
+	  }
+	  getInput() {
+	    return this.input[this.stackPosition];
+	  }
+	  clearRedo() {
+	    this.input = this.input.slice(0, this.stackPosition + 1);
+	  }
+	  save(input) {
+	    this.clearRedo();
+	    this.input.push(input);
+	    this.stackPosition += 1;
+	  }
+	  canUndoKeepOne() {
+	    return this.stackPosition > 0;
+	  }
+	  undo() {
+	    this.stackPosition -= 1;
+	    return this.getInput();
+	  }
+	  canRedo() {
+	    return this.stackPosition < this.input.length - 1;
+	  }
+	  redo() {
+	    this.stackPosition += 1;
+	    return this.getInput();
+	  }
+	}
+
+	class DragElement {
+	  constructor(options) {
+	    this.containerId = ViewID.window;
+	    this.initialX = 0;
+	    this.initialY = 0;
+	    this.currentX = 0;
+	    this.currentY = 0;
+	    this.fnDragStartHandler = this.dragStart.bind(this);
+	    this.fnDragMoveHandler = this.dragMove.bind(this);
+	    this.fnDragEndHandler = this.dragEnd.bind(this);
+	    this.options = {};
+	    this.setOptions(options);
+	  }
+	  getOptions() {
+	    return this.options;
+	  }
+	  setOptions(options) {
+	    Object.assign(this.options, options);
+	    const entries = this.options.entries;
+	    for (const key in entries) {
+	      if (Object.prototype.hasOwnProperty.call(entries, key)) {
+	        const item = entries[key];
+	        if (item.enabled) {
+	          this.options.view.fnAttachPointerEvents(item.itemId, this.fnDragStartHandler);
+	        } else {
+	          this.options.view.fnDetachPointerEvents(item.itemId, this.fnDragStartHandler);
+	        }
+	      }
+	    }
+	  }
+	  dragStart(event) {
+	    const node = View.getEventTarget(event), entries = this.options.entries;
+	    let entry = entries[node.id];
+	    if (!entry) {
+	      const parentElement = node.parentElement;
+	      if (parentElement && entries[parentElement.id]) {
+	        entry = entries[parentElement.id];
+	        this.dragItem = parentElement;
+	      } else {
+	        return;
+	      }
+	    } else {
+	      this.dragItem = node;
+	    }
+	    this.dragInfo = entry;
+	    const dragInfo = this.dragInfo, clientObject = event.type === "touchstart" ? event.touches[0] : event;
+	    this.initialX = clientObject.clientX - dragInfo.xOffset;
+	    this.initialY = clientObject.clientY - dragInfo.yOffset;
+	    this.options.view.fnAttachPointerEvents(this.containerId, void 0, this.fnDragMoveHandler, this.fnDragEndHandler);
+	    if (UiUtils.debug > 0) {
+	      UiUtils.console.debug("dragStart: " + dragInfo.itemId + ": x=" + this.initialX + ", y=" + this.initialY);
+	    }
+	  }
+	  static setDragTranslate(xPos, yPos, el) {
+	    el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
+	  }
+	  dragMove(event) {
+	    const dragInfo = this.dragInfo;
+	    if (dragInfo) {
+	      event.preventDefault();
+	      const clientObject = event.type === "touchstart" ? event.touches[0] : event;
+	      this.currentX = clientObject.clientX - this.initialX;
+	      this.currentY = clientObject.clientY - this.initialY;
+	      dragInfo.xOffset = this.currentX;
+	      dragInfo.yOffset = this.currentY;
+	      DragElement.setDragTranslate(this.currentX, this.currentY, this.dragItem);
+	    }
+	  }
+	  dragEnd(_event) {
+	    const dragInfo = this.dragInfo;
+	    if (dragInfo) {
+	      this.options.view.fnDetachPointerEvents(this.containerId, void 0, this.fnDragMoveHandler, this.fnDragEndHandler);
+	      if (UiUtils.debug > 0) {
+	        UiUtils.console.debug("dragEnd: " + dragInfo.itemId + ": x=" + this.currentX + ", y=" + this.currentY);
+	      }
+	    }
+	  }
+	}
+
+	class CommonEventHandler {
+	  constructor(options) {
+	    this.eventDefInternalMap = {};
+	    this.fnUserAction = void 0;
+	    this.options = {};
+	    this.setOptions(options);
+	    this.model = this.options.model;
+	    this.view = this.options.view;
+	    this.controller = this.options.controller;
+	    this.model.setPropertyChangeCallback(() => this.updateUrlFromConfig());
+	    this.createEventDefMap();
+	  }
+	  getOptions() {
+	    return this.options;
+	  }
+	  setOptions(options) {
+	    Object.assign(this.options, options);
+	  }
+	  fnSetUserAction(fnAction) {
+	    this.fnUserAction = fnAction;
+	  }
+	  initOneToggle(_type, id, eventDef) {
+	    if (eventDef.property) {
+	      if (eventDef.toggleId) {
+	        const isEnabled = this.model.getProperty(eventDef.property);
+	        this.view.setHidden(eventDef.toggleId, !isEnabled, eventDef.display);
+	        if (UiUtils.debug > 3) {
+	          UiUtils.console.debug("initToggles: setHidden: togglId:", eventDef.toggleId, ", property:", eventDef.property, ", hidden:", !isEnabled, ", display:", eventDef.display);
+	        }
+	      }
+	      if (eventDef.viewType === "checked") {
+	        const isEnabled2 = this.model.getProperty(eventDef.property);
+	        this.view.setInputChecked(id, isEnabled2);
+	        if (UiUtils.debug > 3) {
+	          UiUtils.console.debug("initToggles: checked: id:", id, ", property:", eventDef.property, ", checked:", isEnabled2);
+	        }
+	      } else if (eventDef.viewType === "select") {
+	        const value = this.model.getProperty(eventDef.property);
+	        this.view.setSelectValue(id, value);
+	        if (UiUtils.debug > 3) {
+	          UiUtils.console.debug("initToggles: select: id:", id, ", property:", eventDef.property, ", value:", value);
+	        }
+	      } else if (eventDef.viewType === "numberInput") {
+	        const value = this.model.getProperty(eventDef.property);
+	        this.view.setInputValue(id, String(value));
+	        if (UiUtils.debug > 3) {
+	          UiUtils.console.debug("initToggles: numberInput: id:", id, ", property:", eventDef.property, ", value:", value);
+	        }
+	      }
+	    }
+	  }
+	  initToggles() {
+	    const eventDefInternalMap = this.eventDefInternalMap;
+	    for (const type in eventDefInternalMap) {
+	      if (Object.prototype.hasOwnProperty.call(eventDefInternalMap, type)) {
+	        const eventDefMap4Type = eventDefInternalMap[type];
+	        for (const id in eventDefMap4Type) {
+	          if (Object.prototype.hasOwnProperty.call(eventDefMap4Type, id)) {
+	            const eventDef = eventDefMap4Type[id];
+	            this.initOneToggle(type, id, eventDef);
+	          }
+	        }
+	      }
+	    }
+	  }
+	  static getToggleId(eventDef) {
+	    if (!eventDef.toggleId) {
+	      UiUtils.console.error("getToggleId: id=" + eventDef.id + ": toggleId missing!");
+	      return "";
+	    }
+	    return eventDef.toggleId;
+	  }
+	  static getproperty(eventDef) {
+	    if (!eventDef.property) {
+	      UiUtils.console.error("setPopoversHiddenExcept: id=" + eventDef.id + ": property missing!");
+	      return "";
+	    }
+	    return eventDef.property;
+	  }
+	  setPopoversHiddenExcept(exceptId) {
+	    const eventDefInternalMap = this.eventDefInternalMap, eventDefMapClick = eventDefInternalMap.click;
+	    for (const id in eventDefMapClick) {
+	      if (Object.prototype.hasOwnProperty.call(eventDefMapClick, id)) {
+	        const eventDef = eventDefMapClick[id];
+	        if (eventDef.isPopover && eventDef.toggleId !== exceptId) {
+	          const toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef);
+	          if (!this.view.getHidden(toggleId)) {
+	            this.model.setProperty(property, false);
+	            this.view.setHidden(toggleId, true, eventDef.display);
+	          }
+	        }
+	      }
+	    }
+	  }
+	  toggleAreaHidden(eventDef) {
+	    const toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef), visible = !this.model.getProperty(property);
+	    this.model.setProperty(property, visible);
+	    this.view.setHidden(toggleId, !visible, eventDef.display);
+	    if (visible && eventDef.display === "flex" && this.view.getHidden(toggleId)) {
+	      this.view.setHidden(toggleId, !visible);
+	    }
+	    if (visible && eventDef.isPopover) {
+	      this.setPopoversHiddenExcept(toggleId);
+	    }
+	    return visible;
+	  }
+	  // maybe we can avoid this...
+	  getEventDefById(type, id) {
+	    const eventDefForType = this.eventDefInternalMap[type], eventDef = eventDefForType[id];
+	    if (!eventDef) {
+	      UiUtils.console.error("getEventDefById: type=" + type + ", id=" + id + ": No eventDef!");
+	    }
+	    return eventDef;
+	  }
+	  toggleAreaHiddenById(type, id) {
+	    const eventDef = this.getEventDefById(type, id);
+	    return this.toggleAreaHidden(eventDef);
+	  }
+	  onCheckedChange(eventDef) {
+	    const id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), checked = this.view.getInputChecked(id);
+	    this.model.setProperty(property, checked);
+	    return checked;
+	  }
+	  onNumberInputChange(eventDef) {
+	    const id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), valueAsString = this.view.getInputValue(id), value = Number(valueAsString);
+	    this.model.setProperty(property, value);
+	    return value;
+	  }
+	  onSelectChange(eventDef) {
+	    const id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), value = this.view.getSelectValue(id);
+	    this.model.setProperty(property, value);
+	    this.view.setSelectTitleFromSelectedOption(id);
+	    return value;
+	  }
+	  onExportButtonClick(eventDef) {
+	    if (this.toggleAreaHidden(eventDef)) {
+	      this.controller.setExportSelectOptions(ViewID.exportFileSelect);
+	    }
+	  }
+	  onGalleryButtonClick(eventDef) {
+	    if (this.toggleAreaHidden(eventDef)) {
+	      this.controller.setGalleryAreaInputs();
+	    }
+	  }
+	  fnUpdateAreaText(input) {
+	    this.controller.setInputText(input, true);
+	    this.controller.setOutputText("");
+	  }
+	  onOutputTextChange() {
+	    this.controller.setOutputText(this.view.getAreaValue(ViewID.outputText));
+	  }
+	  onUndoButtonClick() {
+	    const input = this.controller.undoStackElement();
+	    this.fnUpdateAreaText(input);
+	  }
+	  onRedoButtonClick() {
+	    const input = this.controller.redoStackElement();
+	    this.fnUpdateAreaText(input);
+	  }
+	  onContinueButtonClick(eventDef, event) {
+	    this.controller.startContinue();
+	    this.onCpcCanvasClick(eventDef, event);
+	  }
+	  onParseRunButtonClick(eventDef, event) {
+	    this.controller.startParseRun();
+	    this.onCpcCanvasClick(eventDef, event);
+	  }
+	  static onHelpButtonClick() {
+	    window.open("https://github.com/benchmarko/CPCBasicTS/#readme");
+	  }
+	  onGalleryItemClick(_eventDef, event) {
+	    const target = View.getEventTarget(event), value = target.value;
+	    this.view.setSelectValue(ViewID.exampleSelect, value);
+	    this.setPopoversHiddenExcept();
+	    this.controller.onExampleSelectChange();
+	  }
+	  // eslint-disable-next-line class-methods-use-this
+	  onCopyTextButtonClick() {
+	    const textText = View.getElementByIdAs(ViewID.textText);
+	    textText.select();
+	    this.view.setAreaSelection(ViewID.textText, 0, 99999);
+	    if (window.navigator && window.navigator.clipboard) {
+	      window.navigator.clipboard.writeText(textText.value);
+	    } else {
+	      UiUtils.console.warn("Copy to clipboard not available");
+	    }
+	  }
+	  updateUrlFromConfig() {
+	    const url = new URL(window.location.href), initial = this.model.getAllInitialProperties(), changed = this.model.getChangedProperties();
+	    for (const name in initial) {
+	      if (Object.prototype.hasOwnProperty.call(initial, name)) {
+	        url.searchParams.delete(name);
+	      }
+	    }
+	    for (const name in changed) {
+	      if (Object.prototype.hasOwnProperty.call(changed, name)) {
+	        url.searchParams.set(name, String(changed[name]));
+	      }
+	    }
+	    if (url.href !== window.location.href) {
+	      window.history.replaceState(window.history.state, "", url.href);
+	    }
+	  }
+	  onVarSelectChange() {
+	    const par = this.view.getSelectValue(ViewID.varSelect), value = this.controller.getVariable(par), valueString = value !== void 0 ? String(value) : "";
+	    this.view.setAreaValue(ViewID.varText, valueString);
+	  }
+	  onKbdLayoutSelectChange(eventDef) {
+	    const value = this.onSelectChange(eventDef);
+	    this.view.setHidden(ViewID.kbdAlpha, value === "num");
+	    this.view.setHidden(ViewID.kbdNum, value === "alpha");
+	  }
+	  onBasicVersionSelectChange(eventDef) {
+	    const value = this.onSelectChange(eventDef);
+	    this.controller.setBasicVersion(value);
+	  }
+	  onPaletteSelectChange(eventDef) {
+	    const value = this.onSelectChange(eventDef);
+	    this.controller.setPalette(value);
+	  }
+	  onCanvasTypeSelectChange(eventDef) {
+	    const value = this.onSelectChange(eventDef);
+	    this.controller.setCanvasType(value);
+	  }
+	  onDebugInputChange(eventDef) {
+	    const value = this.onNumberInputChange(eventDef);
+	    UiUtils.debug = value;
+	  }
+	  onDragElementsInputChange(eventDef) {
+	    const checked = this.onCheckedChange(eventDef);
+	    this.controller.fnDragElementsActive(checked);
+	  }
+	  onShowCpcInputChange(eventDef) {
+	    if (this.toggleAreaHidden(eventDef)) {
+	      this.controller.startUpdateCanvas();
+	    } else {
+	      this.controller.stopUpdateCanvas();
+	    }
+	  }
+	  onShowKbdInputChange(eventDef) {
+	    if (this.toggleAreaHidden(eventDef)) {
+	      this.controller.getVirtualKeyboard();
+	    }
+	  }
+	  onDisassInputChange() {
+	    const addressStr = this.view.getInputValue(ViewID.disassInput), addrList = addressStr.split("-"), addr = parseInt(addrList[0], 16), endAddr = addrList[1] ? parseInt(addrList[1], 16) : void 0;
+	    this.controller.setDisassAddr(addr, endAddr);
+	  }
+	  onSoundInputChange(eventDef) {
+	    this.onCheckedChange(eventDef);
+	    this.controller.setSoundActive();
+	  }
+	  onScreenshotButtonClick() {
+	    const example = this.view.getSelectValue(ViewID.exampleSelect), image = this.controller.startScreenshot(), link = View.getElementById1(ViewID.screenshotLink), name = example + ".png";
+	    if (image) {
+	      link.setAttribute("download", name);
+	      link.setAttribute("href", image);
+	      link.click();
+	    }
+	  }
+	  onClearInputButtonClick() {
+	    this.view.setAreaValue(ViewID.inp2Text, "");
+	  }
+	  onFullscreenButtonClick() {
+	    let id;
+	    if (!this.view.getHidden(ViewID.cpcCanvas)) {
+	      id = ViewID.cpcCanvas;
+	    } else if (!this.view.getHidden(ViewID.textText)) {
+	      id = ViewID.textCanvasDiv;
+	    } else {
+	      UiUtils.console.warn("Fullscreen only possible for graphics or text canvas");
+	      return;
+	    }
+	    const switched = this.view.requestFullscreenForId(id);
+	    if (!switched) {
+	      UiUtils.console.warn("Switch to fullscreen not available");
+	    }
+	  }
+	  onCpcCanvasClick(_eventDef, event) {
+	    this.setPopoversHiddenExcept();
+	    this.controller.onCpcCanvasClick(event);
+	  }
+	  createEventDefMap() {
+	    const eventDefInternalMap = this.eventDefInternalMap, eventDefs = {
+	      click: [
+	        {
+	          id: ViewID.clearInputButton,
+	          func: this.onClearInputButtonClick
+	        },
+	        {
+	          id: ViewID.continueButton,
+	          func: this.onContinueButtonClick
+	        },
+	        {
+	          id: ViewID.cpcCanvas,
+	          func: this.onCpcCanvasClick
+	        },
+	        {
+	          id: ViewID.copyTextButton,
+	          func: this.onCopyTextButtonClick
+	        },
+	        {
+	          id: ViewID.downloadButton,
+	          controllerFunc: this.controller.fnDownload
+	        },
+	        {
+	          id: ViewID.enterButton,
+	          controllerFunc: this.controller.startEnter
+	        },
+	        {
+	          id: ViewID.exportButton,
+	          toggleId: ViewID.exportArea,
+	          property: ModelPropID.showExport,
+	          display: "flex",
+	          isPopover: true,
+	          func: this.onExportButtonClick
+	        },
+	        {
+	          id: ViewID.fullscreenButton,
+	          func: this.onFullscreenButtonClick
+	        },
+	        {
+	          id: ViewID.galleryButton,
+	          toggleId: ViewID.galleryArea,
+	          property: ModelPropID.showGallery,
+	          display: "flex",
+	          isPopover: true,
+	          func: this.onGalleryButtonClick
+	        },
+	        {
+	          id: ViewID.galleryItem,
+	          func: this.onGalleryItemClick
+	        },
+	        {
+	          id: ViewID.helpButton,
+	          func: CommonEventHandler.onHelpButtonClick
+	        },
+	        {
+	          id: ViewID.lineNumberAddButton,
+	          controllerFunc: this.controller.fnAddLines
+	        },
+	        {
+	          id: ViewID.lineNumberRemoveButton,
+	          controllerFunc: this.controller.fnRemoveLines
+	        },
+	        {
+	          id: ViewID.moreButton,
+	          toggleId: ViewID.moreArea,
+	          property: ModelPropID.showMore,
+	          display: "flex",
+	          isPopover: true,
+	          func: this.toggleAreaHidden
+	        },
+	        {
+	          id: ViewID.parseButton,
+	          controllerFunc: this.controller.startParse
+	        },
+	        {
+	          id: ViewID.parseRunButton,
+	          func: this.onParseRunButtonClick
+	        },
+	        {
+	          id: ViewID.prettyButton,
+	          controllerFunc: this.controller.fnPretty
+	        },
+	        {
+	          id: ViewID.prettyPopoverButton,
+	          toggleId: ViewID.prettyArea,
+	          property: ModelPropID.showPretty,
+	          display: "flex",
+	          isPopover: true,
+	          func: this.toggleAreaHidden
+	        },
+	        {
+	          id: ViewID.redoButton,
+	          func: this.onRedoButtonClick
+	        },
+	        {
+	          id: ViewID.redoButton2,
+	          func: this.onRedoButtonClick
+	          // same redo
+	        },
+	        {
+	          id: ViewID.renumButton,
+	          controllerFunc: () => this.controller.startRenum()
+	        },
+	        {
+	          id: ViewID.renumPopoverButton,
+	          toggleId: ViewID.renumArea,
+	          property: ModelPropID.showRenum,
+	          display: "flex",
+	          isPopover: true,
+	          func: this.toggleAreaHidden
+	        },
+	        {
+	          id: ViewID.resetButton,
+	          controllerFunc: this.controller.startReset
+	        },
+	        {
+	          id: ViewID.runButton,
+	          controllerFunc: this.controller.startRun
+	        },
+	        {
+	          id: ViewID.screenshotButton,
+	          func: this.onScreenshotButtonClick
+	        },
+	        {
+	          id: ViewID.screenshotLink
+	          // nothing
+	        },
+	        {
+	          id: ViewID.settingsButton,
+	          toggleId: ViewID.settingsArea,
+	          property: ModelPropID.showSettings,
+	          display: "flex",
+	          isPopover: true,
+	          func: this.toggleAreaHidden
+	        },
+	        {
+	          id: ViewID.stopButton,
+	          controllerFunc: this.controller.startBreak
+	        },
+	        {
+	          id: ViewID.textText,
+	          func: this.onCpcCanvasClick
+	          // same as for cpcCanvas
+	        },
+	        {
+	          id: ViewID.undoButton,
+	          func: this.onUndoButtonClick
+	        },
+	        {
+	          id: ViewID.undoButton2,
+	          func: this.onUndoButtonClick
+	          // same undo
+	        },
+	        {
+	          id: ViewID.viewButton,
+	          toggleId: ViewID.viewArea,
+	          property: ModelPropID.showView,
+	          display: "flex",
+	          isPopover: true,
+	          func: this.toggleAreaHidden
+	        },
+	        {
+	          id: ViewID.window,
+	          //TTT do we need this?
+	          controllerFunc: this.controller.onWindowClick
+	        }
+	      ],
+	      change: [
+	        {
+	          id: ViewID.arrayBoundsInput,
+	          viewType: "checked",
+	          property: ModelPropID.arrayBounds,
+	          func: this.onCheckedChange,
+	          controllerFunc: this.controller.fnArrayBounds
+	        },
+	        {
+	          id: ViewID.autorunInput,
+	          viewType: "checked",
+	          property: ModelPropID.autorun,
+	          func: this.onCheckedChange
+	        },
+	        {
+	          id: ViewID.basicVersionSelect,
+	          viewType: "select",
+	          property: ModelPropID.basicVersion,
+	          func: this.onBasicVersionSelectChange
+	        },
+	        {
+	          id: ViewID.canvasTypeSelect,
+	          viewType: "select",
+	          property: ModelPropID.canvasType,
+	          func: this.onCanvasTypeSelectChange
+	        },
+	        {
+	          id: ViewID.databaseSelect,
+	          controllerFunc: this.controller.onDatabaseSelectChange
+	        },
+	        {
+	          id: ViewID.debugInput,
+	          viewType: "numberInput",
+	          property: ModelPropID.debug,
+	          func: this.onDebugInputChange
+	        },
+	        {
+	          id: ViewID.directorySelect,
+	          controllerFunc: this.controller.onDirectorySelectChange
+	        },
+	        {
+	          id: ViewID.disassInput,
+	          func: this.onDisassInputChange
+	        },
+	        {
+	          id: ViewID.exampleSelect,
+	          controllerFunc: this.controller.onExampleSelectChange
+	        },
+	        {
+	          id: ViewID.implicitLinesInput,
+	          viewType: "checked",
+	          property: ModelPropID.implicitLines,
+	          func: this.onCheckedChange,
+	          controllerFunc: this.controller.fnImplicitLines
+	        },
+	        {
+	          id: ViewID.integerOverflowInput,
+	          viewType: "checked",
+	          property: ModelPropID.integerOverflow,
+	          func: this.onCheckedChange,
+	          controllerFunc: this.controller.fnIntegerOverflow
+	        },
+	        {
+	          id: ViewID.kbdLayoutSelect,
+	          viewType: "select",
+	          property: ModelPropID.kbdLayout,
+	          func: this.onKbdLayoutSelectChange
+	        },
+	        {
+	          id: ViewID.linesOnLoadInput,
+	          viewType: "checked",
+	          property: ModelPropID.linesOnLoad,
+	          func: this.onCheckedChange
+	        },
+	        {
+	          id: ViewID.dragElementsInput,
+	          viewType: "checked",
+	          property: ModelPropID.dragElements,
+	          func: this.onDragElementsInputChange
+	        },
+	        {
+	          id: ViewID.outputText,
+	          func: this.onOutputTextChange
+	        },
+	        {
+	          id: ViewID.paletteSelect,
+	          viewType: "select",
+	          property: ModelPropID.palette,
+	          func: this.onPaletteSelectChange
+	        },
+	        {
+	          id: ViewID.prettyBracketsInput,
+	          viewType: "checked",
+	          property: ModelPropID.prettyBrackets,
+	          func: this.onCheckedChange
+	        },
+	        {
+	          id: ViewID.prettyColonsInput,
+	          viewType: "checked",
+	          property: ModelPropID.prettyColons,
+	          func: this.onCheckedChange
+	        },
+	        {
+	          id: ViewID.prettyLowercaseVarsInput,
+	          viewType: "checked",
+	          property: ModelPropID.prettyLowercaseVars,
+	          func: this.onCheckedChange,
+	          controllerFunc: this.controller.fnPrettyLowercaseVars
+	        },
+	        {
+	          id: ViewID.prettySpaceInput,
+	          viewType: "checked",
+	          property: ModelPropID.prettySpace,
+	          func: this.onCheckedChange
+	        },
+	        {
+	          id: ViewID.selectDataFilesInput,
+	          viewType: "checked",
+	          property: ModelPropID.selectDataFiles,
+	          func: this.onCheckedChange
+	        },
+	        {
+	          id: ViewID.showConsoleLogInput,
+	          viewType: "checked",
+	          toggleId: ViewID.consoleLogArea,
+	          property: ModelPropID.showConsoleLog,
+	          func: this.toggleAreaHidden
+	        },
+	        {
+	          id: ViewID.showCpcInput,
+	          viewType: "checked",
+	          toggleId: ViewID.cpcArea,
+	          property: ModelPropID.showCpc,
+	          func: this.onShowCpcInputChange
+	        },
+	        {
+	          id: ViewID.showDisassInput,
+	          viewType: "checked",
+	          toggleId: ViewID.disassArea,
+	          property: ModelPropID.showDisass,
+	          func: this.toggleAreaHidden
+	        },
+	        {
+	          id: ViewID.showInp2Input,
+	          viewType: "checked",
+	          toggleId: ViewID.inp2Area,
+	          property: ModelPropID.showInp2,
+	          func: this.toggleAreaHidden
+	        },
+	        {
+	          id: ViewID.showInputInput,
+	          viewType: "checked",
+	          toggleId: ViewID.inputArea,
+	          property: ModelPropID.showInput,
+	          func: this.toggleAreaHidden
+	        },
+	        {
+	          id: ViewID.showKbdInput,
+	          viewType: "checked",
+	          toggleId: ViewID.kbdArea,
+	          property: ModelPropID.showKbd,
+	          func: this.onShowKbdInputChange
+	        },
+	        {
+	          id: ViewID.showOutputInput,
+	          viewType: "checked",
+	          toggleId: ViewID.outputArea,
+	          property: ModelPropID.showOutput,
+	          func: this.toggleAreaHidden
+	        },
+	        {
+	          id: ViewID.showResultInput,
+	          viewType: "checked",
+	          toggleId: ViewID.resultArea,
+	          property: ModelPropID.showResult,
+	          func: this.toggleAreaHidden
+	        },
+	        {
+	          id: ViewID.showVariableInput,
+	          viewType: "checked",
+	          toggleId: ViewID.variableArea,
+	          property: ModelPropID.showVariable,
+	          func: this.toggleAreaHidden
+	        },
+	        {
+	          id: ViewID.soundInput,
+	          viewType: "checked",
+	          property: ModelPropID.sound,
+	          func: this.onSoundInputChange
+	        },
+	        {
+	          id: ViewID.speedInput,
+	          viewType: "numberInput",
+	          property: ModelPropID.speed,
+	          func: this.onNumberInputChange,
+	          controllerFunc: this.controller.fnSpeed
+	        },
+	        {
+	          id: ViewID.traceInput,
+	          viewType: "checked",
+	          property: ModelPropID.trace,
+	          func: this.onCheckedChange,
+	          controllerFunc: this.controller.fnTrace
+	        },
+	        {
+	          id: ViewID.varSelect,
+	          func: this.onVarSelectChange
+	        },
+	        {
+	          id: ViewID.varText,
+	          controllerFunc: this.controller.changeVariable
+	        }
+	      ]
+	    };
+	    for (const type in eventDefs) {
+	      if (Object.prototype.hasOwnProperty.call(eventDefs, type)) {
+	        eventDefInternalMap[type] = {};
+	        const eventDefList = eventDefs[type], itemForType = eventDefInternalMap[type];
+	        for (let i = 0; i < eventDefList.length; i += 1) {
+	          itemForType[eventDefList[i].id] = eventDefList[i];
+	        }
+	      }
+	    }
+	  }
+	  handleEvent(event) {
+	    const target = View.getEventTarget(event), type = event.type;
+	    let id = target ? target.getAttribute("id") : String(target);
+	    if (this.fnUserAction) {
+	      this.fnUserAction(event, id);
+	    }
+	    if (id) {
+	      if (target.disabled) {
+	        return;
+	      }
+	      if (id.startsWith("galleryItem")) {
+	        id = "galleryItem";
+	      }
+	      if (this.eventDefInternalMap[type] && this.eventDefInternalMap[type][id]) {
+	        const eventDef = this.eventDefInternalMap[type][id];
+	        if (UiUtils.debug) {
+	          UiUtils.console.debug("handleEvent: " + type + ", " + id + ":", eventDef);
+	        }
+	        if (eventDef.func) {
+	          eventDef.func.call(this, eventDef, event);
+	        }
+	        if (eventDef.controllerFunc) {
+	          eventDef.controllerFunc.call(this.controller, eventDef, event);
+	        }
+	        this.updateUrlFromConfig();
+	      } else if (!id.endsWith("Select") && !id.endsWith("Input")) {
+	        UiUtils.console.log("handleEvent: " + type + ", " + id + ": No handler");
+	      }
+	    } else if (UiUtils.debug) {
+	      UiUtils.console.log("handleEvent: " + type + ": unknown target:", target.tagName, target.id);
+	    }
+	    if (type === "click") {
+	      if (id !== ViewID.cpcCanvas && id !== ViewID.textText) {
+	        this.controller.onWindowClick(event);
+	      }
+	    }
+	  }
+	}
+
+	class ExecutionControls {
+	  constructor(view) {
+	    this.view = view;
+	  }
+	  update(state) {
+	    if (state.reason === "direct") {
+	      return;
+	    }
+	    const reason = state.reason;
+	    this.view.setDisabled(ViewID.runButton, state.isRunning || reason === "reset");
+	    this.view.setDisabled(ViewID.stopButton, !state.isRunning && reason !== "fileLoad" && reason !== "fileSave");
+	    this.view.setDisabled(ViewID.continueButton, state.isRunning || reason === "end" || reason === "fileLoad" || reason === "fileSave" || reason === "parse" || reason === "renumLines" || reason === "reset");
+	  }
+	  programEdited() {
+	    this.view.setDisabled(ViewID.continueButton, true);
+	  }
+	}
+
+	class UiController {
+	  constructor(core, view, controller, onUserAction) {
+	    this.view = view;
+	    this.controller = controller;
+	    this.executionControls = new ExecutionControls(view);
+	    this.commonEventHandler = new CommonEventHandler({
+	      model: core.getModel(),
+	      view,
+	      controller
+	    });
+	    view.addEventListener("click", this.commonEventHandler);
+	    view.addEventListener("change", this.commonEventHandler);
+	    this.commonEventHandler.initToggles();
+	    this.commonEventHandler.onKbdLayoutSelectChange(this.commonEventHandler.getEventDefById("change", ViewID.kbdLayoutSelect));
+	    this.commonEventHandler.fnSetUserAction(onUserAction);
+	  }
+	  deactivateUserAction() {
+	    this.commonEventHandler.fnSetUserAction(void 0);
+	  }
+	  onExecutionState(state) {
+	    this.executionControls.update(state);
+	  }
+	  onDiagnostic(diagnostic) {
+	    if (diagnostic.selectSource && diagnostic.pos !== void 0) {
+	      const length = diagnostic.len || (diagnostic.value !== void 0 ? String(diagnostic.value).length : 0);
+	      this.view.setAreaSelection(ViewID.inputText, diagnostic.pos, diagnostic.pos + length);
+	    }
+	  }
+	  onProgramEdited() {
+	    this.executionControls.programEdited();
+	  }
+	  getRenumOptions() {
+	    return {
+	      newLine: Number(this.view.getInputValue(ViewID.renumNewInput)),
+	      oldLine: Number(this.view.getInputValue(ViewID.renumStartInput)),
+	      step: Number(this.view.getInputValue(ViewID.renumStepInput)),
+	      keep: Number(this.view.getInputValue(ViewID.renumKeepInput))
+	    };
+	  }
+	  onVarSelectChange() {
+	    this.commonEventHandler.onVarSelectChange();
+	  }
+	  refreshVariables() {
+	    const items = this.controller.getVariableNames().map((name) => {
+	      const title = name + "=" + this.controller.getVariable(name), label = title.length > 35 ? title.substring(0, 35) + " ..." : title;
+	      return { value: name, text: label, title: label, selected: false };
+	    });
+	    items.sort((first, second) => first.value < second.value ? -1 : first.value > second.value ? 1 : 0);
+	    this.view.setSelectOptions(ViewID.varSelect, items);
+	  }
+	  setPopoversHiddenExcept(exceptId) {
+	    this.commonEventHandler.setPopoversHiddenExcept(exceptId);
+	  }
+	  toggleAreaHiddenById(type, id) {
+	    return this.commonEventHandler.toggleAreaHiddenById(type, id);
+	  }
+	}
+
+	const _Z80Disass = class _Z80Disass {
+	  // actual prefix: 0=none, 1=0xDD, 2=0xFD, 4=0xED
+	  constructor(options) {
+	    // hex-marker, "&" or "#" or ""
+	    this.dissOp = 0;
+	    // actual op-code
+	    this.prefix = 0;
+	    this.options = {
+	      format: 7
+	    };
+	    this.setOptions(options);
+	  }
+	  getOptions() {
+	    return this.options;
+	  }
+	  setOptions(options) {
+	    Object.assign(this.options, options);
+	  }
+	  readByte(i) {
+	    const data = this.options.data;
+	    return data[i] | 0;
+	  }
+	  readWord(i) {
+	    const data = this.options.data;
+	    return data[i] | data[i + 1] << 8;
+	  }
+	  bget() {
+	    const by = this.readByte(this.options.addr);
+	    this.options.addr += 1;
+	    return by;
+	  }
+	  // byte-out: returns byte xx at PC; PC++
+	  bout() {
+	    const by = this.bget();
+	    return _Z80Disass.hexMark + by.toString(16).toUpperCase().padStart(2, "0");
+	  }
+	  // word-out: returns word xxyy from PC, PC+=2
+	  wout() {
+	    const wo = this.readWord(this.options.addr);
+	    this.options.addr += 2;
+	    return _Z80Disass.hexMark + wo.toString(16).toUpperCase().padStart(4, "0");
+	  }
+	  // relative-address-out : gets it from PC and returns PC+(signed)tt ; PC++
+	  radrout() {
+	    let dis = this.bget();
+	    dis = dis << 24 >> 24;
+	    let addr = this.options.addr + dis;
+	    if (addr < 0) {
+	      addr += 65536;
+	    }
+	    return _Z80Disass.hexMark + addr.toString(16).toUpperCase().padStart(4, "0");
+	  }
+	  /* eslint-enable array-element-newline */
+	  // byte-register-out : returns string to an 8-bit register
+	  // handles prefix, special op-codes with IX,IY and h,l
+	  bregout(nr) {
+	    const dissOp = this.dissOp;
+	    nr &= 7;
+	    let prefix = this.prefix;
+	    if (prefix === 4 || (this.prefix === 1 || this.prefix === 2) && (dissOp === 102 || dissOp === 110 || dissOp === 116 || dissOp === 117) && nr !== 6) {
+	      prefix = 0;
+	    }
+	    return _Z80Disass.bregtab[prefix][nr] + (prefix && nr === 6 ? this.bout() + ")" : "");
+	  }
+	  /* eslint-enable array-element-newline */
+	  // word-register-out : returns string to a 16-bit-register
+	  // handles prefix
+	  wregout(nr) {
+	    const prefix = this.prefix === 1 || this.prefix === 2 ? this.prefix : 0;
+	    return _Z80Disass.wregtab[prefix][nr & 3];
+	  }
+	  // push-pop-register-out: like wregout, only SP substituted by AF
+	  pupoRegout(nr) {
+	    nr &= 3;
+	    if (nr === 3) {
+	      return "AF";
+	    }
+	    return this.wregout(nr);
+	  }
+	  onlyPrefix() {
+	    let out;
+	    if (this.prefix === 1) {
+	      out = "[DD]-prefix";
+	    } else if (this.prefix === 2) {
+	      out = "[FD]-prefix";
+	    } else {
+	      out = "[ED]-prefix";
+	    }
+	    this.options.addr -= 1;
+	    return out;
+	  }
+	  // eslint-disable-line array-element-newline
+	  operdisCB() {
+	    let out, newop;
+	    if (this.prefix === 1 || this.prefix === 2) {
+	      newop = this.readByte(this.options.addr + 1) & 254 | 6;
+	    } else {
+	      newop = this.readByte(this.options.addr);
+	    }
+	    const b6b7 = newop >> 6, b3b4b5 = newop >> 3 & 7;
+	    if (b6b7 === 0) {
+	      out = _Z80Disass.rlcTable[b3b4b5] + " " + this.bregout(newop);
+	    } else {
+	      out = _Z80Disass.bitResSetTable[b6b7 - 1] + " " + b3b4b5 + "," + this.bregout(newop);
+	    }
+	    if (this.prefix === 1 || this.prefix === 2) {
+	      if (newop !== this.readByte(this.options.addr) && newop >> 6 !== 1) {
+	        const premem = this.prefix;
+	        this.prefix = 0;
+	        out += " & LD " + this.bregout(this.readByte(this.options.addr));
+	        this.prefix = premem;
+	      }
+	    }
+	    this.options.addr += 1;
+	    return out;
+	  }
+	  // eslint-disable-line array-element-newline
+	  operdisEDpart40To7F(dissOp) {
+	    let out = "";
+	    switch (dissOp & 7) {
+	      // test b0,b1,b2
+	      case 0:
+	        if (dissOp === 112) {
+	          out = "*IN X,(C)";
+	        } else {
+	          out = "IN " + this.bregout(dissOp >> 3) + ",(C)";
+	        }
+	        break;
+	      case 1:
+	        if (dissOp === 113) {
+	          out = "*OUT (C),0";
+	        } else {
+	          out = "OUT (C)," + this.bregout(dissOp >> 3);
+	        }
+	        break;
+	      case 2:
+	        out = (dissOp & 8 ? "ADC" : "SBC") + " HL," + this.wregout(dissOp >> 4);
+	        break;
+	      case 3:
+	        if (dissOp & 8) {
+	          out = "LD " + this.wregout(dissOp >> 4) + ",(" + this.wout() + ")";
+	        } else {
+	          out = "LD (" + this.wout() + ")," + this.wregout(dissOp >> 4);
+	        }
+	        break;
+	      case 4:
+	        out = dissOp === 68 ? "NEG" : "*NEG";
+	        break;
+	      case 5:
+	        if (dissOp === 69) {
+	          out = "RETN";
+	        } else if (dissOp === 77) {
+	          out = "RETI";
+	        } else if ((dissOp & 15) === 5) {
+	          out = "*RETN";
+	        } else {
+	          out = "*RETI";
+	        }
+	        break;
+	      case 6:
+	        switch (dissOp) {
+	          case 70:
+	            out = "IM 0";
+	            break;
+	          case 86:
+	            out = "IM 1";
+	            break;
+	          case 94:
+	            out = "IM 2";
+	            break;
+	          case 78:
+	          // *im 0
+	          case 102:
+	          case 110:
+	            out = "*IM 0";
+	            break;
+	          case 118:
+	            out = "*IM 1";
+	            break;
+	          case 126:
+	            out = "*IM 2";
+	            break;
+	        }
+	        break;
+	      case 7:
+	        out = _Z80Disass.ldIaTable[dissOp >> 3 & 7];
+	        break;
+	    }
+	    return out;
+	  }
+	  /* eslint-enable array-element-newline */
+	  operdisED(dissOp) {
+	    let out = "";
+	    switch (dissOp >> 6) {
+	      // test b6,7
+	      case 0:
+	        out = _Z80Disass.unknownOp;
+	        break;
+	      case 1:
+	        out = this.operdisEDpart40To7F(dissOp);
+	        break;
+	      default:
+	        break;
+	      case 2:
+	        if ((dissOp & 36) === 32) {
+	          out = _Z80Disass.repeatTable[dissOp & 3][dissOp >> 3 & 3];
+	        } else {
+	          out = _Z80Disass.unknownOp;
+	        }
+	        break;
+	      case 3:
+	        out = _Z80Disass.unknownOp;
+	        break;
+	    }
+	    return out;
+	  }
+	  // eslint-disable-line array-element-newline
+	  //
+	  // Disassemble 00-3F
+	  //
+	  operdis00To3Fpart00(b3b4b5) {
+	    let out;
+	    switch (b3b4b5) {
+	      // test b3,b4,b5
+	      case 0:
+	        out = "NOP";
+	        break;
+	      case 1:
+	        out = "EX AF,AF'";
+	        break;
+	      case 2:
+	        out = "DJNZ " + this.radrout();
+	        break;
+	      case 3:
+	        out = "JR " + this.radrout();
+	        break;
+	      default:
+	        out = "JR " + _Z80Disass.conditionTable[b3b4b5 & 3] + "," + this.radrout();
+	        break;
+	    }
+	    return out;
+	  }
+	  operdis00To3Fpart01(dissOp) {
+	    let out;
+	    if (dissOp & 8) {
+	      out = "ADD " + this.wregout(2) + "," + this.wregout(dissOp >> 4);
+	    } else {
+	      out = "LD " + this.wregout(dissOp >> 4) + "," + this.wout();
+	    }
+	    return out;
+	  }
+	  operdis00To3Fpart02(b3b4b5) {
+	    let out = "";
+	    if (b3b4b5 & 4) {
+	      switch (b3b4b5 & 3) {
+	        // test b3,b4
+	        case 0:
+	          out = "LD (" + this.wout() + ")," + this.wregout(2);
+	          break;
+	        case 1:
+	          out = "LD " + this.wregout(2) + ",(" + this.wout() + ")";
+	          break;
+	        case 2:
+	          out = "LD (" + this.wout() + "),A";
+	          break;
+	        case 3:
+	          out = "LD A,(" + this.wout() + ")";
+	          break;
+	      }
+	    } else {
+	      switch (b3b4b5 & 3) {
+	        // test b3,b4
+	        case 0:
+	          out = "LD (BC),A";
+	          break;
+	        case 1:
+	          out = "LD A,(BC)";
+	          break;
+	        case 2:
+	          out = "LD (DE),A";
+	          break;
+	        case 3:
+	          out = "LD A,(DE)";
+	          break;
+	      }
+	    }
+	    return out;
+	  }
+	  // eslint-disable-line array-element-newline
+	  operdis00To3F(dissOp) {
+	    let out = "";
+	    switch (dissOp & 7) {
+	      // test b0,b1,b2
+	      case 0:
+	        out = this.operdis00To3Fpart00(dissOp >> 3 & 7);
+	        break;
+	      case 1:
+	        out = this.operdis00To3Fpart01(dissOp);
+	        break;
+	      case 2:
+	        out = this.operdis00To3Fpart02(dissOp >> 3 & 7);
+	        break;
+	      case 3:
+	        out = (dissOp & 8 ? "DEC " : "INC ") + this.wregout(dissOp >> 4);
+	        break;
+	      case 4:
+	        out = "INC " + this.bregout(dissOp >> 3);
+	        break;
+	      case 5:
+	        out = "DEC " + this.bregout(dissOp >> 3);
+	        break;
+	      case 6:
+	        out = "LD " + this.bregout(dissOp >> 3) + "," + this.bout();
+	        break;
+	      case 7:
+	        out = _Z80Disass.rlcaTable[dissOp >> 3 & 7];
+	        break;
+	    }
+	    return out;
+	  }
+	  // eslint-disable-line array-element-newline
+	  //
+	  // Disassemble C0-FF
+	  //
+	  operdisC0ToFFpart01(dissOp) {
+	    let out = "";
+	    const b4b5 = dissOp >> 4 & 3;
+	    if (dissOp & 8) {
+	      switch (b4b5) {
+	        // test b4,b5
+	        case 0:
+	          out = "RET";
+	          break;
+	        case 1:
+	          out = "EXX";
+	          break;
+	        case 2:
+	          out = "JP (" + this.wregout(2) + ")";
+	          break;
+	        case 3:
+	          out = "LD SP," + this.wregout(2);
+	          break;
+	      }
+	    } else {
+	      out = "POP " + this.pupoRegout(b4b5);
+	    }
+	    return out;
+	  }
+	  operdisC0ToFFpart03(b3b4b5) {
+	    let out = "";
+	    switch (b3b4b5) {
+	      // test b3,b4,b5
+	      case 0:
+	        out = "JP " + this.wout();
+	        break;
+	      case 1:
+	        out = this.operdisCB();
+	        break;
+	      case 2:
+	        out = "OUT (" + this.bout() + "),A";
+	        break;
+	      case 3:
+	        out = "IN A,(" + this.bout() + ")";
+	        break;
+	      case 4:
+	        out = "EX (SP)," + this.wregout(2);
+	        break;
+	      case 5:
+	        out = "EX DE,HL";
+	        break;
+	      case 6:
+	        out = "DI";
+	        break;
+	      case 7:
+	        out = "EI";
+	        break;
+	    }
+	    return out;
+	  }
+	  operdisC0ToFFpart05(dissOp) {
+	    let out;
+	    const b4b5 = dissOp >> 4 & 3;
+	    if (dissOp & 8) {
+	      if (b4b5 === 0) {
+	        out = "CALL " + this.wout();
+	      } else {
+	        out = this.onlyPrefix();
+	      }
+	    } else {
+	      out = "PUSH " + this.pupoRegout(b4b5);
+	    }
+	    return out;
+	  }
+	  operdisC0ToFF(dissOp) {
+	    let out = "";
+	    switch (dissOp & 7) {
+	      // test b0,b1,b2
+	      case 0:
+	        out = "RET " + _Z80Disass.conditionTable[dissOp >> 3 & 7];
+	        break;
+	      case 1:
+	        out = this.operdisC0ToFFpart01(dissOp);
+	        break;
+	      case 2:
+	        out = "JP " + _Z80Disass.conditionTable[dissOp >> 3 & 7] + "," + this.wout();
+	        break;
+	      case 3:
+	        out = this.operdisC0ToFFpart03(dissOp >> 3 & 7);
+	        break;
+	      case 4:
+	        out = "CALL " + _Z80Disass.conditionTable[dissOp >> 3 & 7] + "," + this.wout();
+	        break;
+	      case 5:
+	        out = this.operdisC0ToFFpart05(dissOp);
+	        break;
+	      case 6:
+	        out = _Z80Disass.arithMTab[dissOp >> 3 & 7] + this.bout();
+	        break;
+	      case 7:
+	        out = "RST " + _Z80Disass.hexMark + (dissOp & 56).toString(16).toUpperCase().padStart(2, "0");
+	        break;
+	    }
+	    return out;
+	  }
+	  // disassembles next instruction
+	  getNextLine() {
+	    let dissOp = this.bget();
+	    const prefix = _Z80Disass.prefixMap[dissOp] || 0;
+	    if (prefix) {
+	      dissOp = this.bget();
+	    }
+	    this.prefix = prefix;
+	    this.dissOp = dissOp;
+	    let out = "";
+	    if (prefix === 4) {
+	      out = this.operdisED(dissOp);
+	    } else {
+	      switch (dissOp >> 6) {
+	        // test b6,7
+	        case 0:
+	          out = this.operdis00To3F(dissOp);
+	          break;
+	        case 1:
+	          out = dissOp === 118 ? "HALT" : "LD " + this.bregout(dissOp >> 3) + "," + this.bregout(dissOp);
+	          break;
+	        case 2:
+	          out = _Z80Disass.arithMTab[dissOp >> 3 & 7] + this.bregout(dissOp);
+	          break;
+	        case 3:
+	          out = this.operdisC0ToFF(dissOp);
+	          break;
+	      }
+	    }
+	    return out;
+	  }
+	  disassLine() {
+	    const format = this.options.format ?? 7, startAddr = this.options.addr, line = this.getNextLine();
+	    let out = "";
+	    if (format & 1) {
+	      out += startAddr.toString(16).toUpperCase().padStart(4, "0");
+	    }
+	    if (format & 2) {
+	      const byteHex = [];
+	      if (out.length) {
+	        out += "  ";
+	      }
+	      for (let i = startAddr; i < this.options.addr; i += 1) {
+	        const byte = this.readByte(i) || 0;
+	        byteHex.push(byte.toString(16).toUpperCase().padStart(2, "0"));
+	      }
+	      while (byteHex.length < 4) {
+	        byteHex.push("  ");
+	      }
+	      out += byteHex.join(" ");
+	    }
+	    if (format & 4) {
+	      if (out.length) {
+	        out += "  ";
+	      }
+	      out += line;
+	    }
+	    return out;
+	  }
+	};
+	_Z80Disass.hexMark = "&";
+	/* eslint-disable array-element-newline */
+	_Z80Disass.bregtab = [
+	  // byte-register-table
+	  ["B", "C", "D", "E", "H", "L", "(HL)", "A"],
+	  ["B", "C", "D", "E", "HX", "LX", "(IX+", "A"],
+	  // DD-Prefix
+	  ["B", "C", "D", "E", "HY", "LY", "(IY+", "A"]
+	  // FD-Prefix
+	];
+	/* eslint-disable array-element-newline */
+	_Z80Disass.wregtab = [
+	  // byte-register-table
+	  ["BC", "DE", "HL", "SP"],
+	  ["BC", "DE", "IX", "SP"],
+	  // DD-Prefix
+	  ["BC", "DE", "IY", "SP"]
+	  // FD-Prefix
+	];
+	_Z80Disass.unknownOp = "unknown";
+	//
+	// Disassemble CB
+	//
+	_Z80Disass.rlcTable = ["RLC", "RRC", "RL", "RR", "SLA", "SRA", "SLS*", "SRL"];
+	// eslint-disable-line array-element-newline
+	_Z80Disass.bitResSetTable = ["BIT", "RES", "SET"];
+	//
+	// Disassemble ED
+	//
+	_Z80Disass.ldIaTable = ["LD I,A", "LD R,A", "LD A,I", "LD A,R", "RRD", "RLD", _Z80Disass.unknownOp, _Z80Disass.unknownOp];
+	/* eslint-disable array-element-newline */
+	_Z80Disass.repeatTable = [
+	  ["LDI", "LDD", "LDIR", "LDDR"],
+	  ["CPI", "CPD", "CPIR", "CPDR"],
+	  ["INI", "IND", "INIR", "INDR"],
+	  ["OUTI", "OUTD", "OTIR", "OTDR"]
+	];
+	_Z80Disass.conditionTable = ["NZ", "Z", "NC", "C", "PO", "PE", "P", "M"];
+	_Z80Disass.rlcaTable = ["RLCA", "RRCA", "RLA", "RRA", "DAA", "CPL", "SCF", "CCF"];
+	_Z80Disass.arithMTab = ["ADD A,", "ADC A,", "SUB ", "SBC A,", "AND ", "XOR ", "OR ", "CP "];
+	//
+	// Disassemble main
+	//
+	_Z80Disass.prefixMap = {
+	  221: 1,
+	  253: 2,
+	  237: 4
+	};
+	let Z80Disass = _Z80Disass;
+
 	const _Controller = class _Controller {
-	  constructor(core, view, options = {}) {
+	  constructor(engine, view, options = {}) {
 	    this.outScript = "";
 	    this.initialLoopTimeout = 0;
 	    this.inputSet = false;
@@ -23299,7 +23588,7 @@
 	      fileCat: this.fnFileCat,
 	      fileDir: this.fnFileDir,
 	      fileEra: this.fnFileEra,
-	      fileRen: this.fnFileRen,
+	      fileRen: (paras) => this.runtime.renameFile(this.getFileHandler(), paras),
 	      renumLines: this.fnRenumLines,
 	      deleteLines: this.fnDeleteLines,
 	      editLine: this.fnEditLine,
@@ -23308,7 +23597,7 @@
 	      fileSave: this.fnFileSave,
 	      "new": this.fnNew,
 	      run: this.fnRun,
-	      parse: this.fnParse,
+	      parse: () => this.runtime.parseProgram(),
 	      parseRun: this.fnParseRun,
 	      reset: this.fnReset
 	    };
@@ -23322,7 +23611,8 @@
 	    this.fnWaitForContinueHandler = this.fnWaitForContinue.bind(this);
 	    this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
 	    this.fnOnUserKeyClickHandler = this.onUserKeyClick.bind(this);
-	    this.core = core;
+	    this.engine = engine;
+	    this.core = engine.core;
 	    const model = this.core.getModel();
 	    this.model = model;
 	    this.view = view;
@@ -23330,7 +23620,7 @@
 	    this.options = options;
 	    this.host = createBrowserHost(options);
 	    this.view.addEventListenerById("click", this.fnOnUserKeyClickHandler, ViewID.userKeys);
-	    this.uiController = new UiController(core, view, this, this.fnOnUserActionHandler);
+	    this.uiController = new UiController(this.core, view, this, this.fnOnUserActionHandler);
 	    this.canvas = this.setCanvasType(model.getProperty(ModelPropID.canvasType));
 	    this.fnSpeed();
 	    this.keyboard = new Keyboard({
@@ -23340,24 +23630,21 @@
 	    if (this.model.getProperty(ModelPropID.showKbd)) {
 	      this.getVirtualKeyboard();
 	    }
-	    const random = new Random(model.getProperty(ModelPropID.random) === "cpc");
-	    this.runtime = new Runtime({
+	    this.runtime = this.engine.createRuntime({
 	      canvas: this.canvas,
 	      keyboard: this.keyboard,
 	      sound: this.sound,
-	      random,
+	      randomMode: model.getProperty(ModelPropID.random),
 	      arrayBounds: model.getProperty(ModelPropID.arrayBounds),
 	      basicVersion: model.getProperty(ModelPropID.basicVersion),
 	      trace: model.getProperty(ModelPropID.trace),
 	      implicitLines: model.getProperty(ModelPropID.implicitLines),
 	      integerOverflow: model.getProperty(ModelPropID.integerOverflow),
+	      prettyLowercaseVars: model.getProperty(ModelPropID.prettyLowercaseVars),
 	      onClickKey: this.fnPutKeyInBufferHandler,
-	      encodeTokens: (input) => this.encodeTokenizedBasic(input),
 	      outputError: this.outputError.bind(this),
 	      onJsError: (error) => this.selectJsError(this.getOutputText(), error),
 	      logger: UiUtils.console,
-	      getCodeGeneratorBasic: () => this.getCodeGeneratorBasic(),
-	      getCodeGeneratorToken: () => this.codeGeneratorToken,
 	      onVariablesCleared: () => this.uiController.refreshVariables(),
 	      onTokenized: (sourceLength, tokenLength) => {
 	        if (UiUtils.debug) {
@@ -23384,8 +23671,6 @@
 	    });
 	    this.variables = this.runtime.variables;
 	    this.vm = this.runtime.vm;
-	    this.basicParser = this.runtime.basicParser;
-	    this.basicLexer = this.runtime.basicLexer;
 	    const onCanvasClick = (event, x, y, xTxt, yTxt) => {
 	      const handler = this.vm.getOnCanvasClickHandler();
 	      handler(x, y, xTxt, yTxt, event.detail === 2);
@@ -23566,7 +23851,7 @@
 	          exampleChanged = true;
 	        }
 	        if (!example) {
-	          const dataString = storage.getItem(key) || "", data = FileHandler.splitMeta(dataString);
+	          const dataString = storage.getItem(key) || "", data = this.engine.files.splitMeta(dataString);
 	          example = {
 	            key,
 	            title: "",
@@ -23679,7 +23964,7 @@
 	  }
 	  // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
 	  mergeScripts(script1, script2) {
-	    return BasicFormatter.mergeScripts(
+	    return this.runtime.mergeScripts(
 	      script1,
 	      script2,
 	      this.model.getProperty(ModelPropID.implicitLines),
@@ -23688,7 +23973,7 @@
 	  }
 	  // get line range from a script with sorted line numbers
 	  fnGetLinesInRange(script, firstLine, lastLine) {
-	    return BasicFormatter.getLinesInRangeFromScript(
+	    return this.runtime.getLinesInRangeFromScript(
 	      script,
 	      firstLine,
 	      lastLine,
@@ -23701,14 +23986,14 @@
 	    this.outputError(this.vm.vmComposeError(Error(), 21, "split"), true);
 	  }
 	  fnGetStorageDirectoryEntries(mask) {
-	    return FileHandler.getStorageDirectoryEntries(this.getStorage(), mask);
+	    return this.engine.files.getStorageDirectoryEntries(this.getStorage(), mask);
 	  }
 	  fnFileCat(paras) {
 	    const stream = paras.stream, dirList = this.fnGetStorageDirectoryEntries();
 	    this.runtime.printDirectoryEntries(dirList, stream, true);
 	  }
 	  fnFileDir(paras) {
-	    const stream = paras.stream, example = this.model.getProperty(ModelPropID.example), dirList = FileHandler.getDirectoryEntries(this.getStorage(), this.model.getAllExamples(), example, paras.fileMask);
+	    const stream = paras.stream, example = this.model.getProperty(ModelPropID.example), dirList = this.engine.files.getDirectoryEntries(this.getStorage(), this.model.getAllExamples(), example, paras.fileMask);
 	    this.runtime.printDirectoryEntries(dirList, stream, false);
 	  }
 	  fnFileEra(paras) {
@@ -23720,84 +24005,23 @@
 	      UiUtils.console.warn("fnEraseFile: file not found in localStorage:", name);
 	    });
 	  }
-	  fnFileRen(paras) {
-	    this.runtime.renameFile(this.getFileHandler(), paras);
-	  }
-	  getBasicFormatter() {
-	    if (!this.basicFormatter) {
-	      this.basicFormatter = new BasicFormatter({
-	        lexer: this.basicLexer,
-	        parser: this.basicParser
-	      });
-	    }
-	    return this.basicFormatter;
-	  }
-	  getBasicTokenizer() {
-	    if (!this.basicTokenizer) {
-	      this.basicTokenizer = new BasicTokenizer();
-	    }
-	    return this.basicTokenizer;
-	  }
-	  getCodeGeneratorBasic() {
-	    if (!this.codeGeneratorBasic) {
-	      this.codeGeneratorBasic = new CodeGeneratorBasic({
-	        lexer: this.basicLexer,
-	        parser: this.basicParser,
-	        lowercaseVars: this.model.getProperty(ModelPropID.prettyLowercaseVars)
-	      });
-	    }
-	    return this.codeGeneratorBasic;
-	  }
-	  getCodeGeneratorToken() {
-	    if (!this.codeGeneratorToken) {
-	      this.codeGeneratorToken = new CodeGeneratorToken({
-	        lexer: this.basicLexer,
-	        parser: this.basicParser,
-	        implicitLines: this.model.getProperty(ModelPropID.implicitLines)
-	      });
-	    }
-	    return this.codeGeneratorToken;
-	  }
 	  decodeTokenizedBasic(input) {
-	    const basicTokenizer = this.getBasicTokenizer();
-	    return basicTokenizer.decode(input);
-	  }
-	  encodeTokenizedBasic(input, name = "test") {
-	    const output = this.getCodeGeneratorToken().generateProgram(input);
-	    if (output.error) {
-	      this.outputError(output.error);
-	    } else if (UiUtils.debug > 1) {
-	      const outputText = output.text, hex = outputText.split("").map(function(s) {
-	        return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
-	      }).join(","), decoded = this.decodeTokenizedBasic(outputText), diff = Diff.testDiff(input.toUpperCase(), decoded.toUpperCase());
-	      UiUtils.console.debug("TokenizerInput (" + name + ") [len=" + input.length + "]:\n" + input);
-	      UiUtils.console.debug("TokenizerOutputHex (" + name + ") [len=" + outputText.length + "]:\n" + hex);
-	      UiUtils.console.debug("TokenizerOutputDecoded (" + name + ") [len=" + decoded.length + "]:\n" + decoded);
-	      UiUtils.console.debug("TokenizerDiff (" + name + ") [len=" + diff.length + "]:\n" + diff);
-	    }
-	    return output.text;
+	    return this.runtime.basicTokenizer.decode(input);
 	  }
 	  prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons) {
-	    const output = this.getCodeGeneratorBasic().generatePretty(input, keepWhiteSpace, keepBrackets, keepColons);
+	    const output = this.runtime.codeGeneratorBasic.generatePretty(input, keepWhiteSpace, keepBrackets, keepColons);
 	    if (output.error) {
 	      this.outputError(output.error);
 	    }
 	    return output.text;
-	  }
-	  applySnapshot(input) {
-	    const snapshot = new Snapshot({
-	      name: "",
-	      data: input
-	    });
-	    return snapshot.applyToVm(this.vm);
 	  }
 	  loadFileContinue(input) {
 	    const inFile = this.vm.vmGetInFileObject();
 	    this.runtime.continueLoad(input, inFile, {
-	      decode: (storedInput) => FileHandler.decodeStoredFile(storedInput, {
+	      decode: (storedInput) => this.engine.files.decodeStoredFile(storedInput, {
 	        atobFn: (value) => this.host.atobFn(value),
 	        decodeTokenizedBasic: (value) => this.decodeTokenizedBasic(value),
-	        applySnapshot: (value) => this.applySnapshot(value),
+	        applySnapshot: (value) => this.runtime.applySnapshot(value),
 	        importArchive: (value, type) => {
 	          const imported = [];
 	          this.getFileHandler().fnLoad2(value, inFile.name, type, imported);
@@ -23865,7 +24089,7 @@
 	    }
 	  }
 	  loadExampleFile() {
-	    const inFile = this.vm.vmGetInFileObject(), key = this.model.getProperty(ModelPropID.example), plan = FileHandler.prepareExampleLoad(inFile.name, key, this.model.getAllExamples(), this.model.getDatabase().src), example = plan.name, exampleEntry = plan.entry, url = plan.url;
+	    const inFile = this.vm.vmGetInFileObject(), key = this.model.getProperty(ModelPropID.example), plan = this.engine.files.prepareExampleLoad(inFile.name, key, this.model.getAllExamples(), this.model.getDatabase().src), example = plan.name, exampleEntry = plan.entry, url = plan.url;
 	    inFile.memorizedExample = plan.memorizedExample;
 	    if (UiUtils.debug > 0) {
 	      UiUtils.console.debug("loadExample: name=" + example + " (current=" + key + ")");
@@ -23889,7 +24113,7 @@
 	    }
 	  }
 	  tryLoadingFromLocalStorage(name) {
-	    return FileHandler.loadFromStorage(this.getStorage(), name);
+	    return this.engine.files.loadFromStorage(this.getStorage(), name);
 	  }
 	  fnFileLoad() {
 	    const inFile = this.vm.vmGetInFileObject();
@@ -23916,7 +24140,7 @@
 	    const outFile = this.vm.vmGetOutFileObject();
 	    this.runtime.dispatchFileSave(
 	      outFile,
-	      (file) => this.getFileHandler().saveFile(file, () => this.getInputText(), (input, storageName) => this.encodeTokenizedBasic(input, storageName)).data,
+	      (file) => this.getFileHandler().saveFile(file, () => this.getInputText(), (input, storageName) => this.runtime.encodeTokenizedBasic(input, storageName)).data,
 	      (name) => {
 	        if (UiUtils.debug > 0) {
 	          UiUtils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
@@ -23953,10 +24177,10 @@
 	    );
 	  }
 	  outputError(error, noSelection) {
-	    const stream = 0, diagnostic = Utils.createDiagnostic(error, noSelection, error.name === "CpcVm" ? this.vm.err() : void 0), shortError = diagnostic.shortMessage;
+	    const stream = 0, diagnostic = this.engine.createDiagnostic(error, noSelection, error.name === "CpcVm" ? this.vm.err() : void 0), shortError = diagnostic.shortMessage;
 	    this.uiController.onDiagnostic(diagnostic);
 	    this.options.onDiagnostic?.(diagnostic);
-	    const escapedShortError = Utils.escapeControlCharacters(shortError);
+	    const escapedShortError = this.engine.escapeControlCharacters(shortError);
 	    this.vm.print(stream, escapedShortError + "\r\n");
 	    return shortError;
 	  }
@@ -23964,7 +24188,7 @@
 	    this.runtime.renumProgram(
 	      this.getInputText(),
 	      paras,
-	      (source, newLine, oldLine, step, keep) => this.getBasicFormatter().renumber(source, newLine, oldLine, step, keep),
+	      (source, newLine, oldLine, step, keep) => this.runtime.basicFormatter.renumber(source, newLine, oldLine, step, keep),
 	      (source) => {
 	        this.fnPutChangedInputOnStack();
 	        this.setInputText(source, true);
@@ -23991,9 +24215,6 @@
 	    if (this.runtime.editLine(paras, lines[0], this.fnEditLineCallbackHandler, (error) => this.outputError(error))) {
 	      this.fnWaitInput();
 	    }
-	  }
-	  fnParse() {
-	    return this.runtime.parseProgram();
 	  }
 	  presentCompileOutput(output) {
 	    let outputString;
@@ -24023,12 +24244,12 @@
 	      this.fnPutChangedInputOnStack();
 	      this.setInputText(output, true);
 	      this.fnPutChangedInputOnStack();
-	      const diff = Diff.testDiff(input.toUpperCase(), output.toUpperCase());
+	      const diff = this.runtime.formatDiff(input, output);
 	      this.setOutputText(diff);
 	    }
 	  }
 	  fnAddLines() {
-	    const input = this.getInputText(), output = BasicFormatter.addLineNumbers(input);
+	    const input = this.getInputText(), output = this.runtime.addLineNumbers(input);
 	    if (output) {
 	      this.fnPutChangedInputOnStack();
 	      this.setInputText(output, true);
@@ -24036,8 +24257,7 @@
 	    }
 	  }
 	  fnRemoveLines() {
-	    const basicFormatter = this.getBasicFormatter();
-	    const input = this.getInputText(), output = basicFormatter.removeUnusedLines(input);
+	    const input = this.getInputText(), output = this.runtime.basicFormatter.removeUnusedLines(input);
 	    if (output.error) {
 	      this.outputError(output.error);
 	    } else {
@@ -24073,20 +24293,16 @@
 	      length: 0,
 	      entry: 0
 	    };
-	    let diskImage, name = "", data = "";
+	    let name = "", data = "";
+	    const fileHandler = this.getFileHandler();
 	    const fnExportBase64 = () => {
 	      meta.encoding = "base64";
-	      const metaString = FileHandler.joinMeta(meta);
+	      const metaString = this.engine.files.joinMeta(meta);
 	      data = metaString + "," + this.host.btoaFn(data);
 	      name += ".b64.txt";
 	    };
 	    if (exportDSK) {
-	      diskImage = this.getFileHandler().getDiskImage();
-	      diskImage.setOptions({
-	        diskName: "test",
-	        data: diskImage.formatImage(format)
-	        // data or system
-	      });
+	      fileHandler.startDiskImage(format);
 	    }
 	    for (let i = 0; i < options.length; i += 1) {
 	      const item = options[i];
@@ -24105,12 +24321,12 @@
 	        } else {
 	          name = item.value;
 	          data = this.tryLoadingFromLocalStorage(name) || "";
-	          const metaAndData = FileHandler.splitMeta(data);
+	          const metaAndData = this.engine.files.splitMeta(data);
 	          Object.assign(meta, metaAndData.meta);
 	          data = metaAndData.data;
 	        }
 	        if (exportTokenized && meta.typeString === "A") {
-	          const tokens = this.encodeTokenizedBasic(data);
+	          const tokens = this.runtime.encodeTokenizedBasic(data);
 	          if (tokens) {
 	            data = tokens;
 	            meta.typeString = "T";
@@ -24121,25 +24337,13 @@
 	            UiUtils.console.warn("Controller: Cannot tokenize, keeping ASCII: " + item.value);
 	          }
 	        }
-	        if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
-	          const [name1, ext1] = DiskImage.getFilenameAndExtension(name), header = DiskImage.createAmsdosHeader({
-	            name: name1,
-	            ext: ext1,
-	            typeString: meta.typeString,
-	            start: meta.start,
-	            length: meta.length,
-	            entry: meta.entry
-	          }), headerString = DiskImage.combineAmsdosHeader(header);
-	          data = headerString + data;
-	        }
-	        if (diskImage) {
-	          diskImage.writeFile(name, data);
-	          const diskOptions = diskImage.getOptions();
-	          data = diskOptions.data;
+	        if (exportDSK) {
+	          data = fileHandler.addFileToDiskImage(name, data, meta);
 	          name = name.substring(0, name.indexOf(".") + 1) + "dsk";
 	          meta.length = data.length;
 	          meta.typeString = "X";
 	        } else {
+	          data = fileHandler.prepareAmsdosFile(name, data, meta);
 	          if (exportBase64) {
 	            fnExportBase64();
 	          }
@@ -24149,10 +24353,8 @@
 	        }
 	      }
 	    }
-	    if (diskImage) {
-	      if (stripEmpty) {
-	        data = diskImage.stripEmptyTracks();
-	      }
+	    if (exportDSK) {
+	      data = fileHandler.getDiskImageData(stripEmpty);
 	      if (exportBase64) {
 	        fnExportBase64();
 	      }
@@ -24601,7 +24803,7 @@
 	  }
 	  getFileHandler() {
 	    if (!this.fileHandler) {
-	      this.fileHandler = new FileHandler({
+	      this.fileHandler = this.engine.createFileHandler({
 	        adaptFilename: this.adaptFilename.bind(this),
 	        updateStorageDatabase: this.updateStorageDatabase.bind(this),
 	        outputError: this.outputError.bind(this),
@@ -24767,7 +24969,7 @@
 	    vm.closein();
 	    this.uiController.setPopoversHiddenExcept();
 	    inFile.open = true;
-	    const request = FileHandler.createExampleLoadRequest(key, dataBaseName, this.model.getExample(key)?.meta, options.autorun ?? this.model.getProperty(ModelPropID.autorun));
+	    const request = this.engine.files.createExampleLoadRequest(key, dataBaseName, this.model.getExample(key)?.meta, options.autorun ?? this.model.getProperty(ModelPropID.autorun));
 	    inFile.command = request.command;
 	    inFile.name = request.name;
 	    inFile.start = void 0;
@@ -24831,7 +25033,7 @@
 	  }
 	  fnSpeed() {
 	    const speed = this.model.getProperty(ModelPropID.speed);
-	    this.initialLoopTimeout = Runtime.getLoopDelay(speed);
+	    this.initialLoopTimeout = this.engine.getLoopDelay(speed);
 	  }
 	  /* eslint-enable no-invalid-this */
 	};
@@ -27584,19 +27786,19 @@
 	});
 
 	class Controller0 {
-	  constructor(core, options) {
+	  constructor(engine, options) {
 	    this.inScript = "";
 	    this.outScript = "";
 	    this.initialLoopTimeout = 0;
 	    /* eslint-disable no-invalid-this */
 	    this.handlers = {
-	      waitKey: this.fnWaitKey,
+	      waitKey: () => this.runtime.handleWaitKey(),
 	      waitSound: this.fnWaitSound,
 	      waitInput: this.fnWaitInput,
 	      fileCat: this.fnFileCat,
 	      fileDir: this.fnFileDir,
 	      fileEra: this.fnFileEra,
-	      fileRen: this.fnFileRen,
+	      fileRen: (paras) => this.runtime.renameFile(this.getFileHandler(), paras),
 	      renumLines: this.fnRenumLines,
 	      deleteLines: this.fnDeleteLines,
 	      editLine: this.fnEditLine,
@@ -27605,34 +27807,32 @@
 	      fileSave: this.fnFileSave,
 	      "new": this.fnNew,
 	      run: this.fnRun,
-	      parse: this.fnParse,
+	      parse: () => this.runtime.parseProgram(),
 	      parseRun: this.fnParseRun,
 	      reset: this.fnReset
 	    };
 	    this.fnDirectInputHandler = this.fnDirectInput.bind(this);
 	    this.fnPutKeyInBufferHandler = this.fnPutKeysInBuffer.bind(this);
 	    this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
-	    this.core = core;
+	    this.engine = engine;
+	    this.core = engine.core;
 	    const model = this.core.getModel();
 	    this.options = options;
 	    this.fnSpeed();
-	    const random = new Random(model.getProperty(ModelPropID.random) === "cpc");
-	    this.runtime = new Runtime({
+	    this.runtime = this.engine.createRuntime({
 	      canvas: this.options.canvas,
 	      keyboard: this.options.keyboard,
 	      sound: this.options.sound,
-	      random,
+	      randomMode: model.getProperty(ModelPropID.random),
 	      arrayBounds: model.getProperty(ModelPropID.arrayBounds),
 	      basicVersion: model.getProperty(ModelPropID.basicVersion),
 	      trace: model.getProperty(ModelPropID.trace),
 	      implicitLines: model.getProperty(ModelPropID.implicitLines),
 	      integerOverflow: model.getProperty(ModelPropID.integerOverflow),
+	      prettyLowercaseVars: model.getProperty(ModelPropID.prettyLowercaseVars),
 	      onClickKey: this.fnPutKeyInBufferHandler,
-	      encodeTokens: (input) => this.encodeTokenizedBasic(input),
 	      outputError: this.outputError.bind(this),
 	      logger: Utils.console,
-	      getCodeGeneratorBasic: () => this.getCodeGeneratorBasic(),
-	      getCodeGeneratorToken: () => this.codeGeneratorToken,
 	      onTokenized: (sourceLength, tokenLength) => {
 	        if (Utils.debug) {
 	          Utils.console.debug("parse: input length:", sourceLength, ", tokenized length:", tokenLength);
@@ -27654,8 +27854,6 @@
 	    });
 	    this.variables = this.runtime.variables;
 	    this.vm = this.runtime.vm;
-	    this.basicParser = this.runtime.basicParser;
-	    this.basicLexer = this.runtime.basicLexer;
 	    this.vm.setCanvas(this.options.canvas);
 	    this.runtime.reset();
 	    this.hasStorageDatabase = this.getHasStorageDatabase();
@@ -27745,9 +27943,6 @@
 	  fnWaitSound() {
 	    this.runtime.handleWaitSound();
 	  }
-	  fnWaitKey() {
-	    return this.runtime.handleWaitKey();
-	  }
 	  fnWaitInput() {
 	    const result = this.runtime.handleWaitInput({
 	      onInvalid: (error) => this.outputError(error, true),
@@ -27767,7 +27962,7 @@
 	  }
 	  // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
 	  mergeScripts(script1, script2) {
-	    return BasicFormatter.mergeScripts(
+	    return this.runtime.mergeScripts(
 	      script1,
 	      script2,
 	      this.core.getModel().getProperty(ModelPropID.implicitLines),
@@ -27776,7 +27971,7 @@
 	  }
 	  // get line range from a script with sorted line numbers
 	  fnGetLinesInRange(script, firstLine, lastLine) {
-	    return BasicFormatter.getLinesInRangeFromScript(
+	    return this.runtime.getLinesInRangeFromScript(
 	      script,
 	      firstLine,
 	      lastLine,
@@ -27808,76 +28003,15 @@
 	      Utils.console.warn("fnEraseFile: file not found in localStorage:", name);
 	    });
 	  }
-	  fnFileRen(paras) {
-	    this.runtime.renameFile(this.getFileHandler(), paras);
-	  }
-	  getBasicFormatter() {
-	    if (!this.basicFormatter) {
-	      this.basicFormatter = new BasicFormatter({
-	        lexer: this.basicLexer,
-	        parser: this.basicParser
-	      });
-	    }
-	    return this.basicFormatter;
-	  }
-	  getBasicTokenizer() {
-	    if (!this.basicTokenizer) {
-	      this.basicTokenizer = new BasicTokenizer();
-	    }
-	    return this.basicTokenizer;
-	  }
-	  getCodeGeneratorBasic() {
-	    if (!this.codeGeneratorBasic) {
-	      this.codeGeneratorBasic = new CodeGeneratorBasic({
-	        lexer: this.basicLexer,
-	        parser: this.basicParser,
-	        lowercaseVars: this.core.getModel().getProperty(ModelPropID.prettyLowercaseVars)
-	      });
-	    }
-	    return this.codeGeneratorBasic;
-	  }
-	  getCodeGeneratorToken() {
-	    if (!this.codeGeneratorToken) {
-	      this.codeGeneratorToken = new CodeGeneratorToken({
-	        lexer: this.basicLexer,
-	        parser: this.basicParser,
-	        implicitLines: this.core.getModel().getProperty(ModelPropID.implicitLines)
-	      });
-	    }
-	    return this.codeGeneratorToken;
-	  }
 	  decodeTokenizedBasic(input) {
-	    const basicTokenizer = this.getBasicTokenizer();
-	    return basicTokenizer.decode(input);
-	  }
-	  encodeTokenizedBasic(input, name = "test") {
-	    const output = this.getCodeGeneratorToken().generateProgram(input);
-	    if (output.error) {
-	      this.outputError(output.error);
-	    } else if (Utils.debug > 1) {
-	      const outputText = output.text, hex = outputText.split("").map(function(s) {
-	        return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
-	      }).join(","), decoded = this.decodeTokenizedBasic(outputText), diff = Diff.testDiff(input.toUpperCase(), decoded.toUpperCase());
-	      Utils.console.debug("TokenizerInput (" + name + ") [len=" + input.length + "]:\n" + input);
-	      Utils.console.debug("TokenizerOutputHex (" + name + ") [len=" + outputText.length + "]:\n" + hex);
-	      Utils.console.debug("TokenizerOutputDecoded (" + name + ") [len=" + decoded.length + "]:\n" + decoded);
-	      Utils.console.debug("TokenizerDiff (" + name + ") [len=" + diff.length + "]:\n" + diff);
-	    }
-	    return output.text;
+	    return this.runtime.basicTokenizer.decode(input);
 	  }
 	  prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons) {
-	    const output = this.getCodeGeneratorBasic().generatePretty(input, keepWhiteSpace, keepBrackets, keepColons);
+	    const output = this.runtime.codeGeneratorBasic.generatePretty(input, keepWhiteSpace, keepBrackets, keepColons);
 	    if (output.error) {
 	      this.outputError(output.error);
 	    }
 	    return output.text;
-	  }
-	  applySnapshot(input) {
-	    const snapshot = new Snapshot({
-	      name: "",
-	      data: input
-	    });
-	    return snapshot.applyToVm(this.vm);
 	  }
 	  loadFileContinue(input) {
 	    const inFile = this.vm.vmGetInFileObject();
@@ -27885,7 +28019,7 @@
 	      decode: (storedInput) => FileHandler.decodeStoredFile(storedInput, {
 	        atobFn: (value) => this.options.atobFn(value),
 	        decodeTokenizedBasic: (value) => this.decodeTokenizedBasic(value),
-	        applySnapshot: (value) => this.applySnapshot(value),
+	        applySnapshot: (value) => this.runtime.applySnapshot(value),
 	        importArchive: (value, type) => {
 	          const imported = [];
 	          this.getFileHandler().fnLoad2(value, inFile.name, type, imported);
@@ -27995,7 +28129,7 @@
 	    const outFile = this.vm.vmGetOutFileObject();
 	    this.runtime.dispatchFileSave(
 	      outFile,
-	      (file) => this.getFileHandler().saveFile(file, () => this.getInputText(), (input, storageName) => this.encodeTokenizedBasic(input, storageName)).data,
+	      (file) => this.getFileHandler().saveFile(file, () => this.getInputText(), (input, storageName) => this.runtime.encodeTokenizedBasic(input, storageName)).data,
 	      (name) => {
 	        if (Utils.debug > 0) {
 	          Utils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
@@ -28042,7 +28176,7 @@
 	    this.runtime.renumProgram(
 	      this.getInputText(),
 	      paras,
-	      (source, newLine, oldLine, step, keep) => this.getBasicFormatter().renumber(source, newLine, oldLine, step, keep),
+	      (source, newLine, oldLine, step, keep) => this.runtime.basicFormatter.renumber(source, newLine, oldLine, step, keep),
 	      (source) => this.setInputText(source, true),
 	      (error) => {
 	        Utils.console.warn(error);
@@ -28061,9 +28195,6 @@
 	        this.fnWaitInput();
 	      }
 	    }
-	  }
-	  fnParse() {
-	    return this.runtime.parseProgram();
 	  }
 	  presentCompileOutput(output) {
 	    let outputString;
@@ -28090,7 +28221,7 @@
 	    const input = this.getInputText(), keepWhiteSpace = model.getProperty(ModelPropID.prettySpace), keepBrackets = model.getProperty(ModelPropID.prettyBrackets), keepColons = model.getProperty(ModelPropID.prettyColons), output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons);
 	    if (output) {
 	      this.setInputText(output, true);
-	      const diff = Diff.testDiff(input.toUpperCase(), output.toUpperCase());
+	      const diff = this.runtime.formatDiff(input, output);
 	      this.setOutputText(diff);
 	    }
 	  }
@@ -28101,8 +28232,7 @@
 	    }
 	  }
 	  fnRemoveLines() {
-	    const basicFormatter = this.getBasicFormatter();
-	    const input = this.getInputText(), output = basicFormatter.removeUnusedLines(input);
+	    const input = this.getInputText(), output = this.runtime.basicFormatter.removeUnusedLines(input);
 	    if (output.error) {
 	      this.outputError(output.error);
 	    } else {
@@ -28119,6 +28249,7 @@
 	      entry: 0
 	    };
 	    let name = "", data = "";
+	    const fileHandler = this.getFileHandler();
 	    this.options.btoaFn;
 	    for (let i = 0; i < options.length; i += 1) {
 	      const item = options[i];
@@ -28127,16 +28258,8 @@
 	      const metaAndData = FileHandler.splitMeta(data);
 	      Object.assign(meta, metaAndData.meta);
 	      data = metaAndData.data;
-	      if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
-	        const [name1, ext1] = DiskImage.getFilenameAndExtension(name), header = DiskImage.createAmsdosHeader({
-	          name: name1,
-	          ext: ext1,
-	          typeString: meta.typeString,
-	          start: meta.start,
-	          length: meta.length,
-	          entry: meta.entry
-	        }), headerString = DiskImage.combineAmsdosHeader(header);
-	        data = headerString + data;
+	      {
+	        data = fileHandler.prepareAmsdosFile(name, data, meta);
 	      }
 	    }
 	  }
@@ -28300,7 +28423,7 @@
 	  }
 	  getFileHandler() {
 	    if (!this.fileHandler) {
-	      this.fileHandler = new FileHandler({
+	      this.fileHandler = this.engine.createFileHandler({
 	        adaptFilename: this.adaptFilename.bind(this),
 	        updateStorageDatabase: this.updateStorageDatabase.bind(this),
 	        outputError: this.outputError.bind(this),
@@ -28416,193 +28539,10 @@
 	  /* eslint-enable no-invalid-this */
 	}
 
-	class Model {
-	  constructor(config) {
-	    this.config = config || {};
-	    this.initialConfig = Object.assign({}, this.config);
-	    this.databases = {};
-	    this.examples = {};
-	  }
-	  // {
-	  getProperty(property) {
-	    return this.config[property];
-	  }
-	  setProperty(property, value) {
-	    const previousValue = this.config[property];
-	    this.config[property] = value;
-	    if (value !== previousValue && this.propertyChangeCallback) {
-	      this.propertyChangeCallback();
-	    }
-	  }
-	  setPropertyChangeCallback(callback) {
-	    this.propertyChangeCallback = callback;
-	  }
-	  getAllProperties() {
-	    return this.config;
-	  }
-	  getAllInitialProperties() {
-	    return this.initialConfig;
-	  }
-	  getChangedProperties() {
-	    const current = this.config, initial = this.initialConfig, changed = {};
-	    for (const name in current) {
-	      if (Object.prototype.hasOwnProperty.call(current, name)) {
-	        if (current[name] !== initial[name]) {
-	          changed[name] = current[name];
-	        }
-	      }
-	    }
-	    return changed;
-	  }
-	  addDatabases(db) {
-	    for (const par in db) {
-	      if (Object.prototype.hasOwnProperty.call(db, par)) {
-	        const entry = db[par];
-	        this.databases[par] = entry;
-	        this.examples[par] = {};
-	      }
-	    }
-	  }
-	  getAllDatabases() {
-	    return this.databases;
-	  }
-	  getDatabase() {
-	    const database = this.getProperty(ModelPropID.database);
-	    return this.databases[database];
-	  }
-	  getAllExamples() {
-	    const database = this.getProperty(ModelPropID.database);
-	    return this.examples[database];
-	  }
-	  getExample(key) {
-	    const database = this.getProperty(ModelPropID.database);
-	    return this.examples[database][key];
-	  }
-	  setExample(example) {
-	    const database = this.getProperty(ModelPropID.database), key = example.key;
-	    if (!this.examples[database][key]) {
-	      if (Utils.debug > 1) {
-	        Utils.console.debug("setExample: creating new example:", key);
-	      }
-	    }
-	    this.examples[database][key] = example;
-	  }
-	  removeExample(key) {
-	    const database = this.getProperty(ModelPropID.database);
-	    if (!this.examples[database][key]) {
-	      Utils.console.warn("removeExample: example does not exist: " + key);
-	    }
-	    delete this.examples[database][key];
-	  }
-	}
-
-	const ModelPropIDdatabase = "database";
-	const ModelPropIDexample = "example";
-	const ModelPropIDdatabaseDirs = "databaseDirs";
-	class Core {
-	  constructor(defaultConfig) {
-	    this.addIndex = (dir, input) => {
-	      if (typeof input === "function") {
-	        input = {
-	          [dir]: JSON.parse(Core.fnHereDoc(input).trim())
-	        };
-	      }
-	      for (const value in input) {
-	        const item = input[value];
-	        for (let i = 0; i < item.length; i += 1) {
-	          this.model.setExample(item[i]);
-	        }
-	      }
-	    };
-	    this.addItem = (key, input) => {
-	      let inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
-	      inputString = inputString.replace(/^\n/, "").replace(/\n$/, "");
-	      if (!key) {
-	        Utils.console.warn("addItem: no key!");
-	        key = "unknown";
-	      }
-	      const implicitLines = this.model.getProperty(ModelPropID.implicitLines);
-	      const linesOnLoad = this.model.getProperty(ModelPropID.linesOnLoad);
-	      if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
-	        inputString = BasicFormatter.addLineNumbers(inputString);
-	      }
-	      const example = this.model.getExample(key);
-	      if (example) {
-	        example.script = inputString;
-	      }
-	    };
-	    this.addRsx = (key, RsxConstructor) => {
-	      const example = this.model.getExample(key);
-	      example.key = key;
-	      example.rsx = new RsxConstructor();
-	      example.loaded = true;
-	      Utils.console.log("addItem:", key);
-	      return key;
-	    };
-	    this.model = new Model(defaultConfig);
-	  }
-	  init() {
-	    this.initDatabases();
-	  }
-	  getModel() {
-	    return this.model;
-	  }
-	  setDebug(debug) {
-	    Utils.setDebug(debug);
-	  }
-	  static getUniqueDbKey(name, databases) {
-	    let key = name, index = 2;
-	    while (databases[key]) {
-	      key = name + index;
-	      index += 1;
-	    }
-	    return key;
-	  }
-	  initDatabases() {
-	    const model = this.model, databases = {}, databaseDirs = model.getProperty(ModelPropIDdatabaseDirs).split(",");
-	    for (const databaseDir of databaseDirs) {
-	      const parts1 = databaseDir.split("="), databaseSrc = parts1[0], assignedName = parts1.length > 1 ? parts1[1] : "", parts2 = databaseSrc.split("/"), name = assignedName || parts2[parts2.length - 1], key = Core.getUniqueDbKey(name, databases);
-	      databases[key] = {
-	        text: key,
-	        title: databaseSrc,
-	        src: databaseSrc
-	      };
-	    }
-	    this.model.addDatabases(databases);
-	  }
-	  static fnHereDoc(fn) {
-	    return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
-	  }
-	  parseArgs(args, config) {
-	    for (const arg of args) {
-	      const [name, ...valueParts] = arg.split("=");
-	      const nameType = typeof config[name];
-	      let value = valueParts.join("=");
-	      if (value !== void 0) {
-	        if (nameType === "boolean") {
-	          value = value === "true";
-	        } else if (nameType === "number") {
-	          value = Number(value);
-	        }
-	        config[name] = value;
-	      }
-	    }
-	    return config;
-	  }
-	  fnRedirectExamples(redirectExamples) {
-	    const model = this.getModel();
-	    const name = model.getProperty(ModelPropIDdatabase) + "/" + model.getProperty(ModelPropIDexample);
-	    if (redirectExamples[name]) {
-	      model.setProperty(ModelPropIDdatabase, redirectExamples[name].database);
-	      model.setProperty(ModelPropIDexample, redirectExamples[name].example);
-	    }
-	  }
-	}
-
 	function createController(isHeadlessDirectInput = true, loadScript = () => {
 	  throw new Error("Unexpected script load");
 	}, notifications = {}) {
-	  const core = new Core({
+	  const engine = new Engine({
 	    databaseDirs: "examples",
 	    database: "examples",
 	    example: "original",
@@ -28614,7 +28554,7 @@
 	    random: "cpc",
 	    speed: 100,
 	    trace: false
-	  });
+	  }), core = engine.core;
 	  core.init();
 	  core.getModel().getDatabase().loaded = true;
 	  core.getModel().setExample({
@@ -28695,7 +28635,7 @@
 	    setTimeout: (callback) => callbacks.push(callback),
 	    ...notifications
 	  };
-	  const controller = new Controller0(core, options);
+	  const controller = new Controller0(engine, options);
 	  return {
 	    controller,
 	    core,
@@ -33301,6 +33241,16 @@
 	  return { data, events, storage, handler };
 	}
 	QUnit.module("FileHandler", function() {
+	  QUnit.test("AMSDOS and DSK export operations stay behind FileHandler", function(assert) {
+	    const host = createFileOperations(), meta = { typeString: "T", start: 368, length: 5, entry: 0 }, prepared = host.handler.prepareAmsdosFile("demo.bas", "10 END", meta), header = DiskImage.parseAmsdosHeader(prepared);
+	    assert.ok(header);
+	    assert.strictEqual(header?.typeString, "T");
+	    host.handler.startDiskImage("data");
+	    const imageData = host.handler.addFileToDiskImage("demo.bas", "10 END", meta), diskImage = new DiskImage({ data: imageData });
+	    assert.ok(Object.keys(diskImage.readDirectory()).some((name) => name.replace(/\s/g, "").toUpperCase() === "DEMO.BAS"));
+	    assert.strictEqual(host.handler.getDiskImageData(false), imageData);
+	    assert.ok(host.handler.getDiskImageData(true).length > 0);
+	  });
 	  QUnit.test("ERA deletes matching CPC files and reports storage races", function(assert) {
 	    const host = createFileOperations(), meta = stored("A", "10 END");
 	    host.data.set("one.bas", meta);
@@ -34769,17 +34719,15 @@
 	      canvas,
 	      keyboard,
 	      sound,
-	      random: new Random(),
+	      randomMode: "cpc",
 	      arrayBounds: false,
 	      basicVersion: "1.1",
 	      trace: false,
 	      implicitLines: false,
 	      integerOverflow: false,
+	      prettyLowercaseVars: false,
 	      onClickKey: () => void 0,
-	      encodeTokens: (input) => input,
 	      outputError: () => void 0,
-	      getCodeGeneratorBasic: () => ({}),
-	      getCodeGeneratorToken: () => void 0,
 	      logger: Utils.console,
 	      programHost: {
 	        getSource: () => source,
@@ -34810,8 +34758,13 @@
 	    assert.strictEqual(vmOptions.canvas, canvas);
 	    assert.strictEqual(vmOptions.keyboard, keyboard);
 	    assert.strictEqual(vmOptions.sound, sound);
+	    assert.ok(vmOptions.random instanceof Random);
 	    assert.ok(runtime.programRunner instanceof ProgramRunner);
 	    assert.ok(runtime.programCompiler instanceof ProgramCompiler);
+	    assert.ok(runtime.basicFormatter instanceof BasicFormatter);
+	    assert.ok(runtime.basicTokenizer instanceof BasicTokenizer);
+	    assert.ok(runtime.codeGeneratorBasic instanceof CodeGeneratorBasic);
+	    assert.ok(runtime.codeGeneratorToken instanceof CodeGeneratorToken);
 	    assert.ok(runtime.inputLine instanceof InputLine);
 	    assert.ok(runtime.soundQueue instanceof SoundQueue);
 	    assert.ok(runtime.runLoop instanceof RunLoop);
@@ -35223,7 +35176,7 @@
 	});
 
 	function createSettings() {
-	  const parser = new BasicParser({ quiet: true }), lexer = new BasicLexer({ keywords: parser.getKeywords(), quiet: true }), codeGeneratorJs = new CodeGeneratorJs({ lexer, parser, quiet: true }), codeGeneratorToken = new CodeGeneratorToken({ lexer, parser, quiet: true }), variables = new Variables({}), calls = [];
+	  const parser = new BasicParser({ quiet: true }), lexer = new BasicLexer({ keywords: parser.getKeywords(), quiet: true }), codeGeneratorJs = new CodeGeneratorJs({ lexer, parser, quiet: true }), codeGeneratorBasic = new CodeGeneratorBasic({ lexer, parser }), codeGeneratorToken = new CodeGeneratorToken({ lexer, parser, quiet: true }), variables = new Variables({}), calls = [];
 	  const settings = new RuntimeSettings({
 	    codeGeneratorJs,
 	    variables,
@@ -35235,13 +35188,13 @@
 	        calls.push(["stop", reason, priority, force]);
 	      }
 	    },
-	    getCodeGeneratorBasic: () => new CodeGeneratorBasic({ lexer, parser }),
-	    getCodeGeneratorToken: () => codeGeneratorToken,
+	    codeGeneratorBasic,
+	    codeGeneratorToken,
 	    onVariablesCleared: () => {
 	      calls.push(["variablesCleared"]);
 	    }
 	  });
-	  return { settings, codeGeneratorJs, codeGeneratorToken, variables, calls };
+	  return { settings, codeGeneratorJs, codeGeneratorBasic, codeGeneratorToken, variables, calls };
 	}
 	QUnit.module("RuntimeSettings", function() {
 	  QUnit.test("compiler settings update existing generators", function(assert) {
@@ -35253,6 +35206,7 @@
 	    assert.strictEqual(host.codeGeneratorJs.getOptions().implicitLines, true);
 	    assert.strictEqual(host.codeGeneratorJs.getOptions().integerOverflow, true);
 	    assert.strictEqual(host.codeGeneratorJs.getOptions().trace, true);
+	    assert.strictEqual(host.codeGeneratorBasic.getOptions().lowercaseVars, true);
 	    assert.strictEqual(host.codeGeneratorToken.getOptions().implicitLines, true);
 	  });
 	  QUnit.test("array bounds reset the current line and refresh variables only when cleared", function(assert) {

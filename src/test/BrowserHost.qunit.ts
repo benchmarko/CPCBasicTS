@@ -1,4 +1,4 @@
-import type { RuntimeHost } from "../core/main";
+import type { RuntimeHost } from "../Interfaces";
 import { createBrowserHost } from "../ui/BrowserHost";
 
 QUnit.module("BrowserHost", function () {

@@ -1,4 +1,7 @@
-import type { CodeGeneratorBasic } from "../CodeGeneratorBasic";
+import { BasicFormatter } from "../BasicFormatter";
+import { BasicTokenizer } from "../BasicTokenizer";
+import { CodeGeneratorBasic } from "../CodeGeneratorBasic";
+import { CodeGeneratorToken } from "../CodeGeneratorToken";
 import { InputLine } from "../InputLine";
 import { FileHandler } from "../FileHandler";
 import { Runtime } from "../Runtime";
@@ -46,17 +49,15 @@ QUnit.module("Runtime", function () {
 				canvas,
 				keyboard,
 				sound,
-				random: new Random(),
+				randomMode: "cpc",
 				arrayBounds: false,
 				basicVersion: "1.1",
 				trace: false,
 				implicitLines: false,
 				integerOverflow: false,
+				prettyLowercaseVars: false,
 				onClickKey: () => undefined,
-				encodeTokens: (input) => input,
 				outputError: () => undefined,
-				getCodeGeneratorBasic: () => ({} as CodeGeneratorBasic),
-				getCodeGeneratorToken: () => undefined,
 				logger: Utils.console,
 				programHost: {
 					getSource: () => source,
@@ -79,8 +80,13 @@ QUnit.module("Runtime", function () {
 		assert.strictEqual(vmOptions.canvas, canvas);
 		assert.strictEqual(vmOptions.keyboard, keyboard);
 		assert.strictEqual(vmOptions.sound, sound);
+		assert.ok(vmOptions.random instanceof Random);
 		assert.ok(runtime.programRunner instanceof ProgramRunner);
 		assert.ok(runtime.programCompiler instanceof ProgramCompiler);
+		assert.ok(runtime.basicFormatter instanceof BasicFormatter);
+		assert.ok(runtime.basicTokenizer instanceof BasicTokenizer);
+		assert.ok(runtime.codeGeneratorBasic instanceof CodeGeneratorBasic);
+		assert.ok(runtime.codeGeneratorToken instanceof CodeGeneratorToken);
 		assert.ok(runtime.inputLine instanceof InputLine);
 		assert.ok(runtime.soundQueue instanceof SoundQueue);
 		assert.ok(runtime.runLoop instanceof RunLoop);

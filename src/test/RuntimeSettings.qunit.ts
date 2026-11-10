@@ -10,6 +10,7 @@ function createSettings() {
 	const parser = new BasicParser({ quiet: true }),
 		lexer = new BasicLexer({ keywords: parser.getKeywords(), quiet: true }),
 		codeGeneratorJs = new CodeGeneratorJs({ lexer, parser, quiet: true }),
+		codeGeneratorBasic = new CodeGeneratorBasic({ lexer, parser }),
 		codeGeneratorToken = new CodeGeneratorToken({ lexer, parser, quiet: true }),
 		variables = new Variables({}),
 		calls: unknown[][] = [];
@@ -20,11 +21,11 @@ function createSettings() {
 			vmGoto: (line) => { calls.push(["goto", line]); },
 			vmStop: (reason, priority, force) => { calls.push(["stop", reason, priority, force]); }
 		},
-		getCodeGeneratorBasic: () => new CodeGeneratorBasic({ lexer, parser }),
-		getCodeGeneratorToken: () => codeGeneratorToken,
+		codeGeneratorBasic,
+		codeGeneratorToken,
 		onVariablesCleared: () => { calls.push(["variablesCleared"]); }
 	});
-	return { settings, codeGeneratorJs, codeGeneratorToken, variables, calls };
+	return { settings, codeGeneratorJs, codeGeneratorBasic, codeGeneratorToken, variables, calls };
 }
 
 QUnit.module("RuntimeSettings", function () {
@@ -37,6 +38,7 @@ QUnit.module("RuntimeSettings", function () {
 		assert.strictEqual(host.codeGeneratorJs.getOptions().implicitLines, true);
 		assert.strictEqual(host.codeGeneratorJs.getOptions().integerOverflow, true);
 		assert.strictEqual(host.codeGeneratorJs.getOptions().trace, true);
+		assert.strictEqual(host.codeGeneratorBasic.getOptions().lowercaseVars, true);
 		assert.strictEqual(host.codeGeneratorToken.getOptions().implicitLines, true);
 	});
 

@@ -5,6 +5,8 @@
 //
 
 import type { ExecutionState } from "./ExecutionState";
+import type { FileHandler, FileHandlerOptions } from "./FileHandler";
+import type { Runtime, RuntimeOptions } from "./Runtime";
 
 //import { CustomError } from "./Utils";
 export interface CustomError extends Error {
@@ -393,12 +395,22 @@ export interface ICore {
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): void;
 }
 
+export interface IEngine {
+	readonly core: ICore
+	readonly files: Pick<typeof FileHandler, "createExampleLoadRequest" | "prepareExampleLoad" | "loadFromStorage" | "splitMeta" | "decodeStoredFile" | "getStorageDirectoryEntries" | "getDirectoryEntries" | "joinMeta">
+	createRuntime(options: RuntimeOptions): Runtime
+	createFileHandler(options: FileHandlerOptions): FileHandler
+	createDiagnostic(error: Error, noSelection?: boolean, errCode?: number): Diagnostic
+	escapeControlCharacters(input: string): string
+	getLoopDelay(speed: number): number
+}
+
 export interface INodeUtils {
-    nodeMain(core: ICore): void;
+	nodeMain(engine: IEngine): void;
 }
 
 export interface IUI {
     //addOutputText(str: string, needCls?: boolean, hasGraphics?: boolean): void;
     getCurrentDataKey(): string;
-    onWindowLoadContinue(core: ICore): void;
+	onWindowLoadContinue(engine: IEngine): void;
 }

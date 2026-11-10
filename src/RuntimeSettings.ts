@@ -8,8 +8,8 @@ export interface RuntimeSettingsOptions {
 	codeGeneratorJs: CodeGeneratorJs
 	variables: Variables
 	vm: Pick<CpcVm, "vmGoto" | "vmStop">
-	getCodeGeneratorBasic: () => CodeGeneratorBasic
-	getCodeGeneratorToken: () => CodeGeneratorToken | undefined
+	codeGeneratorBasic: CodeGeneratorBasic
+	codeGeneratorToken: CodeGeneratorToken
 	onVariablesCleared?: () => void
 }
 
@@ -18,7 +18,7 @@ export class RuntimeSettings {
 
 	setImplicitLines(value: boolean): void {
 		this.options.codeGeneratorJs.setOptions({ implicitLines: value });
-		this.options.getCodeGeneratorToken()?.setOptions({ implicitLines: value });
+		this.options.codeGeneratorToken.setOptions({ implicitLines: value });
 	}
 
 	setIntegerOverflow(value: boolean): void {
@@ -30,7 +30,7 @@ export class RuntimeSettings {
 	}
 
 	setPrettyLowercaseVars(value: boolean): void {
-		this.options.getCodeGeneratorBasic().setOptions({ lowercaseVars: value });
+		this.options.codeGeneratorBasic.setOptions({ lowercaseVars: value });
 	}
 
 	setArrayBounds(value: boolean): void {
