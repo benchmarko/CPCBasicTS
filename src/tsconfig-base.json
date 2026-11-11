@@ -2,8 +2,9 @@
   "compilerOptions": {
       "module": "es2020",
       "pretty": true,
-      "target": "es6",
+      "target": "es2020",
       "moduleResolution": "bundler",
+      "strict": true,
 
       "declaration": true,
       "declarationMap": true,
@@ -11,18 +12,11 @@
       "composite": true,
       "noEmitOnError": true,
 
-      "strictNullChecks": true,
-      "noImplicitAny": true,
-      "noImplicitThis": true,
-      "strictPropertyInitialization": true,
-      "strictFunctionTypes": true,
-      "strictBindCallApply": true,
       "noUnusedLocals": true,
       "noUnusedParameters": true,
 
       "skipLibCheck": true,
 
-      "alwaysStrict": true,
       "preserveConstEnums": true,
       "newLine": "lf",
 

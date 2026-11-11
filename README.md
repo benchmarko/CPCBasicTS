@@ -42,19 +42,18 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
 To build the browser app from source, install the dependencies and run the build script:
 
 ```bash
-npm install
+npm ci
 npm run build
 ```
 
-The build generates the distribution files in the `dist/` directory, including `dist/index.html`. You can then open that file in a browser, or use the generated files from `dist/` directly.
+The build generates the distribution files in the `dist/` directory, including `dist/index.html`. Open `dist/index.html` in a browser to run the app locally, or serve the contents of `dist/` from a web server.
 
 ## Usage
 
-- Just open index.html in a browser.
+- Open `dist/index.html` in a browser after building, or use the [hosted demo](https://benchmarko.github.io/CPCBasicTS/).
   The user interface shows several components. Additional components can be configured in the **View** settings dialog.
 - The *CPCBasicTS* window is used to select an example.
-  - Use the *first selection field* to select the example library: CPCBasic *examples*,
-  CPCBasicApps *apps*, *examplesTS* or *storage*.
+  - Use the first selection field to choose a catalog: CPCBasic *examples*, CPCBasicApps *apps* or *rosetta*, LocoBasic *locobasic*, or browser *storage*. The CPCBasicApps, LocoBasic, and Rosetta catalogs are loaded remotely and require a network connection.
   - Use the *second selection field* to select a directory/path.
   - Use the *third selection field* to select a sample program. It will reset the CPC and run the program.
   - The **Settings** button opens a popover with settings.
@@ -95,7 +94,7 @@ The build generates the distribution files in the `dist/` directory, including `
   - The **Run** button compiles the BASIC program to JavaScript and runs it (simular to *RUN*).
     - If the focus is on the CPC screen, keystrokes will be detected by a running program or also in direct mode. An alternative way of input is the *virtual keyboard* below.
     - Programs can also provide on-screen keys for input; see [Program Keys](#program-keys).
-  - The **Break** button halts the program. This is an unconditional break. Pressing the ESC key once also halts the program, if not masked with *ON BREAK CONT*.
+  - The **Break** button stops the program. Normally, the first press of ESC suspends execution; pressing ESC again stops it or invokes the *ON BREAK* handler. *ON BREAK CONT* keeps its normal behavior of ignoring ESC. Use **Continue** to resume a suspended program.
   - The **Continue** button continues the program (similar to *CONT*).
   - The **More** button opens a popover with more functions.
     - The **Reset** button resets the CPC.
@@ -149,6 +148,8 @@ console.log(result.reason, machine.getOutput());
 ```
 
 Each machine has its own runtime state. Compilation failures throw `HeadlessCompileError`; unsupported hardware and timing features are reported by the headless runtime rather than requiring browser APIs.
+
+See [HEADLESS.md](HEADLESS.md) for the controller API, execution limits, supported devices, and focused tests.
 
 The browser entrypoints are `cpcbasicUI.js` followed by `cpcbasic.js`. The UI bundle exposes the `cpcbasicUI.UI` implementation; the engine entrypoint consumes that interface, so a different UI can be supplied instead.
 
@@ -271,7 +272,7 @@ A list of *CALL*s which are supported. Other *CALL*s are ignored.
 
 ## URL parameters
 
-These URL parameters are also put in the URL when a setting is not the default.
+Common URL parameters are listed below. Changed settings are reflected in the URL so a configuration can be bookmarked or shared.
 
 - arrayBounds=false (check array bounds)
 - autorun=true
@@ -281,7 +282,7 @@ These URL parameters are also put in the URL when a setting is not the default.
 - database=examples (selected database)
 - debug=0 (debug level)
 - example=cpcbasic (selected sample program)
-- exampleIndex=0index.js (example index file, in every entry of exampleDirs)
+- exampleIndex=0index.js (example index file used for each entry in databaseDirs)
 - implicitLines=false (allow implicit line numbers)
 - input= (keyboard input when starting the app, use %0D as return charcter)
 - integerOverflow=false (check for integer overflow in integer DIV, MOD, AND, OR, XOR, NOT)
@@ -292,7 +293,7 @@ These URL parameters are also put in the URL when a setting is not the default.
 - selectDataFiles=false (select data files in example selection)
 - showConsoleLog=false
 - showCpc=true (show the CPC window)
-- showGallery=false,
+- showGallery=false
 - showInput=true
 - showInp2=false
 - showKbd=false
@@ -311,31 +312,17 @@ These URL parameters are also put in the URL when a setting is not the default.
 
 ## Development, Testing
 
-QUnit tests:
+Run the regular build and test checks locally:
 
-- [index.html](https://benchmarko.github.io/CPCBasicTS/test/index.html) (test overview page)
-  - [BasicFormatter.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicFormatter.qunit.html)
-  - [BasicLexer.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicLexer.qunit.html)
-  - [BasicParser.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicParser.qunit.html)
-  - [BasicTokenizer.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicTokenizer.qunit.html)
-  - [CodeGeneratorBasic.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorBasic.qunit.html)
-  - [CodeGeneratorJs.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorJs.qunit.html)
-  - [CodeGeneratorToken.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorToken.qunit.html)
-  - [CpcVm.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CpcVm.qunit.html)
-  - [Diff.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Diff.qunit.html)
-  - [DiskImage.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/DiskImage.qunit.html)
-  - [Model.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Model.qunit.html)
-  - [Variables.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Variables.qunit.html)
-  - [ZipFile.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/ZipFile.qunit.html)
-  - [testParseExamples.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testParseExamples.qunit.html) (parse all examples)
-  - [testsuite.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testsuite.qunit.html) (run all tests)
+```bash
+npm ci
+npm run build
+npm run lint
+npm run test
+npm run testnode
+```
 
-It is possible to use URL parameter *generateAll=true* to generate an output of the expected results in the console.
-Also available: *generateKeys=true*.
-
-IFrames test:
-
-- [testIFrames.html](https://benchmarko.github.io/CPCBasicTS/test/testIFrames.html) (CPCBasicTS in IFrames)
+The [test overview](https://benchmarko.github.io/CPCBasicTS/test/index.html) links to the [unified QUnit suite](https://benchmarko.github.io/CPCBasicTS/test/testsuite.qunit.html) and the [IFrame test](https://benchmarko.github.io/CPCBasicTS/test/testIFrames.html). The bundled suite accepts `generateAll=true` to print generated expected results; `generateKeys=true` is also available. `npm run testAll` additionally processes the configured example catalogs and can take longer.
 
 ## Possible Future Enhancements
 

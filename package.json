@@ -1,7 +1,7 @@
 {
   "name": "cpcbasicts",
-  "version": "0.6.11",
-  "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
+  "version": "0.6.12",
+  "description": "CPCBasicTS - Run CPC BASIC in a Browser or Node.js",
   "main": "./dist/cpcbasic.js",
   "exports": {
     ".": {
@@ -37,6 +37,7 @@
   },
   "files": [
     "dist/",
+    "HEADLESS.md",
     "LICENSE",
     "README.md"
   ],

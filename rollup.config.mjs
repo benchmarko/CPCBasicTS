@@ -3,7 +3,6 @@ import esbuild from "rollup-plugin-esbuild";
 const intentionalEvalSources = [
 	"src/ui/Polyfills.ts",
 	"src/node/NodeUtils.ts",
-	"src/node/Headless.ts",
 	"src/test/TestNodeUtils.ts",
 	"src/test/testParseExamples.qunit.ts"
 ];
