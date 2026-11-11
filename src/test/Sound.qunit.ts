@@ -251,6 +251,7 @@ QUnit.module("Sound: Tests", function (hooks) {
 					noise: input[6]
 				} as SoundData;
 
+				// eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
 				return String(sound.sound(soundData));
 			},
 			setToneEnv: function (sound: Sound, input: TestFunctionInputType[]) {
@@ -275,6 +276,7 @@ QUnit.module("Sound: Tests", function (hooks) {
 					}
 					toneEnvList.push(toneEnvData);
 				}
+				// eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
 				return String(sound.setToneEnv(toneEnv, toneEnvList));
 			},
 			setVolEnv: function (sound: Sound, input: TestFunctionInputType[]) {
@@ -298,6 +300,7 @@ QUnit.module("Sound: Tests", function (hooks) {
 					}
 					volEnvList.push(volEnvData);
 				}
+				// eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
 				return String(sound.setVolEnv(volEnv, volEnvList));
 			}
 		};

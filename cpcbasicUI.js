@@ -66,10 +66,6 @@
 	  Polyfills$1.console.debug = Polyfills$1.console.log;
 	  Polyfills$1.log("window.console.debug");
 	}
-	if (typeof globalThis !== "undefined" && !globalThis.window) {
-	  Polyfills$1.log("window");
-	  globalThis.window = globalThis;
-	}
 	if (!Array.prototype.copyWithin) {
 	  Polyfills$1.log("Array.prototype.copyWithin");
 	  Array.prototype.copyWithin = function(target, start, end) {
@@ -896,7 +892,11 @@
 	    _View.myDocument = doc;
 	  }
 	  static getDocument() {
-	    return _View.myDocument;
+	    const doc = _View.myDocument ?? (typeof document !== "undefined" ? document : void 0);
+	    if (!doc) {
+	      throw new Error("View requires a document");
+	    }
+	    return doc;
 	  }
 	  static getElementById1(id) {
 	    const element = _View.getDocument().getElementById(id);
@@ -905,6 +905,7 @@
 	    }
 	    return element;
 	  }
+	  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	  static getElementByIdAs(id) {
 	    return _View.getElementById1(id);
 	  }
@@ -1189,6 +1190,7 @@
 	    }
 	    return eventNames;
 	  }
+	  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	  static getEventTarget(event) {
 	    const target = event.target || event.srcElement;
 	    if (!target) {
@@ -1262,7 +1264,6 @@
 	    a.click();
 	  }
 	};
-	_View.myDocument = window.document;
 	_View.pointerEventNames = {
 	  down: "pointerdown",
 	  move: "pointermove",
@@ -3113,10 +3114,10 @@
 	    }
 	  }
 	  static keyIdentifier2Char(event) {
-	    const identifier = event.keyIdentifier, shiftKey = event.shiftKey;
+	    const identifier = event.keyIdentifier ?? "", shiftKey = event.shiftKey;
 	    let char;
 	    if (/^U\+/i.test(identifier || "")) {
-	      char = String.fromCharCode(parseInt(identifier.substr(2), 16));
+	      char = String.fromCharCode(parseInt(identifier.slice(2), 16));
 	      if (char === "\0") {
 	        char = "";
 	      }
@@ -3989,7 +3990,7 @@
 	  onVirtualKeyboardKeydown(event) {
 	    const node = View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
 	    if (UiUtils.debug > 1) {
-	      UiUtils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
+	      UiUtils.console.debug("onVirtualKeyboardKeydown: event type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
 	    }
 	    if (cpcKey !== null) {
 	      let cpcKeyCode = Number(cpcKey);
@@ -4026,7 +4027,7 @@
 	  onVirtualKeyboardKeyupOrKeyout(event) {
 	    const node = View.getEventTarget(event);
 	    if (UiUtils.debug > 1) {
-	      UiUtils.console.debug("onVirtualKeyboardKeyupOrKeyout: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
+	      UiUtils.console.debug("onVirtualKeyboardKeyupOrKeyout: event type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
 	    }
 	    this.fnVirtualKeyboardKeyupOrKeyout(event);
 	    if (this.eventNames.out) {
@@ -4036,10 +4037,10 @@
 	    return false;
 	  }
 	  static keyIdentifier2Char(event) {
-	    const identifier = event.keyIdentifier, shiftKey = event.shiftKey;
+	    const identifier = event.keyIdentifier ?? "", shiftKey = event.shiftKey;
 	    let char;
 	    if (/^U\+/i.test(identifier || "")) {
-	      char = String.fromCharCode(parseInt(identifier.substr(2), 16));
+	      char = String.fromCharCode(parseInt(identifier.slice(2), 16));
 	      if (char === "\0") {
 	        char = "";
 	      }
@@ -5297,7 +5298,9 @@
 	    this.model = this.options.model;
 	    this.view = this.options.view;
 	    this.controller = this.options.controller;
-	    this.model.setPropertyChangeCallback(() => this.updateUrlFromConfig());
+	    this.model.setPropertyChangeCallback(() => {
+	      this.updateUrlFromConfig();
+	    });
 	    this.createEventDefMap();
 	  }
 	  getOptions() {
@@ -5470,7 +5473,7 @@
 	    textText.select();
 	    this.view.setAreaSelection(ViewID.textText, 0, 99999);
 	    if (window.navigator && window.navigator.clipboard) {
-	      window.navigator.clipboard.writeText(textText.value);
+	      void window.navigator.clipboard.writeText(textText.value);
 	    } else {
 	      UiUtils.console.warn("Copy to clipboard not available");
 	    }
@@ -5672,7 +5675,9 @@
 	        },
 	        {
 	          id: ViewID.renumButton,
-	          controllerFunc: () => this.controller.startRenum()
+	          controllerFunc: () => {
+	            this.controller.startRenum();
+	          }
 	        },
 	        {
 	          id: ViewID.renumPopoverButton,
@@ -5994,7 +5999,7 @@
 	      UiUtils.console.log("handleEvent: " + type + ": unknown target:", target.tagName, target.id);
 	    }
 	    if (type === "click") {
-	      if (id !== ViewID.cpcCanvas && id !== ViewID.textText) {
+	      if (id !== String(ViewID.cpcCanvas) && id !== String(ViewID.textText)) {
 	        this.controller.onWindowClick(event);
 	      }
 	    }
@@ -6760,31 +6765,47 @@
 	      prettyLowercaseVars: model.getProperty(ModelPropID.prettyLowercaseVars),
 	      onClickKey: this.fnPutKeyInBufferHandler,
 	      outputError: this.outputError.bind(this),
-	      onJsError: (error) => this.selectJsError(this.getOutputText(), error),
+	      onJsError: (error) => {
+	        this.selectJsError(this.getOutputText(), error);
+	      },
 	      logger: UiUtils.console,
-	      onVariablesCleared: () => this.uiController.refreshVariables(),
+	      onVariablesCleared: () => {
+	        this.uiController.refreshVariables();
+	      },
 	      onTokenized: (sourceLength, tokenLength) => {
 	        if (UiUtils.debug) {
 	          UiUtils.console.debug("parse: input length:", sourceLength, ", tokenized length:", tokenLength);
 	        }
 	      },
-	      onMemoryError: (error) => UiUtils.console.error("vmPutProgramInMem", error),
+	      onMemoryError: (error) => {
+	        UiUtils.console.error("vmPutProgramInMem", error);
+	      },
 	      programHost: {
 	        getSource: () => this.getInputText(),
-	        beforeCompileProgram: (source) => this.updateUserKeys(source),
+	        beforeCompileProgram: (source) => {
+	          this.updateUserKeys(source);
+	        },
 	        prepareCompileOutput: (output) => this.presentCompileOutput(output),
-	        beforeProgramStart: () => this.beforeProgramStart(),
-	        afterProgramStart: () => this.afterProgramStart()
+	        beforeProgramStart: () => {
+	          this.beforeProgramStart();
+	        },
+	        afterProgramStart: () => {
+	          this.afterProgramStart();
+	        }
 	      },
 	      handlers: Object.fromEntries(Object.entries(this.handlers).map(([reason, handler]) => [reason, handler.bind(this)])),
 	      getInitialDelay: () => this.initialLoopTimeout,
 	      setTimeout: (callback, delay) => this.host.setTimeout(callback, delay),
-	      onExit: () => this.exitLoop(),
+	      onExit: () => {
+	        this.exitLoop();
+	      },
 	      onExecutionState: (state) => {
 	        this.uiController.onExecutionState(state);
 	        options.onExecutionState?.(state);
 	      },
-	      onUnknownReason: (reason) => UiUtils.console.warn("runLoop: Unknown run mode:", reason)
+	      onUnknownReason: (reason) => {
+	        UiUtils.console.warn("runLoop: Unknown run mode:", reason);
+	      }
 	    });
 	    this.variables = this.runtime.variables;
 	    this.vm = this.runtime.vm;
@@ -7046,7 +7067,9 @@
 	  fnWaitKey() {
 	    const key = this.runtime.handleWaitKey(
 	      () => this.sound.isActivatedByUser(),
-	      (key2) => UiUtils.console.log("Wait for key:", key2)
+	      (key2) => {
+	        UiUtils.console.log("Wait for key:", key2);
+	      }
 	    );
 	    if (key !== "") {
 	      this.removeKeyBoardHandler();
@@ -7063,9 +7086,15 @@
 	      onInputReturn: (editedInput) => {
 	        UiUtils.console.log("fnWaitInput:", editedInput, "reason", this.vm.vmGetStopObject().reason);
 	      },
-	      onInputSubmitted: () => this.removeKeyBoardHandler(),
-	      startMainLoop: () => this.startMainLoop(),
-	      continueExecution: () => this.startContinue()
+	      onInputSubmitted: () => {
+	        this.removeKeyBoardHandler();
+	      },
+	      startMainLoop: () => {
+	        this.startMainLoop();
+	      },
+	      continueExecution: () => {
+	        this.startContinue();
+	      }
 	    });
 	    if (result.status === "invalid") {
 	      return;
@@ -7085,7 +7114,9 @@
 	      script1,
 	      script2,
 	      this.model.getProperty(ModelPropID.implicitLines),
-	      () => this.reportSplitLinesError()
+	      () => {
+	        this.reportSplitLinesError();
+	      }
 	    );
 	  }
 	  // get line range from a script with sorted line numbers
@@ -7095,7 +7126,9 @@
 	      firstLine,
 	      lastLine,
 	      this.model.getProperty(ModelPropID.implicitLines),
-	      () => this.reportSplitLinesError()
+	      () => {
+	        this.reportSplitLinesError();
+	      }
 	    );
 	  }
 	  reportSplitLinesError() {
@@ -7146,18 +7179,40 @@
 	        }
 	      }),
 	      getSource: () => this.getInputText(),
-	      setSource: (source) => this.setInputText(source),
-	      clearResult: () => this.setResultText(""),
+	      setSource: (source) => {
+	        this.setInputText(source);
+	      },
+	      clearResult: () => {
+	        this.setResultText("");
+	      },
 	      merge: (source, loaded) => this.mergeScripts(source, loaded),
-	      invalidate: () => this.invalidateScript(),
-	      removeVariables: () => this.fnRemoveAllVariables(),
-	      reset: () => this.fnReset(),
-	      parseRun: () => this.fnParseRun(),
-	      parseChain: () => this.fnParseChain(),
-	      onUnknownCommand: (value) => UiUtils.console.error("loadExample: Unknown command:", value),
-	      startMainLoop: () => this.startMainLoop(),
-	      onWarning: (error) => UiUtils.console.warn(error),
-	      onError: (message) => UiUtils.console.error(message),
+	      invalidate: () => {
+	        this.invalidateScript();
+	      },
+	      removeVariables: () => {
+	        this.fnRemoveAllVariables();
+	      },
+	      reset: () => {
+	        this.fnReset();
+	      },
+	      parseRun: () => {
+	        this.fnParseRun();
+	      },
+	      parseChain: () => {
+	        this.fnParseChain();
+	      },
+	      onUnknownCommand: (value) => {
+	        UiUtils.console.error("loadExample: Unknown command:", value);
+	      },
+	      startMainLoop: () => {
+	        this.startMainLoop();
+	      },
+	      onWarning: (error) => {
+	        UiUtils.console.warn(error);
+	      },
+	      onError: (message) => {
+	        UiUtils.console.error(message);
+	      },
 	      decodeTokenizedBasic: (value) => this.decodeTokenizedBasic(value)
 	    });
 	  }
@@ -7172,14 +7227,18 @@
 	      }
 	      this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
 	      const input = exampleEntry.script;
-	      this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => this.loadFileContinue(loadedInput));
+	      this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => {
+	        this.loadFileContinue(loadedInput);
+	      });
 	    };
 	  }
 	  createFnExampleError(example, url, inFile) {
 	    return () => {
 	      UiUtils.console.log("Example", url, "error");
 	      this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
-	      this.runtime.failExampleLoad(example, (error, noSelection) => this.outputError(error, noSelection), (input) => this.loadFileContinue(input));
+	      this.runtime.failExampleLoad(example, (error, noSelection) => this.outputError(error, noSelection), (input) => {
+	        this.loadFileContinue(input);
+	      });
 	    };
 	  }
 	  getLoadScript() {
@@ -7225,7 +7284,9 @@
 	        fnExampleError();
 	      } else {
 	        this.model.setProperty(ModelPropID.example, example);
-	        this.runtime.completeExampleLoad("", void 0, (input) => this.loadFileContinue(input));
+	        this.runtime.completeExampleLoad("", void 0, (input) => {
+	          this.loadFileContinue(input);
+	        });
 	      }
 	    }
 	  }
@@ -7235,7 +7296,9 @@
 	  fnFileLoad() {
 	    const inFile = this.vm.vmGetInFileObject();
 	    this.runtime.dispatchFileLoad(inFile, {
-	      deleteLines: (paras) => this.fnDeleteLines(paras),
+	      deleteLines: (paras) => {
+	        this.fnDeleteLines(paras);
+	      },
 	      logFile: (file) => {
 	        if (UiUtils.debug > 1) {
 	          UiUtils.console.debug("fnFileLoad:", file.command, file.name, "details:", file);
@@ -7248,9 +7311,15 @@
 	        }
 	        this.loadFileContinue(input);
 	      },
-	      loadExample: () => this.loadExampleFile(),
-	      onNotOpen: (name) => UiUtils.console.error("fnFileLoad:", name, "File not open!"),
-	      setNextDelay: (delay) => this.runtime.setNextDelay(delay)
+	      loadExample: () => {
+	        this.loadExampleFile();
+	      },
+	      onNotOpen: (name) => {
+	        UiUtils.console.error("fnFileLoad:", name, "File not open!");
+	      },
+	      setNextDelay: (delay) => {
+	        this.runtime.setNextDelay(delay);
+	      }
 	    });
 	  }
 	  fnFileSave() {
@@ -7263,8 +7332,12 @@
 	          UiUtils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
 	        }
 	      },
-	      () => UiUtils.console.error("fnFileSave: file not open!"),
-	      (error) => UiUtils.console.warn(error)
+	      () => {
+	        UiUtils.console.error("fnFileSave: file not open!");
+	      },
+	      (error) => {
+	        UiUtils.console.warn(error);
+	      }
 	    );
 	  }
 	  fnDeleteLines(paras) {
@@ -7272,14 +7345,20 @@
 	    this.runtime.deleteProgramLines(
 	      paras,
 	      lines,
-	      (deletion) => this.setInputText(this.mergeScripts(inputText, deletion)),
+	      (deletion) => {
+	        this.setInputText(this.mergeScripts(inputText, deletion));
+	      },
 	      (error) => this.outputError(error, true)
 	    );
 	  }
 	  fnNew() {
 	    this.runtime.newProgram(
-	      () => this.setInputText(""),
-	      () => this.invalidateScript()
+	      () => {
+	        this.setInputText("");
+	      },
+	      () => {
+	        this.invalidateScript();
+	      }
 	    );
 	  }
 	  fnList(paras) {
@@ -7289,8 +7368,12 @@
 	  fnReset() {
 	    this.runtime.resetProgram(
 	      () => this.virtualKeyboard?.reset(),
-	      () => this.setOutputText(""),
-	      () => this.invalidateScript()
+	      () => {
+	        this.setOutputText("");
+	      },
+	      () => {
+	        this.invalidateScript();
+	      }
 	    );
 	  }
 	  outputError(error, noSelection) {
@@ -7323,8 +7406,12 @@
 	      inputParas,
 	      inputText,
 	      (source, edited) => this.mergeScripts(source, edited),
-	      (source) => this.setInputText(source),
-	      () => this.uiController.onProgramEdited()
+	      (source) => {
+	        this.setInputText(source);
+	      },
+	      () => {
+	        this.uiController.onProgramEdited();
+	      }
 	    );
 	  }
 	  fnEditLine(paras) {
@@ -7542,8 +7629,12 @@
 	          input,
 	          stream,
 	          (source, line) => this.mergeScripts(source, line),
-	          (source) => this.setInputText(source, true),
-	          () => this.uiController.onProgramEdited()
+	          (source) => {
+	            this.setInputText(source, true);
+	          },
+	          () => {
+	            this.uiController.onProgramEdited();
+	          }
 	        );
 	        this.updateResultText();
 	        return false;
@@ -7553,7 +7644,9 @@
 	      }
 	      const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line, stream, directInput.message, {
 	        outputError: (error) => this.outputError(error, true),
-	        setOutputText: (text) => this.setOutputText(text),
+	        setOutputText: (text) => {
+	          this.setOutputText(text);
+	        },
 	        onPrepareError: (error) => {
 	          UiUtils.console.error(error);
 	          if (error instanceof Error) {
@@ -7603,7 +7696,9 @@
 	    this.runtime.startMainLoop();
 	  }
 	  startParse() {
-	    this.runtime.beginControl("parse", () => this.removeKeyBoardHandler());
+	    this.runtime.beginControl("parse", () => {
+	      this.removeKeyBoardHandler();
+	    });
 	    this.startMainLoop();
 	  }
 	  startRenum(options = this.uiController.getRenumOptions()) {
@@ -7616,15 +7711,21 @@
 	    this.startMainLoop();
 	  }
 	  startRun() {
-	    this.runtime.beginControl("run", () => this.removeKeyBoardHandler());
+	    this.runtime.beginControl("run", () => {
+	      this.removeKeyBoardHandler();
+	    });
 	    this.startMainLoop();
 	  }
 	  startParseRun() {
-	    this.runtime.beginControl("parseRun", () => this.removeKeyBoardHandler());
+	    this.runtime.beginControl("parseRun", () => {
+	      this.removeKeyBoardHandler();
+	    });
 	    this.startMainLoop();
 	  }
 	  startBreak() {
-	    this.runtime.beginControl("break", () => this.removeKeyBoardHandler());
+	    this.runtime.beginControl("break", () => {
+	      this.removeKeyBoardHandler();
+	    });
 	    this.startMainLoop();
 	  }
 	  restoreSuspendedInputHandlers(stop) {
@@ -7647,8 +7748,12 @@
 	    this.view.setDisabled(ViewID.stopButton, false);
 	    this.view.setDisabled(ViewID.continueButton, true);
 	    this.runtime.continueProgram(
-	      () => this.startMainLoop(),
-	      () => this.removeKeyBoardHandler(),
+	      () => {
+	        this.startMainLoop();
+	      },
+	      () => {
+	        this.removeKeyBoardHandler();
+	      },
 	      (restored) => {
 	        const stop = this.vm.vmGetStopObject();
 	        if (restored || stop.reason === "waitInput") {
@@ -7658,7 +7763,9 @@
 	    );
 	  }
 	  startReset() {
-	    this.runtime.beginControl("reset", () => this.removeKeyBoardHandler());
+	    this.runtime.beginControl("reset", () => {
+	      this.removeKeyBoardHandler();
+	    });
 	    this.startMainLoop();
 	  }
 	  startScreenshot() {

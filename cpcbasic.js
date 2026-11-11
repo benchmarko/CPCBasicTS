@@ -498,10 +498,11 @@
 	    this.databases = {};
 	    this.examples = {};
 	  }
-	  // {
+	  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	  getProperty(property) {
 	    return this.config[property];
 	  }
+	  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	  setProperty(property, value) {
 	    const previousValue = this.config[property];
 	    this.config[property] = value;
@@ -6040,7 +6041,7 @@
 	    }
 	    const prompt = nodeArgs[3];
 	    if (prompt === ";" || node.args[3].type === "null") {
-	      msg = msg.substring(0, msg.length - 1) + "? " + msg.substr(-1, 1);
+	      msg = msg.substring(0, msg.length - 1) + "? " + msg.slice(-1);
 	    }
 	    for (let i = 4; i < nodeArgs.length; i += 1) {
 	      varTypes[i - 4] = this.fnDetermineStaticVarType(nodeArgs[i]);
@@ -10004,7 +10005,7 @@
 	    if (len !== void 0) {
 	      len = this.vmInRangeRound(len, 0, 255, "MID$");
 	    }
-	    return s.substr(start - 1, len);
+	    return s.substring(start - 1, len === void 0 ? void 0 : start - 1 + len);
 	  }
 	  mid$Assign(s, start, len, newString) {
 	    this.vmAssertString(s, "MID$");
@@ -11915,7 +11916,9 @@
 	    }
 	    const startLine = ProgramRunner.applyLoad({ command, input, line, inMemory: putInMemory, isSnapshot: data?.meta.typeString === "S" }, {
 	      ...loadActions,
-	      loadFileInMemory: () => loadFileInMemory(input, data?.meta)
+	      loadFileInMemory: () => {
+	        loadFileInMemory(input, data?.meta);
+	      }
 	    });
 	    setStartLine(startLine);
 	    startMainLoop();
@@ -11984,7 +11987,9 @@
 	  execute(vm) {
 	    const script = this.script;
 	    if (script) {
-	      this.run(() => script(vm));
+	      this.run(() => {
+	        script(vm);
+	      });
 	    }
 	  }
 	  run(execute) {
@@ -12106,7 +12111,7 @@
 	    }
 	  }
 	  init(seed) {
-	    return this.rndGen.init(seed);
+	    this.rndGen.init(seed);
 	  }
 	  random() {
 	    return this.rndGen.random();
@@ -12265,7 +12270,9 @@
 	  constructor(options) {
 	    this.options = options;
 	    this.active = false;
-	    this.runHandler = () => this.run();
+	    this.runHandler = () => {
+	      this.run();
+	    };
 	    this.nextDelay = 0;
 	  }
 	  get isRunning() {
@@ -12611,9 +12618,15 @@
 	      onVariablesCleared: options.onVariablesCleared
 	    });
 	    const handlers = {
-	      timer: () => this.vm.vmStop("", 0, true),
-	      waitFrame: () => this.handleWaitFrame(),
-	      onError: () => this.vm.vmStop("", 0, true),
+	      timer: () => {
+	        this.vm.vmStop("", 0, true);
+	      },
+	      waitFrame: () => {
+	        this.handleWaitFrame();
+	      },
+	      onError: () => {
+	        this.vm.vmStop("", 0, true);
+	      },
 	      error: Runtime.noop,
 	      stop: Runtime.noop,
 	      break: Runtime.noop,
@@ -12623,12 +12636,16 @@
 	    };
 	    this.runLoop = new RunLoop({
 	      vm: this.vm,
-	      execute: () => this.programRunner.execute(this.vm),
+	      execute: () => {
+	        this.programRunner.execute(this.vm);
+	      },
 	      handlers,
 	      getInitialDelay: options.getInitialDelay,
 	      setTimeout: options.setTimeout,
 	      onExit: options.onExit,
-	      onStateChange: () => this.executionStateReporter.report(this.getExecutionState()),
+	      onStateChange: () => {
+	        this.executionStateReporter.report(this.getExecutionState());
+	      },
 	      onUnknownReason: options.onUnknownReason
 	    });
 	  }
@@ -12683,7 +12700,9 @@
 	    ProgramRunner.continueLoad(input, file, {
 	      ...actions,
 	      vm: this.vm,
-	      setStartLine: (line) => this.vm.vmSetStartLine(line),
+	      setStartLine: (line) => {
+	        this.vm.vmSetStartLine(line);
+	      },
 	      loadFileInMemory: (fileInput, meta) => this.vm.vmPutFileInMemory(fileInput, meta, false)
 	    });
 	  }
@@ -12691,7 +12710,9 @@
 	    ProgramRunner.dispatchFileLoad(file, {
 	      ...actions,
 	      vm: this.vm,
-	      onStorageLoad: (input) => this.completeStorageLoad(input, actions.onStorageLoad)
+	      onStorageLoad: (input) => {
+	        this.completeStorageLoad(input, actions.onStorageLoad);
+	      }
 	    });
 	  }
 	  completeStorageLoad(input, continueLoad) {
@@ -12935,10 +12956,14 @@
 	    return result.output;
 	  }
 	  resetProgram(resetDevices, clearOutput, invalidate) {
-	    ProgramRunner.resetProgram(this.vm, () => this.removeAllVariables(), resetDevices, clearOutput, invalidate);
+	    ProgramRunner.resetProgram(this.vm, () => {
+	      this.removeAllVariables();
+	    }, resetDevices, clearOutput, invalidate);
 	  }
 	  newProgram(clearSource, invalidate) {
-	    ProgramRunner.newProgram(this.vm, clearSource, () => this.removeAllVariables(), invalidate);
+	    ProgramRunner.newProgram(this.vm, clearSource, () => {
+	      this.removeAllVariables();
+	    }, invalidate);
 	  }
 	  removeAllVariables() {
 	    if (Object.keys(this.variables.getAllVariables()).length) {
@@ -13073,19 +13098,29 @@
 	          Utils.console.debug("parse: input length:", sourceLength, ", tokenized length:", tokenLength);
 	        }
 	      },
-	      onMemoryError: (error) => Utils.console.error("vmPutProgramInMem", error),
+	      onMemoryError: (error) => {
+	        Utils.console.error("vmPutProgramInMem", error);
+	      },
 	      programHost: {
 	        getSource: () => this.getInputText(),
 	        prepareCompileOutput: (output) => this.presentCompileOutput(output),
-	        beforeProgramStart: () => this.beforeProgramStart(),
-	        afterProgramStart: () => this.afterProgramStart()
+	        beforeProgramStart: () => {
+	          this.beforeProgramStart();
+	        },
+	        afterProgramStart: () => {
+	          this.afterProgramStart();
+	        }
 	      },
 	      handlers: Object.fromEntries(Object.entries(this.handlers).map(([reason, handler]) => [reason, handler.bind(this)])),
 	      getInitialDelay: () => this.initialLoopTimeout,
 	      setTimeout: (callback, delay) => this.options.setTimeout(callback, delay),
-	      onExit: () => this.exitLoop(),
+	      onExit: () => {
+	        this.exitLoop();
+	      },
 	      onExecutionState: options.onExecutionState,
-	      onUnknownReason: (reason) => Utils.console.warn("runLoop: Unknown run mode:", reason)
+	      onUnknownReason: (reason) => {
+	        Utils.console.warn("runLoop: Unknown run mode:", reason);
+	      }
 	    });
 	    this.variables = this.runtime.variables;
 	    this.vm = this.runtime.vm;
@@ -13181,8 +13216,12 @@
 	  fnWaitInput() {
 	    const result = this.runtime.handleWaitInput({
 	      onInvalid: (error) => this.outputError(error, true),
-	      startMainLoop: () => this.startMainLoop(),
-	      continueExecution: () => this.startContinue()
+	      startMainLoop: () => {
+	        this.startMainLoop();
+	      },
+	      continueExecution: () => {
+	        this.startContinue();
+	      }
 	    });
 	    if (result.status === "invalid") {
 	      return;
@@ -13201,7 +13240,9 @@
 	      script1,
 	      script2,
 	      this.core.getModel().getProperty(ModelPropID.implicitLines),
-	      () => this.reportSplitLinesError()
+	      () => {
+	        this.reportSplitLinesError();
+	      }
 	    );
 	  }
 	  // get line range from a script with sorted line numbers
@@ -13211,7 +13252,9 @@
 	      firstLine,
 	      lastLine,
 	      this.core.getModel().getProperty(ModelPropID.implicitLines),
-	      () => this.reportSplitLinesError()
+	      () => {
+	        this.reportSplitLinesError();
+	      }
 	    );
 	  }
 	  reportSplitLinesError() {
@@ -13262,18 +13305,40 @@
 	        }
 	      }),
 	      getSource: () => this.getInputText(),
-	      setSource: (source) => this.setInputText(source),
-	      clearResult: () => this.setResultText(""),
+	      setSource: (source) => {
+	        this.setInputText(source);
+	      },
+	      clearResult: () => {
+	        this.setResultText("");
+	      },
 	      merge: (source, loaded) => this.mergeScripts(source, loaded),
-	      invalidate: () => this.invalidateScript(),
-	      removeVariables: () => this.fnRemoveAllVariables(),
-	      reset: () => this.fnReset(),
-	      parseRun: () => this.fnParseRun(),
-	      parseChain: () => this.fnParseChain(),
-	      onUnknownCommand: (value) => Utils.console.error("loadExample: Unknown command:", value),
-	      startMainLoop: () => this.startMainLoop(),
-	      onWarning: (error) => Utils.console.warn(error),
-	      onError: (message) => Utils.console.error(message),
+	      invalidate: () => {
+	        this.invalidateScript();
+	      },
+	      removeVariables: () => {
+	        this.fnRemoveAllVariables();
+	      },
+	      reset: () => {
+	        this.fnReset();
+	      },
+	      parseRun: () => {
+	        this.fnParseRun();
+	      },
+	      parseChain: () => {
+	        this.fnParseChain();
+	      },
+	      onUnknownCommand: (value) => {
+	        Utils.console.error("loadExample: Unknown command:", value);
+	      },
+	      startMainLoop: () => {
+	        this.startMainLoop();
+	      },
+	      onWarning: (error) => {
+	        Utils.console.warn(error);
+	      },
+	      onError: (message) => {
+	        Utils.console.error(message);
+	      },
 	      decodeTokenizedBasic: (value) => this.decodeTokenizedBasic(value)
 	    });
 	  }
@@ -13288,14 +13353,18 @@
 	      }
 	      this.core.getModel().setProperty(ModelPropID.example, inFile.memorizedExample);
 	      const input = exampleEntry.script;
-	      this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => this.loadFileContinue(loadedInput));
+	      this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => {
+	        this.loadFileContinue(loadedInput);
+	      });
 	    };
 	  }
 	  createFnExampleError(example, url, inFile) {
 	    return () => {
 	      Utils.console.log("Example", url, "error");
 	      this.core.getModel().setProperty(ModelPropID.example, inFile.memorizedExample);
-	      this.runtime.failExampleLoad(example, (error, noSelection) => this.outputError(error, noSelection), (input) => this.loadFileContinue(input));
+	      this.runtime.failExampleLoad(example, (error, noSelection) => this.outputError(error, noSelection), (input) => {
+	        this.loadFileContinue(input);
+	      });
 	    };
 	  }
 	  getLoadScript() {
@@ -13332,7 +13401,9 @@
 	        fnExampleError();
 	      } else {
 	        this.core.getModel().setProperty(ModelPropID.example, example);
-	        this.runtime.completeExampleLoad("", void 0, (input) => this.loadFileContinue(input));
+	        this.runtime.completeExampleLoad("", void 0, (input) => {
+	          this.loadFileContinue(input);
+	        });
 	      }
 	    }
 	  }
@@ -13342,7 +13413,9 @@
 	  fnFileLoad() {
 	    const inFile = this.vm.vmGetInFileObject();
 	    this.runtime.dispatchFileLoad(inFile, {
-	      deleteLines: (paras) => this.fnDeleteLines(paras),
+	      deleteLines: (paras) => {
+	        this.fnDeleteLines(paras);
+	      },
 	      logFile: (file) => {
 	        if (Utils.debug > 1) {
 	          Utils.console.debug("fnFileLoad:", file.command, file.name, "details:", file);
@@ -13355,9 +13428,15 @@
 	        }
 	        this.loadFileContinue(input);
 	      },
-	      loadExample: () => this.loadExampleFile(),
-	      onNotOpen: (name) => Utils.console.error("fnFileLoad:", name, "File not open!"),
-	      setNextDelay: (delay) => this.runtime.setNextDelay(delay)
+	      loadExample: () => {
+	        this.loadExampleFile();
+	      },
+	      onNotOpen: (name) => {
+	        Utils.console.error("fnFileLoad:", name, "File not open!");
+	      },
+	      setNextDelay: (delay) => {
+	        this.runtime.setNextDelay(delay);
+	      }
 	    });
 	  }
 	  fnFileSave() {
@@ -13370,8 +13449,12 @@
 	          Utils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
 	        }
 	      },
-	      () => Utils.console.error("fnFileSave: file not open!"),
-	      (error) => Utils.console.warn(error)
+	      () => {
+	        Utils.console.error("fnFileSave: file not open!");
+	      },
+	      (error) => {
+	        Utils.console.warn(error);
+	      }
 	    );
 	  }
 	  fnDeleteLines(paras) {
@@ -13379,14 +13462,20 @@
 	    this.runtime.deleteProgramLines(
 	      paras,
 	      lines,
-	      (deletion) => this.setInputText(this.mergeScripts(inputText, deletion)),
+	      (deletion) => {
+	        this.setInputText(this.mergeScripts(inputText, deletion));
+	      },
 	      (error) => this.outputError(error, true)
 	    );
 	  }
 	  fnNew() {
 	    this.runtime.newProgram(
-	      () => this.setInputText(""),
-	      () => this.invalidateScript()
+	      () => {
+	        this.setInputText("");
+	      },
+	      () => {
+	        this.invalidateScript();
+	      }
 	    );
 	  }
 	  fnList(paras) {
@@ -13396,8 +13485,12 @@
 	  fnReset() {
 	    this.runtime.resetProgram(
 	      () => void 0,
-	      () => this.setOutputText(""),
-	      () => this.invalidateScript()
+	      () => {
+	        this.setOutputText("");
+	      },
+	      () => {
+	        this.invalidateScript();
+	      }
 	    );
 	  }
 	  outputError(error, noSelection) {
@@ -13412,7 +13505,9 @@
 	      this.getInputText(),
 	      paras,
 	      (source, newLine, oldLine, step, keep) => this.runtime.basicFormatter.renumber(source, newLine, oldLine, step, keep),
-	      (source) => this.setInputText(source, true),
+	      (source) => {
+	        this.setInputText(source, true);
+	      },
 	      (error) => {
 	        Utils.console.warn(error);
 	        this.outputError(error);
@@ -13421,7 +13516,9 @@
 	  }
 	  fnEditLineCallback() {
 	    const inputParas = this.vm.vmGetStopObject().paras, inputText = this.getInputText();
-	    return this.runtime.commitEditedLine(inputParas, inputText, (source, edited) => this.mergeScripts(source, edited), (source) => this.setInputText(source));
+	    return this.runtime.commitEditedLine(inputParas, inputText, (source, edited) => this.mergeScripts(source, edited), (source) => {
+	      this.setInputText(source);
+	    });
 	  }
 	  fnEditLine(paras) {
 	    const input = this.getInputText(), lineNumber = paras.first || 0, lines = this.fnGetLinesInRange(input, lineNumber, lineNumber);
@@ -13534,7 +13631,9 @@
 	          input,
 	          stream,
 	          (source, line) => this.mergeScripts(source, line),
-	          (source) => this.setInputText(source, true)
+	          (source) => {
+	            this.setInputText(source, true);
+	          }
 	        );
 	        this.updateResultText();
 	        return false;
@@ -13544,7 +13643,9 @@
 	      }
 	      const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line, stream, directInput.message, {
 	        outputError: (error) => this.outputError(error, true),
-	        setOutputText: (text) => this.setOutputText(text),
+	        setOutputText: (text) => {
+	          this.setOutputText(text);
+	        },
 	        onPrepareError: (error) => {
 	          Utils.console.error(error);
 	          if (error instanceof Error) {
@@ -13624,7 +13725,9 @@
 	    this.startMainLoop();
 	  }
 	  startContinue() {
-	    this.runtime.continueProgram(() => this.startMainLoop());
+	    this.runtime.continueProgram(() => {
+	      this.startMainLoop();
+	    });
 	  }
 	  startReset() {
 	    this.runtime.beginControl("reset");
@@ -13774,6 +13877,9 @@
 	  /* eslint-enable no-invalid-this */
 	}
 
+	function requireNodeModule(moduleName) {
+	  return eval("require")(moduleName);
+	}
 	const myGlobalThis = typeof globalThis !== "undefined" ? globalThis : Function("return this")();
 	function createLocalStorage() {
 	  const data = {};
@@ -13808,7 +13914,7 @@
 	}
 	const _NodeUtils = class _NodeUtils {
 	  static nodeReadUrl(url, fnDataLoaded) {
-	    const nodeHttps = eval("require")("https");
+	    const nodeHttps = requireNodeModule("https");
 	    nodeHttps.get(url, (resp) => {
 	      let data = "";
 	      resp.on("data", (chunk) => {
@@ -13823,8 +13929,10 @@
 	    });
 	  }
 	  static nodeReadFile(name, fnDataLoaded) {
-	    const nodeFs = eval("require")("fs"), cwd = myGlobalThis.process && myGlobalThis.process.cwd ? myGlobalThis.process.cwd() : "", name2 = cwd && name.indexOf(":") < 0 && !name.startsWith("/") ? cwd + "/" + name : name;
-	    nodeFs.readFile(name2, "utf8", (error, data) => fnDataLoaded(error ?? void 0, data));
+	    const nodeFs = requireNodeModule("fs"), cwd = myGlobalThis.process && myGlobalThis.process.cwd ? myGlobalThis.process.cwd() : "", name2 = cwd && name.indexOf(":") < 0 && !name.startsWith("/") ? cwd + "/" + name : name;
+	    nodeFs.readFile(name2, "utf8", (error, data) => {
+	      fnDataLoaded(error ?? void 0, data);
+	    });
 	  }
 	  static isUrl(s) {
 	    return s.startsWith("http");
@@ -13854,8 +13962,7 @@
 	      Utils.setDebug(debug);
 	    }
 	    core.init();
-	    const cpcBasicGlobal = myGlobalThis;
-	    cpcBasicGlobal.cpcBasic = {
+	    myGlobalThis.cpcBasic = {
 	      addIndex: core.addIndex,
 	      addItem: (key, input) => {
 	        core.addItem(key || _NodeUtils.currentScriptKey, input);

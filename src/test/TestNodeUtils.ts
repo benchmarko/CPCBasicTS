@@ -3,10 +3,21 @@ import type { LoadScriptFn } from "../Interfaces";
 
 type NodeHttps = typeof import("node:https");
 type NodeFs = typeof import("node:fs");
+type TestNodeGlobalThis = typeof globalThis & { process?: { cwd: () => string } };
+
+function requireNodeModule(moduleName: "https"): NodeHttps;
+function requireNodeModule(moduleName: "fs"): NodeFs;
+function requireNodeModule(moduleName: "https" | "fs"): NodeHttps | NodeFs {
+	// eslint-disable-next-line no-eval, @typescript-eslint/no-unsafe-call
+	return eval("require")(moduleName) as NodeHttps | NodeFs;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func, @typescript-eslint/no-unsafe-call
+const myGlobalThis: TestNodeGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")() as TestNodeGlobalThis; // for old IE
 
 export class TestNodeUtils {
 	private static nodeReadUrl(url: string, fnDataLoaded: (error: Error | undefined, data?: string) => void) {
-		const nodeHttps = eval("require")("https") as NodeHttps; // eslint-disable-line no-eval
+		const nodeHttps = requireNodeModule("https");
 
 		nodeHttps.get(url, (resp) => {
 			let data = "";
@@ -25,12 +36,13 @@ export class TestNodeUtils {
 	}
 
 	private static nodeReadFile(name: string, fnDataLoaded: (error: Error | undefined, data?: string) => void) {
-		const nodeFs = eval("require")("fs") as NodeFs, // eslint-disable-line no-eval
-			myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(), // eslint-disable-line no-new-func
+		const nodeFs = requireNodeModule("fs"),
 			cwd = (myGlobalThis.process && myGlobalThis.process.cwd) ? myGlobalThis.process.cwd() : "",
 			name2 = (cwd && name.indexOf(":") < 0 && !name.startsWith("/")) ? cwd + "/" + name : name;
 
-		nodeFs.readFile(name2, "utf8", (error, data) => fnDataLoaded(error ?? undefined, data));
+		nodeFs.readFile(name2, "utf8", (error, data) => {
+			fnDataLoaded(error ?? undefined, data);
+		});
 	}
 
 	private static isUrl(s: string) {
@@ -71,9 +83,6 @@ export class TestNodeUtils {
 	}
 
 	public static isNodeRuntime() {
-		// eslint-disable-next-line no-new-func
-		const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
-
 		return Boolean(myGlobalThis.process);
 	}
 }

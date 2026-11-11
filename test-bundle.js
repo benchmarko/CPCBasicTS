@@ -2417,6 +2417,13 @@
 	}
 
 	const _TestHelper = class _TestHelper {
+	  static parseExpectedEntry(json) {
+	    const entry = JSON.parse(json);
+	    if (!Array.isArray(entry) && !_TestHelper.isRecord(entry)) {
+	      throw new TypeError("Expected a JSON object or array");
+	    }
+	    return entry;
+	  }
 	  static init() {
 	    const config = _TestHelper.config;
 	    if (typeof process !== "undefined") {
@@ -2465,6 +2472,9 @@
 	      }
 	    }
 	    _TestHelper.fnParseArgs(args, config);
+	  }
+	  static isRecord(value) {
+	    return value !== null && typeof value === "object" && !Array.isArray(value);
 	  }
 	  static generateTests(allTests, runTestsFor, results) {
 	    for (const category in allTests) {
@@ -4432,7 +4442,8 @@
 	      tokens = basicLexer.lex(key);
 	      result = JSON.stringify(tokens);
 	    } catch (e) {
-	      if (e.message !== expectedEntry.message) {
+	      const expectedMessage = Array.isArray(expectedEntry) ? void 0 : expectedEntry.message;
+	      if (e.message !== expectedMessage) {
 	        Utils.console.error(e);
 	      }
 	      const error = e !== null && typeof e === "object" ? e : {};
@@ -4448,7 +4459,7 @@
 	        const expected = TestHelper.handleBinaryLiterals(tests[key]);
 	        let expectedEntry;
 	        try {
-	          expectedEntry = JSON.parse(expected);
+	          expectedEntry = TestHelper.parseExpectedEntry(expected);
 	        } catch (e) {
 	          Utils.console.error(e);
 	          expectedEntry = {};
@@ -4496,7 +4507,7 @@
 	  function runSingleTestForWhitespace(basicLexer, key, expected) {
 	    let result, expectedEntry;
 	    try {
-	      expectedEntry = JSON.parse(expected);
+	      expectedEntry = TestHelper.parseExpectedEntry(expected);
 	    } catch (e) {
 	      Utils.console.error(e);
 	      expectedEntry = {};
@@ -4505,7 +4516,8 @@
 	      const tokens = basicLexer.lex(key);
 	      result = fnCombineTokens(tokens);
 	    } catch (e) {
-	      if (e.message.replace(/\d+/g, "") !== expectedEntry.message.replace(/\d+/g, "")) {
+	      const expectedMessage = !Array.isArray(expectedEntry) && typeof expectedEntry.message === "string" ? expectedEntry.message : "unknown";
+	      if (e.message.replace(/\d+/g, "") !== expectedMessage.replace(/\d+/g, "")) {
 	        Utils.console.error(e);
 	        result = String(e);
 	      } else {
@@ -5327,7 +5339,8 @@
 	      const tokens = basicLexer.lex(key), parseTree = basicParser.parse(tokens);
 	      result = JSON.stringify(parseTree);
 	    } catch (e) {
-	      if (e.message !== expectedEntry.message) {
+	      const expectedMessage = Array.isArray(expectedEntry) ? void 0 : expectedEntry.message;
+	      if (e.message !== expectedMessage) {
 	        Utils.console.error(e);
 	      }
 	      const error = e !== null && typeof e === "object" ? e : {};
@@ -5343,7 +5356,7 @@
 	        const expected = TestHelper.handleBinaryLiterals(tests[key]);
 	        let expectedEntry;
 	        try {
-	          expectedEntry = JSON.parse(expected);
+	          expectedEntry = TestHelper.parseExpectedEntry(expected);
 	        } catch (e) {
 	          Utils.console.error(e);
 	          expectedEntry = {};
@@ -5418,7 +5431,7 @@
 	  function runSingleTestForWhitespace(basicLexer, basicParser, key, expected) {
 	    let result, expectedEntry;
 	    try {
-	      expectedEntry = JSON.parse(expected);
+	      expectedEntry = TestHelper.parseExpectedEntry(expected);
 	    } catch (e) {
 	      Utils.console.error(e);
 	      expectedEntry = {};
@@ -5427,8 +5440,8 @@
 	      const tokens = basicLexer.lex(key), parseTree = basicParser.parse(tokens);
 	      result = fnCombineTreeNodes(parseTree);
 	    } catch (e) {
-	      const epectedMessage = expectedEntry.message || "unknown";
-	      if (e.message.replace(/\d+/g, "") !== epectedMessage.replace(/\d+/g, "")) {
+	      const expectedMessage = !Array.isArray(expectedEntry) && typeof expectedEntry.message === "string" ? expectedEntry.message : "unknown";
+	      if (e.message.replace(/\d+/g, "") !== expectedMessage.replace(/\d+/g, "")) {
 	        Utils.console.error(e);
 	        result = String(e);
 	      } else {
@@ -6969,7 +6982,9 @@
 	        get length() {
 	          return files.size;
 	        },
-	        clear: () => files.clear(),
+	        clear: () => {
+	          files.clear();
+	        },
 	        getItem: (key) => files.get(key) ?? null,
 	        key: (index) => Array.from(files.keys())[index] ?? null,
 	        removeItem: (key) => {
@@ -6999,7 +7014,9 @@
 	    host.loadScript("examples/0index.js", (url, key) => {
 	      assert.strictEqual(url, "examples/0index.js");
 	      assert.strictEqual(key, "examples");
-	    }, () => assert.ok(false, "Unexpected loader error"), "examples");
+	    }, () => {
+	      assert.ok(false, "Unexpected loader error");
+	    }, "examples");
 	    assert.deepEqual(requests, ["examples/0index.js"]);
 	    let called = false;
 	    assert.strictEqual(host.setTimeout(() => {
@@ -7018,613 +7035,6 @@
 	    assert.strictEqual(typeof host.setTimeout, "function");
 	  });
 	});
-
-	var Polyfills$1 = {
-	  list: [],
-	  getList: function() {
-	    return Polyfills$1.list;
-	  },
-	  log: function(part) {
-	    Polyfills$1.list.push(part);
-	  },
-	  console: typeof window !== "undefined" ? window.console : globalThis.console,
-	  localStorage: (function() {
-	    let rc;
-	    if (typeof window !== "undefined") {
-	      try {
-	        rc = window.localStorage;
-	      } catch (_e) {
-	      }
-	    }
-	    return rc;
-	  })(),
-	  isDefinePropertyOk: (function() {
-	    if (!Object.defineProperty) {
-	      return false;
-	    }
-	    try {
-	      Object.defineProperty({}, "p1", {
-	        value: "1"
-	      });
-	    } catch (_e) {
-	      return false;
-	    }
-	    return true;
-	  })(),
-	  atob: typeof window !== "undefined" ? window.atob : void 0,
-	  btoa: typeof window !== "undefined" ? window.btoa : void 0
-	};
-	if (!Polyfills$1.console) {
-	  let logText = "LOG:\n";
-	  const appendLog = (...args) => {
-	    if (logText) {
-	      logText += args.join(" ") + "\n";
-	    }
-	  };
-	  const polyFillConsole = {
-	    get cpcBasicLog() {
-	      return logText;
-	    },
-	    set cpcBasicLog(value) {
-	      logText = value;
-	    },
-	    log: appendLog,
-	    info: appendLog,
-	    warn: appendLog,
-	    error: appendLog,
-	    debug: appendLog
-	  };
-	  Polyfills$1.console = polyFillConsole;
-	  Polyfills$1.log("window.console");
-	}
-	if (!Polyfills$1.console.debug) {
-	  Polyfills$1.console.debug = Polyfills$1.console.log;
-	  Polyfills$1.log("window.console.debug");
-	}
-	if (typeof globalThis !== "undefined" && !globalThis.window) {
-	  Polyfills$1.log("window");
-	  globalThis.window = globalThis;
-	}
-	if (!Array.prototype.copyWithin) {
-	  Polyfills$1.log("Array.prototype.copyWithin");
-	  Array.prototype.copyWithin = function(target, start, end) {
-	    for (let i = start; i <= end; i += 1) {
-	      this[target] = this[i];
-	      target += 1;
-	    }
-	    return this;
-	  };
-	}
-	if (!Array.prototype.indexOf) {
-	  Polyfills$1.log("Array.prototype.indexOf");
-	  Array.prototype.indexOf = function(searchElement, from) {
-	    const len = this.length >>> 0;
-	    from = Number(from) || 0;
-	    from = from < 0 ? Math.ceil(from) : Math.floor(from);
-	    if (from < 0) {
-	      from += len;
-	    }
-	    for (; from < len; from += 1) {
-	      if (from in this && this[from] === searchElement) {
-	        return from;
-	      }
-	    }
-	    return -1;
-	  };
-	}
-	if (!Array.prototype.fill) {
-	  Polyfills$1.log("Array.prototype.fill");
-	  Array.prototype.fill = function(value, start, end) {
-	    const length = this.length;
-	    start = start || 0;
-	    end = end === void 0 ? length : end || 0;
-	    let i = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
-	    const l = end < 0 ? Math.max(length + end, 0) : Math.min(end, length);
-	    for (; i < l; i += 1) {
-	      this[i] = value;
-	    }
-	    return this;
-	  };
-	}
-	if (!Array.prototype.filter) {
-	  Polyfills$1.log("Array.prototype.filter");
-	  Array.prototype.filter = function(callbackFn) {
-	    const arr = [];
-	    for (let i = 0; i < this.length; i += 1) {
-	      if (callbackFn.call(this, this[i], i, this)) {
-	        arr.push(this[i]);
-	      }
-	    }
-	    return arr;
-	  };
-	}
-	if (!Array.prototype.map) {
-	  Polyfills$1.log("Array.prototype.map");
-	  Array.prototype.map = function(callback, thisArg) {
-	    const values = [], object = Object(this), len = object.length;
-	    let T;
-	    if (arguments.length > 1) {
-	      T = thisArg;
-	    }
-	    for (let i = 0; i < len; i += 1) {
-	      if (i in object) {
-	        const kValue = object[i], mappedValue = callback.call(T, kValue, i, object);
-	        values[i] = mappedValue;
-	      }
-	    }
-	    return values;
-	  };
-	}
-	if (window.Element) {
-	  if (!Element.prototype.addEventListener) {
-	    Polyfills$1.log("Element.prototype.addEventListener");
-	    Element.prototype.addEventListener = function(event, fnCallback) {
-	      event = "on" + event;
-	      this.attachEvent?.(event, fnCallback);
-	    };
-	  }
-	  if (!Element.prototype.removeEventListener) {
-	    Polyfills$1.log("Element.prototype.removeEventListener");
-	    Element.prototype.removeEventListener = function(event, fnCallback) {
-	      event = "on" + event;
-	      this.detachEvent?.(event, fnCallback);
-	    };
-	  }
-	}
-	if (window.Event) {
-	  if (!Event.prototype.preventDefault) {
-	    Polyfills$1.log("Event.prototype.preventDefault");
-	    Event.prototype.preventDefault = function() {
-	    };
-	  }
-	  if (!Event.prototype.stopPropagation) {
-	    Polyfills$1.log("Event.prototype.stopPropagation");
-	    Event.prototype.stopPropagation = function() {
-	    };
-	  }
-	}
-	if (!window.getComputedStyle) {
-	  Polyfills$1.log("window.getComputedStyle");
-	  const legacyWindow = window;
-	  legacyWindow.getComputedStyle = function(el, _pseudo) {
-	    this.getPropertyValue = function(prop) {
-	      const re = /(-([a-z]){1})/g;
-	      if (prop === "float") {
-	        prop = "styleFloat";
-	      }
-	      if (re.test(prop)) {
-	        prop = prop.replace(re, function() {
-	          return arguments[2].toUpperCase();
-	        });
-	      }
-	      const currentStyle = el.currentStyle, currentStyleValue = currentStyle ? currentStyle[prop] : void 0;
-	      return currentStyleValue ? currentStyleValue : null;
-	    };
-	    return this;
-	  };
-	}
-	if (!Date.now) {
-	  Polyfills$1.log("Date.now");
-	  Date.now = function() {
-	    return (/* @__PURE__ */ new Date()).getTime();
-	  };
-	}
-	if (window.document) {
-	  if (!document.addEventListener) {
-	    Polyfills$1.log("document.addEventListener, removeEventListener");
-	    if (document.attachEvent) {
-	      (function() {
-	        const eventListeners = [];
-	        document.addEventListener = function(eventString, fnHandler) {
-	          const fnFindCaret = function(event) {
-	            const documentSelection = document.selection;
-	            if (documentSelection) {
-	              const target = event.target || event.srcElement;
-	              target.focus();
-	              const range = documentSelection.createRange(), range2 = range.duplicate();
-	              if (range2.moveToElementTxt) {
-	                range2.moveToElementTxt(target);
-	              }
-	              range2.setEndPoint("EndToEnd", range);
-	              target.selectionStart = range2.text.length - range.text.length;
-	              target.selectionEnd = target.selectionStart + range.text.length;
-	            }
-	          }, fnOnEvent = function(event) {
-	            event = event || window.event;
-	            const target = event.target || event.srcElement;
-	            if (event.type === "click" && target && target.tagName === "TEXTAREA") {
-	              fnFindCaret(event);
-	            }
-	            if (typeof fnHandler === "function") {
-	              fnHandler(event);
-	            } else if (typeof fnHandler === "object") {
-	              fnHandler.handleEvent(event);
-	            } else {
-	              Polyfills$1.console.error("Unknown fnHandler:", fnHandler);
-	            }
-	            return false;
-	          };
-	          if (eventString === "change") {
-	            const elements = document.getElementsByTagName("select");
-	            for (let i = 0; i < elements.length; i += 1) {
-	              elements[i].attachEvent?.("on" + eventString, fnOnEvent);
-	              eventListeners.push({
-	                //TTT does this work?
-	                object: this,
-	                eventString,
-	                fnHandler,
-	                fnOnEvent
-	              });
-	            }
-	          } else {
-	            document.attachEvent?.("on" + eventString, fnOnEvent);
-	            eventListeners.push({
-	              object: this,
-	              eventString,
-	              fnHandler,
-	              fnOnEvent
-	            });
-	          }
-	        };
-	        document.removeEventListener = function(event, fnHandler) {
-	          let counter = 0;
-	          while (counter < eventListeners.length) {
-	            const eventListener = eventListeners[counter];
-	            if (eventListener.object === this && eventListener.eventString === event && eventListener.fnHandler === fnHandler) {
-	              this.detachEvent?.("on" + event, eventListener.fnOnEvent);
-	              eventListeners.splice(counter, 1);
-	              break;
-	            }
-	            counter += 1;
-	          }
-	        };
-	      })();
-	    } else {
-	      (Polyfills$1.console || window.console).error("No document.attachEvent found.");
-	      const documentPrototype = document.__proto__;
-	      if (documentPrototype?.addEventListener) {
-	        document.addEventListener = documentPrototype.addEventListener;
-	      }
-	    }
-	  }
-	}
-	if (!Function.prototype.bind) {
-	  Polyfills$1.log("Function.prototype.bind");
-	  (function() {
-	    const ArrayPrototypeSlice = Array.prototype.slice;
-	    Function.prototype.bind = function() {
-	      const that = this, thatArg = arguments[0], args = ArrayPrototypeSlice.call(arguments, 1), argLen = args.length;
-	      if (typeof that !== "function") {
-	        throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
-	      }
-	      return function() {
-	        args.length = argLen;
-	        for (let i = 0; i < arguments.length; i += 1) {
-	          args.push(arguments[i]);
-	        }
-	        return that.apply(thatArg, args);
-	      };
-	    };
-	  })();
-	}
-	if (!Math.log10) {
-	  Polyfills$1.log("Math.log10");
-	  Math.log10 = function(x) {
-	    return Math.log(x) * Math.LOG10E;
-	  };
-	}
-	if (!Math.sign) {
-	  Polyfills$1.log("Math.sign");
-	  Math.sign = function(x) {
-	    return Number(x > 0) - Number(x < 0) || Number(x);
-	  };
-	}
-	if (!Math.trunc) {
-	  Polyfills$1.log("Math.trunc");
-	  Math.trunc = function(v) {
-	    return v < 0 ? Math.ceil(v) : Math.floor(v);
-	  };
-	}
-	if (!Object.assign) {
-	  Polyfills$1.log("Object.assign");
-	  Object.assign = function(target) {
-	    const to = target;
-	    for (let i = 1; i < arguments.length; i += 1) {
-	      const nextSource = arguments[i];
-	      for (const nextKey in nextSource) {
-	        if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
-	          to[nextKey] = nextSource[nextKey];
-	        }
-	      }
-	    }
-	    return to;
-	  };
-	}
-	if (!Object.defineProperty || !Polyfills$1.isDefinePropertyOk) {
-	  Polyfills$1.log("Object.defineProperty");
-	  Object.defineProperty = function(target, prop, PropDescriptor) {
-	    const targetWithProperty = target;
-	    targetWithProperty[prop] = PropDescriptor.value;
-	    return target;
-	  };
-	}
-	if (!Object.keys) {
-	  Polyfills$1.log("Object.keys");
-	  Object.keys = function(o) {
-	    const k = [];
-	    if (o !== Object(o)) {
-	      throw new TypeError("Object.keys called on a non-object");
-	    }
-	    for (const p in o) {
-	      if (Object.prototype.hasOwnProperty.call(o, p)) {
-	        k.push(p);
-	      }
-	    }
-	    return k;
-	  };
-	}
-	if (!Object.values) {
-	  Polyfills$1.log("Object.values");
-	  Object.values = function(o) {
-	    const objectRecord = o;
-	    return Object.keys(o).map(function(key) {
-	      return objectRecord[key];
-	    });
-	  };
-	}
-	if (!String.prototype.endsWith) {
-	  Polyfills$1.log("String.prototype.endsWith");
-	  String.prototype.endsWith = function(search, position) {
-	    if (position === void 0) {
-	      position = this.length;
-	    }
-	    position -= search.length;
-	    const lastIndex = this.indexOf(search, position);
-	    return lastIndex !== -1 && lastIndex === position;
-	  };
-	}
-	if (!String.prototype.includes) {
-	  Polyfills$1.log("String.prototype.includes");
-	  String.prototype.includes = function(search, start = 0) {
-	    let ret;
-	    if (start + search.length > this.length) {
-	      ret = false;
-	    } else {
-	      ret = this.indexOf(search, start) !== -1;
-	    }
-	    return ret;
-	  };
-	}
-	if (!String.prototype.padStart) {
-	  Polyfills$1.log("String.prototype.padStart");
-	  String.prototype.padStart = function(targetLength, pad) {
-	    let ret = String(this);
-	    targetLength >>= 0;
-	    if (this.length < targetLength) {
-	      pad = String(typeof pad !== "undefined" ? pad : " ");
-	      targetLength -= this.length;
-	      if (targetLength > pad.length) {
-	        pad += pad.repeat(targetLength / pad.length);
-	      }
-	      ret = pad.slice(0, targetLength) + ret;
-	    }
-	    return ret;
-	  };
-	}
-	if (!String.prototype.padEnd) {
-	  Polyfills$1.log("String.prototype.padEnd");
-	  String.prototype.padEnd = function(targetLength, pad) {
-	    let ret = String(this);
-	    targetLength >>= 0;
-	    if (this.length < targetLength) {
-	      pad = String(typeof pad !== "undefined" ? pad : " ");
-	      targetLength -= this.length;
-	      if (targetLength > pad.length) {
-	        pad += pad.repeat(targetLength / pad.length);
-	      }
-	      ret += pad.slice(0, targetLength);
-	    }
-	    return ret;
-	  };
-	}
-	if (!String.prototype.repeat) {
-	  Polyfills$1.log("String.prototype.repeat");
-	  String.prototype.repeat = function(count) {
-	    const str = String(this);
-	    let out = "";
-	    for (let i = 0; i < count; i += 1) {
-	      out += str;
-	    }
-	    return out;
-	  };
-	}
-	if (!String.prototype.startsWith) {
-	  Polyfills$1.log("String.prototype.startsWith");
-	  String.prototype.startsWith = function(search, position) {
-	    position = position || 0;
-	    return this.indexOf(search, position) === position;
-	  };
-	}
-	if (!String.prototype.trim) {
-	  Polyfills$1.log("String.prototype.trim");
-	  String.prototype.trim = function() {
-	    return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, "");
-	  };
-	}
-	if (!window.atob) {
-	  Polyfills$1.log("window.atob, window.btoa");
-	  (function() {
-	    const table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", reSpaceCharacters = /[\t\n\f\r ]/g;
-	    window.atob = function(input) {
-	      input = String(input).replace(reSpaceCharacters, "");
-	      let length = input.length;
-	      if (length % 4 === 0) {
-	        input = input.replace(/[=]=?$/, "");
-	        length = input.length;
-	      }
-	      if (length % 4 === 1 || /[^+a-zA-Z0-9/]/.test(input)) {
-	        throw new TypeError("Polyfills:atob: Invalid character: the string to be decoded is not correctly encoded.");
-	      }
-	      let bitCounter = 0, output = "", position = 0, bitStorage = 0;
-	      while (position < length) {
-	        const buffer = table.indexOf(input.charAt(position));
-	        bitStorage = bitCounter % 4 ? bitStorage * 64 + buffer : buffer;
-	        bitCounter += 1;
-	        if ((bitCounter - 1) % 4) {
-	          output += String.fromCharCode(255 & bitStorage >> (-2 * bitCounter & 6));
-	        }
-	        position += 1;
-	      }
-	      return output;
-	    };
-	    window.btoa = function(input) {
-	      input = String(input);
-	      if (/[^\0-\xFF]/.test(input)) {
-	        throw new TypeError("Polyfills:btoa: The string to be encoded contains characters outside of the Latin1 range.");
-	      }
-	      const padding = input.length % 3, length = input.length - padding;
-	      let output = "", position = 0;
-	      while (position < length) {
-	        const a = input.charCodeAt(position) << 16;
-	        position += 1;
-	        const b = input.charCodeAt(position) << 8;
-	        position += 1;
-	        const c = input.charCodeAt(position);
-	        position += 1;
-	        const buffer = a + b + c;
-	        output += table.charAt(buffer >> 18 & 63) + table.charAt(buffer >> 12 & 63) + table.charAt(buffer >> 6 & 63) + table.charAt(buffer & 63);
-	      }
-	      if (padding === 2) {
-	        const a = input.charCodeAt(position) << 8;
-	        position += 1;
-	        const b = input.charCodeAt(position), buffer = a + b;
-	        output += table.charAt(buffer >> 10) + table.charAt(buffer >> 4 & 63) + table.charAt(buffer << 2 & 63) + "=";
-	      } else if (padding === 1) {
-	        const buffer = input.charCodeAt(position);
-	        output += table.charAt(buffer >> 2) + table.charAt(buffer << 4 & 63) + "==";
-	      }
-	      return output;
-	    };
-	  })();
-	  Polyfills$1.atob = window.atob;
-	  Polyfills$1.btoa = window.btoa;
-	}
-	if (!Polyfills$1.localStorage) {
-	  Polyfills$1.log("window.localStorage");
-	  (function() {
-	    class Storage {
-	      constructor() {
-	        this.length = 0;
-	      }
-	      get data() {
-	        return this;
-	      }
-	      clear() {
-	        for (const key in this) {
-	          if (Object.prototype.hasOwnProperty.call(this, key)) {
-	            delete this[key];
-	          }
-	        }
-	        this.length = 0;
-	      }
-	      key(index) {
-	        let i = 0;
-	        for (const key in this) {
-	          if (Object.prototype.hasOwnProperty.call(this, key) && key !== "length") {
-	            if (i === index) {
-	              return key;
-	            }
-	            i += 1;
-	          }
-	        }
-	        return null;
-	      }
-	      getItem(key) {
-	        return Object.prototype.hasOwnProperty.call(this, key) ? this.data[key] : null;
-	      }
-	      setItem(key, value) {
-	        if (this.getItem(key) === null) {
-	          this.length += 1;
-	        }
-	        this.data[key] = String(value);
-	      }
-	      removeItem(key) {
-	        if (this.getItem(key) !== null) {
-	          delete this.data[key];
-	          this.length -= 1;
-	        }
-	      }
-	    }
-	    Polyfills$1.localStorage = new Storage();
-	  })();
-	}
-	if (!window.ArrayBuffer) {
-	  Polyfills$1.log("window.ArrayBuffer");
-	  window.ArrayBuffer = Array;
-	}
-	if (!window.AudioContext) {
-	  const legacyWindow = window, audioContext = legacyWindow.webkitAudioContext || legacyWindow.mozAudioContext;
-	  if (audioContext) {
-	    window.AudioContext = audioContext;
-	    Polyfills$1.log("window.AudioContext");
-	  } else {
-	    Polyfills$1.log("window.AudioContext not ok!");
-	  }
-	}
-	if (!window.JSON) {
-	  Polyfills$1.log("window.JSON.parse");
-	  window.JSON = {
-	    parse: function(text) {
-	      return eval("(" + text + ")");
-	    },
-	    stringify: function(o) {
-	      (Polyfills$1.console || window.console).error("Not implemented: window.JSON.stringify");
-	      return String(o);
-	    }
-	  };
-	}
-	if (!window.requestAnimationFrame) {
-	  const legacyWindow = window;
-	  const requestAnimationFrame = legacyWindow.mozRequestAnimationFrame || legacyWindow.webkitRequestAnimationFrame || legacyWindow.msRequestAnimationFrame, cancelAnimationFrame = legacyWindow.mozCancelAnimationFrame || legacyWindow.webkitCancelAnimationFrame || legacyWindow.msCancelAnimationFrame;
-	  if (requestAnimationFrame) {
-	    window.requestAnimationFrame = requestAnimationFrame;
-	  }
-	  if (cancelAnimationFrame) {
-	    window.cancelAnimationFrame = cancelAnimationFrame;
-	  }
-	  if (!window.requestAnimationFrame || !window.cancelAnimationFrame) {
-	    (function() {
-	      let lastTime = 0;
-	      Polyfills$1.log("window.requestAnimationFrame, cancelAnimationFrame");
-	      window.requestAnimationFrame = function(callback) {
-	        const currTime = Date.now(), frameDuration = 1e3 / 60, timeToCall = Math.max(0, frameDuration - (currTime - lastTime)), id = window.setTimeout(function() {
-	          callback(currTime + timeToCall);
-	        }, timeToCall);
-	        lastTime = currTime + timeToCall;
-	        return id;
-	      };
-	      window.cancelAnimationFrame = function(id) {
-	        clearTimeout(id);
-	      };
-	    })();
-	  } else {
-	    Polyfills$1.log("window.requestAnimationFrame, cancelAnimationFrame: Using vendor specific method.");
-	  }
-	}
-	if (!window.Uint8Array) {
-	  Polyfills$1.log("Uint8Array (fallback only)");
-	  const polyfillUint8Array = function(arrayBuffer) {
-	    return arrayBuffer;
-	  };
-	  polyfillUint8Array.BYTES_PER_ELEMENT = 1;
-	  window.Uint8Array = polyfillUint8Array;
-	}
-	if (!window.Uint8Array.prototype.copyWithin) {
-	  Polyfills$1.log("Uint8Array.prototype.copyWithin");
-	  window.Uint8Array.prototype.copyWithin = Array.prototype.copyWithin;
-	}
-	(Polyfills$1.console || window.console).debug("Polyfills: (" + Polyfills$1.getList().length + ") " + Polyfills$1.getList().join("; "));
-	window.Polyfills = Polyfills$1;
 
 	var ModelPropID = /* @__PURE__ */ ((ModelPropID2) => {
 	  ModelPropID2["arrayBounds"] = "arrayBounds";
@@ -7792,7 +7202,11 @@
 	    _View.myDocument = doc;
 	  }
 	  static getDocument() {
-	    return _View.myDocument;
+	    const doc = _View.myDocument ?? (typeof document !== "undefined" ? document : void 0);
+	    if (!doc) {
+	      throw new Error("View requires a document");
+	    }
+	    return doc;
 	  }
 	  static getElementById1(id) {
 	    const element = _View.getDocument().getElementById(id);
@@ -7801,6 +7215,7 @@
 	    }
 	    return element;
 	  }
+	  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	  static getElementByIdAs(id) {
 	    return _View.getElementById1(id);
 	  }
@@ -8085,6 +7500,7 @@
 	    }
 	    return eventNames;
 	  }
+	  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	  static getEventTarget(event) {
 	    const target = event.target || event.srcElement;
 	    if (!target) {
@@ -8158,7 +7574,6 @@
 	    a.click();
 	  }
 	};
-	_View.myDocument = window.document;
 	_View.pointerEventNames = {
 	  down: "pointerdown",
 	  move: "pointermove",
@@ -10009,10 +9424,10 @@
 	    }
 	  }
 	  static keyIdentifier2Char(event) {
-	    const identifier = event.keyIdentifier, shiftKey = event.shiftKey;
+	    const identifier = event.keyIdentifier ?? "", shiftKey = event.shiftKey;
 	    let char;
 	    if (/^U\+/i.test(identifier || "")) {
-	      char = String.fromCharCode(parseInt(identifier.substr(2), 16));
+	      char = String.fromCharCode(parseInt(identifier.slice(2), 16));
 	      if (char === "\0") {
 	        char = "";
 	      }
@@ -10378,10 +9793,11 @@
 	    this.databases = {};
 	    this.examples = {};
 	  }
-	  // {
+	  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	  getProperty(property) {
 	    return this.config[property];
 	  }
+	  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	  setProperty(property, value) {
 	    const previousValue = this.config[property];
 	    this.config[property] = value;
@@ -13407,7 +12823,7 @@
 	    }
 	    const prompt = nodeArgs[3];
 	    if (prompt === ";" || node.args[3].type === "null") {
-	      msg = msg.substring(0, msg.length - 1) + "? " + msg.substr(-1, 1);
+	      msg = msg.substring(0, msg.length - 1) + "? " + msg.slice(-1);
 	    }
 	    for (let i = 4; i < nodeArgs.length; i += 1) {
 	      varTypes[i - 4] = this.fnDetermineStaticVarType(nodeArgs[i]);
@@ -17371,7 +16787,7 @@
 	    if (len !== void 0) {
 	      len = this.vmInRangeRound(len, 0, 255, "MID$");
 	    }
-	    return s.substr(start - 1, len);
+	    return s.substring(start - 1, len === void 0 ? void 0 : start - 1 + len);
 	  }
 	  mid$Assign(s, start, len, newString) {
 	    this.vmAssertString(s, "MID$");
@@ -19282,7 +18698,9 @@
 	    }
 	    const startLine = ProgramRunner.applyLoad({ command, input, line, inMemory: putInMemory, isSnapshot: data?.meta.typeString === "S" }, {
 	      ...loadActions,
-	      loadFileInMemory: () => loadFileInMemory(input, data?.meta)
+	      loadFileInMemory: () => {
+	        loadFileInMemory(input, data?.meta);
+	      }
 	    });
 	    setStartLine(startLine);
 	    startMainLoop();
@@ -19351,7 +18769,9 @@
 	  execute(vm) {
 	    const script = this.script;
 	    if (script) {
-	      this.run(() => script(vm));
+	      this.run(() => {
+	        script(vm);
+	      });
 	    }
 	  }
 	  run(execute) {
@@ -19473,7 +18893,7 @@
 	    }
 	  }
 	  init(seed) {
-	    return this.rndGen.init(seed);
+	    this.rndGen.init(seed);
 	  }
 	  random() {
 	    return this.rndGen.random();
@@ -19632,7 +19052,9 @@
 	  constructor(options) {
 	    this.options = options;
 	    this.active = false;
-	    this.runHandler = () => this.run();
+	    this.runHandler = () => {
+	      this.run();
+	    };
 	    this.nextDelay = 0;
 	  }
 	  get isRunning() {
@@ -19978,9 +19400,15 @@
 	      onVariablesCleared: options.onVariablesCleared
 	    });
 	    const handlers = {
-	      timer: () => this.vm.vmStop("", 0, true),
-	      waitFrame: () => this.handleWaitFrame(),
-	      onError: () => this.vm.vmStop("", 0, true),
+	      timer: () => {
+	        this.vm.vmStop("", 0, true);
+	      },
+	      waitFrame: () => {
+	        this.handleWaitFrame();
+	      },
+	      onError: () => {
+	        this.vm.vmStop("", 0, true);
+	      },
 	      error: Runtime.noop,
 	      stop: Runtime.noop,
 	      break: Runtime.noop,
@@ -19990,12 +19418,16 @@
 	    };
 	    this.runLoop = new RunLoop({
 	      vm: this.vm,
-	      execute: () => this.programRunner.execute(this.vm),
+	      execute: () => {
+	        this.programRunner.execute(this.vm);
+	      },
 	      handlers,
 	      getInitialDelay: options.getInitialDelay,
 	      setTimeout: options.setTimeout,
 	      onExit: options.onExit,
-	      onStateChange: () => this.executionStateReporter.report(this.getExecutionState()),
+	      onStateChange: () => {
+	        this.executionStateReporter.report(this.getExecutionState());
+	      },
 	      onUnknownReason: options.onUnknownReason
 	    });
 	  }
@@ -20050,7 +19482,9 @@
 	    ProgramRunner.continueLoad(input, file, {
 	      ...actions,
 	      vm: this.vm,
-	      setStartLine: (line) => this.vm.vmSetStartLine(line),
+	      setStartLine: (line) => {
+	        this.vm.vmSetStartLine(line);
+	      },
 	      loadFileInMemory: (fileInput, meta) => this.vm.vmPutFileInMemory(fileInput, meta, false)
 	    });
 	  }
@@ -20058,7 +19492,9 @@
 	    ProgramRunner.dispatchFileLoad(file, {
 	      ...actions,
 	      vm: this.vm,
-	      onStorageLoad: (input) => this.completeStorageLoad(input, actions.onStorageLoad)
+	      onStorageLoad: (input) => {
+	        this.completeStorageLoad(input, actions.onStorageLoad);
+	      }
 	    });
 	  }
 	  completeStorageLoad(input, continueLoad) {
@@ -20302,10 +19738,14 @@
 	    return result.output;
 	  }
 	  resetProgram(resetDevices, clearOutput, invalidate) {
-	    ProgramRunner.resetProgram(this.vm, () => this.removeAllVariables(), resetDevices, clearOutput, invalidate);
+	    ProgramRunner.resetProgram(this.vm, () => {
+	      this.removeAllVariables();
+	    }, resetDevices, clearOutput, invalidate);
 	  }
 	  newProgram(clearSource, invalidate) {
-	    ProgramRunner.newProgram(this.vm, clearSource, () => this.removeAllVariables(), invalidate);
+	    ProgramRunner.newProgram(this.vm, clearSource, () => {
+	      this.removeAllVariables();
+	    }, invalidate);
 	  }
 	  removeAllVariables() {
 	    if (Object.keys(this.variables.getAllVariables()).length) {
@@ -20884,7 +20324,7 @@
 	  onVirtualKeyboardKeydown(event) {
 	    const node = View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
 	    if (UiUtils.debug > 1) {
-	      UiUtils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
+	      UiUtils.console.debug("onVirtualKeyboardKeydown: event type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
 	    }
 	    if (cpcKey !== null) {
 	      let cpcKeyCode = Number(cpcKey);
@@ -20921,7 +20361,7 @@
 	  onVirtualKeyboardKeyupOrKeyout(event) {
 	    const node = View.getEventTarget(event);
 	    if (UiUtils.debug > 1) {
-	      UiUtils.console.debug("onVirtualKeyboardKeyupOrKeyout: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
+	      UiUtils.console.debug("onVirtualKeyboardKeyupOrKeyout: event type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
 	    }
 	    this.fnVirtualKeyboardKeyupOrKeyout(event);
 	    if (this.eventNames.out) {
@@ -20931,10 +20371,10 @@
 	    return false;
 	  }
 	  static keyIdentifier2Char(event) {
-	    const identifier = event.keyIdentifier, shiftKey = event.shiftKey;
+	    const identifier = event.keyIdentifier ?? "", shiftKey = event.shiftKey;
 	    let char;
 	    if (/^U\+/i.test(identifier || "")) {
-	      char = String.fromCharCode(parseInt(identifier.substr(2), 16));
+	      char = String.fromCharCode(parseInt(identifier.slice(2), 16));
 	      if (char === "\0") {
 	        char = "";
 	      }
@@ -22192,7 +21632,9 @@
 	    this.model = this.options.model;
 	    this.view = this.options.view;
 	    this.controller = this.options.controller;
-	    this.model.setPropertyChangeCallback(() => this.updateUrlFromConfig());
+	    this.model.setPropertyChangeCallback(() => {
+	      this.updateUrlFromConfig();
+	    });
 	    this.createEventDefMap();
 	  }
 	  getOptions() {
@@ -22365,7 +21807,7 @@
 	    textText.select();
 	    this.view.setAreaSelection(ViewID.textText, 0, 99999);
 	    if (window.navigator && window.navigator.clipboard) {
-	      window.navigator.clipboard.writeText(textText.value);
+	      void window.navigator.clipboard.writeText(textText.value);
 	    } else {
 	      UiUtils.console.warn("Copy to clipboard not available");
 	    }
@@ -22567,7 +22009,9 @@
 	        },
 	        {
 	          id: ViewID.renumButton,
-	          controllerFunc: () => this.controller.startRenum()
+	          controllerFunc: () => {
+	            this.controller.startRenum();
+	          }
 	        },
 	        {
 	          id: ViewID.renumPopoverButton,
@@ -22889,7 +22333,7 @@
 	      UiUtils.console.log("handleEvent: " + type + ": unknown target:", target.tagName, target.id);
 	    }
 	    if (type === "click") {
-	      if (id !== ViewID.cpcCanvas && id !== ViewID.textText) {
+	      if (id !== String(ViewID.cpcCanvas) && id !== String(ViewID.textText)) {
 	        this.controller.onWindowClick(event);
 	      }
 	    }
@@ -23643,31 +23087,47 @@
 	      prettyLowercaseVars: model.getProperty(ModelPropID.prettyLowercaseVars),
 	      onClickKey: this.fnPutKeyInBufferHandler,
 	      outputError: this.outputError.bind(this),
-	      onJsError: (error) => this.selectJsError(this.getOutputText(), error),
+	      onJsError: (error) => {
+	        this.selectJsError(this.getOutputText(), error);
+	      },
 	      logger: UiUtils.console,
-	      onVariablesCleared: () => this.uiController.refreshVariables(),
+	      onVariablesCleared: () => {
+	        this.uiController.refreshVariables();
+	      },
 	      onTokenized: (sourceLength, tokenLength) => {
 	        if (UiUtils.debug) {
 	          UiUtils.console.debug("parse: input length:", sourceLength, ", tokenized length:", tokenLength);
 	        }
 	      },
-	      onMemoryError: (error) => UiUtils.console.error("vmPutProgramInMem", error),
+	      onMemoryError: (error) => {
+	        UiUtils.console.error("vmPutProgramInMem", error);
+	      },
 	      programHost: {
 	        getSource: () => this.getInputText(),
-	        beforeCompileProgram: (source) => this.updateUserKeys(source),
+	        beforeCompileProgram: (source) => {
+	          this.updateUserKeys(source);
+	        },
 	        prepareCompileOutput: (output) => this.presentCompileOutput(output),
-	        beforeProgramStart: () => this.beforeProgramStart(),
-	        afterProgramStart: () => this.afterProgramStart()
+	        beforeProgramStart: () => {
+	          this.beforeProgramStart();
+	        },
+	        afterProgramStart: () => {
+	          this.afterProgramStart();
+	        }
 	      },
 	      handlers: Object.fromEntries(Object.entries(this.handlers).map(([reason, handler]) => [reason, handler.bind(this)])),
 	      getInitialDelay: () => this.initialLoopTimeout,
 	      setTimeout: (callback, delay) => this.host.setTimeout(callback, delay),
-	      onExit: () => this.exitLoop(),
+	      onExit: () => {
+	        this.exitLoop();
+	      },
 	      onExecutionState: (state) => {
 	        this.uiController.onExecutionState(state);
 	        options.onExecutionState?.(state);
 	      },
-	      onUnknownReason: (reason) => UiUtils.console.warn("runLoop: Unknown run mode:", reason)
+	      onUnknownReason: (reason) => {
+	        UiUtils.console.warn("runLoop: Unknown run mode:", reason);
+	      }
 	    });
 	    this.variables = this.runtime.variables;
 	    this.vm = this.runtime.vm;
@@ -23929,7 +23389,9 @@
 	  fnWaitKey() {
 	    const key = this.runtime.handleWaitKey(
 	      () => this.sound.isActivatedByUser(),
-	      (key2) => UiUtils.console.log("Wait for key:", key2)
+	      (key2) => {
+	        UiUtils.console.log("Wait for key:", key2);
+	      }
 	    );
 	    if (key !== "") {
 	      this.removeKeyBoardHandler();
@@ -23946,9 +23408,15 @@
 	      onInputReturn: (editedInput) => {
 	        UiUtils.console.log("fnWaitInput:", editedInput, "reason", this.vm.vmGetStopObject().reason);
 	      },
-	      onInputSubmitted: () => this.removeKeyBoardHandler(),
-	      startMainLoop: () => this.startMainLoop(),
-	      continueExecution: () => this.startContinue()
+	      onInputSubmitted: () => {
+	        this.removeKeyBoardHandler();
+	      },
+	      startMainLoop: () => {
+	        this.startMainLoop();
+	      },
+	      continueExecution: () => {
+	        this.startContinue();
+	      }
 	    });
 	    if (result.status === "invalid") {
 	      return;
@@ -23968,7 +23436,9 @@
 	      script1,
 	      script2,
 	      this.model.getProperty(ModelPropID.implicitLines),
-	      () => this.reportSplitLinesError()
+	      () => {
+	        this.reportSplitLinesError();
+	      }
 	    );
 	  }
 	  // get line range from a script with sorted line numbers
@@ -23978,7 +23448,9 @@
 	      firstLine,
 	      lastLine,
 	      this.model.getProperty(ModelPropID.implicitLines),
-	      () => this.reportSplitLinesError()
+	      () => {
+	        this.reportSplitLinesError();
+	      }
 	    );
 	  }
 	  reportSplitLinesError() {
@@ -24029,18 +23501,40 @@
 	        }
 	      }),
 	      getSource: () => this.getInputText(),
-	      setSource: (source) => this.setInputText(source),
-	      clearResult: () => this.setResultText(""),
+	      setSource: (source) => {
+	        this.setInputText(source);
+	      },
+	      clearResult: () => {
+	        this.setResultText("");
+	      },
 	      merge: (source, loaded) => this.mergeScripts(source, loaded),
-	      invalidate: () => this.invalidateScript(),
-	      removeVariables: () => this.fnRemoveAllVariables(),
-	      reset: () => this.fnReset(),
-	      parseRun: () => this.fnParseRun(),
-	      parseChain: () => this.fnParseChain(),
-	      onUnknownCommand: (value) => UiUtils.console.error("loadExample: Unknown command:", value),
-	      startMainLoop: () => this.startMainLoop(),
-	      onWarning: (error) => UiUtils.console.warn(error),
-	      onError: (message) => UiUtils.console.error(message),
+	      invalidate: () => {
+	        this.invalidateScript();
+	      },
+	      removeVariables: () => {
+	        this.fnRemoveAllVariables();
+	      },
+	      reset: () => {
+	        this.fnReset();
+	      },
+	      parseRun: () => {
+	        this.fnParseRun();
+	      },
+	      parseChain: () => {
+	        this.fnParseChain();
+	      },
+	      onUnknownCommand: (value) => {
+	        UiUtils.console.error("loadExample: Unknown command:", value);
+	      },
+	      startMainLoop: () => {
+	        this.startMainLoop();
+	      },
+	      onWarning: (error) => {
+	        UiUtils.console.warn(error);
+	      },
+	      onError: (message) => {
+	        UiUtils.console.error(message);
+	      },
 	      decodeTokenizedBasic: (value) => this.decodeTokenizedBasic(value)
 	    });
 	  }
@@ -24055,14 +23549,18 @@
 	      }
 	      this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
 	      const input = exampleEntry.script;
-	      this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => this.loadFileContinue(loadedInput));
+	      this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => {
+	        this.loadFileContinue(loadedInput);
+	      });
 	    };
 	  }
 	  createFnExampleError(example, url, inFile) {
 	    return () => {
 	      UiUtils.console.log("Example", url, "error");
 	      this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
-	      this.runtime.failExampleLoad(example, (error, noSelection) => this.outputError(error, noSelection), (input) => this.loadFileContinue(input));
+	      this.runtime.failExampleLoad(example, (error, noSelection) => this.outputError(error, noSelection), (input) => {
+	        this.loadFileContinue(input);
+	      });
 	    };
 	  }
 	  getLoadScript() {
@@ -24108,7 +23606,9 @@
 	        fnExampleError();
 	      } else {
 	        this.model.setProperty(ModelPropID.example, example);
-	        this.runtime.completeExampleLoad("", void 0, (input) => this.loadFileContinue(input));
+	        this.runtime.completeExampleLoad("", void 0, (input) => {
+	          this.loadFileContinue(input);
+	        });
 	      }
 	    }
 	  }
@@ -24118,7 +23618,9 @@
 	  fnFileLoad() {
 	    const inFile = this.vm.vmGetInFileObject();
 	    this.runtime.dispatchFileLoad(inFile, {
-	      deleteLines: (paras) => this.fnDeleteLines(paras),
+	      deleteLines: (paras) => {
+	        this.fnDeleteLines(paras);
+	      },
 	      logFile: (file) => {
 	        if (UiUtils.debug > 1) {
 	          UiUtils.console.debug("fnFileLoad:", file.command, file.name, "details:", file);
@@ -24131,9 +23633,15 @@
 	        }
 	        this.loadFileContinue(input);
 	      },
-	      loadExample: () => this.loadExampleFile(),
-	      onNotOpen: (name) => UiUtils.console.error("fnFileLoad:", name, "File not open!"),
-	      setNextDelay: (delay) => this.runtime.setNextDelay(delay)
+	      loadExample: () => {
+	        this.loadExampleFile();
+	      },
+	      onNotOpen: (name) => {
+	        UiUtils.console.error("fnFileLoad:", name, "File not open!");
+	      },
+	      setNextDelay: (delay) => {
+	        this.runtime.setNextDelay(delay);
+	      }
 	    });
 	  }
 	  fnFileSave() {
@@ -24146,8 +23654,12 @@
 	          UiUtils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
 	        }
 	      },
-	      () => UiUtils.console.error("fnFileSave: file not open!"),
-	      (error) => UiUtils.console.warn(error)
+	      () => {
+	        UiUtils.console.error("fnFileSave: file not open!");
+	      },
+	      (error) => {
+	        UiUtils.console.warn(error);
+	      }
 	    );
 	  }
 	  fnDeleteLines(paras) {
@@ -24155,14 +23667,20 @@
 	    this.runtime.deleteProgramLines(
 	      paras,
 	      lines,
-	      (deletion) => this.setInputText(this.mergeScripts(inputText, deletion)),
+	      (deletion) => {
+	        this.setInputText(this.mergeScripts(inputText, deletion));
+	      },
 	      (error) => this.outputError(error, true)
 	    );
 	  }
 	  fnNew() {
 	    this.runtime.newProgram(
-	      () => this.setInputText(""),
-	      () => this.invalidateScript()
+	      () => {
+	        this.setInputText("");
+	      },
+	      () => {
+	        this.invalidateScript();
+	      }
 	    );
 	  }
 	  fnList(paras) {
@@ -24172,8 +23690,12 @@
 	  fnReset() {
 	    this.runtime.resetProgram(
 	      () => this.virtualKeyboard?.reset(),
-	      () => this.setOutputText(""),
-	      () => this.invalidateScript()
+	      () => {
+	        this.setOutputText("");
+	      },
+	      () => {
+	        this.invalidateScript();
+	      }
 	    );
 	  }
 	  outputError(error, noSelection) {
@@ -24206,8 +23728,12 @@
 	      inputParas,
 	      inputText,
 	      (source, edited) => this.mergeScripts(source, edited),
-	      (source) => this.setInputText(source),
-	      () => this.uiController.onProgramEdited()
+	      (source) => {
+	        this.setInputText(source);
+	      },
+	      () => {
+	        this.uiController.onProgramEdited();
+	      }
 	    );
 	  }
 	  fnEditLine(paras) {
@@ -24425,8 +23951,12 @@
 	          input,
 	          stream,
 	          (source, line) => this.mergeScripts(source, line),
-	          (source) => this.setInputText(source, true),
-	          () => this.uiController.onProgramEdited()
+	          (source) => {
+	            this.setInputText(source, true);
+	          },
+	          () => {
+	            this.uiController.onProgramEdited();
+	          }
 	        );
 	        this.updateResultText();
 	        return false;
@@ -24436,7 +23966,9 @@
 	      }
 	      const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line, stream, directInput.message, {
 	        outputError: (error) => this.outputError(error, true),
-	        setOutputText: (text) => this.setOutputText(text),
+	        setOutputText: (text) => {
+	          this.setOutputText(text);
+	        },
 	        onPrepareError: (error) => {
 	          UiUtils.console.error(error);
 	          if (error instanceof Error) {
@@ -24486,7 +24018,9 @@
 	    this.runtime.startMainLoop();
 	  }
 	  startParse() {
-	    this.runtime.beginControl("parse", () => this.removeKeyBoardHandler());
+	    this.runtime.beginControl("parse", () => {
+	      this.removeKeyBoardHandler();
+	    });
 	    this.startMainLoop();
 	  }
 	  startRenum(options = this.uiController.getRenumOptions()) {
@@ -24499,15 +24033,21 @@
 	    this.startMainLoop();
 	  }
 	  startRun() {
-	    this.runtime.beginControl("run", () => this.removeKeyBoardHandler());
+	    this.runtime.beginControl("run", () => {
+	      this.removeKeyBoardHandler();
+	    });
 	    this.startMainLoop();
 	  }
 	  startParseRun() {
-	    this.runtime.beginControl("parseRun", () => this.removeKeyBoardHandler());
+	    this.runtime.beginControl("parseRun", () => {
+	      this.removeKeyBoardHandler();
+	    });
 	    this.startMainLoop();
 	  }
 	  startBreak() {
-	    this.runtime.beginControl("break", () => this.removeKeyBoardHandler());
+	    this.runtime.beginControl("break", () => {
+	      this.removeKeyBoardHandler();
+	    });
 	    this.startMainLoop();
 	  }
 	  restoreSuspendedInputHandlers(stop) {
@@ -24530,8 +24070,12 @@
 	    this.view.setDisabled(ViewID.stopButton, false);
 	    this.view.setDisabled(ViewID.continueButton, true);
 	    this.runtime.continueProgram(
-	      () => this.startMainLoop(),
-	      () => this.removeKeyBoardHandler(),
+	      () => {
+	        this.startMainLoop();
+	      },
+	      () => {
+	        this.removeKeyBoardHandler();
+	      },
 	      (restored) => {
 	        const stop = this.vm.vmGetStopObject();
 	        if (restored || stop.reason === "waitInput") {
@@ -24541,7 +24085,9 @@
 	    );
 	  }
 	  startReset() {
-	    this.runtime.beginControl("reset", () => this.removeKeyBoardHandler());
+	    this.runtime.beginControl("reset", () => {
+	      this.removeKeyBoardHandler();
+	    });
 	    this.startMainLoop();
 	  }
 	  startScreenshot() {
@@ -27838,19 +27384,29 @@
 	          Utils.console.debug("parse: input length:", sourceLength, ", tokenized length:", tokenLength);
 	        }
 	      },
-	      onMemoryError: (error) => Utils.console.error("vmPutProgramInMem", error),
+	      onMemoryError: (error) => {
+	        Utils.console.error("vmPutProgramInMem", error);
+	      },
 	      programHost: {
 	        getSource: () => this.getInputText(),
 	        prepareCompileOutput: (output) => this.presentCompileOutput(output),
-	        beforeProgramStart: () => this.beforeProgramStart(),
-	        afterProgramStart: () => this.afterProgramStart()
+	        beforeProgramStart: () => {
+	          this.beforeProgramStart();
+	        },
+	        afterProgramStart: () => {
+	          this.afterProgramStart();
+	        }
 	      },
 	      handlers: Object.fromEntries(Object.entries(this.handlers).map(([reason, handler]) => [reason, handler.bind(this)])),
 	      getInitialDelay: () => this.initialLoopTimeout,
 	      setTimeout: (callback, delay) => this.options.setTimeout(callback, delay),
-	      onExit: () => this.exitLoop(),
+	      onExit: () => {
+	        this.exitLoop();
+	      },
 	      onExecutionState: options.onExecutionState,
-	      onUnknownReason: (reason) => Utils.console.warn("runLoop: Unknown run mode:", reason)
+	      onUnknownReason: (reason) => {
+	        Utils.console.warn("runLoop: Unknown run mode:", reason);
+	      }
 	    });
 	    this.variables = this.runtime.variables;
 	    this.vm = this.runtime.vm;
@@ -27946,8 +27502,12 @@
 	  fnWaitInput() {
 	    const result = this.runtime.handleWaitInput({
 	      onInvalid: (error) => this.outputError(error, true),
-	      startMainLoop: () => this.startMainLoop(),
-	      continueExecution: () => this.startContinue()
+	      startMainLoop: () => {
+	        this.startMainLoop();
+	      },
+	      continueExecution: () => {
+	        this.startContinue();
+	      }
 	    });
 	    if (result.status === "invalid") {
 	      return;
@@ -27966,7 +27526,9 @@
 	      script1,
 	      script2,
 	      this.core.getModel().getProperty(ModelPropID.implicitLines),
-	      () => this.reportSplitLinesError()
+	      () => {
+	        this.reportSplitLinesError();
+	      }
 	    );
 	  }
 	  // get line range from a script with sorted line numbers
@@ -27976,7 +27538,9 @@
 	      firstLine,
 	      lastLine,
 	      this.core.getModel().getProperty(ModelPropID.implicitLines),
-	      () => this.reportSplitLinesError()
+	      () => {
+	        this.reportSplitLinesError();
+	      }
 	    );
 	  }
 	  reportSplitLinesError() {
@@ -28027,18 +27591,40 @@
 	        }
 	      }),
 	      getSource: () => this.getInputText(),
-	      setSource: (source) => this.setInputText(source),
-	      clearResult: () => this.setResultText(""),
+	      setSource: (source) => {
+	        this.setInputText(source);
+	      },
+	      clearResult: () => {
+	        this.setResultText("");
+	      },
 	      merge: (source, loaded) => this.mergeScripts(source, loaded),
-	      invalidate: () => this.invalidateScript(),
-	      removeVariables: () => this.fnRemoveAllVariables(),
-	      reset: () => this.fnReset(),
-	      parseRun: () => this.fnParseRun(),
-	      parseChain: () => this.fnParseChain(),
-	      onUnknownCommand: (value) => Utils.console.error("loadExample: Unknown command:", value),
-	      startMainLoop: () => this.startMainLoop(),
-	      onWarning: (error) => Utils.console.warn(error),
-	      onError: (message) => Utils.console.error(message),
+	      invalidate: () => {
+	        this.invalidateScript();
+	      },
+	      removeVariables: () => {
+	        this.fnRemoveAllVariables();
+	      },
+	      reset: () => {
+	        this.fnReset();
+	      },
+	      parseRun: () => {
+	        this.fnParseRun();
+	      },
+	      parseChain: () => {
+	        this.fnParseChain();
+	      },
+	      onUnknownCommand: (value) => {
+	        Utils.console.error("loadExample: Unknown command:", value);
+	      },
+	      startMainLoop: () => {
+	        this.startMainLoop();
+	      },
+	      onWarning: (error) => {
+	        Utils.console.warn(error);
+	      },
+	      onError: (message) => {
+	        Utils.console.error(message);
+	      },
 	      decodeTokenizedBasic: (value) => this.decodeTokenizedBasic(value)
 	    });
 	  }
@@ -28053,14 +27639,18 @@
 	      }
 	      this.core.getModel().setProperty(ModelPropID.example, inFile.memorizedExample);
 	      const input = exampleEntry.script;
-	      this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => this.loadFileContinue(loadedInput));
+	      this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => {
+	        this.loadFileContinue(loadedInput);
+	      });
 	    };
 	  }
 	  createFnExampleError(example, url, inFile) {
 	    return () => {
 	      Utils.console.log("Example", url, "error");
 	      this.core.getModel().setProperty(ModelPropID.example, inFile.memorizedExample);
-	      this.runtime.failExampleLoad(example, (error, noSelection) => this.outputError(error, noSelection), (input) => this.loadFileContinue(input));
+	      this.runtime.failExampleLoad(example, (error, noSelection) => this.outputError(error, noSelection), (input) => {
+	        this.loadFileContinue(input);
+	      });
 	    };
 	  }
 	  getLoadScript() {
@@ -28097,7 +27687,9 @@
 	        fnExampleError();
 	      } else {
 	        this.core.getModel().setProperty(ModelPropID.example, example);
-	        this.runtime.completeExampleLoad("", void 0, (input) => this.loadFileContinue(input));
+	        this.runtime.completeExampleLoad("", void 0, (input) => {
+	          this.loadFileContinue(input);
+	        });
 	      }
 	    }
 	  }
@@ -28107,7 +27699,9 @@
 	  fnFileLoad() {
 	    const inFile = this.vm.vmGetInFileObject();
 	    this.runtime.dispatchFileLoad(inFile, {
-	      deleteLines: (paras) => this.fnDeleteLines(paras),
+	      deleteLines: (paras) => {
+	        this.fnDeleteLines(paras);
+	      },
 	      logFile: (file) => {
 	        if (Utils.debug > 1) {
 	          Utils.console.debug("fnFileLoad:", file.command, file.name, "details:", file);
@@ -28120,9 +27714,15 @@
 	        }
 	        this.loadFileContinue(input);
 	      },
-	      loadExample: () => this.loadExampleFile(),
-	      onNotOpen: (name) => Utils.console.error("fnFileLoad:", name, "File not open!"),
-	      setNextDelay: (delay) => this.runtime.setNextDelay(delay)
+	      loadExample: () => {
+	        this.loadExampleFile();
+	      },
+	      onNotOpen: (name) => {
+	        Utils.console.error("fnFileLoad:", name, "File not open!");
+	      },
+	      setNextDelay: (delay) => {
+	        this.runtime.setNextDelay(delay);
+	      }
 	    });
 	  }
 	  fnFileSave() {
@@ -28135,8 +27735,12 @@
 	          Utils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
 	        }
 	      },
-	      () => Utils.console.error("fnFileSave: file not open!"),
-	      (error) => Utils.console.warn(error)
+	      () => {
+	        Utils.console.error("fnFileSave: file not open!");
+	      },
+	      (error) => {
+	        Utils.console.warn(error);
+	      }
 	    );
 	  }
 	  fnDeleteLines(paras) {
@@ -28144,14 +27748,20 @@
 	    this.runtime.deleteProgramLines(
 	      paras,
 	      lines,
-	      (deletion) => this.setInputText(this.mergeScripts(inputText, deletion)),
+	      (deletion) => {
+	        this.setInputText(this.mergeScripts(inputText, deletion));
+	      },
 	      (error) => this.outputError(error, true)
 	    );
 	  }
 	  fnNew() {
 	    this.runtime.newProgram(
-	      () => this.setInputText(""),
-	      () => this.invalidateScript()
+	      () => {
+	        this.setInputText("");
+	      },
+	      () => {
+	        this.invalidateScript();
+	      }
 	    );
 	  }
 	  fnList(paras) {
@@ -28161,8 +27771,12 @@
 	  fnReset() {
 	    this.runtime.resetProgram(
 	      () => void 0,
-	      () => this.setOutputText(""),
-	      () => this.invalidateScript()
+	      () => {
+	        this.setOutputText("");
+	      },
+	      () => {
+	        this.invalidateScript();
+	      }
 	    );
 	  }
 	  outputError(error, noSelection) {
@@ -28177,7 +27791,9 @@
 	      this.getInputText(),
 	      paras,
 	      (source, newLine, oldLine, step, keep) => this.runtime.basicFormatter.renumber(source, newLine, oldLine, step, keep),
-	      (source) => this.setInputText(source, true),
+	      (source) => {
+	        this.setInputText(source, true);
+	      },
 	      (error) => {
 	        Utils.console.warn(error);
 	        this.outputError(error);
@@ -28186,7 +27802,9 @@
 	  }
 	  fnEditLineCallback() {
 	    const inputParas = this.vm.vmGetStopObject().paras, inputText = this.getInputText();
-	    return this.runtime.commitEditedLine(inputParas, inputText, (source, edited) => this.mergeScripts(source, edited), (source) => this.setInputText(source));
+	    return this.runtime.commitEditedLine(inputParas, inputText, (source, edited) => this.mergeScripts(source, edited), (source) => {
+	      this.setInputText(source);
+	    });
 	  }
 	  fnEditLine(paras) {
 	    const input = this.getInputText(), lineNumber = paras.first || 0, lines = this.fnGetLinesInRange(input, lineNumber, lineNumber);
@@ -28299,7 +27917,9 @@
 	          input,
 	          stream,
 	          (source, line) => this.mergeScripts(source, line),
-	          (source) => this.setInputText(source, true)
+	          (source) => {
+	            this.setInputText(source, true);
+	          }
 	        );
 	        this.updateResultText();
 	        return false;
@@ -28309,7 +27929,9 @@
 	      }
 	      const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line, stream, directInput.message, {
 	        outputError: (error) => this.outputError(error, true),
-	        setOutputText: (text) => this.setOutputText(text),
+	        setOutputText: (text) => {
+	          this.setOutputText(text);
+	        },
 	        onPrepareError: (error) => {
 	          Utils.console.error(error);
 	          if (error instanceof Error) {
@@ -28389,7 +28011,9 @@
 	    this.startMainLoop();
 	  }
 	  startContinue() {
-	    this.runtime.continueProgram(() => this.startMainLoop());
+	    this.runtime.continueProgram(() => {
+	      this.startMainLoop();
+	    });
 	  }
 	  startReset() {
 	    this.runtime.beginControl("reset");
@@ -28615,7 +28239,9 @@
 	      get length() {
 	        return files.size;
 	      },
-	      clear: () => files.clear(),
+	      clear: () => {
+	        files.clear();
+	      },
 	      getItem: (key) => files.get(key) ?? null,
 	      key: (index) => Array.from(files.keys())[index] ?? null,
 	      removeItem: (key) => {
@@ -31906,7 +31532,7 @@
 	      return String(invokeTestMethod(cpcVm.atn, cpcVm, input));
 	    },
 	    auto: function(cpcVm, input) {
-	      return invokeTestMethod(cpcVm.auto, cpcVm, input);
+	      invokeTestMethod(cpcVm.auto, cpcVm, input);
 	    },
 	    bin$: function(cpcVm, input) {
 	      return invokeTestMethod(cpcVm.bin$, cpcVm, input);
@@ -32811,9 +32437,13 @@
 	  TestHelper.generateAllTests(allTests$2, runTestsFor, hooks);
 	});
 
+	function requireNodeModule(moduleName) {
+	  return eval("require")(moduleName);
+	}
+	const myGlobalThis$1 = typeof globalThis !== "undefined" ? globalThis : Function("return this")();
 	const _TestNodeUtils = class _TestNodeUtils {
 	  static nodeReadUrl(url, fnDataLoaded) {
-	    const nodeHttps = eval("require")("https");
+	    const nodeHttps = requireNodeModule("https");
 	    nodeHttps.get(url, (resp) => {
 	      let data2 = "";
 	      resp.on("data", (chunk) => {
@@ -32828,8 +32458,10 @@
 	    });
 	  }
 	  static nodeReadFile(name, fnDataLoaded) {
-	    const nodeFs = eval("require")("fs"), myGlobalThis = typeof globalThis !== "undefined" ? globalThis : Function("return this")(), cwd = myGlobalThis.process && myGlobalThis.process.cwd ? myGlobalThis.process.cwd() : "", name2 = cwd && name.indexOf(":") < 0 && !name.startsWith("/") ? cwd + "/" + name : name;
-	    nodeFs.readFile(name2, "utf8", (error2, data2) => fnDataLoaded(error2 ?? void 0, data2));
+	    const nodeFs = requireNodeModule("fs"), cwd = myGlobalThis$1.process && myGlobalThis$1.process.cwd ? myGlobalThis$1.process.cwd() : "", name2 = cwd && name.indexOf(":") < 0 && !name.startsWith("/") ? cwd + "/" + name : name;
+	    nodeFs.readFile(name2, "utf8", (error2, data2) => {
+	      fnDataLoaded(error2 ?? void 0, data2);
+	    });
 	  }
 	  static isUrl(s) {
 	    return s.startsWith("http");
@@ -32847,8 +32479,7 @@
 	    return Buffer.from(input, "binary").toString("base64");
 	  }
 	  static isNodeRuntime() {
-	    const myGlobalThis2 = typeof globalThis !== "undefined" ? globalThis : Function("return this")();
-	    return Boolean(myGlobalThis2.process);
+	    return Boolean(myGlobalThis$1.process);
 	  }
 	};
 	_TestNodeUtils.loadScript = (fileOrUrl, fnSuccess, _fnError, key) => {
@@ -33221,7 +32852,9 @@
 	    get length() {
 	      return data.size;
 	    },
-	    clear: () => data.clear(),
+	    clear: () => {
+	      data.clear();
+	    },
 	    getItem: (key) => data.get(key) ?? null,
 	    key: (index) => Array.from(data.keys())[index] ?? null,
 	    removeItem: (key) => {
@@ -33281,7 +32914,9 @@
 	    };
 	    const racing = new FileHandler({
 	      adaptFilename: (name) => name,
-	      updateStorageDatabase: () => assert.ok(false, "Missing entry must not update database"),
+	      updateStorageDatabase: () => {
+	        assert.ok(false, "Missing entry must not update database");
+	      },
 	      outputError: () => void 0,
 	      storage: racingStorage
 	    });
@@ -33494,6 +33129,7 @@
 	function createInputLine(text, copied = "") {
 	  const keys = text.split(""), echoes = [], copyStreams = [];
 	  const inputLine = new InputLine({ getKeyFromBuffer: () => keys.shift() ?? "" }, {
+	    // eslint-disable-next-line @typescript-eslint/no-base-to-string
 	    print: (stream, ...args) => {
 	      echoes.push({ stream, text: args.join("") });
 	    },
@@ -33562,7 +33198,9 @@
 	    assert.strictEqual(paras.input, "startx");
 	    assert.deepEqual(events, [["return", "startx", "startx"], ["validate", "startx"]]);
 	    const partial = createInputLine("y");
-	    assert.strictEqual(partial.inputLine.readAndSubmit(paras, () => assert.ok(false, "No Return must not submit")), false);
+	    assert.strictEqual(partial.inputLine.readAndSubmit(paras, () => {
+	      assert.ok(false, "No Return must not submit");
+	    }), false);
 	  });
 	  QUnit.test("noCRLF suppresses the direct-input newline", function(assert) {
 	    const host = createInputLine("");
@@ -34452,7 +34090,9 @@
 	  QUnit.test("pending-output callbacks can invalidate a previously installed script", function(assert) {
 	    const host = createRunner(), startup = createStartupVm();
 	    host.runner.setScript(() => void 0);
-	    assert.strictEqual(host.runner.start("if (", startup.vm, 0, () => host.runner.invalidate()), false);
+	    assert.strictEqual(host.runner.start("if (", startup.vm, 0, () => {
+	      host.runner.invalidate();
+	    }), false);
 	    assert.strictEqual(host.displayed.length, 1);
 	  });
 	  QUnit.test("compiled scripts are callable and syntax errors remain catchable by the host", function(assert) {
@@ -34951,18 +34591,20 @@
 	    runtime.vm.vmStop("", 0, true);
 	    runtime.vm.vmGoto(50);
 	    events.length = 0;
-	    const invalidDeletion = captureConsoleLogs(() => runtime.deleteProgramLines(
-	      { command: "delete", stream: 0, line: 50, first: 10, last: 20 },
-	      ["PRINT 7"],
-	      () => {
-	        assert.ok(false, "Malformed source must not be deleted");
-	      },
-	      (error) => {
-	        assert.ok(error instanceof Error);
-	        assert.strictEqual(runtime.vm.line, 50, "Error presentation precedes VM reset");
-	        events.push("invalid");
-	      }
-	    ));
+	    const invalidDeletion = captureConsoleLogs(() => {
+	      runtime.deleteProgramLines(
+	        { command: "delete", stream: 0, line: 50, first: 10, last: 20 },
+	        ["PRINT 7"],
+	        () => {
+	          assert.ok(false, "Malformed source must not be deleted");
+	        },
+	        (error) => {
+	          assert.ok(error instanceof Error);
+	          assert.strictEqual(runtime.vm.line, 50, "Error presentation precedes VM reset");
+	          events.push("invalid");
+	        }
+	      );
+	    });
 	    assert.ok(invalidDeletion.logs.some((args) => String(args[0]).includes("BASIC error(21):") && String(args[1]).includes("Direct command found in 50: delete")));
 	    assert.deepEqual(events, ["invalid"]);
 	    assert.strictEqual(runtime.vm.line, 0);
@@ -35110,17 +34752,19 @@
 	    assert.deepEqual(events, [["continue", "10 END", ""]]);
 	    events.length = 0;
 	    runtime.vm.vmStop("waitKey", 45, true);
-	    const failedExampleLoad = captureConsoleLogs(() => runtime.failExampleLoad(
-	      "missing",
-	      (error, noSelection) => {
-	        assert.ok(error instanceof Error);
-	        assert.strictEqual(noSelection, true);
-	        events.push(["error", runtime.vm.vmGetStopObject().reason]);
-	      },
-	      (input) => {
-	        events.push(["continue", input, runtime.vm.vmGetStopObject().reason]);
-	      }
-	    ));
+	    const failedExampleLoad = captureConsoleLogs(() => {
+	      runtime.failExampleLoad(
+	        "missing",
+	        (error, noSelection) => {
+	          assert.ok(error instanceof Error);
+	          assert.strictEqual(noSelection, true);
+	          events.push(["error", runtime.vm.vmGetStopObject().reason]);
+	        },
+	        (input) => {
+	          events.push(["continue", input, runtime.vm.vmGetStopObject().reason]);
+	        }
+	      );
+	    });
 	    assert.ok(failedExampleLoad.logs.some((args) => String(args[0]).includes("BASIC error(32):") && String(args[1]).includes("missing not found")));
 	    events.length = 0;
 	    runtime.vm.vmStop("fileLoad", 90, true);
@@ -36256,7 +35900,9 @@
 	    machine.runUntilInput();
 	    assert.strictEqual(machine.getVariable("first"), 300);
 	    assert.strictEqual(machine.getVariable("second"), 456);
-	    assert.throws(() => machine.advanceTime(-1), RangeError);
+	    assert.throws(() => {
+	      machine.advanceTime(-1);
+	    }, RangeError);
 	  });
 	  QUnit.test("seeded random streams are deterministic and isolated", function(assert) {
 	    const program = compile("10 initial=RND:FOR idx=1 TO 5:value=RND:NEXT idx\n20 END"), first = program.createHeadlessMachine({ seed: 123 }), second = program.createHeadlessMachine({ seed: 123 }), other = program.createHeadlessMachine({ seed: 456 });
@@ -36276,12 +35922,18 @@
 	    assert.strictEqual(machine.getVariable("value%"), 9);
 	    machine.setArrayElement("board", [2, 3], 4);
 	    assert.strictEqual(machine.getArrayElement("BOARD%", [2, 3]), 4);
-	    assert.throws(() => machine.setArrayElement("board", [3, 0], 1), RangeError);
+	    assert.throws(() => {
+	      machine.setArrayElement("board", [3, 0], 1);
+	    }, RangeError);
 	    assert.throws(() => machine.getArrayElement("board", [-1, 0]), RangeError);
 	    assert.throws(() => machine.getVariable("unknown"), ReferenceError);
 	    assert.throws(() => machine.getVariable("board(0,0)"), TypeError);
-	    assert.throws(() => machine.setVariable("value", 32768), RangeError);
-	    assert.throws(() => machine.setVariable("name$", 5), TypeError);
+	    assert.throws(() => {
+	      machine.setVariable("value", 32768);
+	    }, RangeError);
+	    assert.throws(() => {
+	      machine.setVariable("name$", 5);
+	    }, TypeError);
 	    assert.strictEqual(machine.run().reason, "stopped", "Invalid API writes do not stop the VM");
 	  });
 	  QUnit.test("text cells and window scrolling are observable", function(assert) {
@@ -38282,17 +37934,17 @@
 	  }
 	};
 
-	let path = void 0;
+	let path;
 	const myGlobalThis = typeof globalThis !== "undefined" ? globalThis : Function("return this")();
 	function isUrl(s) {
 	  return s.startsWith("http");
 	}
-	function fnEval(code) {
-	  return eval(code);
+	function requireNodePath() {
+	  return eval("require")("path");
 	}
 	function nodeGetAbsolutePath(name) {
-	  {
-	    fnEval('path = require("path");');
+	  if (!path) {
+	    path = requireNodePath();
 	  }
 	  const dirname = process.cwd() + "/dist/test/", absolutePath = path.resolve(dirname, name);
 	  if (Utils.debug > 0) {
@@ -38390,7 +38042,7 @@
 	        [dir]: JSON.parse(this.fnHereDoc(input).trim())
 	      };
 	    }
-	    return this.addIndex2(dir, input);
+	    this.addIndex2(dir, input);
 	  }
 	  static addItem(key, input) {
 	    if (typeof input !== "string") {
@@ -38503,12 +38155,8 @@
 	  defstr(first, last) {
 	    this.vmDefineVarTypes("$", "DEFSTR", first, last);
 	  },
-	  dim(varName) {
-	    const dimensions = [];
-	    for (let i = 1; i < arguments.length; i += 1) {
-	      const size = this.vmRound(arguments[i]) + 1;
-	      dimensions.push(size);
-	    }
+	  dim(varName, ...sizes) {
+	    const dimensions = sizes.map((size) => this.vmRound(size) + 1);
 	    _cpcBasic.vmMock.testVariables1.dimVariable(varName, dimensions);
 	  },
 	  vmGetNextInput: function() {
@@ -38681,10 +38329,10 @@
 	  }
 	}
 	function fnExampleLoadedUtils() {
-	  return fnExampleLoaded(void 0);
+	  fnExampleLoaded(void 0);
 	}
 	function fnExampleErrorUtils(url) {
-	  return fnExampleLoaded(new Error("fnExampleErrorUtils: " + url));
+	  fnExampleLoaded(new Error("fnExampleErrorUtils: " + url));
 	}
 	function testLoadExample(exampleEntry) {
 	  const example = exampleEntry.key, fileOrUrl = cpcBasic.dataBaseDirOrUrl + "/" + example + ".js";
@@ -38732,10 +38380,10 @@
 	  testNextExample();
 	}
 	function fnIndexLoadedUtils() {
-	  return fnIndexLoaded(void 0);
+	  fnIndexLoaded(void 0);
 	}
 	function fnIndexErrorUtils(url) {
-	  return fnIndexLoaded(new Error("fnIndexErrorUtils: " + url));
+	  fnIndexLoaded(new Error("fnIndexErrorUtils: " + url));
 	}
 	function testLoadIndex(exampeDb) {
 	  let dir = exampeDb.src;

@@ -28,7 +28,7 @@ function createFileOperations() {
 		events: string[] = [],
 		storage: IStorage = {
 			get length() { return data.size; },
-			clear: () => data.clear(),
+			clear: () => { data.clear(); },
 			getItem: (key) => data.get(key) ?? null,
 			key: (index) => Array.from(data.keys())[index] ?? null,
 			removeItem: (key) => { data.delete(key); },
@@ -83,7 +83,7 @@ QUnit.module("FileHandler", function () {
 		};
 		const racing = new FileHandler({
 			adaptFilename: (name) => name,
-			updateStorageDatabase: () => assert.ok(false, "Missing entry must not update database"),
+			updateStorageDatabase: () => { assert.ok(false, "Missing entry must not update database"); },
 			outputError: () => undefined,
 			storage: racingStorage
 		});

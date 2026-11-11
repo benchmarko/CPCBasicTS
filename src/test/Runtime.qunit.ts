@@ -240,7 +240,7 @@ QUnit.module("Runtime", function () {
 		runtime.vm.vmStop("", 0, true);
 		runtime.vm.vmGoto(50);
 		events.length = 0;
-		const invalidDeletion = captureConsoleLogs(() => runtime.deleteProgramLines(
+		const invalidDeletion = captureConsoleLogs(() => { runtime.deleteProgramLines(
 			{ command: "delete", stream: 0, line: 50, first: 10, last: 20 },
 			["PRINT 7"],
 			() => { assert.ok(false, "Malformed source must not be deleted"); },
@@ -249,7 +249,7 @@ QUnit.module("Runtime", function () {
 				assert.strictEqual(runtime.vm.line, 50, "Error presentation precedes VM reset");
 				events.push("invalid");
 			}
-		));
+		); });
 		assert.ok(invalidDeletion.logs.some((args) => String(args[0]).includes("BASIC error(21):") && String(args[1]).includes("Direct command found in 50: delete")));
 		assert.deepEqual(events, ["invalid"]);
 		assert.strictEqual(runtime.vm.line, 0);
@@ -370,7 +370,7 @@ QUnit.module("Runtime", function () {
 
 		events.length = 0;
 		runtime.vm.vmStop("waitKey", 45, true);
-		const failedExampleLoad = captureConsoleLogs(() => runtime.failExampleLoad(
+		const failedExampleLoad = captureConsoleLogs(() => { runtime.failExampleLoad(
 			"missing",
 			(error, noSelection) => {
 				assert.ok(error instanceof Error);
@@ -378,7 +378,7 @@ QUnit.module("Runtime", function () {
 				events.push(["error", runtime.vm.vmGetStopObject().reason]);
 			},
 			(input) => { events.push(["continue", input, runtime.vm.vmGetStopObject().reason]); }
-		));
+		); });
 		assert.ok(failedExampleLoad.logs.some((args) => String(args[0]).includes("BASIC error(32):") && String(args[1]).includes("missing not found")));
 
 		events.length = 0;

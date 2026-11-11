@@ -75,7 +75,7 @@ function createController(isHeadlessDirectInput = true, loadScript: LoadScriptFn
 		loadScript,
 		storage: {
 			get length() { return files.size; },
-			clear: () => files.clear(),
+			clear: () => { files.clear(); },
 			getItem: (key) => files.get(key) ?? null,
 			key: (index) => Array.from(files.keys())[index] ?? null,
 			removeItem: (key) => { files.delete(key); },

@@ -77,7 +77,7 @@ export class Core implements ICore {
 	public addIndex = (dir: string, input: Record<string, unknown> | (() => void)): void => { // need property function because we need bound "this"
 		if (typeof input === "function") {
 			input = {
-				[dir]: JSON.parse(Core.fnHereDoc(input).trim())
+				[dir]: JSON.parse(Core.fnHereDoc(input).trim()) as unknown
 			};
 		}
 

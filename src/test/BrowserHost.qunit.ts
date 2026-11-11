@@ -9,7 +9,9 @@ QUnit.module("BrowserHost", function () {
 		const services: RuntimeHost = {
 			storage: {
 				get length() { return files.size; },
-				clear: () => files.clear(),
+				clear: () => {
+					files.clear();
+				},
 				getItem: (key) => files.get(key) ?? null,
 				key: (index) => Array.from(files.keys())[index] ?? null,
 				removeItem: (key) => { files.delete(key); },
@@ -18,7 +20,10 @@ QUnit.module("BrowserHost", function () {
 			loadScript: (url, success, _error, key) => { requests.push(url); success(url, key); },
 			atobFn: (input) => "decoded:" + input,
 			btoaFn: (input) => "encoded:" + input,
-			setTimeout: (callback, delay) => { pending.push({ callback, delay }); return pending.length; }
+			setTimeout: (callback, delay) => {
+				pending.push({ callback, delay });
+				return pending.length;
+			}
 		};
 		const host = createBrowserHost(services);
 		assert.strictEqual(host.storage, services.storage);
@@ -29,7 +34,9 @@ QUnit.module("BrowserHost", function () {
 		host.loadScript("examples/0index.js", (url, key) => {
 			assert.strictEqual(url, "examples/0index.js");
 			assert.strictEqual(key, "examples");
-		}, () => assert.ok(false, "Unexpected loader error"), "examples");
+		}, () => {
+			assert.ok(false, "Unexpected loader error");
+		}, "examples");
 		assert.deepEqual(requests, ["examples/0index.js"]);
 		let called = false;
 		assert.strictEqual(host.setTimeout(() => { called = true; }, 17), 1);

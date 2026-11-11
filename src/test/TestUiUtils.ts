@@ -21,6 +21,7 @@ export class TestUiUtils {
 		let ieTimeoutCount = 3; // IE timeout count
 		const onScriptLoad = function (event: Event) {
 				const type = event.type, // "load" or "error"
+					// eslint-disable-next-line @typescript-eslint/no-deprecated
 					node = (event.currentTarget || event.srcElement) as HTMLScriptElement | HTMLLinkElement,
 					fullUrl = (node as HTMLScriptElement).src || (node as HTMLLinkElement).href, // src for script, href for link
 					key = node.getAttribute("data-key") as string;
@@ -38,6 +39,7 @@ export class TestUiUtils {
 				}
 			},
 			onScriptReadyStateChange = function (event?: Event) { // for old IE8
+				// eslint-disable-next-line @typescript-eslint/no-deprecated
 				const node = (event ? (event.currentTarget || event.srcElement) : script) as HTMLScriptElement | HTMLLinkElement,
 					fullUrl = (node as HTMLScriptElement).src || (node as HTMLLinkElement).href, // src for script, href for link
 					key = node.getAttribute("data-key") as string,
@@ -83,6 +85,7 @@ export class TestUiUtils {
 		const script = document.createElement("script");
 
 		script.type = "text/javascript";
+		// eslint-disable-next-line @typescript-eslint/no-deprecated
 		script.charset = "utf-8";
 		script.async = true;
 		script.src = url;
