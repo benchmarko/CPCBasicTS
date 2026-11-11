@@ -2301,7 +2301,7 @@ const lastTestFunctions: Record<string, unknown[]>[] = [], // eslint-disable-lin
 		}
 	} as IKeyboard,
 
-	mockSound = {
+	mockSound: ISound = {
 		release: function (...args) {
 			lastTestFunctions.push({
 				release: args
@@ -2361,7 +2361,7 @@ const lastTestFunctions: Record<string, unknown[]>[] = [], // eslint-disable-lin
 			});
 			return Boolean(args[0] & ~0x02); // eslint-disable-line no-bitwise
 		}
-	} as ISound,
+	},
 
 	mockRandom = {
 		init: function (...args) {
@@ -2498,7 +2498,7 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 			return String(invokeTestMethod(cpcVm.atn, cpcVm, input));
 		},
 		auto: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return invokeTestMethod(cpcVm.auto, cpcVm, input);
+			invokeTestMethod(cpcVm.auto, cpcVm, input);
 		},
 		bin$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			return invokeTestMethod(cpcVm.bin$, cpcVm, input);

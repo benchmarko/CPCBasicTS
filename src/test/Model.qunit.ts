@@ -9,7 +9,7 @@ QUnit.module("Model: Properties", function (hooks) {
 	const that = {} as { model: Model }; // eslint-disable-line consistent-this
 
 	function convId(id: string) {
-		return id as ModelPropID;
+		return id as unknown as ModelPropID;
 	}
 
 	hooks.beforeEach(function () {

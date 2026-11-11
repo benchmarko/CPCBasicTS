@@ -767,7 +767,7 @@ export class VirtualKeyboard {
 			cpcKey = node.getAttribute("data-key");
 
 		if (UiUtils.debug > 1) {
-			UiUtils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
+			UiUtils.console.debug("onVirtualKeyboardKeydown: event type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
 		}
 
 		if (cpcKey !== null) {
@@ -820,7 +820,7 @@ export class VirtualKeyboard {
 		const node = View.getEventTarget<HTMLElement>(event);
 
 		if (UiUtils.debug > 1) {
-			UiUtils.console.debug("onVirtualKeyboardKeyupOrKeyout: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
+			UiUtils.console.debug("onVirtualKeyboardKeyupOrKeyout: event type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
 		}
 
 		this.fnVirtualKeyboardKeyupOrKeyout(event);
@@ -834,12 +834,12 @@ export class VirtualKeyboard {
 
 	private static keyIdentifier2Char(event: KeyboardEvent) { // duplicate from Keyboard)
 		// SliTaz web browser has not key but keyIdentifier
-		const identifier = (event as any).keyIdentifier, // eslint-disable-line @typescript-eslint/no-explicit-any
+		const identifier = (event as KeyboardEvent & { keyIdentifier?: string }).keyIdentifier ?? "",
 			shiftKey = event.shiftKey;
 		let char: string;
 
 		if ((/^U\+/i).test(identifier || "")) { // unicode string?
-			char = String.fromCharCode(parseInt(identifier.substr(2), 16));
+			char = String.fromCharCode(parseInt(identifier.slice(2), 16));
 			if (char === "\0") { // ignore
 				char = "";
 			}

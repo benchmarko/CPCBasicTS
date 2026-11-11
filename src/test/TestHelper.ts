@@ -9,6 +9,8 @@ export type AllTestsType = Record<string, TestsType>;
 
 export type ResultType = Record<string, string[]>;
 
+export type ExpectedTestEntry = Record<string, unknown> | unknown[];
+
 export type runTestsForType = (category: string, tests: TestsType, assert?: Assert, results?: ResultType) => void;
 
 declare global {
@@ -29,6 +31,15 @@ export class TestHelper {
 		test: "", // a specific test
 		testAll: false // run all tests
 	};
+
+	static parseExpectedEntry(json: string): ExpectedTestEntry {
+		const entry: unknown = JSON.parse(json);
+
+		if (!Array.isArray(entry) && !TestHelper.isRecord(entry)) {
+			throw new TypeError("Expected a JSON object or array");
+		}
+		return entry;
+	}
 
 	static init(): void {
 		const config = TestHelper.config;
@@ -95,6 +106,10 @@ export class TestHelper {
 			}
 		}
 		TestHelper.fnParseArgs(args, config);
+	}
+
+	private static isRecord(value: unknown): value is Record<string, unknown> {
+		return value !== null && typeof value === "object" && !Array.isArray(value);
 	}
 
 	private static generateTests(allTests: AllTestsType, runTestsFor: runTestsForType, results?: ResultType) {

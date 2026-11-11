@@ -43,7 +43,7 @@ QUnit.module("Headless", function () {
 		machine.runUntilInput();
 		assert.strictEqual(machine.getVariable("first"), 300);
 		assert.strictEqual(machine.getVariable("second"), 456);
-		assert.throws(() => machine.advanceTime(-1), RangeError);
+		assert.throws(() => { machine.advanceTime(-1); }, RangeError);
 	});
 
 	QUnit.test("seeded random streams are deterministic and isolated", function (assert) {
@@ -66,12 +66,12 @@ QUnit.module("Headless", function () {
 		assert.strictEqual(machine.getVariable("value%"), 9);
 		machine.setArrayElement("board", [2, 3], 4);
 		assert.strictEqual(machine.getArrayElement("BOARD%", [2, 3]), 4);
-		assert.throws(() => machine.setArrayElement("board", [3, 0], 1), RangeError);
+		assert.throws(() => { machine.setArrayElement("board", [3, 0], 1); }, RangeError);
 		assert.throws(() => machine.getArrayElement("board", [-1, 0]), RangeError);
 		assert.throws(() => machine.getVariable("unknown"), ReferenceError);
 		assert.throws(() => machine.getVariable("board(0,0)"), TypeError);
-		assert.throws(() => machine.setVariable("value", 32768), RangeError);
-		assert.throws(() => machine.setVariable("name$", 5), TypeError);
+		assert.throws(() => { machine.setVariable("value", 32768); }, RangeError);
+		assert.throws(() => { machine.setVariable("name$", 5); }, TypeError);
 		assert.strictEqual(machine.run().reason, "stopped", "Invalid API writes do not stop the VM");
 	});
 

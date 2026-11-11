@@ -59,6 +59,7 @@ export class Utils {
 
 	private static testIsSupported(testExpression: string) { // does the browser support something?
 		try {
+			// eslint-disable-next-line @typescript-eslint/no-implied-eval
 			Function(testExpression); // eslint-disable-line no-new-func
 		} catch (_e) {
 			return false;

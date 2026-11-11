@@ -122,7 +122,7 @@ export class DiskImage {
 		this.options = {
 			data: "",
 			quiet: false
-		} as DiskImageOptions;
+		};
 		this.setOptions(options);
 	}
 

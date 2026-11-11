@@ -433,12 +433,12 @@ export class Keyboard implements IKeyboard {
 
 	private static keyIdentifier2Char(event: KeyboardEvent) {
 		// SliTaz web browser has not key but keyIdentifier
-		const identifier = (event as any).keyIdentifier, // eslint-disable-line @typescript-eslint/no-explicit-any
+		const identifier = (event as KeyboardEvent & { keyIdentifier?: string }).keyIdentifier ?? "",
 			shiftKey = event.shiftKey;
 		let char: string;
 
 		if ((/^U\+/i).test(identifier || "")) { // unicode string?
-			char = String.fromCharCode(parseInt(identifier.substr(2), 16));
+			char = String.fromCharCode(parseInt(identifier.slice(2), 16));
 			if (char === "\0") { // ignore
 				char = "";
 			}
@@ -464,7 +464,8 @@ export class Keyboard implements IKeyboard {
 	};
 
 	private fnKeyboardKeydown(event: KeyboardEvent) { // eslint-disable-line complexity
-		const keyCode = event.which || event.keyCode;
+		// eslint-disable-next-line @typescript-eslint/no-deprecated
+		const keyCode = event.which || event.keyCode; //TODO: deprecated
 		let pressedKey = String(keyCode) + (event.code ? event.code : ""), // event.code available for e.g. Chrome, Firefox
 			key = event.key || Keyboard.keyIdentifier2Char(event) || ""; // SliTaz web browser has not key but keyIdentifier
 
@@ -528,7 +529,8 @@ export class Keyboard implements IKeyboard {
 	}
 
 	private fnKeyboardKeyup(event: KeyboardEvent) {
-		const keyCode = event.which || event.keyCode,
+		// eslint-disable-next-line @typescript-eslint/no-deprecated
+		const keyCode = event.which || event.keyCode, //TODO: deprecated
 			key = event.key || Keyboard.keyIdentifier2Char(event) || ""; // SliTaz web browser has not key but keyIdentifier
 		let pressedKey = String(keyCode) + (event.code ? event.code : ""); // event.code available for e.g. Chrome, Firefox
 

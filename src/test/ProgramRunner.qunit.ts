@@ -458,7 +458,7 @@ QUnit.module("ProgramRunner", function () {
 		const host = createRunner(),
 			startup = createStartupVm();
 		host.runner.setScript(() => undefined);
-		assert.strictEqual(host.runner.start("if (", startup.vm, 0, () => host.runner.invalidate()), false);
+		assert.strictEqual(host.runner.start("if (", startup.vm, 0, () => { host.runner.invalidate(); }), false);
 		assert.strictEqual(host.displayed.length, 1);
 	});
 
@@ -508,6 +508,7 @@ QUnit.module("ProgramRunner", function () {
 
 	QUnit.test("non-Error throws retain the existing logging-only behavior", function (assert) {
 		const host = createRunner();
+		// eslint-disable-next-line @typescript-eslint/only-throw-error
 		host.runner.run(() => { throw "host value"; });
 		assert.deepEqual(host.logged, ["host value"]);
 		assert.deepEqual(host.displayed, []);

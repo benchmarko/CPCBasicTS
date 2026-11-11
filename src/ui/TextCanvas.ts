@@ -343,6 +343,7 @@ export class TextCanvas implements ICanvas, ICanvasVm {
 
 			if (textBufferRow) {
 				for (let x = left; x < left + width; x += 1) {
+					// eslint-disable-next-line @typescript-eslint/no-array-delete
 					delete textBufferRow[x];
 				}
 			}
@@ -367,6 +368,7 @@ export class TextCanvas implements ICanvas, ICanvasVm {
 					destinationRow[left2 + x] = sourceRow[left + x];
 				}
 			} else if (destinationRow) {
+				// eslint-disable-next-line @typescript-eslint/no-array-delete
 				delete textBuffer[top2 + y]; // no sourceRow => clear destinationRow
 			}
 		}
@@ -389,6 +391,7 @@ export class TextCanvas implements ICanvas, ICanvasVm {
 					destinationRow[left2 + x] = sourceRow[left + x];
 				}
 			} else if (destinationRow) {
+				// eslint-disable-next-line @typescript-eslint/no-array-delete
 				delete textBuffer[top2 + y]; // no sourceRow => clear destinationRow
 			}
 		}

@@ -236,7 +236,9 @@ export interface ExampleEntry {
 export type ExamplesType = Record<string, Record<string, ExampleEntry>>;
 
 export interface IModel {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
     getProperty<T extends ConfigEntryType>(property: string): T; //TODO: property: ModelPropID
+	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	setProperty<T extends ConfigEntryType>(property: string, value: T): void; // property: ModelPropID
     setPropertyChangeCallback(callback: (() => void) | undefined): void;
     getAllProperties(): ConfigType;

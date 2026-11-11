@@ -1,4 +1,3 @@
-import "../ui/Polyfills";
 import { Controller } from "../ui/Controller";
 import { ViewID } from "../ui/UiConstants";
 

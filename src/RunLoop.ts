@@ -14,7 +14,7 @@ interface RunLoopOptions {
 
 export class RunLoop {
 	private active = false;
-	private readonly runHandler = () => this.run();
+	private readonly runHandler = () => { this.run(); };
 	nextDelay = 0;
 
 	constructor(private readonly options: RunLoopOptions) {}

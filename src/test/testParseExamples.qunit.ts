@@ -7,14 +7,14 @@
 // node dist/test/testParseExamples.qunit.js
 // npm test...
 
-interface NodePath {
-	resolve: (dir: string, name: string) => string,
-	dirname: (dir: string) => string
-}
+type NodePath = Pick<typeof import("node:path"), "resolve">;
+type ParseExamplesGlobal = typeof globalThis & {
+	process?: { cwd: () => string };
+	cpcBasic?: typeof cpcBasic;
+	QUnit?: typeof QUnit;
+};
 
-/* eslint-disable prefer-const */
-let path = undefined as unknown as NodePath;
-/* eslint-enable prefer-const */
+let path: NodePath | undefined;
 
 import { ModelPropID } from "../Constants";
 import { Utils } from "../Utils";
@@ -33,21 +33,25 @@ import { TestHelper } from "./TestHelper";
 import { TestNodeUtils } from "./TestNodeUtils";
 import { TestUiUtils } from "./TestUiUtils";
 
-// eslint-disable-next-line no-new-func
-const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
+// eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func, @typescript-eslint/no-unsafe-call
+const myGlobalThis: ParseExamplesGlobal = (typeof globalThis !== "undefined") ? globalThis : Function("return this")() as ParseExamplesGlobal; // for old IE
 
 function isUrl(s: string) {
 	return s.startsWith("http"); // http or https
 }
 
-function fnEval(code: string) {
-	return eval(code); // eslint-disable-line no-eval
+function fnEval(code: string): void {
+	eval(code); // eslint-disable-line no-eval
+}
+
+function requireNodePath(): NodePath {
+	// eslint-disable-next-line no-eval, @typescript-eslint/no-unsafe-call
+	return eval("require")("path") as NodePath;
 }
 
 function nodeGetAbsolutePath(name: string) {
 	if (!path) {
-		// eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
-		fnEval('path = require("path");'); // to trick TypeScript
+		path = requireNodePath();
 	}
 
 	const dirname = process.cwd() + "/dist/test/", // "...CPCBasicTS/" + ...
@@ -202,14 +206,9 @@ class cpcBasic {
 			this.vmDefineVarTypes("$", "DEFSTR", first, last);
 		},
 
-		dim(varName: string): void { // varargs
-			const dimensions = [];
+		dim(varName: string, ...sizes: number[]): void {
+			const dimensions = sizes.map(size => this.vmRound(size) + 1); // for basic we have sizes +1
 
-			for (let i = 1; i < arguments.length; i += 1) {
-				const size = this.vmRound(arguments[i]) + 1; // for basic we have sizes +1
-
-				dimensions.push(size);
-			}
 			cpcBasic.vmMock.testVariables1.dimVariable(varName, dimensions);
 		},
 
@@ -362,10 +361,10 @@ class cpcBasic {
 	static addIndex(dir: string, input: Record<string, unknown> | (() => void)) {
 		if (typeof input === "function") {
 			input = {
-				[dir]: JSON.parse(this.fnHereDoc(input).trim())
+				[dir]: JSON.parse(this.fnHereDoc(input).trim()) as unknown
 			};
 		}
-		return this.addIndex2(dir, input);
+		this.addIndex2(dir, input);
 	}
 
 	static addItem(key: string, input: string | (() => void)) {
@@ -506,7 +505,7 @@ function testParseExample(example: ExampleEntry) {
 
 	let	checks: string,
 		output: IOutput,
-		fnScript: Function; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
+		fnScript: (vm: typeof cpcBasic.vmMock) => void;
 
 	if (example.meta === "D") {
 		checks = "ignored";
@@ -543,7 +542,7 @@ function testParseExample(example: ExampleEntry) {
 			try {
 				// test generate function
 				checks += ",Fn";
-				fnScript = new Function("o", jsScript); // eslint-disable-line no-new-func
+				fnScript = new Function("o", jsScript) as (vm: typeof cpcBasic.vmMock) => void; // eslint-disable-line @typescript-eslint/no-implied-eval, no-new-func
 
 				// test execute function (running script for fixed number of steps)
 				checks += ",exec";
@@ -568,7 +567,7 @@ function testParseExample(example: ExampleEntry) {
 				const output2 = codeGeneratorJs.generate(decoded, variables);
 
 				checks += ",Fn2";
-				fnScript = new Function("o", output2.text); // eslint-disable-line no-new-func
+				fnScript = new Function("o", output2.text) as (vm: typeof cpcBasic.vmMock) => void; // eslint-disable-line @typescript-eslint/no-implied-eval, no-new-func
 
 				// test execute function (running script for fixed number of steps)
 				checks += ",exec2";
@@ -617,11 +616,11 @@ function fnExampleLoaded(error?: Error, code?: string) {
 }
 
 function fnExampleLoadedUtils(/* url */) {
-	return fnExampleLoaded(undefined, "");
+	fnExampleLoaded(undefined, "");
 }
 
 function fnExampleErrorUtils(url: string) {
-	return fnExampleLoaded(new Error("fnExampleErrorUtils: " + url), "");
+	fnExampleLoaded(new Error("fnExampleErrorUtils: " + url), "");
 }
 
 function testLoadExample(exampleEntry: ExampleEntry) {
@@ -687,11 +686,11 @@ function fnIndexLoaded(error: Error | undefined, _code?: string) {
 }
 
 function fnIndexLoadedUtils(/* url */) {
-	return fnIndexLoaded(undefined, "");
+	fnIndexLoaded(undefined, "");
 }
 
 function fnIndexErrorUtils(url: string) {
-	return fnIndexLoaded(new Error("fnIndexErrorUtils: " + url));
+	fnIndexLoaded(new Error("fnIndexErrorUtils: " + url));
 }
 
 

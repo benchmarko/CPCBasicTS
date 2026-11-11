@@ -189,9 +189,9 @@ export class Runtime {
 			onVariablesCleared: options.onVariablesCleared
 		});
 		const handlers: Record<string, (paras: VmBaseParas) => void> = {
-			timer: () => this.vm.vmStop("", 0, true),
-			waitFrame: () => this.handleWaitFrame(),
-			onError: () => this.vm.vmStop("", 0, true),
+			timer: () => { this.vm.vmStop("", 0, true); },
+			waitFrame: () => { this.handleWaitFrame(); },
+			onError: () => { this.vm.vmStop("", 0, true); },
 			error: Runtime.noop,
 			stop: Runtime.noop,
 			break: Runtime.noop,
@@ -201,12 +201,12 @@ export class Runtime {
 		};
 		this.runLoop = new RunLoop({
 			vm: this.vm,
-			execute: () => this.programRunner.execute(this.vm),
+			execute: () => { this.programRunner.execute(this.vm); },
 			handlers,
 			getInitialDelay: options.getInitialDelay,
 			setTimeout: options.setTimeout,
 			onExit: options.onExit,
-			onStateChange: () => this.executionStateReporter.report(this.getExecutionState()),
+			onStateChange: () => { this.executionStateReporter.report(this.getExecutionState()); },
 			onUnknownReason: options.onUnknownReason
 		});
 	}
@@ -279,7 +279,7 @@ export class Runtime {
 		ProgramRunner.continueLoad(input, file, {
 			...actions,
 			vm: this.vm,
-			setStartLine: (line) => this.vm.vmSetStartLine(line),
+			setStartLine: (line) => { this.vm.vmSetStartLine(line); },
 			loadFileInMemory: (fileInput, meta) => this.vm.vmPutFileInMemory(fileInput, meta, false)
 		});
 	}
@@ -288,7 +288,7 @@ export class Runtime {
 		ProgramRunner.dispatchFileLoad(file, {
 			...actions,
 			vm: this.vm,
-			onStorageLoad: (input) => this.completeStorageLoad(input, actions.onStorageLoad)
+			onStorageLoad: (input) => { this.completeStorageLoad(input, actions.onStorageLoad); }
 		});
 	}
 
@@ -625,11 +625,11 @@ export class Runtime {
 	}
 
 	resetProgram(resetDevices: () => void, clearOutput: () => void, invalidate: () => void): void {
-		ProgramRunner.resetProgram(this.vm, () => this.removeAllVariables(), resetDevices, clearOutput, invalidate);
+		ProgramRunner.resetProgram(this.vm, () => { this.removeAllVariables(); }, resetDevices, clearOutput, invalidate);
 	}
 
 	newProgram(clearSource: () => void, invalidate: () => void): void {
-		ProgramRunner.newProgram(this.vm, clearSource, () => this.removeAllVariables(), invalidate);
+		ProgramRunner.newProgram(this.vm, clearSource, () => { this.removeAllVariables(); }, invalidate);
 	}
 
 	private removeAllVariables(): void {

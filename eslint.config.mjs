@@ -22,6 +22,10 @@ export default [
 	js.configs.recommended,
 	...tsPlugin.configs["flat/recommended"],
 	...tsPlugin.configs["flat/strict"],
+	...tsPlugin.configs["flat/strict-type-checked"].map((config) => ({
+		...config,
+		files: ["src/**/*.ts"]
+	})),
 	...tsPlugin.configs["flat/stylistic"],
 	{
 		files: ["examples/**/*.js"],
@@ -39,6 +43,9 @@ export default [
 			parser: tsParser,
 			ecmaVersion: 2018,
 			sourceType: "module",
+			parserOptions: {
+				projectService: true
+			},
 			globals: {
 				...globals.browser,
 				...globals.node,
@@ -46,6 +53,10 @@ export default [
 			}
 		},
 		rules: {
+			"@typescript-eslint/unbound-method": "off",
+			"@typescript-eslint/no-unnecessary-condition": "off",
+			"@typescript-eslint/no-unnecessary-type-conversion": "off",
+			"@typescript-eslint/restrict-plus-operands": "off",
 			"@typescript-eslint/consistent-type-definitions": "off",
 			"@typescript-eslint/consistent-indexed-object-style": "warn",
 			"@typescript-eslint/no-dynamic-delete": "off",

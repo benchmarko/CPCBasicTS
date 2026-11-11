@@ -6,6 +6,7 @@ function createInputLine(text: string, copied = "") {
 		echoes: { stream: number, text: string }[] = [],
 		copyStreams: number[] = [];
 	const inputLine = new InputLine({ getKeyFromBuffer: () => keys.shift() ?? "" }, {
+		// eslint-disable-next-line @typescript-eslint/no-base-to-string
 		print: (stream, ...args) => { echoes.push({ stream, text: args.join("") }); },
 		copychr$: (stream) => { copyStreams.push(stream); return copied; }
 	});
@@ -58,7 +59,7 @@ QUnit.module("InputLine", function () {
 		assert.deepEqual(events, [["return", "startx", "startx"], ["validate", "startx"]]);
 
 		const partial = createInputLine("y");
-		assert.strictEqual(partial.inputLine.readAndSubmit(paras, () => assert.ok(false, "No Return must not submit")), false);
+		assert.strictEqual(partial.inputLine.readAndSubmit(paras, () => { assert.ok(false, "No Return must not submit"); }), false);
 	});
 
 	QUnit.test("noCRLF suppresses the direct-input newline", function (assert) {

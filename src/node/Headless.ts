@@ -179,6 +179,7 @@ export class HeadlessMachine {
 		random.init(options.seed);
 		this.advanceTime(options.ticks ?? 0);
 		this.vm.readKey = () => this.keyboard.getKeyFromBuffer();
+		// eslint-disable-next-line @typescript-eslint/no-implied-eval
 		this.execute = new Function("o", code) as (vm: CpcVm) => void; // eslint-disable-line no-new-func
 	}
 
@@ -188,6 +189,7 @@ export class HeadlessMachine {
 	}
 
 	pressKey(key: string): void {
+		// eslint-disable-next-line @typescript-eslint/no-misused-spread
 		if ([...key].some(char => char.charCodeAt(0) > 255)) {throw new RangeError("Keys must be CPC byte characters");}
 		this.keyboard.putKeyInBuffer(key);
 	}

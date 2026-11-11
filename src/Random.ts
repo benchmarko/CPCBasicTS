@@ -150,7 +150,7 @@ export class Random {
 	}
 
 	init(seed?: number): void {
-		return this.rndGen.init(seed);
+		this.rndGen.init(seed);
 	}
 
 	random(): number {

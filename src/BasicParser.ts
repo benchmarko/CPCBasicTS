@@ -460,7 +460,7 @@ export class BasicParser {
 			}
 		}
 
-		token = this.tokens[this.index] as ParserNode; // we get a lex token and reuse it as parseTree token
+		token = this.tokens[this.index]; // we get a lex token and reuse it as parseTree token
 
 		if (!token) { // should not occur
 			Utils.console.error(this.composeError({} as Error, "advance: End of file", "", this.token && this.token.pos).message);

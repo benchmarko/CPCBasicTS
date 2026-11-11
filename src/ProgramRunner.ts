@@ -78,6 +78,7 @@ export class ProgramRunner {
 	constructor(private readonly options: ProgramRunnerOptions) {}
 
 	static compile(script: string): CompiledScript {
+		// eslint-disable-next-line @typescript-eslint/no-implied-eval
 		return new Function("o", script) as CompiledScript; // eslint-disable-line no-new-func
 	}
 
@@ -333,7 +334,9 @@ export class ProgramRunner {
 
 		const startLine = ProgramRunner.applyLoad({ command, input, line, inMemory: putInMemory, isSnapshot: data?.meta.typeString === "S" }, {
 			...loadActions,
-			loadFileInMemory: () => loadFileInMemory(input as string, data?.meta)
+			loadFileInMemory: () => {
+				loadFileInMemory(input, data?.meta);
+			}
 		});
 		setStartLine(startLine);
 		startMainLoop();
@@ -409,7 +412,9 @@ export class ProgramRunner {
 	execute(vm: CpcVm): void {
 		const script = this.script;
 		if (script) {
-			this.run(() => script(vm));
+			this.run(() => {
+				script(vm);
+			});
 		}
 	}
 

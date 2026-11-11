@@ -37,14 +37,19 @@ type LegacyNavigator = Navigator & {
 };
 
 export class View {
-	private static myDocument: Document = window.document;
+	private static myDocument?: Document;
 
 	static setDocument(doc: Document) {
 		View.myDocument = doc;
 	}
 
-	private static getDocument() {
-		return View.myDocument;
+	private static getDocument(): Document {
+		const doc = View.myDocument ?? (typeof document !== "undefined" ? document : undefined);
+
+		if (!doc) {
+			throw new Error("View requires a document");
+		}
+		return doc;
 	}
 
 	static getElementById1(id: ViewID): HTMLElement {
@@ -56,6 +61,7 @@ export class View {
 		return element;
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	static getElementByIdAs<T extends HTMLButtonElement| HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLElement>(id: ViewID): T {
 		return View.getElementById1(id) as T;
 	}
@@ -445,7 +451,9 @@ export class View {
 		return eventNames;
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	static getEventTarget<T extends HTMLElement>(event: Event): T {
+		// eslint-disable-next-line @typescript-eslint/no-deprecated
 		const target = event.target || event.srcElement; // target, not currentTarget; srcElement for IE8
 
 		if (!target) {
@@ -484,6 +492,7 @@ export class View {
 		if (requestMethod) {
 			const promise = requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
 
+			// eslint-disable-next-line @typescript-eslint/no-misused-promises
 			if (promise) {
 				promise.then(() => {
 					if (UiUtils.debug > 0) {

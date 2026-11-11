@@ -1260,7 +1260,7 @@ export class CodeGeneratorJs {
 		const prompt = nodeArgs[3];
 
 		if (prompt === ";" || node.args[3].type === "null") { // ";" => insert prompt "? " in quoted string
-			msg = msg.substring(0, msg.length - 1) + "? " + msg.substr(-1, 1);
+			msg = msg.substring(0, msg.length - 1) + "? " + msg.slice(-1);
 		}
 
 		for (let i = 4; i < nodeArgs.length; i += 1) {

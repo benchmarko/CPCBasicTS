@@ -79,19 +79,19 @@ export class Controller0 implements IRuntimeController {
 					Utils.console.debug("parse: input length:", sourceLength, ", tokenized length:", tokenLength);
 				}
 			},
-			onMemoryError: (error) => Utils.console.error("vmPutProgramInMem", error),
+			onMemoryError: (error) => { Utils.console.error("vmPutProgramInMem", error); },
 			programHost: {
 				getSource: () => this.getInputText(),
 				prepareCompileOutput: (output) => this.presentCompileOutput(output),
-				beforeProgramStart: () => this.beforeProgramStart(),
-				afterProgramStart: () => this.afterProgramStart()
+				beforeProgramStart: () => { this.beforeProgramStart(); },
+				afterProgramStart: () => { this.afterProgramStart(); }
 			},
 			handlers: Object.fromEntries(Object.entries(this.handlers).map(([reason, handler]) => [reason, handler.bind(this)])),
 			getInitialDelay: () => this.initialLoopTimeout,
 			setTimeout: (callback, delay) => this.options.setTimeout(callback, delay),
-			onExit: () => this.exitLoop(),
+			onExit: () => { this.exitLoop(); },
 			onExecutionState: options.onExecutionState,
-			onUnknownReason: (reason) => Utils.console.warn("runLoop: Unknown run mode:", reason)
+			onUnknownReason: (reason) => { Utils.console.warn("runLoop: Unknown run mode:", reason); }
 		});
 		this.variables = this.runtime.variables;
 		this.vm = this.runtime.vm;
@@ -211,8 +211,8 @@ export class Controller0 implements IRuntimeController {
 	private fnWaitInput() {
 		const result = this.runtime.handleWaitInput({
 			onInvalid: (error) => this.outputError(error, true),
-			startMainLoop: () => this.startMainLoop(),
-			continueExecution: () => this.startContinue()
+			startMainLoop: () => { this.startMainLoop(); },
+			continueExecution: () => { this.startContinue(); }
 		});
 		if (result.status === "invalid") {
 			return;
@@ -233,7 +233,7 @@ export class Controller0 implements IRuntimeController {
 			script1,
 			script2,
 			this.core.getModel().getProperty<boolean>(ModelPropID.implicitLines),
-			() => this.reportSplitLinesError()
+			() => { this.reportSplitLinesError(); }
 		);
 	}
 
@@ -244,7 +244,7 @@ export class Controller0 implements IRuntimeController {
 			firstLine,
 			lastLine,
 			this.core.getModel().getProperty<boolean>(ModelPropID.implicitLines),
-			() => this.reportSplitLinesError()
+			() => { this.reportSplitLinesError(); }
 		);
 	}
 
@@ -311,18 +311,18 @@ export class Controller0 implements IRuntimeController {
 				}
 			}),
 			getSource: () => this.getInputText(),
-			setSource: (source) => this.setInputText(source),
-			clearResult: () => this.setResultText(""),
+			setSource: (source) => { this.setInputText(source); },
+			clearResult: () => { this.setResultText(""); },
 			merge: (source, loaded) => this.mergeScripts(source, loaded),
-			invalidate: () => this.invalidateScript(),
-			removeVariables: () => this.fnRemoveAllVariables(),
-			reset: () => this.fnReset(),
-			parseRun: () => this.fnParseRun(),
-			parseChain: () => this.fnParseChain(),
-			onUnknownCommand: (value) => Utils.console.error("loadExample: Unknown command:", value),
-			startMainLoop: () => this.startMainLoop(),
-			onWarning: (error) => Utils.console.warn(error),
-			onError: (message) => Utils.console.error(message),
+			invalidate: () => { this.invalidateScript(); },
+			removeVariables: () => { this.fnRemoveAllVariables(); },
+			reset: () => { this.fnReset(); },
+			parseRun: () => { this.fnParseRun(); },
+			parseChain: () => { this.fnParseChain(); },
+			onUnknownCommand: (value) => { Utils.console.error("loadExample: Unknown command:", value); },
+			startMainLoop: () => { this.startMainLoop(); },
+			onWarning: (error) => { Utils.console.warn(error); },
+			onError: (message) => { Utils.console.error(message); },
 			decodeTokenizedBasic: (value) => this.decodeTokenizedBasic(value)
 		});
 	}
@@ -339,7 +339,7 @@ export class Controller0 implements IRuntimeController {
 			}
 			this.core.getModel().setProperty(ModelPropID.example, inFile.memorizedExample);
 			const input = exampleEntry.script;
-			this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => this.loadFileContinue(loadedInput));
+			this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => { this.loadFileContinue(loadedInput); });
 		};
 	}
 
@@ -347,7 +347,7 @@ export class Controller0 implements IRuntimeController {
 		return () => {
 			Utils.console.log("Example", url, "error");
 			this.core.getModel().setProperty(ModelPropID.example, inFile.memorizedExample);
-			this.runtime.failExampleLoad(example, (error, noSelection) => this.outputError(error, noSelection), (input) => this.loadFileContinue(input));
+			this.runtime.failExampleLoad(example, (error, noSelection) => this.outputError(error, noSelection), (input) => { this.loadFileContinue(input); });
 		};
 	}
 
@@ -399,7 +399,7 @@ export class Controller0 implements IRuntimeController {
 				fnExampleError();
 			} else {
 				this.core.getModel().setProperty(ModelPropID.example, example);
-				this.runtime.completeExampleLoad("", undefined, (input) => this.loadFileContinue(input)); // empty input?
+				this.runtime.completeExampleLoad("", undefined, (input) => { this.loadFileContinue(input); }); // empty input?
 			}
 		}
 	}
@@ -412,7 +412,7 @@ export class Controller0 implements IRuntimeController {
 		const inFile = this.vm.vmGetInFileObject();
 
 		this.runtime.dispatchFileLoad(inFile, {
-			deleteLines: (paras) => this.fnDeleteLines(paras),
+			deleteLines: (paras) => { this.fnDeleteLines(paras); },
 			logFile: (file) => {
 				if (Utils.debug > 1) {
 					Utils.console.debug("fnFileLoad:", file.command, file.name, "details:", file);
@@ -425,9 +425,9 @@ export class Controller0 implements IRuntimeController {
 				}
 				this.loadFileContinue(input);
 			},
-			loadExample: () => this.loadExampleFile(),
-			onNotOpen: (name) => Utils.console.error("fnFileLoad:", name, "File not open!"),
-			setNextDelay: (delay) => this.runtime.setNextDelay(delay)
+			loadExample: () => { this.loadExampleFile(); },
+			onNotOpen: (name) => { Utils.console.error("fnFileLoad:", name, "File not open!"); },
+			setNextDelay: (delay) => { this.runtime.setNextDelay(delay); }
 		});
 	}
 
@@ -442,8 +442,8 @@ export class Controller0 implements IRuntimeController {
 					Utils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
 				}
 			},
-			() => Utils.console.error("fnFileSave: file not open!"),
-			(error) => Utils.console.warn(error)
+			() => { Utils.console.error("fnFileSave: file not open!"); },
+			(error) => { Utils.console.warn(error); }
 		);
 	}
 
@@ -453,15 +453,15 @@ export class Controller0 implements IRuntimeController {
 		this.runtime.deleteProgramLines(
 			paras,
 			lines,
-			(deletion) => this.setInputText(this.mergeScripts(inputText, deletion)),
+			(deletion) => { this.setInputText(this.mergeScripts(inputText, deletion)); },
 			(error) => this.outputError(error, true)
 		);
 	}
 
 	private fnNew() {
 		this.runtime.newProgram(
-			() => this.setInputText(""),
-			() => this.invalidateScript()
+			() => { this.setInputText(""); },
+			() => { this.invalidateScript(); }
 		);
 	}
 
@@ -475,8 +475,8 @@ export class Controller0 implements IRuntimeController {
 	private fnReset() {
 		this.runtime.resetProgram(
 			() => undefined,
-			() => this.setOutputText(""),
-			() => this.invalidateScript()
+			() => { this.setOutputText(""); },
+			() => { this.invalidateScript(); }
 		);
 	}
 
@@ -498,7 +498,7 @@ export class Controller0 implements IRuntimeController {
 			this.getInputText(),
 			paras,
 			(source, newLine, oldLine, step, keep) => this.runtime.basicFormatter.renumber(source, newLine, oldLine, step, keep),
-			(source) => this.setInputText(source, true),
+			(source) => { this.setInputText(source, true); },
 			(error) => {
 				Utils.console.warn(error);
 				this.outputError(error);
@@ -509,7 +509,7 @@ export class Controller0 implements IRuntimeController {
 	private fnEditLineCallback() {
 		const inputParas = this.vm.vmGetStopObject().paras as VmInputParas,
 			inputText = this.getInputText();
-		return this.runtime.commitEditedLine(inputParas, inputText, (source, edited) => this.mergeScripts(source, edited), (source) => this.setInputText(source));
+		return this.runtime.commitEditedLine(inputParas, inputText, (source, edited) => this.mergeScripts(source, edited), (source) => { this.setInputText(source); });
 	}
 
 	private fnEditLine(paras: VmLineParas) {
@@ -712,7 +712,7 @@ export class Controller0 implements IRuntimeController {
 					input,
 					stream,
 					(source, line) => this.mergeScripts(source, line),
-					(source) => this.setInputText(source, true)
+					(source) => { this.setInputText(source, true); }
 				);
 				this.updateResultText();
 				return false; // continue direct input
@@ -724,7 +724,7 @@ export class Controller0 implements IRuntimeController {
 
 			const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line as number, stream, directInput.message, {
 				outputError: (error) => this.outputError(error, true),
-				setOutputText: (text) => this.setOutputText(text),
+				setOutputText: (text) => { this.setOutputText(text); },
 				onPrepareError: (error) => {
 					Utils.console.error(error);
 					if (error instanceof Error) {
@@ -826,7 +826,7 @@ export class Controller0 implements IRuntimeController {
 	}
 
 	startContinue(): void {
-		this.runtime.continueProgram(() => this.startMainLoop());
+		this.runtime.continueProgram(() => { this.startMainLoop(); });
 	}
 
 	startReset(): void {

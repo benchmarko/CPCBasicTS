@@ -145,31 +145,31 @@ export class Controller implements IController {
 			prettyLowercaseVars: model.getProperty<boolean>(ModelPropID.prettyLowercaseVars),
 			onClickKey: this.fnPutKeyInBufferHandler,
 			outputError: this.outputError.bind(this),
-			onJsError: (error) => this.selectJsError(this.getOutputText(), error),
+			onJsError: (error) => { this.selectJsError(this.getOutputText(), error); },
 			logger: UiUtils.console,
-			onVariablesCleared: () => this.uiController.refreshVariables(),
+			onVariablesCleared: () => { this.uiController.refreshVariables(); },
 			onTokenized: (sourceLength, tokenLength) => {
 				if (UiUtils.debug) {
 					UiUtils.console.debug("parse: input length:", sourceLength, ", tokenized length:", tokenLength);
 				}
 			},
-			onMemoryError: (error) => UiUtils.console.error("vmPutProgramInMem", error),
+			onMemoryError: (error) => { UiUtils.console.error("vmPutProgramInMem", error); },
 			programHost: {
 				getSource: () => this.getInputText(),
-				beforeCompileProgram: (source) => this.updateUserKeys(source),
+				beforeCompileProgram: (source) => { this.updateUserKeys(source); },
 				prepareCompileOutput: (output) => this.presentCompileOutput(output),
-				beforeProgramStart: () => this.beforeProgramStart(),
-				afterProgramStart: () => this.afterProgramStart()
+				beforeProgramStart: () => { this.beforeProgramStart(); },
+				afterProgramStart: () => { this.afterProgramStart(); }
 			},
 			handlers: Object.fromEntries(Object.entries(this.handlers).map(([reason, handler]) => [reason, handler.bind(this)])),
 			getInitialDelay: () => this.initialLoopTimeout,
 			setTimeout: (callback, delay) => this.host.setTimeout(callback, delay),
-			onExit: () => this.exitLoop(),
+			onExit: () => { this.exitLoop(); },
 			onExecutionState: (state) => {
 				this.uiController.onExecutionState(state);
 				options.onExecutionState?.(state);
 			},
-			onUnknownReason: (reason) => UiUtils.console.warn("runLoop: Unknown run mode:", reason)
+			onUnknownReason: (reason) => { UiUtils.console.warn("runLoop: Unknown run mode:", reason); }
 		});
 		this.variables = this.runtime.variables;
 		this.vm = this.runtime.vm;
@@ -513,7 +513,7 @@ export class Controller implements IController {
 	private fnWaitKey() {
 		const key = this.runtime.handleWaitKey(
 			() => this.sound.isActivatedByUser(),
-			(key) => UiUtils.console.log("Wait for key:", key)
+			(key) => { UiUtils.console.log("Wait for key:", key); }
 		);
 
 		if (key !== "") {
@@ -533,9 +533,9 @@ export class Controller implements IController {
 			onInputReturn: (editedInput) => {
 				UiUtils.console.log("fnWaitInput:", editedInput, "reason", this.vm.vmGetStopObject().reason);
 			},
-			onInputSubmitted: () => this.removeKeyBoardHandler(),
-			startMainLoop: () => this.startMainLoop(),
-			continueExecution: () => this.startContinue()
+			onInputSubmitted: () => { this.removeKeyBoardHandler(); },
+			startMainLoop: () => { this.startMainLoop(); },
+			continueExecution: () => { this.startContinue(); }
 		});
 		if (result.status === "invalid") {
 			return;
@@ -558,7 +558,7 @@ export class Controller implements IController {
 			script1,
 			script2,
 			this.model.getProperty<boolean>(ModelPropID.implicitLines),
-			() => this.reportSplitLinesError()
+			() => { this.reportSplitLinesError(); }
 		);
 	}
 
@@ -569,7 +569,7 @@ export class Controller implements IController {
 			firstLine,
 			lastLine,
 			this.model.getProperty<boolean>(ModelPropID.implicitLines),
-			() => this.reportSplitLinesError()
+			() => { this.reportSplitLinesError(); }
 		);
 	}
 
@@ -636,18 +636,18 @@ export class Controller implements IController {
 				}
 			}),
 			getSource: () => this.getInputText(),
-			setSource: (source) => this.setInputText(source),
-			clearResult: () => this.setResultText(""),
+			setSource: (source) => { this.setInputText(source); },
+			clearResult: () => { this.setResultText(""); },
 			merge: (source, loaded) => this.mergeScripts(source, loaded),
-			invalidate: () => this.invalidateScript(),
-			removeVariables: () => this.fnRemoveAllVariables(),
-			reset: () => this.fnReset(),
-			parseRun: () => this.fnParseRun(),
-			parseChain: () => this.fnParseChain(),
-			onUnknownCommand: (value) => UiUtils.console.error("loadExample: Unknown command:", value),
-			startMainLoop: () => this.startMainLoop(),
-			onWarning: (error) => UiUtils.console.warn(error),
-			onError: (message) => UiUtils.console.error(message),
+			invalidate: () => { this.invalidateScript(); },
+			removeVariables: () => { this.fnRemoveAllVariables(); },
+			reset: () => { this.fnReset(); },
+			parseRun: () => { this.fnParseRun(); },
+			parseChain: () => { this.fnParseChain(); },
+			onUnknownCommand: (value) => { UiUtils.console.error("loadExample: Unknown command:", value); },
+			startMainLoop: () => { this.startMainLoop(); },
+			onWarning: (error) => { UiUtils.console.warn(error); },
+			onError: (message) => { UiUtils.console.error(message); },
 			decodeTokenizedBasic: (value) => this.decodeTokenizedBasic(value)
 		});
 	}
@@ -664,7 +664,7 @@ export class Controller implements IController {
 			}
 			this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
 			const input = exampleEntry.script;
-			this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => this.loadFileContinue(loadedInput));
+			this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => { this.loadFileContinue(loadedInput); });
 		};
 	}
 
@@ -672,7 +672,7 @@ export class Controller implements IController {
 		return () => {
 			UiUtils.console.log("Example", url, "error");
 			this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
-			this.runtime.failExampleLoad(example, (error, noSelection) => this.outputError(error, noSelection), (input) => this.loadFileContinue(input));
+			this.runtime.failExampleLoad(example, (error, noSelection) => this.outputError(error, noSelection), (input) => { this.loadFileContinue(input); });
 		};
 	}
 
@@ -732,7 +732,7 @@ export class Controller implements IController {
 				fnExampleError();
 			} else {
 				this.model.setProperty(ModelPropID.example, example);
-				this.runtime.completeExampleLoad("", undefined, (input) => this.loadFileContinue(input)); // empty input?
+				this.runtime.completeExampleLoad("", undefined, (input) => { this.loadFileContinue(input); }); // empty input?
 			}
 		}
 	}
@@ -745,7 +745,7 @@ export class Controller implements IController {
 		const inFile = this.vm.vmGetInFileObject();
 
 		this.runtime.dispatchFileLoad(inFile, {
-			deleteLines: (paras) => this.fnDeleteLines(paras),
+			deleteLines: (paras) => { this.fnDeleteLines(paras); },
 			logFile: (file) => {
 				if (UiUtils.debug > 1) {
 					UiUtils.console.debug("fnFileLoad:", file.command, file.name, "details:", file);
@@ -758,9 +758,9 @@ export class Controller implements IController {
 				}
 				this.loadFileContinue(input);
 			},
-			loadExample: () => this.loadExampleFile(),
-			onNotOpen: (name) => UiUtils.console.error("fnFileLoad:", name, "File not open!"),
-			setNextDelay: (delay) => this.runtime.setNextDelay(delay)
+			loadExample: () => { this.loadExampleFile(); },
+			onNotOpen: (name) => { UiUtils.console.error("fnFileLoad:", name, "File not open!"); },
+			setNextDelay: (delay) => { this.runtime.setNextDelay(delay); }
 		});
 	}
 
@@ -775,8 +775,8 @@ export class Controller implements IController {
 					UiUtils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
 				}
 			},
-			() => UiUtils.console.error("fnFileSave: file not open!"),
-			(error) => UiUtils.console.warn(error)
+			() => { UiUtils.console.error("fnFileSave: file not open!"); },
+			(error) => { UiUtils.console.warn(error); }
 		);
 	}
 
@@ -786,15 +786,15 @@ export class Controller implements IController {
 		this.runtime.deleteProgramLines(
 			paras,
 			lines,
-			(deletion) => this.setInputText(this.mergeScripts(inputText, deletion)),
+			(deletion) => { this.setInputText(this.mergeScripts(inputText, deletion)); },
 			(error) => this.outputError(error, true)
 		);
 	}
 
 	private fnNew() {
 		this.runtime.newProgram(
-			() => this.setInputText(""),
-			() => this.invalidateScript()
+			() => { this.setInputText(""); },
+			() => { this.invalidateScript(); }
 		);
 	}
 
@@ -808,8 +808,8 @@ export class Controller implements IController {
 	private fnReset() {
 		this.runtime.resetProgram(
 			() => this.virtualKeyboard?.reset(),
-			() => this.setOutputText(""),
-			() => this.invalidateScript()
+			() => { this.setOutputText(""); },
+			() => { this.invalidateScript(); }
 		);
 	}
 
@@ -851,8 +851,8 @@ export class Controller implements IController {
 			inputParas,
 			inputText,
 			(source, edited) => this.mergeScripts(source, edited),
-			(source) => this.setInputText(source),
-			() => this.uiController.onProgramEdited()
+			(source) => { this.setInputText(source); },
+			() => { this.uiController.onProgramEdited(); }
 		);
 	}
 
@@ -1142,8 +1142,8 @@ export class Controller implements IController {
 					input,
 					stream,
 					(source, line) => this.mergeScripts(source, line),
-					(source) => this.setInputText(source, true),
-					() => this.uiController.onProgramEdited()
+					(source) => { this.setInputText(source, true); },
+					() => { this.uiController.onProgramEdited(); }
 				);
 				this.updateResultText();
 				return false; // continue direct input
@@ -1155,7 +1155,7 @@ export class Controller implements IController {
 
 			const output = this.runtime.executeDirectCommand(input, inputText, this.vm.line as number, stream, directInput.message, {
 				outputError: (error) => this.outputError(error, true),
-				setOutputText: (text) => this.setOutputText(text),
+				setOutputText: (text) => { this.setOutputText(text); },
 				onPrepareError: (error) => {
 					UiUtils.console.error(error);
 					if (error instanceof Error) {
@@ -1219,7 +1219,7 @@ export class Controller implements IController {
 	}
 
 	startParse(): void {
-		this.runtime.beginControl("parse", () => this.removeKeyBoardHandler());
+		this.runtime.beginControl("parse", () => { this.removeKeyBoardHandler(); });
 		this.startMainLoop();
 	}
 
@@ -1236,17 +1236,17 @@ export class Controller implements IController {
 	}
 
 	startRun(): void {
-		this.runtime.beginControl("run", () => this.removeKeyBoardHandler());
+		this.runtime.beginControl("run", () => { this.removeKeyBoardHandler(); });
 		this.startMainLoop();
 	}
 
 	startParseRun(): void {
-		this.runtime.beginControl("parseRun", () => this.removeKeyBoardHandler());
+		this.runtime.beginControl("parseRun", () => { this.removeKeyBoardHandler(); });
 		this.startMainLoop();
 	}
 
 	startBreak(): void {
-		this.runtime.beginControl("break", () => this.removeKeyBoardHandler());
+		this.runtime.beginControl("break", () => { this.removeKeyBoardHandler(); });
 		this.startMainLoop();
 	}
 
@@ -1271,8 +1271,8 @@ export class Controller implements IController {
 		this.view.setDisabled(ViewID.stopButton, false);
 		this.view.setDisabled(ViewID.continueButton, true);
 		this.runtime.continueProgram(
-			() => this.startMainLoop(),
-			() => this.removeKeyBoardHandler(),
+			() => { this.startMainLoop(); },
+			() => { this.removeKeyBoardHandler(); },
 			(restored) => {
 				const stop = this.vm.vmGetStopObject();
 				if (restored || stop.reason === "waitInput") {
@@ -1283,7 +1283,7 @@ export class Controller implements IController {
 	}
 
 	startReset(): void {
-		this.runtime.beginControl("reset", () => this.removeKeyBoardHandler());
+		this.runtime.beginControl("reset", () => { this.removeKeyBoardHandler(); });
 		this.startMainLoop();
 	}
 
@@ -1420,6 +1420,7 @@ export class Controller implements IController {
 
 		const match = (/function \(([^)]*)/).exec(functionString),
 			args = match ? match[1].split(",") : [],
+			// eslint-disable-next-line @typescript-eslint/no-implied-eval
 			fnFunction = new Function(args[0], args[1], args[2], args[3], args[4], functionString); // eslint-disable-line no-new-func
 			// we support at most 5 arguments
 

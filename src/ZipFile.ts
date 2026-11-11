@@ -264,8 +264,8 @@ export class ZipFile {
 
 		for (i = 0; i < n; i += 1) {
 			if (lens2[i] !== 0) {
-				codes.symbol[offs[lens2[i]] as number] = i; // TTT
-				(offs[lens2[i]] as number) += 1; // TTT
+				codes.symbol[offs[lens2[i]]] = i; // TTT
+				offs[lens2[i]] += 1; // TTT
 			}
 		}
 		return left;

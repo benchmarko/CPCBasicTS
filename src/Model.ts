@@ -21,10 +21,12 @@ export class Model implements IModel {
 		this.examples = {}; // loaded examples per database
 	}
 
-	// {
+	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	getProperty<T extends ConfigEntryType>(property: string): T { //getProperty<T extends ConfigEntryType>(property: ModelPropID): T
 		return this.config[property] as T; // keyof ConfigType?
 	}
+	
+	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	setProperty<T extends ConfigEntryType>(property: string, value: T): void {
 		const previousValue = this.config[property] as ConfigEntryType | undefined;
 

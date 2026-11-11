@@ -4,7 +4,7 @@
 import { Utils } from "../Utils";
 import { BasicLexer } from "../BasicLexer"; // we use BasicLexer here just for convenient input
 import { BasicParser, ParserNode } from "../BasicParser";
-import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
+import { TestHelper, TestsType, AllTestsType, ResultType, ExpectedTestEntry } from "./TestHelper";
 import { TestInput } from "./TestInput";
 
 QUnit.dump.maxDepth = 10;
@@ -786,7 +786,7 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 		thisHooks.basicLexer = createBasicLexer(thisHooks.basicParser.getKeywords(), false);
 	});
 
-	function runSingleTest(basicLexer: BasicLexer, basicParser: BasicParser, key: string, expectedEntry: Record<string, unknown>) {
+	function runSingleTest(basicLexer: BasicLexer, basicParser: BasicParser, key: string, expectedEntry: ExpectedTestEntry) {
 		let result: string;
 
 		try {
@@ -795,7 +795,9 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 
 			result = JSON.stringify(parseTree);
 		} catch (e) {
-			if ((e as Error).message !== expectedEntry.message) {
+			const expectedMessage = Array.isArray(expectedEntry) ? undefined : expectedEntry.message;
+
+			if ((e as Error).message !== expectedMessage) {
 				Utils.console.error(e); // only if unexpected
 			}
 			const error: Record<string, unknown> = e !== null && typeof e === "object" ? e as Record<string, unknown> : {};
@@ -818,10 +820,10 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 		for (const key in tests) {
 			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const expected = TestHelper.handleBinaryLiterals(tests[key]);
-				let expectedEntry: Record<string, unknown>;
+				let expectedEntry: ExpectedTestEntry;
 
 				try {
-					expectedEntry = JSON.parse(expected); // test: { e: expected }
+					expectedEntry = TestHelper.parseExpectedEntry(expected);
 				} catch (e) {
 					Utils.console.error(e);
 					expectedEntry = {}; // continue
@@ -834,7 +836,7 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 				}
 
 				if (assert) {
-					const parseTree = JSON.parse(result);
+					const parseTree: unknown = JSON.parse(result);
 
 					assert.deepEqual(parseTree, expectedEntry, key);
 				}
@@ -917,10 +919,10 @@ QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
 
 	function runSingleTestForWhitespace(basicLexer: BasicLexer, basicParser: BasicParser, key: string, expected: string) {
 		let result: string,
-			expectedEntry;
+			expectedEntry: ExpectedTestEntry;
 
 		try {
-			expectedEntry = JSON.parse(expected); // test: { e: expected }
+			expectedEntry = TestHelper.parseExpectedEntry(expected);
 		} catch (e) {
 			Utils.console.error(e);
 			expectedEntry = {}; // continue
@@ -932,9 +934,9 @@ QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
 
 			result = fnCombineTreeNodes(parseTree);
 		} catch (e) {
-			const epectedMessage = expectedEntry.message || "unknown";
+			const expectedMessage = (!Array.isArray(expectedEntry) && typeof expectedEntry.message === "string") ? expectedEntry.message : "unknown";
 
-			if ((e as Error).message.replace(/\d+/g, "") !== epectedMessage.replace(/\d+/g, "")) { // compare without positions
+			if ((e as Error).message.replace(/\d+/g, "") !== expectedMessage.replace(/\d+/g, "")) { // compare without positions
 				Utils.console.error(e); // only if unexpected
 				result = String(e);
 			} else {

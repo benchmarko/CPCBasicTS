@@ -3,7 +3,7 @@
 
 import { Utils } from "../Utils";
 import { BasicLexer, LexerToken } from "../BasicLexer";
-import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
+import { TestHelper, TestsType, AllTestsType, ResultType, ExpectedTestEntry } from "./TestHelper";
 import { TestInput } from "./TestInput";
 
 QUnit.dump.maxDepth = 10;
@@ -788,7 +788,7 @@ QUnit.module("BasicLexer: Tests", function (hooks) {
 		(hooks as hooksWithBasicLexer).basicLexer = createBasicLexer(false);
 	});
 
-	function runSingleTest(basicLexer: BasicLexer, key: string, expectedEntry: Record<string, unknown>) {
+	function runSingleTest(basicLexer: BasicLexer, key: string, expectedEntry: ExpectedTestEntry) {
 		let result: string,
 			tokens: LexerToken[];
 
@@ -796,7 +796,9 @@ QUnit.module("BasicLexer: Tests", function (hooks) {
 			tokens = basicLexer.lex(key);
 			result = JSON.stringify(tokens);
 		} catch (e) {
-			if ((e as Error).message !== expectedEntry.message) {
+			const expectedMessage = Array.isArray(expectedEntry) ? undefined : expectedEntry.message;
+
+			if ((e as Error).message !== expectedMessage) {
 				Utils.console.error(e); // only if unexpected
 			}
 			const error: Record<string, unknown> = e !== null && typeof e === "object" ? e as Record<string, unknown> : {};
@@ -817,10 +819,10 @@ QUnit.module("BasicLexer: Tests", function (hooks) {
 		for (const key in tests) {
 			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				const expected = TestHelper.handleBinaryLiterals(tests[key]);
-				let expectedEntry: Record<string, unknown>;
+				let expectedEntry: ExpectedTestEntry;
 
 				try {
-					expectedEntry = JSON.parse(expected); // test: { e: expected }
+					expectedEntry = TestHelper.parseExpectedEntry(expected);
 				} catch (e) {
 					Utils.console.error(e);
 					expectedEntry = {}; // continue
@@ -833,7 +835,7 @@ QUnit.module("BasicLexer: Tests", function (hooks) {
 				}
 
 				if (assert) {
-					const tokens = JSON.parse(result);
+					const tokens: unknown = JSON.parse(result);
 
 					assert.deepEqual(tokens, expectedEntry, key);
 				}
@@ -877,10 +879,10 @@ QUnit.module("BasicLexer: keepWhiteSpace", function (hooks) {
 
 	function runSingleTestForWhitespace(basicLexer: BasicLexer, key: string, expected: string) {
 		let result: string,
-			expectedEntry;
+			expectedEntry: ExpectedTestEntry;
 
 		try {
-			expectedEntry = JSON.parse(expected); // test: { e: expected }
+			expectedEntry = TestHelper.parseExpectedEntry(expected);
 		} catch (e) {
 			Utils.console.error(e);
 			expectedEntry = {}; // continue
@@ -891,7 +893,9 @@ QUnit.module("BasicLexer: keepWhiteSpace", function (hooks) {
 
 			result = fnCombineTokens(tokens);
 		} catch (e) {
-			if ((e as Error).message.replace(/\d+/g, "") !== expectedEntry.message.replace(/\d+/g, "")) { // compare without positions
+			const expectedMessage = (!Array.isArray(expectedEntry) && typeof expectedEntry.message === "string") ? expectedEntry.message : "unknown";
+
+			if ((e as Error).message.replace(/\d+/g, "") !== expectedMessage.replace(/\d+/g, "")) { // compare without positions
 				Utils.console.error(e); // only if unexpected
 				result = String(e);
 			} else {
@@ -943,6 +947,7 @@ QUnit.module("BasicLexer: lexer specific tests", function (/* hooks */) {
 			let result: string;
 
 			try {
+				// eslint-disable-next-line @typescript-eslint/no-base-to-string
 				result = String(basicLexer.lex(key));
 			} catch (e) {
 				result = String(e);

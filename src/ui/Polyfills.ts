@@ -1,5 +1,6 @@
-// Polyfills.ts - Some Polyfills for old browsers, e.g. IE8, and nodeJS
+// Polyfills.ts - Some Polyfills for old browsers, e.g. IE8
 //
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-deprecated, @typescript-eslint/no-base-to-string */
 
 /* globals globalThis */
 
@@ -128,11 +129,6 @@ if (!Polyfills.console) { // browser or node.js
 if (!Polyfills.console.debug) { // IE8 has no console.debug
 	Polyfills.console.debug = Polyfills.console.log;
 	Polyfills.log("window.console.debug");
-}
-
-if ((typeof globalThis !== "undefined") && !globalThis.window) { // nodeJS
-	Polyfills.log("window");
-	(globalThis as unknown as { window?: typeof globalThis }).window = globalThis;
 }
 
 if (!Array.prototype.copyWithin) {
@@ -597,7 +593,7 @@ if (!String.prototype.trim) { // IE8
 
 // based on: https://github.com/mathiasbynens/base64/blob/master/base64.js
 // https://mths.be/base64 v0.1.0 by @mathias | MIT license
-if (!window.atob) { // IE9 (and node.js)
+if (!window.atob) { // IE9
 	Polyfills.log("window.atob, window.btoa");
 	(function () {
 		const table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",

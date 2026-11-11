@@ -49,7 +49,7 @@ export class CommonEventHandler implements EventListenerObject {
 		this.view = this.options.view;
 		this.controller = this.options.controller;
 
-		this.model.setPropertyChangeCallback(() => this.updateUrlFromConfig());
+		this.model.setPropertyChangeCallback(() => { this.updateUrlFromConfig(); });
 		this.createEventDefMap();
 	}
 
@@ -110,9 +110,9 @@ export class CommonEventHandler implements EventListenerObject {
 
 				for (const id in eventDefMap4Type) {
 					if (Object.prototype.hasOwnProperty.call(eventDefMap4Type, id)) {
-						const eventDef = eventDefMap4Type[id as ViewID];
+						const eventDef = eventDefMap4Type[id as unknown as ViewID];
 
-						this.initOneToggle(type, id as ViewID, eventDef);
+						this.initOneToggle(type, id as unknown as ViewID, eventDef);
 					}
 				}
 			}
@@ -122,7 +122,7 @@ export class CommonEventHandler implements EventListenerObject {
 	private static getToggleId(eventDef: EventDefType) {
 		if (!eventDef.toggleId) {
 			UiUtils.console.error("getToggleId: id=" + eventDef.id + ": toggleId missing!");
-			return "" as ViewID; //TTT
+			return "" as unknown as ViewID; //TTT
 		}
 		return eventDef.toggleId;
 	}
@@ -130,7 +130,7 @@ export class CommonEventHandler implements EventListenerObject {
 	private static getproperty(eventDef: EventDefType) {
 		if (!eventDef.property) {
 			UiUtils.console.error("setPopoversHiddenExcept: id=" + eventDef.id + ": property missing!");
-			return "" as ModelPropID; //TTT
+			return "" as unknown as ModelPropID; //TTT
 		}
 		return eventDef.property;
 	}
@@ -141,7 +141,7 @@ export class CommonEventHandler implements EventListenerObject {
 
 		for (const id in eventDefMapClick) {
 			if (Object.prototype.hasOwnProperty.call(eventDefMapClick, id)) {
-				const eventDef = eventDefMapClick[id as ViewID];
+				const eventDef = eventDefMapClick[id as unknown as ViewID];
 
 				if (eventDef.isPopover && (eventDef.toggleId !== exceptId)) {
 					const toggleId = CommonEventHandler.getToggleId(eventDef),
@@ -289,7 +289,7 @@ export class CommonEventHandler implements EventListenerObject {
 
 		this.view.setAreaSelection(ViewID.textText, 0, 99999); // for mobile devices
 		if (window.navigator && window.navigator.clipboard) {
-			window.navigator.clipboard.writeText(textText.value);
+			void window.navigator.clipboard.writeText(textText.value);
 		} else {
 			UiUtils.console.warn("Copy to clipboard not available");
 		}
@@ -533,7 +533,7 @@ export class CommonEventHandler implements EventListenerObject {
 					},
 					{
 						id: ViewID.renumButton,
-						controllerFunc: () => this.controller.startRenum()
+						controllerFunc: () => { this.controller.startRenum(); },
 					},
 					{
 						id: ViewID.renumPopoverButton,
@@ -841,8 +841,8 @@ export class CommonEventHandler implements EventListenerObject {
 				id = "galleryItem"; // replace galleryitem<num> by galleryitem
 			}
 
-			if (this.eventDefInternalMap[type] && this.eventDefInternalMap[type][id as ViewID]) {
-				const eventDef = this.eventDefInternalMap[type][id as ViewID];
+			if (this.eventDefInternalMap[type] && this.eventDefInternalMap[type][id as unknown as ViewID]) {
+				const eventDef = this.eventDefInternalMap[type][id as unknown as ViewID];
 
 				if (UiUtils.debug) {
 					UiUtils.console.debug("handleEvent: " + type + ", " + id + ":", eventDef);
@@ -862,7 +862,7 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 
 		if (type === "click") { // special
-			if (id !== ViewID.cpcCanvas && id !== ViewID.textText) {
+			if (id !== String(ViewID.cpcCanvas) && id !== String(ViewID.textText)) {
 				this.controller.onWindowClick(event);
 			}
 		}

@@ -2488,7 +2488,7 @@ export class CpcVm implements ICpcVm {
 		this.keyboard.setExpansionToken(token, s);
 	}
 
-	keyDef(cpcKey: number, repeat: number, normal?: number | undefined, shift?: number | undefined, ctrl?: number): void { // optional args normal,...
+	keyDef(cpcKey: number, repeat: number, normal?: number, shift?: number, ctrl?: number): void { // optional args normal,...
 		const options: CpcKeyExpansionsOptions = {
 			cpcKey: this.vmInRangeRound(cpcKey, 0, 79, "KEY DEF"),
 			repeat: this.vmInRangeRound(repeat, 0, 1, "KEY DEF"),
@@ -2755,7 +2755,7 @@ export class CpcVm implements ICpcVm {
 		if (len !== undefined) {
 			len = this.vmInRangeRound(len, 0, 255, "MID$");
 		}
-		return s.substr(start - 1, len); // or: s.substring(start - 1, len === undefined ? len : start - 1 + len);
+		return s.substring(start - 1, len === undefined ? undefined : start - 1 + len);
 	}
 
 	mid$Assign(s: string, start: number, len: number | undefined, newString: string): string {

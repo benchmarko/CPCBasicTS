@@ -1,16 +1,21 @@
 import type { ICore, IEngine, INodeUtils, ICpcVmRsx, LoadScriptFn, ICanvasVm, IKeyboard, CpcKeyExpansionsOptions, VolEnvData, ToneEnvData, SoundData, ISound, IStorage, CanvasCharType } from "../Interfaces";
-//import "./NodePolyfills";
 import { Utils } from "../Utils";
 import { Controller0, ControllerOptions0 } from "../Controller0";
-//import { NoCanvas } from "../ui/NoCanvas";
-//import { View } from "../ui/View";
-//import { NodeDocumentAdapter } from "./NodeDocumentAdapter";
 
 type NodeHttps = typeof import("node:https");
 type NodeFs = typeof import("node:fs");
 type CpcBasicNodeAPI = Pick<ICore, "addIndex" | "addItem" | "addRsx">;
+type NodeGlobalThis = typeof globalThis & { AudioContext?: unknown, cpcBasic?: CpcBasicNodeAPI };
 
-const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // eslint-disable-line no-new-func
+function requireNodeModule(moduleName: "https"): NodeHttps;
+function requireNodeModule(moduleName: "fs"): NodeFs;
+function requireNodeModule(moduleName: "https" | "fs"): NodeHttps | NodeFs {
+	// eslint-disable-next-line no-eval, @typescript-eslint/no-unsafe-call
+	return eval("require")(moduleName) as NodeHttps | NodeFs;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
+const myGlobalThis: NodeGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")() as NodeGlobalThis;
 
 function createLocalStorage(): IStorage {
 	const data: Record<string, string> = {};
@@ -51,7 +56,7 @@ export class NodeUtils implements INodeUtils {
 	private static currentScriptKey = "";
 
 	private static nodeReadUrl(url: string, fnDataLoaded: (error: Error | undefined, data?: string) => void) {
-		const nodeHttps = eval("require")("https") as NodeHttps; // eslint-disable-line no-eval
+		const nodeHttps = requireNodeModule("https");
 
 		nodeHttps.get(url, (resp) => {
 			let data = "";
@@ -70,11 +75,13 @@ export class NodeUtils implements INodeUtils {
 	}
 
 	private static nodeReadFile(name: string, fnDataLoaded: (error: Error | undefined, data?: string) => void) {
-		const nodeFs = eval("require")("fs") as NodeFs, // eslint-disable-line no-eval
+		const nodeFs = requireNodeModule("fs"),
 			cwd = (myGlobalThis.process && myGlobalThis.process.cwd) ? myGlobalThis.process.cwd() : "",
 			name2 = (cwd && name.indexOf(":") < 0 && !name.startsWith("/")) ? cwd + "/" + name : name;
 
-		nodeFs.readFile(name2, "utf8", (error, data) => fnDataLoaded(error ?? undefined, data));
+		nodeFs.readFile(name2, "utf8", (error, data) => {
+			fnDataLoaded(error ?? undefined, data);
+		});
 	}
 
 	private static isUrl(s: string) {
@@ -138,18 +145,13 @@ export class NodeUtils implements INodeUtils {
 		}
 		core.init(); // init databases
 
-		//const nodeDocument = new NodeDocumentAdapter();
-
-		//(myGlobalThis as any).document = nodeDocument;
-		const cpcBasicGlobal = myGlobalThis as typeof myGlobalThis & { cpcBasic?: CpcBasicNodeAPI };
-		cpcBasicGlobal.cpcBasic = {
+		myGlobalThis.cpcBasic = {
 			addIndex: core.addIndex,
 			addItem: (key: string, input: string | (() => void)) => {
 				core.addItem(key || NodeUtils.currentScriptKey, input);
 			},
 			addRsx: (key: string, RsxConstructor: new () => ICpcVmRsx) => core.addRsx(key || NodeUtils.currentScriptKey, RsxConstructor)
 		};
-		//View.setDocument(nodeDocument);
 
 		const outputState = {
 			text: ""
@@ -180,6 +182,7 @@ export class NodeUtils implements INodeUtils {
 
 				if (textBufferRow) {
 					for (let x = left; x < left + width; x += 1) {
+						// eslint-disable-next-line @typescript-eslint/no-array-delete
 						delete textBufferRow[x];
 					}
 				}
@@ -201,6 +204,7 @@ export class NodeUtils implements INodeUtils {
 						destinationRow[left2 + x] = sourceRow[left + x];
 					}
 				} else if (destinationRow) {
+					// eslint-disable-next-line @typescript-eslint/no-array-delete
 					delete textBuffer[top2 + y]; // no sourceRow => clear destinationRow
 				}
 			}
