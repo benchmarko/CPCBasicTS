@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.6.13",
+  "version": "0.7.0",
   "description": "CPCBasicTS - Run CPC BASIC in a Browser or Node.js",
   "main": "./dist/cpcbasic.js",
   "exports": {
