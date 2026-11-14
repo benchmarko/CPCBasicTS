@@ -215,6 +215,7 @@ export class NodeUtils implements INodeUtils {
 				textBuffer.length = 0;
 			},
 			resetCustomChars: () => undefined,
+			updateCanvasImmediately: () => undefined,
 			setScreenOffset: (_offset: number) => undefined,
 			updateColorsAndCanvasImmediately: (_inkList: number[]) => undefined,
 			updateSpeedInk: () => undefined,

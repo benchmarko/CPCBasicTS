@@ -227,16 +227,18 @@ export class TextCanvas implements ICanvas, ICanvasVm {
 			return; // ignore remaining timeouts, if stopped
 		}
 		this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
-		if (this.textText.offsetParent) { // text area visible?
-			if (this.needUpdate) {
-				this.needUpdate = false;
-				this.updateTextWindow();
-			}
-		}
+		this.updateCanvasImmediately();
 	}
 
 	private updateCanvas() {
 		this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1000 / this.fps); // ts (node)
+	}
+
+	updateCanvasImmediately(): void {
+		if (this.needUpdate && this.textText.offsetParent) {
+			this.needUpdate = false;
+			this.updateTextWindow();
+		}
 	}
 
 	startUpdateCanvas(): void {

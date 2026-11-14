@@ -39,7 +39,10 @@ function captureConsoleLogs<T>(run: () => T): { result: T, logs: unknown[][] } {
 
 QUnit.module("Runtime", function () {
 	QUnit.test("shared runtime services use the injected host devices", function (assert) {
-		const canvas = {} as ICanvasVm,
+		let canvasFlushCount = 0;
+		const canvas = {
+				updateCanvasImmediately: () => { canvasFlushCount += 1; }
+			} as ICanvasVm,
 			keys: string[] = [],
 			keyboard = { getKeyFromBuffer: () => keys.shift() ?? "" } as unknown as IKeyboard,
 			sound = {} as ISound,
@@ -181,6 +184,7 @@ QUnit.module("Runtime", function () {
 		runtime.vm.vmGetTimeUntilFrame = () => 19;
 		runtime.vm.vmStop("waitFrame", 40, true);
 		runtime.handleWaitFrame();
+		assert.strictEqual(canvasFlushCount, 1);
 		assert.strictEqual(runtime.runLoop.nextDelay, 19);
 		assert.strictEqual(runtime.vm.vmGetStopObject().reason, "");
 

@@ -337,17 +337,20 @@ export class Canvas implements ICanvas, ICanvasVm {
 			return; // ignore remaining timeouts, if stopped
 		}
 		this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
-		if (this.needUpdate) { // could be improved: update only updateRect
-			this.needUpdate = false;
-			// we always do a full updateCanvas...
-			this.fnCopy2Canvas();
-		}
+		this.updateCanvasImmediately();
 	}
 
 	// http://creativejs.com/resources/requestanimationframe/ (set frame rate)
 	// https://stackoverflow.com/questions/19764018/controlling-fps-with-requestanimationframe
 	private updateCanvas() {
 		this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1000 / this.fps); // ts (node)
+	}
+
+	updateCanvasImmediately(): void {
+		if (this.needUpdate) {
+			this.needUpdate = false;
+			this.fnCopy2Canvas();
+		}
 	}
 
 	startUpdateCanvas(): void {

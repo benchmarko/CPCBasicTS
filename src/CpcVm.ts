@@ -740,6 +740,10 @@ export class CpcVm implements ICpcVm {
 		this.canvas = canvas;
 	}
 
+	updateCanvasImmediately(): void {
+		this.canvas.updateCanvasImmediately();
+	}
+
 	/*
 	setCanvas(canvas: ICanvasVm): ICanvasVm {
 		this.canvas = canvas;

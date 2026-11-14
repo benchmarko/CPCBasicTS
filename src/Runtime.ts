@@ -342,6 +342,7 @@ export class Runtime {
 	}
 
 	handleWaitFrame(): void {
+		this.vm.updateCanvasImmediately();
 		this.vm.vmStop("", 0, true);
 		this.runLoop.nextDelay = this.vm.vmGetTimeUntilFrame();
 	}
