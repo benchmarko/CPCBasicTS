@@ -262,6 +262,7 @@ export interface ICanvasVm {
     //setOptions(options: Partial<CanvasOptions>): void
     reset(): void
     resetCustomChars(): void
+    updateCanvasImmediately(): void
     //startUpdateCanvas(): void
     //stopUpdateCanvas(): void
     setScreenOffset(offset: number): void

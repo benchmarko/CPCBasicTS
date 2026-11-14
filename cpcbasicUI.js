@@ -1459,15 +1459,18 @@
 	      return;
 	    }
 	    this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
-	    if (this.needUpdate) {
-	      this.needUpdate = false;
-	      this.fnCopy2Canvas();
-	    }
+	    this.updateCanvasImmediately();
 	  }
 	  // http://creativejs.com/resources/requestanimationframe/ (set frame rate)
 	  // https://stackoverflow.com/questions/19764018/controlling-fps-with-requestanimationframe
 	  updateCanvas() {
 	    this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1e3 / this.fps);
+	  }
+	  updateCanvasImmediately() {
+	    if (this.needUpdate) {
+	      this.needUpdate = false;
+	      this.fnCopy2Canvas();
+	    }
 	  }
 	  startUpdateCanvas() {
 	    if (!this.isRunning && this.canvas.offsetParent !== null) {
@@ -3628,15 +3631,16 @@
 	      return;
 	    }
 	    this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
-	    if (this.textText.offsetParent) {
-	      if (this.needUpdate) {
-	        this.needUpdate = false;
-	        this.updateTextWindow();
-	      }
-	    }
+	    this.updateCanvasImmediately();
 	  }
 	  updateCanvas() {
 	    this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1e3 / this.fps);
+	  }
+	  updateCanvasImmediately() {
+	    if (this.needUpdate && this.textText.offsetParent) {
+	      this.needUpdate = false;
+	      this.updateTextWindow();
+	    }
 	  }
 	  startUpdateCanvas() {
 	    if (!this.isRunning && this.textText.offsetParent !== null) {

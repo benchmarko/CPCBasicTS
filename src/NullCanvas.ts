@@ -5,6 +5,7 @@ import type { CanvasCharType, ICanvasVm } from "./Interfaces";
 export class NullCanvas implements ICanvasVm {
 	reset(): void {}
 	resetCustomChars(): void {}
+	updateCanvasImmediately(): void {}
 	setScreenOffset(_offset: number): void {}
 	updateColorsAndCanvasImmediately(_inkList: number[]): void {}
 	updateSpeedInk(): void {}

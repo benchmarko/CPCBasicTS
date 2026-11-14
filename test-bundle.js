@@ -7769,15 +7769,18 @@
 	      return;
 	    }
 	    this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
-	    if (this.needUpdate) {
-	      this.needUpdate = false;
-	      this.fnCopy2Canvas();
-	    }
+	    this.updateCanvasImmediately();
 	  }
 	  // http://creativejs.com/resources/requestanimationframe/ (set frame rate)
 	  // https://stackoverflow.com/questions/19764018/controlling-fps-with-requestanimationframe
 	  updateCanvas() {
 	    this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1e3 / this.fps);
+	  }
+	  updateCanvasImmediately() {
+	    if (this.needUpdate) {
+	      this.needUpdate = false;
+	      this.fnCopy2Canvas();
+	    }
 	  }
 	  startUpdateCanvas() {
 	    if (!this.isRunning && this.canvas.offsetParent !== null) {
@@ -11763,6 +11766,8 @@
 	  }
 	  resetCustomChars() {
 	  }
+	  updateCanvasImmediately() {
+	  }
 	  setScreenOffset(_offset) {
 	  }
 	  updateColorsAndCanvasImmediately(_inkList) {
@@ -15130,6 +15135,9 @@
 	  }
 	  setCanvas(canvas) {
 	    this.canvas = canvas;
+	  }
+	  updateCanvasImmediately() {
+	    this.canvas.updateCanvasImmediately();
 	  }
 	  /*
 	  setCanvas(canvas: ICanvasVm): ICanvasVm {
@@ -19527,6 +19535,7 @@
 	    this.runLoop.nextDelay = this.soundQueue.poll(activated);
 	  }
 	  handleWaitFrame() {
+	    this.vm.updateCanvasImmediately();
 	    this.vm.vmStop("", 0, true);
 	    this.runLoop.nextDelay = this.vm.vmGetTimeUntilFrame();
 	  }
@@ -19962,15 +19971,16 @@
 	      return;
 	    }
 	    this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
-	    if (this.textText.offsetParent) {
-	      if (this.needUpdate) {
-	        this.needUpdate = false;
-	        this.updateTextWindow();
-	      }
-	    }
+	    this.updateCanvasImmediately();
 	  }
 	  updateCanvas() {
 	    this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1e3 / this.fps);
+	  }
+	  updateCanvasImmediately() {
+	    if (this.needUpdate && this.textText.offsetParent) {
+	      this.needUpdate = false;
+	      this.updateTextWindow();
+	    }
 	  }
 	  startUpdateCanvas() {
 	    if (!this.isRunning && this.textText.offsetParent !== null) {
@@ -31041,6 +31051,7 @@
 	  }
 	};
 	const lastTestFunctions$1 = [], varTypesMap = {}, variablesMap = {}, mockCanvas = {
+	  updateCanvasImmediately: () => void 0,
 	  setOptions: function(...args) {
 	    lastTestFunctions$1.push({
 	      setOptions: args.map((arg) => String(arg))
@@ -34353,7 +34364,12 @@
 	}
 	QUnit.module("Runtime", function() {
 	  QUnit.test("shared runtime services use the injected host devices", function(assert) {
-	    const canvas = {}, keys = [], keyboard = { getKeyFromBuffer: () => keys.shift() ?? "" }, sound = {}, events = [];
+	    let canvasFlushCount = 0;
+	    const canvas = {
+	      updateCanvasImmediately: () => {
+	        canvasFlushCount += 1;
+	      }
+	    }, keys = [], keyboard = { getKeyFromBuffer: () => keys.shift() ?? "" }, sound = {}, events = [];
 	    let source = "10 =";
 	    const runtime = new Runtime({
 	      canvas,
@@ -34522,6 +34538,7 @@
 	    runtime.vm.vmGetTimeUntilFrame = () => 19;
 	    runtime.vm.vmStop("waitFrame", 40, true);
 	    runtime.handleWaitFrame();
+	    assert.strictEqual(canvasFlushCount, 1);
 	    assert.strictEqual(runtime.runLoop.nextDelay, 19);
 	    assert.strictEqual(runtime.vm.vmGetStopObject().reason, "");
 	    events.length = 0;

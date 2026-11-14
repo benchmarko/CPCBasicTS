@@ -2468,6 +2468,8 @@
 	  }
 	  resetCustomChars() {
 	  }
+	  updateCanvasImmediately() {
+	  }
 	  setScreenOffset(_offset) {
 	  }
 	  updateColorsAndCanvasImmediately(_inkList) {
@@ -8349,6 +8351,9 @@
 	  setCanvas(canvas) {
 	    this.canvas = canvas;
 	  }
+	  updateCanvasImmediately() {
+	    this.canvas.updateCanvasImmediately();
+	  }
 	  /*
 	  setCanvas(canvas: ICanvasVm): ICanvasVm {
 	  	this.canvas = canvas;
@@ -12745,6 +12750,7 @@
 	    this.runLoop.nextDelay = this.soundQueue.poll(activated);
 	  }
 	  handleWaitFrame() {
+	    this.vm.updateCanvasImmediately();
 	    this.vm.vmStop("", 0, true);
 	    this.runLoop.nextDelay = this.vm.vmGetTimeUntilFrame();
 	  }
@@ -14018,6 +14024,7 @@
 	        textBuffer.length = 0;
 	      },
 	      resetCustomChars: () => void 0,
+	      updateCanvasImmediately: () => void 0,
 	      setScreenOffset: (_offset) => void 0,
 	      updateColorsAndCanvasImmediately: (_inkList) => void 0,
 	      updateSpeedInk: () => void 0,

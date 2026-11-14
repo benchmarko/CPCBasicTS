@@ -1965,6 +1965,7 @@ const lastTestFunctions: Record<string, unknown[]>[] = [], // eslint-disable-lin
 	varTypesMap: Record<string, string> = {},
 	variablesMap: Record<string, string | number | string[] | number[]> = {},
 	mockCanvas = {
+		updateCanvasImmediately: () => undefined,
 		setOptions: function (...args: unknown[]) {
 			lastTestFunctions.push({
 				setOptions: args.map((arg) => String(arg))
