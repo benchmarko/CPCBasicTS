@@ -128,53 +128,6 @@
 	_Utils.supportReservedNames = _Utils.testIsSupported("({}).return()");
 	let Utils = _Utils;
 
-	var ModelPropID = /* @__PURE__ */ ((ModelPropID2) => {
-	  ModelPropID2["arrayBounds"] = "arrayBounds";
-	  ModelPropID2["autorun"] = "autorun";
-	  ModelPropID2["basicVersion"] = "basicVersion";
-	  ModelPropID2["canvasType"] = "canvasType";
-	  ModelPropID2["databaseDirs"] = "databaseDirs";
-	  ModelPropID2["database"] = "database";
-	  ModelPropID2["debug"] = "debug";
-	  ModelPropID2["example"] = "example";
-	  ModelPropID2["exampleIndex"] = "exampleIndex";
-	  ModelPropID2["implicitLines"] = "implicitLines";
-	  ModelPropID2["input"] = "input";
-	  ModelPropID2["integerOverflow"] = "integerOverflow";
-	  ModelPropID2["kbdLayout"] = "kbdLayout";
-	  ModelPropID2["linesOnLoad"] = "linesOnLoad";
-	  ModelPropID2["dragElements"] = "dragElements";
-	  ModelPropID2["palette"] = "palette";
-	  ModelPropID2["prettyBrackets"] = "prettyBrackets";
-	  ModelPropID2["prettyColons"] = "prettyColons";
-	  ModelPropID2["prettyLowercaseVars"] = "prettyLowercaseVars";
-	  ModelPropID2["prettySpace"] = "prettySpace";
-	  ModelPropID2["processFileImports"] = "processFileImports";
-	  ModelPropID2["random"] = "random";
-	  ModelPropID2["selectDataFiles"] = "selectDataFiles";
-	  ModelPropID2["showConsoleLog"] = "showConsoleLog";
-	  ModelPropID2["showCpc"] = "showCpc";
-	  ModelPropID2["showDisass"] = "showDisass";
-	  ModelPropID2["showExport"] = "showExport";
-	  ModelPropID2["showGallery"] = "showGallery";
-	  ModelPropID2["showInput"] = "showInput";
-	  ModelPropID2["showInp2"] = "showInp2";
-	  ModelPropID2["showKbd"] = "showKbd";
-	  ModelPropID2["showKbdSettings"] = "showKbdSettings";
-	  ModelPropID2["showMore"] = "showMore";
-	  ModelPropID2["showOutput"] = "showOutput";
-	  ModelPropID2["showPretty"] = "showPretty";
-	  ModelPropID2["showRenum"] = "showRenum";
-	  ModelPropID2["showResult"] = "showResult";
-	  ModelPropID2["showSettings"] = "showSettings";
-	  ModelPropID2["showVariable"] = "showVariable";
-	  ModelPropID2["showView"] = "showView";
-	  ModelPropID2["sound"] = "sound";
-	  ModelPropID2["speed"] = "speed";
-	  ModelPropID2["trace"] = "trace";
-	  return ModelPropID2;
-	})(ModelPropID || {});
-
 	class BasicFormatter {
 	  // current label (line) for error messages
 	  constructor(options) {
@@ -499,9 +452,9 @@
 	    this.examples = {};
 	  }
 	  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-	  getProperty(property) {
-	    return this.config[property];
-	  }
+	  //getProperty<T extends ConfigEntryType>(property: string): T { //getProperty<T extends ConfigEntryType>(property: ModelPropID): T
+	  //	return this.config[property] as T; // keyof ConfigType?
+	  //}
 	  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	  setProperty(property, value) {
 	    const previousValue = this.config[property];
@@ -543,19 +496,19 @@
 	    return this.databases;
 	  }
 	  getDatabase() {
-	    const database = this.getProperty(ModelPropID.database);
+	    const database = this.getAllProperties().database;
 	    return this.databases[database];
 	  }
 	  getAllExamples() {
-	    const database = this.getProperty(ModelPropID.database);
+	    const database = this.getAllProperties().database;
 	    return this.examples[database];
 	  }
 	  getExample(key) {
-	    const database = this.getProperty(ModelPropID.database);
+	    const database = this.getAllProperties().database;
 	    return this.examples[database][key];
 	  }
 	  setExample(example) {
-	    const database = this.getProperty(ModelPropID.database), key = example.key;
+	    const database = this.getAllProperties().database, key = example.key;
 	    if (!this.examples[database][key]) {
 	      if (Utils.debug > 1) {
 	        Utils.console.debug("setExample: creating new example:", key);
@@ -564,7 +517,7 @@
 	    this.examples[database][key] = example;
 	  }
 	  removeExample(key) {
-	    const database = this.getProperty(ModelPropID.database);
+	    const database = this.getAllProperties().database;
 	    if (!this.examples[database][key]) {
 	      Utils.console.warn("removeExample: example does not exist: " + key);
 	    }
@@ -574,7 +527,6 @@
 
 	const ModelPropIDdatabase = "database";
 	const ModelPropIDexample = "example";
-	const ModelPropIDdatabaseDirs = "databaseDirs";
 	class Core {
 	  constructor(defaultConfig) {
 	    this.addIndex = (dir, input) => {
@@ -597,8 +549,8 @@
 	        Utils.console.warn("addItem: no key!");
 	        key = "unknown";
 	      }
-	      const implicitLines = this.model.getProperty(ModelPropID.implicitLines);
-	      const linesOnLoad = this.model.getProperty(ModelPropID.linesOnLoad);
+	      const implicitLines = this.model.getAllProperties().implicitLines;
+	      const linesOnLoad = this.model.getAllProperties().linesOnLoad;
 	      if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
 	        inputString = BasicFormatter.addLineNumbers(inputString);
 	      }
@@ -635,7 +587,7 @@
 	    return key;
 	  }
 	  initDatabases() {
-	    const model = this.model, databases = {}, databaseDirs = model.getProperty(ModelPropIDdatabaseDirs).split(",");
+	    const model = this.model, databases = {}, databaseDirs = model.getAllProperties().databaseDirs.split(",");
 	    for (const databaseDir of databaseDirs) {
 	      const parts1 = databaseDir.split("="), databaseSrc = parts1[0], assignedName = parts1.length > 1 ? parts1[1] : "", parts2 = databaseSrc.split("/"), name = assignedName || parts2[parts2.length - 1], key = Core.getUniqueDbKey(name, databases);
 	      databases[key] = {
@@ -653,21 +605,21 @@
 	    for (const arg of args) {
 	      const [name, ...valueParts] = arg.split("=");
 	      const nameType = typeof config[name];
-	      let value = valueParts.join("=");
-	      if (value !== void 0) {
-	        if (nameType === "boolean") {
-	          value = value === "true";
-	        } else if (nameType === "number") {
-	          value = Number(value);
-	        }
-	        config[name] = value;
+	      const rawValue = valueParts.join("=");
+	      let value;
+	      if (nameType === "number") {
+	        value = Number(rawValue);
+	      } else if (nameType === "boolean") {
+	        value = rawValue === "true";
+	      } else {
+	        value = rawValue;
 	      }
+	      config[name] = value;
 	    }
-	    return config;
 	  }
 	  fnRedirectExamples(redirectExamples) {
 	    const model = this.getModel();
-	    const name = model.getProperty(ModelPropIDdatabase) + "/" + model.getProperty(ModelPropIDexample);
+	    const name = model.getAllProperties().database + "/" + model.getAllProperties().example;
 	    if (redirectExamples[name]) {
 	      model.setProperty(ModelPropIDdatabase, redirectExamples[name].database);
 	      model.setProperty(ModelPropIDexample, redirectExamples[name].example);
@@ -13051,6 +13003,53 @@
 	  }
 	};
 
+	var ModelPropID = /* @__PURE__ */ ((ModelPropID2) => {
+	  ModelPropID2["arrayBounds"] = "arrayBounds";
+	  ModelPropID2["autorun"] = "autorun";
+	  ModelPropID2["basicVersion"] = "basicVersion";
+	  ModelPropID2["canvasType"] = "canvasType";
+	  ModelPropID2["databaseDirs"] = "databaseDirs";
+	  ModelPropID2["database"] = "database";
+	  ModelPropID2["debug"] = "debug";
+	  ModelPropID2["example"] = "example";
+	  ModelPropID2["exampleIndex"] = "exampleIndex";
+	  ModelPropID2["implicitLines"] = "implicitLines";
+	  ModelPropID2["input"] = "input";
+	  ModelPropID2["integerOverflow"] = "integerOverflow";
+	  ModelPropID2["kbdLayout"] = "kbdLayout";
+	  ModelPropID2["linesOnLoad"] = "linesOnLoad";
+	  ModelPropID2["dragElements"] = "dragElements";
+	  ModelPropID2["palette"] = "palette";
+	  ModelPropID2["prettyBrackets"] = "prettyBrackets";
+	  ModelPropID2["prettyColons"] = "prettyColons";
+	  ModelPropID2["prettyLowercaseVars"] = "prettyLowercaseVars";
+	  ModelPropID2["prettySpace"] = "prettySpace";
+	  ModelPropID2["processFileImports"] = "processFileImports";
+	  ModelPropID2["random"] = "random";
+	  ModelPropID2["selectDataFiles"] = "selectDataFiles";
+	  ModelPropID2["showConsoleLog"] = "showConsoleLog";
+	  ModelPropID2["showCpc"] = "showCpc";
+	  ModelPropID2["showDisass"] = "showDisass";
+	  ModelPropID2["showExport"] = "showExport";
+	  ModelPropID2["showGallery"] = "showGallery";
+	  ModelPropID2["showInput"] = "showInput";
+	  ModelPropID2["showInp2"] = "showInp2";
+	  ModelPropID2["showKbd"] = "showKbd";
+	  ModelPropID2["showKbdSettings"] = "showKbdSettings";
+	  ModelPropID2["showMore"] = "showMore";
+	  ModelPropID2["showOutput"] = "showOutput";
+	  ModelPropID2["showPretty"] = "showPretty";
+	  ModelPropID2["showRenum"] = "showRenum";
+	  ModelPropID2["showResult"] = "showResult";
+	  ModelPropID2["showSettings"] = "showSettings";
+	  ModelPropID2["showVariable"] = "showVariable";
+	  ModelPropID2["showView"] = "showView";
+	  ModelPropID2["sound"] = "sound";
+	  ModelPropID2["speed"] = "speed";
+	  ModelPropID2["trace"] = "trace";
+	  return ModelPropID2;
+	})(ModelPropID || {});
+
 	class Controller0 {
 	  constructor(engine, options) {
 	    this.inScript = "";
@@ -13089,13 +13088,13 @@
 	      canvas: this.options.canvas,
 	      keyboard: this.options.keyboard,
 	      sound: this.options.sound,
-	      randomMode: model.getProperty(ModelPropID.random),
-	      arrayBounds: model.getProperty(ModelPropID.arrayBounds),
-	      basicVersion: model.getProperty(ModelPropID.basicVersion),
-	      trace: model.getProperty(ModelPropID.trace),
-	      implicitLines: model.getProperty(ModelPropID.implicitLines),
-	      integerOverflow: model.getProperty(ModelPropID.integerOverflow),
-	      prettyLowercaseVars: model.getProperty(ModelPropID.prettyLowercaseVars),
+	      randomMode: model.getAllProperties().random,
+	      arrayBounds: model.getAllProperties().arrayBounds,
+	      basicVersion: model.getAllProperties().basicVersion,
+	      trace: model.getAllProperties().trace,
+	      implicitLines: model.getAllProperties().implicitLines,
+	      integerOverflow: model.getAllProperties().integerOverflow,
+	      prettyLowercaseVars: model.getAllProperties().prettyLowercaseVars,
 	      onClickKey: this.fnPutKeyInBufferHandler,
 	      outputError: this.outputError.bind(this),
 	      logger: Utils.console,
@@ -13154,12 +13153,12 @@
 	    if (!this.hasStorageDatabase) {
 	      return;
 	    }
-	    const database = this.core.getModel().getProperty(ModelPropID.database), storage = this.getStorage();
+	    const database = this.core.getModel().getAllProperties().database, storage = this.getStorage();
 	    let selectedExample = "", exampleChanged = false;
 	    if (database !== "storage") {
 	      this.core.getModel().setProperty(ModelPropID.database, "storage");
 	    } else {
-	      selectedExample = this.core.getModel().getProperty(ModelPropID.example);
+	      selectedExample = this.core.getModel().getAllProperties().example;
 	    }
 	    let dir;
 	    if (!key) {
@@ -13245,7 +13244,7 @@
 	    return this.runtime.mergeScripts(
 	      script1,
 	      script2,
-	      this.core.getModel().getProperty(ModelPropID.implicitLines),
+	      this.core.getModel().getAllProperties().implicitLines,
 	      () => {
 	        this.reportSplitLinesError();
 	      }
@@ -13257,7 +13256,7 @@
 	      script,
 	      firstLine,
 	      lastLine,
-	      this.core.getModel().getProperty(ModelPropID.implicitLines),
+	      this.core.getModel().getAllProperties().implicitLines,
 	      () => {
 	        this.reportSplitLinesError();
 	      }
@@ -13275,7 +13274,7 @@
 	    this.runtime.printDirectoryEntries(dirList, stream, true);
 	  }
 	  fnFileDir(paras) {
-	    const stream = paras.stream, example = this.core.getModel().getProperty(ModelPropID.example), dirList = FileHandler.getDirectoryEntries(this.getStorage(), this.core.getModel().getAllExamples(), example, paras.fileMask);
+	    const stream = paras.stream, example = this.core.getModel().getAllProperties().example, dirList = FileHandler.getDirectoryEntries(this.getStorage(), this.core.getModel().getAllExamples(), example, paras.fileMask);
 	    this.runtime.printDirectoryEntries(dirList, stream, false);
 	  }
 	  fnFileEra(paras) {
@@ -13388,7 +13387,7 @@
 	    this.options.onResultText?.(text);
 	  }
 	  loadExampleFile() {
-	    const inFile = this.vm.vmGetInFileObject(), key = this.core.getModel().getProperty(ModelPropID.example), model = this.core.getModel(), plan = FileHandler.prepareExampleLoad(inFile.name, key, model.getAllExamples(), model.getDatabase().src), example = plan.name, exampleEntry = plan.entry, url = plan.url;
+	    const inFile = this.vm.vmGetInFileObject(), key = this.core.getModel().getAllProperties().example, model = this.core.getModel(), plan = FileHandler.prepareExampleLoad(inFile.name, key, model.getAllExamples(), model.getDatabase().src), example = plan.name, exampleEntry = plan.entry, url = plan.url;
 	    inFile.memorizedExample = plan.memorizedExample;
 	    if (Utils.debug > 0) {
 	      Utils.console.debug("loadExample: name=" + example + " (current=" + key + ")");
@@ -13556,7 +13555,7 @@
 	  }
 	  fnPretty() {
 	    const model = this.core.getModel();
-	    const input = this.getInputText(), keepWhiteSpace = model.getProperty(ModelPropID.prettySpace), keepBrackets = model.getProperty(ModelPropID.prettyBrackets), keepColons = model.getProperty(ModelPropID.prettyColons), output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons);
+	    const input = this.getInputText(), keepWhiteSpace = model.getAllProperties().prettySpace, keepBrackets = model.getAllProperties().prettyBrackets, keepColons = model.getAllProperties().prettyColons, output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons);
 	    if (output) {
 	      this.setInputText(output, true);
 	      const diff = this.runtime.formatDiff(input, output);
@@ -13771,7 +13770,7 @@
 	        adaptFilename: this.adaptFilename.bind(this),
 	        updateStorageDatabase: this.updateStorageDatabase.bind(this),
 	        outputError: this.outputError.bind(this),
-	        processFileImports: this.core.getModel().getProperty(ModelPropID.processFileImports),
+	        processFileImports: this.core.getModel().getAllProperties().processFileImports,
 	        storage: this.storage
 	      });
 	    }
@@ -13779,7 +13778,7 @@
 	  }
 	  createFnDatabaseLoaded(url) {
 	    return (_sFullUrl, key) => {
-	      const selectedName = this.core.getModel().getProperty(ModelPropID.database);
+	      const selectedName = this.core.getModel().getAllProperties().database;
 	      if (selectedName === key) {
 	        this.core.getModel().getDatabase().loaded = true;
 	      } else {
@@ -13811,7 +13810,7 @@
 	    if (name !== void 0) {
 	      model.setProperty(ModelPropID.database, name);
 	    }
-	    const databaseName = model.getProperty(ModelPropID.database);
+	    const databaseName = model.getAllProperties().database;
 	    const database = model.getDatabase();
 	    if (!database) {
 	      Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
@@ -13822,10 +13821,10 @@
 	      database.loaded = true;
 	    }
 	    if (database.loaded) {
-	      this.loadExample(model.getProperty(ModelPropID.example));
+	      this.loadExample(model.getAllProperties().example);
 	    } else {
 	      this.setInputText("#loading database " + databaseName + "...");
-	      const exampleIndex = this.core.getModel().getProperty(ModelPropID.exampleIndex);
+	      const exampleIndex = this.core.getModel().getAllProperties().exampleIndex;
 	      const url = database.src + "/" + exampleIndex;
 	      const loadScriptFn = this.getLoadScript();
 	      loadScriptFn(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
@@ -13835,15 +13834,15 @@
 	    this.onExampleSelectChange();
 	  }
 	  onExampleSelectChange() {
-	    this.loadExample(this.core.getModel().getProperty(ModelPropID.example));
+	    this.loadExample(this.core.getModel().getAllProperties().example);
 	  }
 	  loadExample(key, options = {}) {
 	    const model = this.core.getModel();
-	    const vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = model.getProperty(ModelPropID.database);
+	    const vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = model.getAllProperties().database;
 	    model.setProperty(ModelPropID.example, key);
 	    vm.closein();
 	    inFile.open = true;
-	    const request = FileHandler.createExampleLoadRequest(key, dataBaseName, model.getExample(key)?.meta, options.autorun ?? model.getProperty(ModelPropID.autorun));
+	    const request = FileHandler.createExampleLoadRequest(key, dataBaseName, model.getExample(key)?.meta, options.autorun ?? model.getAllProperties().autorun);
 	    inFile.command = request.command;
 	    inFile.name = request.name;
 	    inFile.start = void 0;
@@ -13852,11 +13851,11 @@
 	    this.startMainLoop();
 	  }
 	  fnArrayBounds() {
-	    const arrayBounds = this.core.getModel().getProperty(ModelPropID.arrayBounds);
+	    const arrayBounds = this.core.getModel().getAllProperties().arrayBounds;
 	    this.runtime.setArrayBounds(arrayBounds);
 	  }
 	  fnImplicitLines() {
-	    const implicitLines = this.core.getModel().getProperty(ModelPropID.implicitLines);
+	    const implicitLines = this.core.getModel().getAllProperties().implicitLines;
 	    this.runtime.setImplicitLines(implicitLines);
 	  }
 	  fnRemoveAllVariables() {
@@ -13865,19 +13864,19 @@
 	    }
 	  }
 	  fnPrettyLowercaseVars() {
-	    const lowercaseVars = this.core.getModel().getProperty(ModelPropID.prettyLowercaseVars);
+	    const lowercaseVars = this.core.getModel().getAllProperties().prettyLowercaseVars;
 	    this.runtime.setPrettyLowercaseVars(lowercaseVars);
 	  }
 	  fnIntegerOverflow() {
-	    const integerOverflow = this.core.getModel().getProperty(ModelPropID.integerOverflow);
+	    const integerOverflow = this.core.getModel().getAllProperties().integerOverflow;
 	    this.runtime.setIntegerOverflow(integerOverflow);
 	  }
 	  fnTrace() {
-	    const trace = this.core.getModel().getProperty(ModelPropID.trace);
+	    const trace = this.core.getModel().getAllProperties().trace;
 	    this.runtime.setTrace(trace);
 	  }
 	  fnSpeed() {
-	    const speed = this.core.getModel().getProperty(ModelPropID.speed);
+	    const speed = this.core.getModel().getAllProperties().speed;
 	    this.initialLoopTimeout = Runtime.getLoopDelay(speed);
 	  }
 	  /* eslint-enable no-invalid-this */
@@ -13958,11 +13957,11 @@
 	    if (config.canvasType === "graphics") {
 	      config.canvasType = "text";
 	    }
-	    if (!myGlobalThis.AudioContext && config.sound === true) {
+	    if (!myGlobalThis.AudioContext && config.sound) {
 	      config.sound = false;
 	    }
 	    config.showCpc = false;
-	    const debug = model.getProperty("debug");
+	    const debug = model.getAllProperties().debug;
 	    if (debug) {
 	      core.setDebug(debug);
 	      Utils.setDebug(debug);
@@ -14581,7 +14580,9 @@
 	    const adapterConfig = startupAdapter.getConfigOverrides() || {};
 	    Object.assign(startConfig, cpcconfig, adapterConfig);
 	    const redirectExamples = startConfig.redirectExamples;
-	    delete startConfig.redirectExamples;
+	    if (redirectExamples) {
+	      delete startConfig.redirectExamples;
+	    }
 	    const engine = new Engine(startConfig), core = engine.core;
 	    if (redirectExamples) {
 	      core.fnRedirectExamples(redirectExamples);

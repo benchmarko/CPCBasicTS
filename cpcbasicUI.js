@@ -5319,26 +5319,26 @@
 	  initOneToggle(_type, id, eventDef) {
 	    if (eventDef.property) {
 	      if (eventDef.toggleId) {
-	        const isEnabled = this.model.getProperty(eventDef.property);
+	        const isEnabled = this.model.getAllProperties()[eventDef.property];
 	        this.view.setHidden(eventDef.toggleId, !isEnabled, eventDef.display);
 	        if (UiUtils.debug > 3) {
 	          UiUtils.console.debug("initToggles: setHidden: togglId:", eventDef.toggleId, ", property:", eventDef.property, ", hidden:", !isEnabled, ", display:", eventDef.display);
 	        }
 	      }
 	      if (eventDef.viewType === "checked") {
-	        const isEnabled2 = this.model.getProperty(eventDef.property);
+	        const isEnabled2 = this.model.getAllProperties()[eventDef.property];
 	        this.view.setInputChecked(id, isEnabled2);
 	        if (UiUtils.debug > 3) {
 	          UiUtils.console.debug("initToggles: checked: id:", id, ", property:", eventDef.property, ", checked:", isEnabled2);
 	        }
 	      } else if (eventDef.viewType === "select") {
-	        const value = this.model.getProperty(eventDef.property);
+	        const value = this.model.getAllProperties()[eventDef.property];
 	        this.view.setSelectValue(id, value);
 	        if (UiUtils.debug > 3) {
 	          UiUtils.console.debug("initToggles: select: id:", id, ", property:", eventDef.property, ", value:", value);
 	        }
 	      } else if (eventDef.viewType === "numberInput") {
-	        const value = this.model.getProperty(eventDef.property);
+	        const value = this.model.getAllProperties()[eventDef.property];
 	        this.view.setInputValue(id, String(value));
 	        if (UiUtils.debug > 3) {
 	          UiUtils.console.debug("initToggles: numberInput: id:", id, ", property:", eventDef.property, ", value:", value);
@@ -5390,7 +5390,7 @@
 	    }
 	  }
 	  toggleAreaHidden(eventDef) {
-	    const toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef), visible = !this.model.getProperty(property);
+	    const toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef), visible = !this.model.getAllProperties()[property];
 	    this.model.setProperty(property, visible);
 	    this.view.setHidden(toggleId, !visible, eventDef.display);
 	    if (visible && eventDef.display === "flex" && this.view.getHidden(toggleId)) {
@@ -5490,9 +5490,7 @@
 	      }
 	    }
 	    for (const name in changed) {
-	      if (Object.prototype.hasOwnProperty.call(changed, name)) {
-	        url.searchParams.set(name, String(changed[name]));
-	      }
+	      url.searchParams.set(name, String(changed[name]));
 	    }
 	    if (url.href !== window.location.href) {
 	      window.history.replaceState(window.history.state, "", url.href);
@@ -6747,26 +6745,26 @@
 	    this.host = createBrowserHost(options);
 	    this.view.addEventListenerById("click", this.fnOnUserKeyClickHandler, ViewID.userKeys);
 	    this.uiController = new UiController(this.core, view, this, this.fnOnUserActionHandler);
-	    this.canvas = this.setCanvasType(model.getProperty(ModelPropID.canvasType));
+	    this.canvas = this.setCanvasType(model.getAllProperties().canvasType);
 	    this.fnSpeed();
 	    this.keyboard = new Keyboard({
 	      view: this.view,
 	      fnOnEscapeHandler: this.fnOnEscapeHandler
 	    });
-	    if (this.model.getProperty(ModelPropID.showKbd)) {
+	    if (this.model.getAllProperties().showKbd) {
 	      this.getVirtualKeyboard();
 	    }
 	    this.runtime = this.engine.createRuntime({
 	      canvas: this.canvas,
 	      keyboard: this.keyboard,
 	      sound: this.sound,
-	      randomMode: model.getProperty(ModelPropID.random),
-	      arrayBounds: model.getProperty(ModelPropID.arrayBounds),
-	      basicVersion: model.getProperty(ModelPropID.basicVersion),
-	      trace: model.getProperty(ModelPropID.trace),
-	      implicitLines: model.getProperty(ModelPropID.implicitLines),
-	      integerOverflow: model.getProperty(ModelPropID.integerOverflow),
-	      prettyLowercaseVars: model.getProperty(ModelPropID.prettyLowercaseVars),
+	      randomMode: model.getAllProperties().random,
+	      arrayBounds: model.getAllProperties().arrayBounds,
+	      basicVersion: model.getAllProperties().basicVersion,
+	      trace: model.getAllProperties().trace,
+	      implicitLines: model.getAllProperties().implicitLines,
+	      integerOverflow: model.getAllProperties().integerOverflow,
+	      prettyLowercaseVars: model.getAllProperties().prettyLowercaseVars,
 	      onClickKey: this.fnPutKeyInBufferHandler,
 	      outputError: this.outputError.bind(this),
 	      onJsError: (error) => {
@@ -6824,18 +6822,18 @@
 	    });
 	    this.vm.setCanvas(this.canvas);
 	    this.runtime.reset();
-	    if (model.getProperty(ModelPropID.sound)) {
+	    if (model.getAllProperties().sound) {
 	      this.setSoundActive();
 	    }
 	    this.initDropZone();
-	    const example = model.getProperty(ModelPropID.example);
+	    const example = model.getAllProperties().example;
 	    view.setSelectValue(ViewID.exampleSelect, example);
 	    this.setDatabaseSelectOptions();
 	    this.hasStorageDatabase = this.getHasStorageDatabase();
-	    if (model.getProperty(ModelPropID.showCpc)) {
+	    if (model.getAllProperties().showCpc) {
 	      this.canvas.startUpdateCanvas();
 	    }
-	    if (model.getProperty(ModelPropID.dragElements)) {
+	    if (model.getAllProperties().dragElements) {
 	      this.fnDragElementsActive(true);
 	    }
 	  }
@@ -6863,7 +6861,7 @@
 	    this.setSoundActive();
 	  }
 	  setDatabaseSelectOptions() {
-	    const items = [], databases = this.model.getAllDatabases(), database = this.model.getProperty(ModelPropID.database);
+	    const items = [], databases = this.model.getAllDatabases(), database = this.model.getAllProperties().database;
 	    for (const value in databases) {
 	      if (Object.prototype.hasOwnProperty.call(databases, value)) {
 	        const db = databases[value], item = {
@@ -6894,7 +6892,7 @@
 	    return name;
 	  }
 	  setDirectorySelectOptions() {
-	    const items = [], allExamples = this.model.getAllExamples(), examplePath = _Controller.getPathFromExample(this.model.getProperty(ModelPropID.example)), directorySeen = {};
+	    const items = [], allExamples = this.model.getAllExamples(), examplePath = _Controller.getPathFromExample(this.model.getAllProperties().example), directorySeen = {};
 	    for (const key in allExamples) {
 	      if (Object.prototype.hasOwnProperty.call(allExamples, key)) {
 	        const exampleEntry = allExamples[key], value = _Controller.getPathFromExample(exampleEntry.key);
@@ -6913,7 +6911,7 @@
 	    this.view.setSelectOptions(ViewID.directorySelect, items);
 	  }
 	  setExampleSelectOptions() {
-	    const maxTitleLength = 160, maxTextLength = 60, items = [], exampleName = _Controller.getNameFromExample(this.model.getProperty(ModelPropID.example)), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue(ViewID.directorySelect), selectDataFiles = this.model.getProperty(ModelPropID.selectDataFiles);
+	    const maxTitleLength = 160, maxTextLength = 60, items = [], exampleName = _Controller.getNameFromExample(this.model.getAllProperties().example), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue(ViewID.directorySelect), selectDataFiles = this.model.getAllProperties().selectDataFiles;
 	    let exampleSelected = false;
 	    for (const key in allExamples) {
 	      if (Object.prototype.hasOwnProperty.call(allExamples, key) && _Controller.getPathFromExample(key) === directoryName) {
@@ -6969,7 +6967,7 @@
 	    if (!this.hasStorageDatabase) {
 	      return;
 	    }
-	    const database = this.model.getProperty(ModelPropID.database), storage = this.getStorage();
+	    const database = this.model.getAllProperties().database, storage = this.getStorage();
 	    let selectedExample = "", exampleChanged = false;
 	    if (database !== "storage") {
 	      this.model.setProperty(ModelPropID.database, "storage");
@@ -7117,7 +7115,7 @@
 	    return this.runtime.mergeScripts(
 	      script1,
 	      script2,
-	      this.model.getProperty(ModelPropID.implicitLines),
+	      this.model.getAllProperties().implicitLines,
 	      () => {
 	        this.reportSplitLinesError();
 	      }
@@ -7129,7 +7127,7 @@
 	      script,
 	      firstLine,
 	      lastLine,
-	      this.model.getProperty(ModelPropID.implicitLines),
+	      this.model.getAllProperties().implicitLines,
 	      () => {
 	        this.reportSplitLinesError();
 	      }
@@ -7147,7 +7145,7 @@
 	    this.runtime.printDirectoryEntries(dirList, stream, true);
 	  }
 	  fnFileDir(paras) {
-	    const stream = paras.stream, example = this.model.getProperty(ModelPropID.example), dirList = this.engine.files.getDirectoryEntries(this.getStorage(), this.model.getAllExamples(), example, paras.fileMask);
+	    const stream = paras.stream, example = this.model.getAllProperties().example, dirList = this.engine.files.getDirectoryEntries(this.getStorage(), this.model.getAllExamples(), example, paras.fileMask);
 	    this.runtime.printDirectoryEntries(dirList, stream, false);
 	  }
 	  fnFileEra(paras) {
@@ -7269,7 +7267,7 @@
 	    }
 	  }
 	  loadExampleFile() {
-	    const inFile = this.vm.vmGetInFileObject(), key = this.model.getProperty(ModelPropID.example), plan = this.engine.files.prepareExampleLoad(inFile.name, key, this.model.getAllExamples(), this.model.getDatabase().src), example = plan.name, exampleEntry = plan.entry, url = plan.url;
+	    const inFile = this.vm.vmGetInFileObject(), key = this.model.getAllProperties().example, plan = this.engine.files.prepareExampleLoad(inFile.name, key, this.model.getAllExamples(), this.model.getDatabase().src), example = plan.name, exampleEntry = plan.entry, url = plan.url;
 	    inFile.memorizedExample = plan.memorizedExample;
 	    if (UiUtils.debug > 0) {
 	      UiUtils.console.debug("loadExample: name=" + example + " (current=" + key + ")");
@@ -7480,7 +7478,7 @@
 	    if (matches !== null) {
 	      name = matches[1];
 	    } else {
-	      const example = this.model.getProperty(ModelPropID.example);
+	      const example = this.model.getAllProperties().example;
 	      if (example !== "") {
 	        if (example.indexOf("/") >= 0) {
 	          name = example.substring(example.lastIndexOf("/") + 1);
@@ -7597,7 +7595,7 @@
 	  afterProgramStart() {
 	    if (!this.inputSet) {
 	      this.inputSet = true;
-	      const input = this.model.getProperty(ModelPropID.input);
+	      const input = this.model.getAllProperties().input;
 	      if (input !== "") {
 	        this.view.setAreaValue(ViewID.inp2Text, input);
 	        const timeout = 1;
@@ -7918,7 +7916,7 @@
 	    } else if (canvasType !== "graphics") {
 	      this.view.setHidden(ViewID.cpcCanvas, true);
 	    }
-	    const palette = this.model.getProperty(ModelPropID.palette);
+	    const palette = this.model.getAllProperties().palette;
 	    if (this.canvases[canvasType]) {
 	      canvas = this.canvases[canvasType];
 	      this.canvas = canvas;
@@ -7963,13 +7961,13 @@
 	    }
 	    const canvasId = canvas.getOptions().canvasID;
 	    this.view.setHidden(canvasId, false);
-	    if (this.model.getProperty(ModelPropID.showCpc)) {
+	    if (this.model.getAllProperties().showCpc) {
 	      this.canvas.startUpdateCanvas();
 	    }
 	    return canvas;
 	  }
 	  setSoundActive() {
-	    const sound = this.sound, active = this.model.getProperty(ModelPropID.sound);
+	    const sound = this.sound, active = this.model.getAllProperties().sound;
 	    if (active) {
 	      sound.soundOn();
 	    } else {
@@ -8035,7 +8033,7 @@
 	        adaptFilename: this.adaptFilename.bind(this),
 	        updateStorageDatabase: this.updateStorageDatabase.bind(this),
 	        outputError: this.outputError.bind(this),
-	        processFileImports: this.model.getProperty(ModelPropID.processFileImports),
+	        processFileImports: this.model.getAllProperties().processFileImports,
 	        storage: this.getStorage()
 	      });
 	    }
@@ -8125,7 +8123,7 @@
 	  }
 	  createFnDatabaseLoaded(url) {
 	    return (_sFullUrl, key) => {
-	      const selectedName = this.model.getProperty(ModelPropID.database);
+	      const selectedName = this.model.getAllProperties().database;
 	      if (selectedName === key) {
 	        this.model.getDatabase().loaded = true;
 	      } else {
@@ -8160,7 +8158,7 @@
 	    if (name !== void 0) {
 	      this.model.setProperty(ModelPropID.database, name);
 	    }
-	    const databaseName = this.model.getProperty(ModelPropID.database);
+	    const databaseName = this.model.getAllProperties().database;
 	    const database = this.model.getDatabase();
 	    if (!database) {
 	      UiUtils.console.error("onDatabaseSelectChange: database not available:", databaseName);
@@ -8175,7 +8173,7 @@
 	      this.onDirectorySelectChange();
 	    } else {
 	      this.setInputText("#loading database " + databaseName + "...");
-	      const exampleIndex = this.model.getProperty(ModelPropID.exampleIndex), url = database.src + "/" + exampleIndex;
+	      const exampleIndex = this.model.getAllProperties().exampleIndex, url = database.src + "/" + exampleIndex;
 	      this.getLoadScript()(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
 	    }
 	  }
@@ -8192,12 +8190,12 @@
 	    this.loadExample(exampleName);
 	  }
 	  loadExample(key, options = {}) {
-	    const vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getProperty(ModelPropID.database);
+	    const vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getAllProperties().database;
 	    this.model.setProperty(ModelPropID.example, key);
 	    vm.closein();
 	    this.uiController.setPopoversHiddenExcept();
 	    inFile.open = true;
-	    const request = this.engine.files.createExampleLoadRequest(key, dataBaseName, this.model.getExample(key)?.meta, options.autorun ?? this.model.getProperty(ModelPropID.autorun));
+	    const request = this.engine.files.createExampleLoadRequest(key, dataBaseName, this.model.getExample(key)?.meta, options.autorun ?? this.model.getAllProperties().autorun);
 	    inFile.command = request.command;
 	    inFile.name = request.name;
 	    inFile.start = void 0;
@@ -8234,11 +8232,11 @@
 	    this.keyboard.setActive(false);
 	  }
 	  fnArrayBounds() {
-	    const arrayBounds = this.model.getProperty(ModelPropID.arrayBounds);
+	    const arrayBounds = this.model.getAllProperties().arrayBounds;
 	    this.runtime.setArrayBounds(arrayBounds);
 	  }
 	  fnImplicitLines() {
-	    const implicitLines = this.model.getProperty(ModelPropID.implicitLines);
+	    const implicitLines = this.model.getAllProperties().implicitLines;
 	    this.runtime.setImplicitLines(implicitLines);
 	  }
 	  fnRemoveAllVariables() {
@@ -8248,19 +8246,19 @@
 	    }
 	  }
 	  fnPrettyLowercaseVars() {
-	    const prettyLowercaseVars = this.model.getProperty(ModelPropID.prettyLowercaseVars);
+	    const prettyLowercaseVars = this.model.getAllProperties().prettyLowercaseVars;
 	    this.runtime.setPrettyLowercaseVars(prettyLowercaseVars);
 	  }
 	  fnIntegerOverflow() {
-	    const integerOverflow = this.model.getProperty(ModelPropID.integerOverflow);
+	    const integerOverflow = this.model.getAllProperties().integerOverflow;
 	    this.runtime.setIntegerOverflow(integerOverflow);
 	  }
 	  fnTrace() {
-	    const trace = this.model.getProperty(ModelPropID.trace);
+	    const trace = this.model.getAllProperties().trace;
 	    this.runtime.setTrace(trace);
 	  }
 	  fnSpeed() {
-	    const speed = this.model.getProperty(ModelPropID.speed);
+	    const speed = this.model.getAllProperties().speed;
 	    this.initialLoopTimeout = this.engine.getLoopDelay(speed);
 	  }
 	  /* eslint-enable no-invalid-this */
@@ -8273,24 +8271,6 @@
 	    this.view = new View();
 	    this.controller = {};
 	  }
-	  //private core = {} as ICore;
-	  /*
-	  	private static fnMapObjectProperties(arg: any) {
-	  		if (typeof arg === "object") {
-	  			const res = [];
-	  
-	  			for (const key in arg) { // eslint-disable-line guard-for-in
-	  				const value = arg[key];
-	  
-	  				if (typeof value !== "object" && typeof value !== "function") {
-	  					res.push(key + ": " + value);
-	  				}
-	  			}
-	  			arg = String(arg) + "{" + res.join(", ") + "}";
-	  		}
-	  		return arg;
-	  	}
-	  	*/
 	  static fnDecodeUri(s) {
 	    let decoded = "";
 	    try {
@@ -8317,54 +8297,6 @@
 	    }
 	    return args;
 	  }
-	  /*
-	  	private static createDebugUtilsConsole(cpcBasicLog: string) {
-	  		const currentConsole = UiUtils.console;
-	  
-	  		return {
-	  			consoleLog: {
-	  				value: cpcBasicLog || "" // already something collected?
-	  			},
-	  			console: currentConsole,
-	  			rawLog: function (fnMethod: (args: any) => void, level: string, args: any) {
-	  				if (level) {
-	  					args.unshift(level);
-	  				}
-	  				if (fnMethod) {
-	  					if (fnMethod.apply) {
-	  						fnMethod.apply(console, args);
-	  					}
-	  				}
-	  				if (this.consoleLog) {
-	  					this.consoleLog.value += args.map(UI.fnMapObjectProperties).join(" ") + ((level !== null) ? "\n" : "");
-	  				}
-	  			},
-	  			log: function () {
-	  				this.rawLog(this.console && this.console.log, "", Array.prototype.slice.call(arguments));
-	  			},
-	  			debug: function () {
-	  				this.rawLog(this.console && this.console.debug, "DEBUG:", Array.prototype.slice.call(arguments));
-	  			},
-	  			info: function () {
-	  				this.rawLog(this.console && this.console.info, "INFO:", Array.prototype.slice.call(arguments));
-	  			},
-	  			warn: function () {
-	  				this.rawLog(this.console && this.console.warn, "WARN:", Array.prototype.slice.call(arguments));
-	  			},
-	  			error: function () {
-	  				this.rawLog(this.console && this.console.error, "ERROR:", Array.prototype.slice.call(arguments));
-	  			},
-	  			changeLog: function (log: any) {
-	  				const oldLog = this.consoleLog;
-	  
-	  				this.consoleLog = log;
-	  				if (oldLog && oldLog.value && log) { // some log entires collected?
-	  					log.value += oldLog.value; // take collected log entries
-	  				}
-	  			}
-	  		};
-	  	}
-	  	*/
 	  getCanvasVm() {
 	    return this.controller?.getCanvas();
 	  }
@@ -8377,7 +8309,7 @@
 	    const config = model.getAllProperties();
 	    const args = UI.parseUri(config);
 	    core.parseArgs(args, config);
-	    const debug = model.getProperty("debug");
+	    const debug = model.getAllProperties().debug;
 	    if (debug) {
 	      core.setDebug(debug);
 	      UiUtils.setDebug(debug);

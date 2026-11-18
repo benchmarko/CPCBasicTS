@@ -77,21 +77,25 @@ const startConfig: ConfigType = {
 	trace: false // trace code
 };
 
+type ExtendedConfigType = ConfigType & { redirectExamples?: Record<string, Record<"database" | "example", string>> };
+
 export class cpcBasic {
 	static start(startupAdapter: CpcBasicStartupAdapter) {
 		Utils.console.log("CPCBasicTS started at", Utils.dateFormat(new Date()));
 		const adapterConfig = startupAdapter.getConfigOverrides() || {};
 		Object.assign(startConfig, cpcconfig, adapterConfig);
 
-		const redirectExamples = startConfig.redirectExamples;
+		const redirectExamples = (startConfig as ExtendedConfigType).redirectExamples;
 
-		delete startConfig.redirectExamples;
+		if (redirectExamples) {
+			delete (startConfig as ExtendedConfigType).redirectExamples;
+		}
 
 		const engine = new Engine(startConfig),
 			core = engine.core;
 
 		if (redirectExamples) {
-			core.fnRedirectExamples(redirectExamples as unknown as Record<string, Record<"database" | "example", string>>);
+			core.fnRedirectExamples(redirectExamples);
 		}
 
 		if (!startupAdapter.isNodeRuntime()) {

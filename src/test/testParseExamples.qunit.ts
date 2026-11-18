@@ -18,7 +18,7 @@ let path: NodePath | undefined;
 
 import { ModelPropID } from "../Constants";
 import { Utils } from "../Utils";
-import type { DatabaseEntry, DatabasesType, ExampleEntry, ICpcVmRsx, IOutput } from "../Interfaces";
+import type { ConfigType, DatabaseEntry, DatabasesType, ExampleEntry, ICpcVmRsx, IOutput } from "../Interfaces";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { BasicTokenizer } from "../BasicTokenizer";
@@ -67,7 +67,7 @@ function createModel() {
 	const startConfig = {};
 
 	Object.assign(startConfig, cpcconfig || {}); // merge external config from cpcconfig.js
-	const model = new Model(startConfig);
+	const model = new Model(startConfig as ConfigType);
 
 	return model;
 }
@@ -277,7 +277,7 @@ class cpcBasic {
 	static initDatabases(): string[] {
 		const model = cpcBasic.model,
 			databases: DatabasesType = {},
-			databaseDirs = model.getProperty<string>(ModelPropID.databaseDirs).split(","),
+			databaseDirs = model.getAllProperties().databaseDirs.split(","),
 			databaseNames: string[] = [];
 
 		for (let i = 0; i < databaseDirs.length; i += 1) {
@@ -332,7 +332,7 @@ class cpcBasic {
 	// Also called from example files xxxxx.js
 	private static addItem2(key: string, input: string) { // key maybe ""
 		if (!key) { // maybe ""
-			key = cpcBasic.model.getProperty<string>(ModelPropID.example);
+			key = cpcBasic.model.getAllProperties().example;
 		}
 		input = input.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
 		// beware of data files ending with newlines! (do not use trimEnd)
@@ -378,7 +378,7 @@ class cpcBasic {
 		const rsx = new RsxConstructor();
 
 		if (!key) { // maybe ""
-			key = cpcBasic.model.getProperty<string>(ModelPropID.example);
+			key = cpcBasic.model.getAllProperties().example;
 		}
 		const example = cpcBasic.model.getExample(key);
 
@@ -606,7 +606,7 @@ function fnExampleLoaded(error?: Error, code?: string) {
 		fnEval(code); // load example (for nodeJs)
 	}
 
-	const key = cpcBasic.model.getProperty<string>(ModelPropID.example),
+	const key = cpcBasic.model.getAllProperties().example,
 		example = cpcBasic.model.getExample(key),
 		output = testParseExample(example);
 

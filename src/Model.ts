@@ -4,8 +4,8 @@
 
 
 import { Utils } from "./Utils";
-import { ModelPropID } from "./Constants";
-import type { ConfigEntryType, ConfigType, DatabaseEntry, DatabasesType, ExampleEntry, ExamplesType, IModel } from "./Interfaces";
+//import { ModelPropID } from "./Constants";
+import type { ConfigType, DatabaseEntry, DatabasesType, ExampleEntry, ExamplesType, IModel } from "./Interfaces";
 
 export class Model implements IModel {
 	private config: ConfigType;
@@ -22,15 +22,15 @@ export class Model implements IModel {
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-	getProperty<T extends ConfigEntryType>(property: string): T { //getProperty<T extends ConfigEntryType>(property: ModelPropID): T
-		return this.config[property] as T; // keyof ConfigType?
-	}
+	//getProperty<T extends ConfigEntryType>(property: string): T { //getProperty<T extends ConfigEntryType>(property: ModelPropID): T
+	//	return this.config[property] as T; // keyof ConfigType?
+	//}
 	
 	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-	setProperty<T extends ConfigEntryType>(property: string, value: T): void {
-		const previousValue = this.config[property] as ConfigEntryType | undefined;
+	setProperty(property: keyof ConfigType, value: ConfigType[keyof ConfigType]): void {
+		const previousValue = this.config[property] as ConfigType[keyof ConfigType] | undefined;
 
-		this.config[property] = value;
+		(this.config as Record<string, ConfigType[keyof ConfigType]>)[property] = value;
 		if (value !== previousValue && this.propertyChangeCallback) {
 			this.propertyChangeCallback();
 		}
@@ -38,22 +38,23 @@ export class Model implements IModel {
 	setPropertyChangeCallback(callback: (() => void) | undefined): void {
 		this.propertyChangeCallback = callback;
 	}
-	getAllProperties(): ConfigType {
+	public getAllProperties(): ConfigType { // TODO: rename to getConfigMap?
 		return this.config;
 	}
+
 	getAllInitialProperties(): ConfigType {
 		return this.initialConfig;
 	}
 
 	getChangedProperties(): ConfigType {
-		const current = this.config,
-			initial = this.initialConfig,
-			changed: ConfigType = {};
+		const current = this.config as Record<string, ConfigType[keyof ConfigType]>,
+			initial = this.initialConfig as Record<string, ConfigType[keyof ConfigType]>,
+			changed = {} as ConfigType;
 
 		for (const name in current) {
 			if (Object.prototype.hasOwnProperty.call(current, name)) {
 				if (current[name] !== initial[name]) {
-					changed[name] = current[name];
+					(changed as Record<string, ConfigType[keyof ConfigType]>)[name] = current[name];
 				}
 			}
 		}
@@ -74,23 +75,23 @@ export class Model implements IModel {
 		return this.databases;
 	}
 	getDatabase(): DatabaseEntry {
-		const database = this.getProperty<string>(ModelPropID.database);
+		const database = this.getAllProperties().database;
 
 		return this.databases[database];
 	}
 
 	getAllExamples(): Record<string, ExampleEntry> {
-		const database = this.getProperty<string>(ModelPropID.database);
+		const database = this.getAllProperties().database;
 
 		return this.examples[database];
 	}
 	getExample(key: string): ExampleEntry {
-		const database = this.getProperty<string>(ModelPropID.database);
+		const database = this.getAllProperties().database;
 
 		return this.examples[database][key];
 	}
 	setExample(example: ExampleEntry): void {
-		const database = this.getProperty<string>(ModelPropID.database),
+		const database = this.getAllProperties().database,
 			key = example.key;
 
 		if (!this.examples[database][key]) {
@@ -101,7 +102,7 @@ export class Model implements IModel {
 		this.examples[database][key] = example;
 	}
 	removeExample(key: string): void {
-		const database = this.getProperty<string>(ModelPropID.database);
+		const database = this.getAllProperties().database;
 
 		if (!this.examples[database][key]) {
 			Utils.console.warn("removeExample: example does not exist: " + key);
