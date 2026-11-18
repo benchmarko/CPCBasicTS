@@ -1,31 +1,12 @@
 import "./Polyfills";
 import { UiUtils } from "./UiUtils";
-import type { ConfigEntryType, ICanvasVm, IEngine, IUI } from "../Interfaces";
+import type { ConfigType, ICanvasVm, IEngine, IUI } from "../Interfaces";
 import { Controller, ControllerOptions } from "./Controller";
 import { View } from "./View";
 
 export class UI implements IUI {
 	private view: View = new View();
 	private controller = {} as Controller;
-	//private core = {} as ICore;
-
-	/*
-	private static fnMapObjectProperties(arg: any) {
-		if (typeof arg === "object") {
-			const res = [];
-
-			for (const key in arg) { // eslint-disable-line guard-for-in
-				const value = arg[key];
-
-				if (typeof value !== "object" && typeof value !== "function") {
-					res.push(key + ": " + value);
-				}
-			}
-			arg = String(arg) + "{" + res.join(", ") + "}";
-		}
-		return arg;
-	}
-	*/
 
 	private static fnDecodeUri(s: string): string {
 		let decoded = "";
@@ -41,7 +22,7 @@ export class UI implements IUI {
 		return decoded;
 	}
 
-	private static parseUri(config: Record<string, ConfigEntryType>): string[] {
+	private static parseUri(config: Record<string, ConfigType[keyof ConfigType]>): string[] {
 		const urlQuery = window.location.search.substring(1);
 		const rSearch = /([^&=]+)=?([^&]*)/g;
 		const args: string[] = [];
@@ -58,55 +39,6 @@ export class UI implements IUI {
 		return args;
 	}
 
-	/*
-	private static createDebugUtilsConsole(cpcBasicLog: string) {
-		const currentConsole = UiUtils.console;
-
-		return {
-			consoleLog: {
-				value: cpcBasicLog || "" // already something collected?
-			},
-			console: currentConsole,
-			rawLog: function (fnMethod: (args: any) => void, level: string, args: any) {
-				if (level) {
-					args.unshift(level);
-				}
-				if (fnMethod) {
-					if (fnMethod.apply) {
-						fnMethod.apply(console, args);
-					}
-				}
-				if (this.consoleLog) {
-					this.consoleLog.value += args.map(UI.fnMapObjectProperties).join(" ") + ((level !== null) ? "\n" : "");
-				}
-			},
-			log: function () {
-				this.rawLog(this.console && this.console.log, "", Array.prototype.slice.call(arguments));
-			},
-			debug: function () {
-				this.rawLog(this.console && this.console.debug, "DEBUG:", Array.prototype.slice.call(arguments));
-			},
-			info: function () {
-				this.rawLog(this.console && this.console.info, "INFO:", Array.prototype.slice.call(arguments));
-			},
-			warn: function () {
-				this.rawLog(this.console && this.console.warn, "WARN:", Array.prototype.slice.call(arguments));
-			},
-			error: function () {
-				this.rawLog(this.console && this.console.error, "ERROR:", Array.prototype.slice.call(arguments));
-			},
-			changeLog: function (log: any) {
-				const oldLog = this.consoleLog;
-
-				this.consoleLog = log;
-				if (oldLog && oldLog.value && log) { // some log entires collected?
-					log.value += oldLog.value; // take collected log entries
-				}
-			}
-		};
-	}
-	*/
-
 	public getCanvasVm(): ICanvasVm {
 		return this.controller?.getCanvas();
 	}
@@ -116,14 +48,13 @@ export class UI implements IUI {
 	}
 
 	public onWindowLoadContinue(engine: IEngine): void {
-		//this.isMobile = UI.isMobile();
 		const core = engine.core;
 		const model = core.getModel();
 		const config = model.getAllProperties();
 		const args = UI.parseUri(config);
 
 		core.parseArgs(args, config);
-		const debug = model.getProperty<number>("debug"); //TTT
+		const debug = model.getAllProperties().debug;
 		if (debug) {
 			core.setDebug(debug);
 			UiUtils.setDebug(debug);

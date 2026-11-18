@@ -131,13 +131,13 @@ export class NodeUtils implements INodeUtils {
 			config.canvasType = "text";
 		}
 
-		if (!myGlobalThis.AudioContext && config.sound === true) {
+		if (!myGlobalThis.AudioContext && config.sound) {
 			config.sound = false;
 		}
 
 		config.showCpc = false; // disable canvas updates in headless mode
 
-		const debug = model.getProperty<number>("debug");
+		const debug = model.getAllProperties().debug;
 
 		if (debug) {
 			core.setDebug(debug);

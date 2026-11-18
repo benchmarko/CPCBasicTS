@@ -5,7 +5,7 @@
 import { ModelPropID } from "../Constants";
 import { ViewID } from "./UiConstants";
 import { UiUtils } from "./UiUtils";
-import type { IModel } from "../Interfaces";
+import type { ConfigType, IModel } from "../Interfaces";
 import type { IController } from "./UiInterfaces";
 import { View } from "./View";
 
@@ -68,7 +68,7 @@ export class CommonEventHandler implements EventListenerObject {
 	private initOneToggle(_type: string, id: ViewID, eventDef: EventDefType) {
 		if (eventDef.property) {
 			if (eventDef.toggleId) {
-				const isEnabled = this.model.getProperty<boolean>(eventDef.property);
+				const isEnabled = this.model.getAllProperties()[eventDef.property] as boolean;
 
 				this.view.setHidden(eventDef.toggleId, !isEnabled, eventDef.display);
 				if (UiUtils.debug > 3) {
@@ -77,21 +77,21 @@ export class CommonEventHandler implements EventListenerObject {
 			}
 
 			if (eventDef.viewType === "checked") {
-				const isEnabled2 = this.model.getProperty<boolean>(eventDef.property);
+				const isEnabled2 = this.model.getAllProperties()[eventDef.property] as boolean;
 
 				this.view.setInputChecked(id, isEnabled2);
 				if (UiUtils.debug > 3) {
 					UiUtils.console.debug("initToggles: checked: id:", id, ", property:", eventDef.property, ", checked:", isEnabled2);
 				}
 			} else if (eventDef.viewType === "select") {
-				const value = this.model.getProperty<string>(eventDef.property);
+				const value = this.model.getAllProperties()[eventDef.property] as string;
 
 				this.view.setSelectValue(id, value);
 				if (UiUtils.debug > 3) {
 					UiUtils.console.debug("initToggles: select: id:", id, ", property:", eventDef.property, ", value:", value);
 				}
 			} else if (eventDef.viewType === "numberInput") {
-				const value = this.model.getProperty<number>(eventDef.property);
+				const value = this.model.getAllProperties()[eventDef.property] as number;
 
 				this.view.setInputValue(id, String(value));
 				if (UiUtils.debug > 3) {
@@ -160,7 +160,7 @@ export class CommonEventHandler implements EventListenerObject {
 	private toggleAreaHidden(eventDef: EventDefType): boolean {
 		const toggleId = CommonEventHandler.getToggleId(eventDef),
 			property = CommonEventHandler.getproperty(eventDef),
-			visible = !this.model.getProperty<boolean>(property);
+			visible = !(this.model.getAllProperties()[property] as boolean);
 
 		this.model.setProperty(property, visible);
 		this.view.setHidden(toggleId, !visible, eventDef.display);
@@ -306,9 +306,7 @@ export class CommonEventHandler implements EventListenerObject {
 			}
 		}
 		for (const name in changed) {
-			if (Object.prototype.hasOwnProperty.call(changed, name)) {
-				url.searchParams.set(name, String(changed[name]));
-			}
+			url.searchParams.set(name, String((changed as Record<string, ConfigType[keyof ConfigType]>)[name]));
 		}
 
 		if (url.href !== window.location.href) {

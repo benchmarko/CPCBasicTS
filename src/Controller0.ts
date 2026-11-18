@@ -64,13 +64,13 @@ export class Controller0 implements IRuntimeController {
 			canvas: this.options.canvas,
 			keyboard: this.options.keyboard,
 			sound: this.options.sound,
-			randomMode: model.getProperty<"cpc" | "minstd">(ModelPropID.random),
-			arrayBounds: model.getProperty<boolean>(ModelPropID.arrayBounds),
-			basicVersion: model.getProperty<string>(ModelPropID.basicVersion),
-			trace: model.getProperty<boolean>(ModelPropID.trace),
-			implicitLines: model.getProperty<boolean>(ModelPropID.implicitLines),
-			integerOverflow: model.getProperty<boolean>(ModelPropID.integerOverflow),
-			prettyLowercaseVars: model.getProperty<boolean>(ModelPropID.prettyLowercaseVars),
+			randomMode: model.getAllProperties().random,
+			arrayBounds: model.getAllProperties().arrayBounds,
+			basicVersion: model.getAllProperties().basicVersion,
+			trace: model.getAllProperties().trace,
+			implicitLines: model.getAllProperties().implicitLines,
+			integerOverflow: model.getAllProperties().integerOverflow,
+			prettyLowercaseVars: model.getAllProperties().prettyLowercaseVars,
 			onClickKey: this.fnPutKeyInBufferHandler,
 			outputError: this.outputError.bind(this),
 			logger: Utils.console,
@@ -126,7 +126,7 @@ export class Controller0 implements IRuntimeController {
 			return;
 		}
 
-		const database = this.core.getModel().getProperty<string>(ModelPropID.database),
+		const database = this.core.getModel().getAllProperties().database,
 			storage = this.getStorage();
 
 		let selectedExample = "",
@@ -135,7 +135,7 @@ export class Controller0 implements IRuntimeController {
 		if (database !== "storage") {
 			this.core.getModel().setProperty(ModelPropID.database, "storage"); // switch to storage database
 		} else {
-			selectedExample = this.core.getModel().getProperty<string>(ModelPropID.example);
+			selectedExample = this.core.getModel().getAllProperties().example;
 		}
 
 		let	dir: string[];
@@ -232,7 +232,7 @@ export class Controller0 implements IRuntimeController {
 		return this.runtime.mergeScripts(
 			script1,
 			script2,
-			this.core.getModel().getProperty<boolean>(ModelPropID.implicitLines),
+			this.core.getModel().getAllProperties().implicitLines,
 			() => { this.reportSplitLinesError(); }
 		);
 	}
@@ -243,7 +243,7 @@ export class Controller0 implements IRuntimeController {
 			script,
 			firstLine,
 			lastLine,
-			this.core.getModel().getProperty<boolean>(ModelPropID.implicitLines),
+			this.core.getModel().getAllProperties().implicitLines,
 			() => { this.reportSplitLinesError(); }
 		);
 	}
@@ -269,7 +269,7 @@ export class Controller0 implements IRuntimeController {
 
 	private fnFileDir(paras: VmFileParas): void {
 		const stream = paras.stream,
-			example = this.core.getModel().getProperty<string>(ModelPropID.example),
+			example = this.core.getModel().getAllProperties().example,
 			dirList = FileHandler.getDirectoryEntries(this.getStorage(), this.core.getModel().getAllExamples(), example, paras.fileMask);
 		this.runtime.printDirectoryEntries(dirList, stream, false);
 	}
@@ -371,7 +371,7 @@ export class Controller0 implements IRuntimeController {
 
 	private loadExampleFile() {
 		const inFile = this.vm.vmGetInFileObject(),
-			key = this.core.getModel().getProperty<string>(ModelPropID.example),
+			key = this.core.getModel().getAllProperties().example,
 			model = this.core.getModel(),
 			plan = FileHandler.prepareExampleLoad(inFile.name, key, model.getAllExamples(), model.getDatabase().src),
 			example = plan.name,
@@ -552,9 +552,9 @@ export class Controller0 implements IRuntimeController {
 	fnPretty(): void {
 		const model = this.core.getModel();
 		const input = this.getInputText(),
-			keepWhiteSpace = model.getProperty<boolean>(ModelPropID.prettySpace),
-			keepBrackets = model.getProperty<boolean>(ModelPropID.prettyBrackets),
-			keepColons = model.getProperty<boolean>(ModelPropID.prettyColons),
+			keepWhiteSpace = model.getAllProperties().prettySpace,
+			keepBrackets = model.getAllProperties().prettyBrackets,
+			keepColons = model.getAllProperties().prettyColons,
 			output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons);
 
 		if (output) {
@@ -872,7 +872,7 @@ export class Controller0 implements IRuntimeController {
 				adaptFilename: this.adaptFilename.bind(this),
 				updateStorageDatabase: this.updateStorageDatabase.bind(this),
 				outputError: this.outputError.bind(this),
-				processFileImports: this.core.getModel().getProperty<boolean>(ModelPropID.processFileImports),
+				processFileImports: this.core.getModel().getAllProperties().processFileImports,
 				storage: this.storage
 			});
 		}
@@ -881,7 +881,7 @@ export class Controller0 implements IRuntimeController {
 
 	private createFnDatabaseLoaded(url: string) {
 		return (_sFullUrl: string, key: string) => {
-			const selectedName = this.core.getModel().getProperty<string>(ModelPropID.database);
+			const selectedName = this.core.getModel().getAllProperties().database;
 
 			if (selectedName === key) {
 				this.core.getModel().getDatabase().loaded = true;
@@ -919,7 +919,7 @@ export class Controller0 implements IRuntimeController {
 		if (name !== undefined) {
 			model.setProperty(ModelPropID.database, name);
 		}
-		const databaseName = model.getProperty<string>(ModelPropID.database);
+		const databaseName = model.getAllProperties().database;
 		const database = model.getDatabase();
 
 		if (!database) {
@@ -933,10 +933,10 @@ export class Controller0 implements IRuntimeController {
 		}
 
 		if (database.loaded) {
-			this.loadExample(model.getProperty<string>(ModelPropID.example));
+			this.loadExample(model.getAllProperties().example);
 		} else {
 			this.setInputText("#loading database " + databaseName + "...");
-			const exampleIndex = this.core.getModel().getProperty<string>(ModelPropID.exampleIndex);
+			const exampleIndex = this.core.getModel().getAllProperties().exampleIndex;
 			const url = database.src + "/" + exampleIndex;
 			const loadScriptFn = this.getLoadScript();
 
@@ -949,21 +949,21 @@ export class Controller0 implements IRuntimeController {
 	}
 
 	onExampleSelectChange(): void {
-		this.loadExample(this.core.getModel().getProperty<string>(ModelPropID.example));
+		this.loadExample(this.core.getModel().getAllProperties().example);
 	}
 
 	loadExample(key: string, options: ExampleLoadOptions = {}): void {
 		const model = this.core.getModel();
 		const vm = this.vm,
 			inFile = vm.vmGetInFileObject(),
-			dataBaseName = model.getProperty<string>(ModelPropID.database);
+			dataBaseName = model.getAllProperties().database;
 		model.setProperty(ModelPropID.example, key);
 
 		vm.closein();
 
 		inFile.open = true;
 
-		const request = FileHandler.createExampleLoadRequest(key, dataBaseName, model.getExample(key)?.meta, options.autorun ?? model.getProperty<boolean>(ModelPropID.autorun));
+		const request = FileHandler.createExampleLoadRequest(key, dataBaseName, model.getExample(key)?.meta, options.autorun ?? model.getAllProperties().autorun);
 		inFile.command = request.command;
 		inFile.name = request.name;
 		inFile.start = undefined;
@@ -973,12 +973,12 @@ export class Controller0 implements IRuntimeController {
 	}
 
 	fnArrayBounds(): void {
-		const arrayBounds = this.core.getModel().getProperty<boolean>(ModelPropID.arrayBounds);
+		const arrayBounds = this.core.getModel().getAllProperties().arrayBounds;
 		this.runtime.setArrayBounds(arrayBounds);
 	}
 
 	fnImplicitLines(): void {
-		const implicitLines = this.core.getModel().getProperty<boolean>(ModelPropID.implicitLines);
+		const implicitLines = this.core.getModel().getAllProperties().implicitLines;
 		this.runtime.setImplicitLines(implicitLines);
 	}
 
@@ -989,22 +989,22 @@ export class Controller0 implements IRuntimeController {
 	}
 
 	fnPrettyLowercaseVars(): void {
-		const lowercaseVars = this.core.getModel().getProperty<boolean>(ModelPropID.prettyLowercaseVars);
+		const lowercaseVars = this.core.getModel().getAllProperties().prettyLowercaseVars;
 		this.runtime.setPrettyLowercaseVars(lowercaseVars);
 	}
 
 	fnIntegerOverflow(): void {
-		const integerOverflow = this.core.getModel().getProperty<boolean>(ModelPropID.integerOverflow);
+		const integerOverflow = this.core.getModel().getAllProperties().integerOverflow;
 		this.runtime.setIntegerOverflow(integerOverflow);
 	}
 
 	fnTrace(): void {
-		const trace = this.core.getModel().getProperty<boolean>(ModelPropID.trace);
+		const trace = this.core.getModel().getAllProperties().trace;
 		this.runtime.setTrace(trace);
 	}
 
 	fnSpeed(): void {
-		const speed = this.core.getModel().getProperty<number>(ModelPropID.speed);
+		const speed = this.core.getModel().getAllProperties().speed;
 
 		this.initialLoopTimeout = Runtime.getLoopDelay(speed);
 	}

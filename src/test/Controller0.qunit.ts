@@ -2,7 +2,7 @@ import { Controller0, type ControllerOptions0 } from "../Controller0";
 import { Engine } from "../Engine";
 import { FileHandler } from "../FileHandler";
 import { ExecutionStateReporter, type ExecutionState } from "../ExecutionState";
-import type { CustomError, Diagnostic, IKeyboard, ISound, LoadScriptFn } from "../Interfaces";
+import type { ConfigType, CustomError, Diagnostic, IKeyboard, ISound, LoadScriptFn } from "../Interfaces";
 import type { IRuntimeController, RuntimeCallbacks } from "../Interfaces";
 import { Utils } from "../Utils";
 import { NoCanvas } from "../ui/NoCanvas";
@@ -21,7 +21,7 @@ function createController(isHeadlessDirectInput = true, loadScript: LoadScriptFn
 		random: "cpc",
 		speed: 100,
 		trace: false
-	}),
+	} as ConfigType), // Partial
 		core = engine.core;
 	core.init();
 	core.getModel().getDatabase().loaded = true;
@@ -160,7 +160,7 @@ QUnit.module("Controller0", function (hooks) {
 			host.controller.loadExample("folder/main");
 			host.drain();
 			assert.ok(host.result.includes("RESOLVED\r\n"), target);
-			assert.strictEqual(model.getProperty("example"), target === "next" ? "folder/main" : "root", target);
+			assert.strictEqual(model.getAllProperties().example, target === "next" ? "folder/main" : "root", target);
 			assert.deepEqual(host.diagnostics, [], target);
 		}
 	});
@@ -377,14 +377,14 @@ QUnit.module("Controller0", function (hooks) {
 		runtime.loadExample("folder/named", { autorun: false });
 		host.drain();
 		assert.strictEqual(runtime.getInputText(), source);
-		assert.strictEqual(host.core.getModel().getProperty("example"), "folder/named");
-		assert.strictEqual(host.core.getModel().getProperty("autorun"), true);
+		assert.strictEqual(host.core.getModel().getAllProperties().example, "folder/named");
+		assert.strictEqual(host.core.getModel().getAllProperties().autorun, true);
 		assert.deepEqual(host.generated, []);
 		host.core.getModel().setProperty("autorun", false);
 		runtime.loadExample("folder/named", { autorun: true });
 		host.drain();
 		assert.ok(host.result.includes("NAMED"));
-		assert.strictEqual(host.core.getModel().getProperty("autorun"), false);
+		assert.strictEqual(host.core.getModel().getAllProperties().autorun, false);
 		assert.deepEqual(host.diagnostics, []);
 	});
 
@@ -407,7 +407,7 @@ QUnit.module("Controller0", function (hooks) {
 		model.setProperty("database", "examples");
 		host.controller.loadDatabase("other");
 		host.drain();
-		assert.strictEqual(model.getProperty("database"), "other");
+		assert.strictEqual(model.getAllProperties().database, "other");
 		assert.ok(host.result.includes("OTHER"));
 		assert.deepEqual(host.diagnostics, []);
 	});

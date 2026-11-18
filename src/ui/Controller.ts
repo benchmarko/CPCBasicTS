@@ -117,7 +117,7 @@ export class Controller implements IController {
 
 		this.uiController = new UiController(this.core, view, this, this.fnOnUserActionHandler);
 
-		this.canvas = this.setCanvasType(model.getProperty<string>(ModelPropID.canvasType));
+		this.canvas = this.setCanvasType(model.getAllProperties().canvasType);
 
 		this.fnSpeed();
 
@@ -126,7 +126,7 @@ export class Controller implements IController {
 			fnOnEscapeHandler: this.fnOnEscapeHandler
 		});
 
-		if (this.model.getProperty<boolean>(ModelPropID.showKbd)) { // maybe we need to draw virtual keyboard
+		if (this.model.getAllProperties().showKbd) { // maybe we need to draw virtual keyboard
 			this.getVirtualKeyboard();
 		}
 
@@ -136,13 +136,13 @@ export class Controller implements IController {
 			canvas: this.canvas,
 			keyboard: this.keyboard,
 			sound: this.sound,
-			randomMode: model.getProperty<"cpc" | "minstd">(ModelPropID.random),
-			arrayBounds: model.getProperty<boolean>(ModelPropID.arrayBounds),
-			basicVersion: model.getProperty<string>(ModelPropID.basicVersion),
-			trace: model.getProperty<boolean>(ModelPropID.trace),
-			implicitLines: model.getProperty<boolean>(ModelPropID.implicitLines),
-			integerOverflow: model.getProperty<boolean>(ModelPropID.integerOverflow),
-			prettyLowercaseVars: model.getProperty<boolean>(ModelPropID.prettyLowercaseVars),
+			randomMode: model.getAllProperties().random,
+			arrayBounds: model.getAllProperties().arrayBounds,
+			basicVersion: model.getAllProperties().basicVersion,
+			trace: model.getAllProperties().trace,
+			implicitLines: model.getAllProperties().implicitLines,
+			integerOverflow: model.getAllProperties().integerOverflow,
+			prettyLowercaseVars: model.getAllProperties().prettyLowercaseVars,
 			onClickKey: this.fnPutKeyInBufferHandler,
 			outputError: this.outputError.bind(this),
 			onJsError: (error) => { this.selectJsError(this.getOutputText(), error); },
@@ -187,22 +187,22 @@ export class Controller implements IController {
 		this.vm.setCanvas(this.canvas);
 		this.runtime.reset();
 
-		if (model.getProperty<boolean>(ModelPropID.sound)) { // activate sound needs user action
+		if (model.getAllProperties().sound) { // activate sound needs user action
 			this.setSoundActive(); // activate in waiting state
 		}
 		this.initDropZone();
 
-		const example = model.getProperty<string>(ModelPropID.example);
+		const example = model.getAllProperties().example;
 
 		view.setSelectValue(ViewID.exampleSelect, example);
 
 		this.setDatabaseSelectOptions();
 		this.hasStorageDatabase = this.getHasStorageDatabase();
 
-		if (model.getProperty<boolean>(ModelPropID.showCpc)) {
+		if (model.getAllProperties().showCpc) {
 			this.canvas.startUpdateCanvas();
 		}
-		if (model.getProperty<boolean>(ModelPropID.dragElements)) {
+		if (model.getAllProperties().dragElements) {
 			this.fnDragElementsActive(true);
 		}
 	}
@@ -238,7 +238,7 @@ export class Controller implements IController {
 	private setDatabaseSelectOptions() {
 		const items: SelectOptionElement[] = [],
 			databases = this.model.getAllDatabases(),
-			database = this.model.getProperty<string>(ModelPropID.database);
+			database = this.model.getAllProperties().database;
 
 		for (const value in databases) {
 			if (Object.prototype.hasOwnProperty.call(databases, value)) {
@@ -279,7 +279,7 @@ export class Controller implements IController {
 	private setDirectorySelectOptions() {
 		const items: SelectOptionElement[] = [],
 			allExamples = this.model.getAllExamples(),
-			examplePath = Controller.getPathFromExample(this.model.getProperty<string>(ModelPropID.example)),
+			examplePath = Controller.getPathFromExample(this.model.getAllProperties().example),
 			directorySeen: Record<string, boolean> = {};
 
 		for (const key in allExamples) {
@@ -307,10 +307,10 @@ export class Controller implements IController {
 		const maxTitleLength = 160,
 			maxTextLength = 60, // (32 visible?)
 			items: SelectOptionElement[] = [],
-			exampleName = Controller.getNameFromExample(this.model.getProperty<string>(ModelPropID.example)),
+			exampleName = Controller.getNameFromExample(this.model.getAllProperties().example),
 			allExamples = this.model.getAllExamples(),
 			directoryName = this.view.getSelectValue(ViewID.directorySelect),
-			selectDataFiles = this.model.getProperty<boolean>(ModelPropID.selectDataFiles);
+			selectDataFiles = this.model.getAllProperties().selectDataFiles;
 
 		let exampleSelected = false;
 
@@ -391,7 +391,7 @@ export class Controller implements IController {
 			return;
 		}
 
-		const database = this.model.getProperty<string>(ModelPropID.database),
+		const database = this.model.getAllProperties().database,
 			storage = this.getStorage();
 
 		let selectedExample = "",
@@ -557,7 +557,7 @@ export class Controller implements IController {
 		return this.runtime.mergeScripts(
 			script1,
 			script2,
-			this.model.getProperty<boolean>(ModelPropID.implicitLines),
+			this.model.getAllProperties().implicitLines,
 			() => { this.reportSplitLinesError(); }
 		);
 	}
@@ -568,7 +568,7 @@ export class Controller implements IController {
 			script,
 			firstLine,
 			lastLine,
-			this.model.getProperty<boolean>(ModelPropID.implicitLines),
+			this.model.getAllProperties().implicitLines,
 			() => { this.reportSplitLinesError(); }
 		);
 	}
@@ -594,7 +594,7 @@ export class Controller implements IController {
 
 	private fnFileDir(paras: VmFileParas): void {
 		const stream = paras.stream,
-			example = this.model.getProperty<string>(ModelPropID.example),
+			example = this.model.getAllProperties().example,
 			dirList = this.engine.files.getDirectoryEntries(this.getStorage(), this.model.getAllExamples(), example, paras.fileMask);
 		this.runtime.printDirectoryEntries(dirList, stream, false);
 	}
@@ -705,7 +705,7 @@ export class Controller implements IController {
 
 	private loadExampleFile() {
 		const inFile = this.vm.vmGetInFileObject(),
-			key = this.model.getProperty<string>(ModelPropID.example),
+			key = this.model.getAllProperties().example,
 			plan = this.engine.files.prepareExampleLoad(inFile.name, key, this.model.getAllExamples(), this.model.getDatabase().src),
 			example = plan.name,
 			exampleEntry = plan.entry,
@@ -943,7 +943,7 @@ export class Controller implements IController {
 		if (matches !== null) {
 			name = matches[1];
 		} else {
-			const example = this.model.getProperty<string>(ModelPropID.example);
+			const example = this.model.getAllProperties().example;
 
 			if (example !== "") {
 				if (example.indexOf("/") >= 0) {
@@ -1097,7 +1097,7 @@ export class Controller implements IController {
 	private afterProgramStart(): void {
 		if (!this.inputSet) {
 			this.inputSet = true;
-			const input = this.model.getProperty<string>(ModelPropID.input);
+			const input = this.model.getAllProperties().input;
 
 			if (input !== "") {
 				this.view.setAreaValue(ViewID.inp2Text, input);
@@ -1485,7 +1485,7 @@ export class Controller implements IController {
 			this.view.setHidden(ViewID.cpcCanvas, true);
 		}
 
-		const palette = this.model.getProperty<string>(ModelPropID.palette);
+		const palette = this.model.getAllProperties().palette;
 
 		if (this.canvases[canvasType]) {
 			canvas = this.canvases[canvasType];
@@ -1538,7 +1538,7 @@ export class Controller implements IController {
 		const canvasId = canvas.getOptions().canvasID;
 
 		this.view.setHidden(canvasId, false);
-		if (this.model.getProperty<boolean>(ModelPropID.showCpc)) {
+		if (this.model.getAllProperties().showCpc) {
 			this.canvas.startUpdateCanvas();
 		}
 		return canvas;
@@ -1546,7 +1546,7 @@ export class Controller implements IController {
 
 	setSoundActive(): void {
 		const sound = this.sound,
-			active = this.model.getProperty<boolean>(ModelPropID.sound);
+			active = this.model.getAllProperties().sound;
 
 		if (active) {
 			sound.soundOn();
@@ -1632,7 +1632,7 @@ export class Controller implements IController {
 				adaptFilename: this.adaptFilename.bind(this),
 				updateStorageDatabase: this.updateStorageDatabase.bind(this),
 				outputError: this.outputError.bind(this),
-				processFileImports: this.model.getProperty<boolean>(ModelPropID.processFileImports),
+				processFileImports: this.model.getAllProperties().processFileImports,
 				storage: this.getStorage()
 			});
 		}
@@ -1815,7 +1815,7 @@ export class Controller implements IController {
 
 	private createFnDatabaseLoaded(url: string) {
 		return (_sFullUrl: string, key: string) => {
-			const selectedName = this.model.getProperty<string>(ModelPropID.database);
+			const selectedName = this.model.getAllProperties().database;
 
 			if (selectedName === key) {
 				this.model.getDatabase().loaded = true;
@@ -1857,7 +1857,7 @@ export class Controller implements IController {
 		if (name !== undefined) {
 			this.model.setProperty(ModelPropID.database, name);
 		}
-		const databaseName = this.model.getProperty<string>(ModelPropID.database);
+		const databaseName = this.model.getAllProperties().database;
 		const database = this.model.getDatabase();
 
 		if (!database) {
@@ -1875,7 +1875,7 @@ export class Controller implements IController {
 			this.onDirectorySelectChange();
 		} else {
 			this.setInputText("#loading database " + databaseName + "...");
-			const exampleIndex = this.model.getProperty<string>(ModelPropID.exampleIndex),
+			const exampleIndex = this.model.getAllProperties().exampleIndex,
 				url = database.src + "/" + exampleIndex;
 
 			this.getLoadScript()(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
@@ -1900,12 +1900,12 @@ export class Controller implements IController {
 	loadExample(key: string, options: ExampleLoadOptions = {}): void {
 		const vm = this.vm,
 			inFile = vm.vmGetInFileObject(),
-			dataBaseName = this.model.getProperty<string>(ModelPropID.database);
+			dataBaseName = this.model.getAllProperties().database;
 		this.model.setProperty(ModelPropID.example, key);
 		vm.closein();
 		this.uiController.setPopoversHiddenExcept();
 		inFile.open = true;
-			const request = this.engine.files.createExampleLoadRequest(key, dataBaseName, this.model.getExample(key)?.meta, options.autorun ?? this.model.getProperty<boolean>(ModelPropID.autorun));
+			const request = this.engine.files.createExampleLoadRequest(key, dataBaseName, this.model.getExample(key)?.meta, options.autorun ?? this.model.getAllProperties().autorun);
 		inFile.command = request.command;
 		inFile.name = request.name;
 		inFile.start = undefined;
@@ -1951,12 +1951,12 @@ export class Controller implements IController {
 	}
 
 	fnArrayBounds(): void {
-		const arrayBounds = this.model.getProperty<boolean>(ModelPropID.arrayBounds);
+		const arrayBounds = this.model.getAllProperties().arrayBounds;
 		this.runtime.setArrayBounds(arrayBounds);
 	}
 
 	fnImplicitLines(): void {
-		const implicitLines = this.model.getProperty<boolean>(ModelPropID.implicitLines);
+		const implicitLines = this.model.getAllProperties().implicitLines;
 		this.runtime.setImplicitLines(implicitLines);
 	}
 
@@ -1968,22 +1968,22 @@ export class Controller implements IController {
 	}
 
 	fnPrettyLowercaseVars(): void {
-		const prettyLowercaseVars = this.model.getProperty<boolean>(ModelPropID.prettyLowercaseVars);
+		const prettyLowercaseVars = this.model.getAllProperties().prettyLowercaseVars;
 		this.runtime.setPrettyLowercaseVars(prettyLowercaseVars);
 	}
 
 	fnIntegerOverflow(): void {
-		const integerOverflow = this.model.getProperty<boolean>(ModelPropID.integerOverflow);
+		const integerOverflow = this.model.getAllProperties().integerOverflow;
 		this.runtime.setIntegerOverflow(integerOverflow);
 	}
 
 	fnTrace(): void {
-		const trace = this.model.getProperty<boolean>(ModelPropID.trace);
+		const trace = this.model.getAllProperties().trace;
 		this.runtime.setTrace(trace);
 	}
 
 	fnSpeed(): void {
-		const speed = this.model.getProperty<number>(ModelPropID.speed);
+		const speed = this.model.getAllProperties().speed;
 
 		this.initialLoopTimeout = this.engine.getLoopDelay(speed);
 	}

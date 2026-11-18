@@ -1,12 +1,11 @@
-import { ModelPropID } from "./Constants";
+//import { ModelPropID } from "./Constants";
 import { BasicFormatter } from "./BasicFormatter";
-import type { ConfigEntryType, ConfigType, DatabasesType, ExampleEntry, ICore, ICpcVmRsx, IModel } from "./Interfaces";
+import type { ConfigType, DatabasesType, ExampleEntry, ICore, ICpcVmRsx, IModel } from "./Interfaces";
 import { Model } from "./Model";
 import { Utils } from "./Utils";
 
 const ModelPropIDdatabase = "database";
 const ModelPropIDexample = "example";
-const ModelPropIDdatabaseDirs = "databaseDirs";
 
 type RedirectExamplesType = Record<string, Record<"database" | "example", string>>;
 
@@ -43,7 +42,7 @@ export class Core implements ICore {
 	private initDatabases() {
 		const model = this.model,
 			databases: DatabasesType = {},
-			databaseDirs = model.getProperty<string>(ModelPropIDdatabaseDirs).split(",");
+			databaseDirs = model.getAllProperties().databaseDirs.split(",");
 		//let hasStorageDatabase = false;
 
 		for (const databaseDir of databaseDirs) {
@@ -99,8 +98,8 @@ export class Core implements ICore {
 			key = "unknown";
 		}
 
-		const implicitLines = this.model.getProperty<boolean>(ModelPropID.implicitLines);
-		const linesOnLoad = this.model.getProperty<boolean>(ModelPropID.linesOnLoad);
+		const implicitLines = this.model.getAllProperties().implicitLines;
+		const linesOnLoad = this.model.getAllProperties().linesOnLoad;
 
 		if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
 			inputString = BasicFormatter.addLineNumbers(inputString);
@@ -122,27 +121,27 @@ export class Core implements ICore {
 		return key;
 	};
 
-	public parseArgs(args: string[], config: Record<string, ConfigEntryType>): Record<string, ConfigEntryType> {
+	public parseArgs(args: string[], config: Record<string, ConfigType[keyof ConfigType]>): void {
 		for (const arg of args) {
 			const [name, ...valueParts] = arg.split("=");
 			const nameType = typeof config[name];
 
-			let value: ConfigEntryType = valueParts.join("=");
-			if (value !== undefined) {
-				if (nameType === "boolean") {
-					value = value === "true";
-				} else if (nameType === "number") {
-					value = Number(value);
-				}
-				config[name] = value;
+			const rawValue = valueParts.join("=");
+			let value: ConfigType[keyof ConfigType];
+			if (nameType === "number") {
+				value = Number(rawValue);
+			} else if (nameType === "boolean") {
+				value = rawValue === "true";
+			} else {
+				value = rawValue;
 			}
+			config[name] = value;
 		}
-		return config;
 	}
 
 	public fnRedirectExamples(redirectExamples: RedirectExamplesType) {
 		const model = this.getModel();
-		const name = model.getProperty(ModelPropIDdatabase) + "/" + model.getProperty(ModelPropIDexample);
+		const name = model.getAllProperties().database + "/" + model.getAllProperties().example;
 
 		if (redirectExamples[name]) {
 			model.setProperty(ModelPropIDdatabase, redirectExamples[name].database);
