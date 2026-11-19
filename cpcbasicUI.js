@@ -811,6 +811,7 @@
 	  ViewID2["galleryItem"] = "galleryItem";
 	  ViewID2["helpButton"] = "helpButton";
 	  ViewID2["implicitLinesInput"] = "implicitLinesInput";
+	  ViewID2["implementationSelect"] = "implementationSelect";
 	  ViewID2["inp2Area"] = "inp2Area";
 	  ViewID2["inp2Text"] = "inp2Text";
 	  ViewID2["inputArea"] = "inputArea";
@@ -5794,6 +5795,10 @@
 	          controllerFunc: this.controller.onExampleSelectChange
 	        },
 	        {
+	          id: ViewID.implementationSelect,
+	          controllerFunc: this.controller.onImplementationSelectChange
+	        },
+	        {
 	          id: ViewID.implicitLinesInput,
 	          viewType: "checked",
 	          property: ModelPropID.implicitLines,
@@ -6935,6 +6940,16 @@
 	    }
 	    this.view.setSelectOptions(ViewID.exampleSelect, items);
 	  }
+	  setImplementationSelectOptions() {
+	    const key = this.model.getAllProperties().example, example = this.model.getExample(key), implementations = example?.implementations || [], selectedId = example?.implementation || implementations[0]?.id || "", items = implementations.map((implementation) => ({
+	      value: implementation.id,
+	      text: implementation.title,
+	      title: implementation.title,
+	      selected: implementation.id === selectedId
+	    }));
+	    this.view.setSelectOptions(ViewID.implementationSelect, items);
+	    this.view.setDisabled(ViewID.implementationSelect, items.length === 0);
+	  }
 	  setGalleryAreaInputs() {
 	    const database = this.model.getDatabase(), directory = this.view.getSelectValue(ViewID.directorySelect), options = this.view.getSelectOptions(ViewID.exampleSelect), inputs = [];
 	    for (let i = 0; i < options.length; i += 1) {
@@ -7228,6 +7243,7 @@
 	        UiUtils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + "loaded");
 	      }
 	      this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
+	      this.setImplementationSelectOptions();
 	      const input = exampleEntry.script;
 	      this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => {
 	        this.loadFileContinue(loadedInput);
@@ -8188,6 +8204,22 @@
 	      exampleName = directoryName + "/" + exampleName;
 	    }
 	    this.loadExample(exampleName);
+	  }
+	  onImplementationSelectChange() {
+	    const key = this.model.getAllProperties().example, example = this.model.getExample(key), implementationId = this.view.getSelectValue(ViewID.implementationSelect), implementation = example?.implementations?.find((item) => item.id === implementationId);
+	    if (!example || !implementation) {
+	      UiUtils.console.error("onImplementationSelectChange: implementation not available:", implementationId);
+	      return;
+	    }
+	    const currentImplementation = example.implementations?.find((item) => item.id === example.implementation);
+	    if (currentImplementation) {
+	      currentImplementation.script = this.getInputText();
+	    }
+	    example.implementation = implementation.id;
+	    this.model.setProperty("implementation", implementation.id);
+	    example.script = implementation.script;
+	    this.invalidateScript();
+	    this.setInputText(implementation.script);
 	  }
 	  loadExample(key, options = {}) {
 	    const vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getAllProperties().database;

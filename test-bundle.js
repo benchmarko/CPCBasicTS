@@ -7121,6 +7121,7 @@
 	  ViewID2["galleryItem"] = "galleryItem";
 	  ViewID2["helpButton"] = "helpButton";
 	  ViewID2["implicitLinesInput"] = "implicitLinesInput";
+	  ViewID2["implementationSelect"] = "implementationSelect";
 	  ViewID2["inp2Area"] = "inp2Area";
 	  ViewID2["inp2Text"] = "inp2Text";
 	  ViewID2["inputArea"] = "inputArea";
@@ -9888,20 +9889,26 @@
 	      }
 	    };
 	    this.addItem = (key, input) => {
-	      let inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
-	      inputString = inputString.replace(/^\n/, "").replace(/\n$/, "");
 	      if (!key) {
 	        Utils.console.warn("addItem: no key!");
 	        key = "unknown";
 	      }
-	      const implicitLines = this.model.getAllProperties().implicitLines;
-	      const linesOnLoad = this.model.getAllProperties().linesOnLoad;
-	      if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
-	        inputString = BasicFormatter.addLineNumbers(inputString);
-	      }
 	      const example = this.model.getExample(key);
 	      if (example) {
-	        example.script = inputString;
+	        if (typeof input === "object") {
+	          const implementations = input.implementations.map((implementation) => ({
+	            id: implementation.id,
+	            title: implementation.title,
+	            script: this.prepareInput(implementation.source)
+	          }));
+	          example.implementations = implementations;
+	          const requestedImplementation = this.model.getAllProperties().implementation;
+	          const defaultImplementation = Core.getDefaultImplementation(implementations, requestedImplementation || input.defaultImplementation);
+	          example.implementation = defaultImplementation.id;
+	          example.script = defaultImplementation.script;
+	        } else {
+	          example.script = this.prepareInput(input);
+	        }
 	      }
 	    };
 	    this.addRsx = (key, RsxConstructor) => {
@@ -9945,6 +9952,22 @@
 	  }
 	  static fnHereDoc(fn) {
 	    return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
+	  }
+	  prepareInput(input) {
+	    let inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
+	    inputString = inputString.replace(/^\n/, "").replace(/\n$/, "");
+	    const { implicitLines, linesOnLoad } = this.model.getAllProperties();
+	    if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
+	      inputString = BasicFormatter.addLineNumbers(inputString);
+	    }
+	    return inputString;
+	  }
+	  static getDefaultImplementation(implementations, defaultId) {
+	    const implementation = defaultId ? implementations.find((item) => item.id === defaultId) : implementations[0];
+	    if (!implementation) {
+	      throw new Error("addItem: no implementations supplied or default implementation not found");
+	    }
+	    return implementation;
 	  }
 	  parseArgs(args, config) {
 	    for (const arg of args) {
@@ -22133,6 +22156,10 @@
 	          controllerFunc: this.controller.onExampleSelectChange
 	        },
 	        {
+	          id: ViewID.implementationSelect,
+	          controllerFunc: this.controller.onImplementationSelectChange
+	        },
+	        {
 	          id: ViewID.implicitLinesInput,
 	          viewType: "checked",
 	          property: ModelPropID.implicitLines,
@@ -23262,6 +23289,16 @@
 	    }
 	    this.view.setSelectOptions(ViewID.exampleSelect, items);
 	  }
+	  setImplementationSelectOptions() {
+	    const key = this.model.getAllProperties().example, example = this.model.getExample(key), implementations = example?.implementations || [], selectedId = example?.implementation || implementations[0]?.id || "", items = implementations.map((implementation) => ({
+	      value: implementation.id,
+	      text: implementation.title,
+	      title: implementation.title,
+	      selected: implementation.id === selectedId
+	    }));
+	    this.view.setSelectOptions(ViewID.implementationSelect, items);
+	    this.view.setDisabled(ViewID.implementationSelect, items.length === 0);
+	  }
 	  setGalleryAreaInputs() {
 	    const database = this.model.getDatabase(), directory = this.view.getSelectValue(ViewID.directorySelect), options = this.view.getSelectOptions(ViewID.exampleSelect), inputs = [];
 	    for (let i = 0; i < options.length; i += 1) {
@@ -23555,6 +23592,7 @@
 	        UiUtils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + "loaded");
 	      }
 	      this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
+	      this.setImplementationSelectOptions();
 	      const input = exampleEntry.script;
 	      this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => {
 	        this.loadFileContinue(loadedInput);
@@ -24515,6 +24553,22 @@
 	      exampleName = directoryName + "/" + exampleName;
 	    }
 	    this.loadExample(exampleName);
+	  }
+	  onImplementationSelectChange() {
+	    const key = this.model.getAllProperties().example, example = this.model.getExample(key), implementationId = this.view.getSelectValue(ViewID.implementationSelect), implementation = example?.implementations?.find((item) => item.id === implementationId);
+	    if (!example || !implementation) {
+	      UiUtils.console.error("onImplementationSelectChange: implementation not available:", implementationId);
+	      return;
+	    }
+	    const currentImplementation = example.implementations?.find((item) => item.id === example.implementation);
+	    if (currentImplementation) {
+	      currentImplementation.script = this.getInputText();
+	    }
+	    example.implementation = implementation.id;
+	    this.model.setProperty("implementation", implementation.id);
+	    example.script = implementation.script;
+	    this.invalidateScript();
+	    this.setInputText(implementation.script);
 	  }
 	  loadExample(key, options = {}) {
 	    const vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getAllProperties().database;
@@ -28958,6 +29012,21 @@
 	    model.setProperty("linesOnLoad", false);
 	    host.core.addItem("original", source);
 	    assert.strictEqual(model.getExample("original").script, source);
+	  });
+	  QUnit.test("core loading stores named implementations and selects the default", function(assert) {
+	    const host = createController(), model = host.core.getModel();
+	    host.core.addItem("original", {
+	      defaultImplementation: "compact",
+	      implementations: [
+	        { id: "extended", title: "Extended", source: "10 PRINT 1" },
+	        { id: "compact", title: "10-line", source: "10 PRINT 2" }
+	      ]
+	    });
+	    assert.deepEqual(model.getExample("original").implementations, [
+	      { id: "extended", title: "Extended", script: "10 PRINT 1" },
+	      { id: "compact", title: "10-line", script: "10 PRINT 2" }
+	    ]);
+	    assert.strictEqual(model.getExample("original").script, "10 PRINT 2");
 	  });
 	  QUnit.test("execution uses owned source without changing the selected example", function(assert) {
 	    const host = createController(), source = '10 PRINT "EDITED":END';
@@ -38055,10 +38124,34 @@
 	    this.addIndex2(dir, input);
 	  }
 	  static addItem(key, input) {
+	    if (typeof input === "object") {
+	      if (!key) {
+	        key = _cpcBasic.model.getAllProperties().example;
+	      }
+	      const implementationInput = input, implementations = implementationInput.implementations.map((implementation) => ({
+	        id: implementation.id,
+	        title: implementation.title,
+	        script: this.prepareImplementationInput(implementation.source)
+	      })), defaultImplementation = implementationInput.defaultImplementation ? implementations.find((implementation) => implementation.id === implementationInput.defaultImplementation) : implementations[0];
+	      if (!defaultImplementation) {
+	        throw new Error("addItem: no implementations supplied or default implementation not found");
+	      }
+	      const example = _cpcBasic.model.getExample(key);
+	      example.key = key;
+	      example.implementations = implementations;
+	      example.implementation = defaultImplementation.id;
+	      example.script = defaultImplementation.script;
+	      example.loaded = true;
+	      return key;
+	    }
 	    if (typeof input !== "string") {
 	      input = this.fnHereDoc(input);
 	    }
 	    return this.addItem2(key, input);
+	  }
+	  static prepareImplementationInput(input) {
+	    input = (typeof input === "string" ? input : this.fnHereDoc(input)).replace(/^\n/, "").replace(/\n$/, "");
+	    return input.startsWith("REM ") ? this.addLineNumbers(input) : input;
 	  }
 	  static addRsx(key, RsxConstructor) {
 	    const rsx = new RsxConstructor();

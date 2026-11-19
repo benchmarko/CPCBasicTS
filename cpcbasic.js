@@ -543,20 +543,26 @@
 	      }
 	    };
 	    this.addItem = (key, input) => {
-	      let inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
-	      inputString = inputString.replace(/^\n/, "").replace(/\n$/, "");
 	      if (!key) {
 	        Utils.console.warn("addItem: no key!");
 	        key = "unknown";
 	      }
-	      const implicitLines = this.model.getAllProperties().implicitLines;
-	      const linesOnLoad = this.model.getAllProperties().linesOnLoad;
-	      if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
-	        inputString = BasicFormatter.addLineNumbers(inputString);
-	      }
 	      const example = this.model.getExample(key);
 	      if (example) {
-	        example.script = inputString;
+	        if (typeof input === "object") {
+	          const implementations = input.implementations.map((implementation) => ({
+	            id: implementation.id,
+	            title: implementation.title,
+	            script: this.prepareInput(implementation.source)
+	          }));
+	          example.implementations = implementations;
+	          const requestedImplementation = this.model.getAllProperties().implementation;
+	          const defaultImplementation = Core.getDefaultImplementation(implementations, requestedImplementation || input.defaultImplementation);
+	          example.implementation = defaultImplementation.id;
+	          example.script = defaultImplementation.script;
+	        } else {
+	          example.script = this.prepareInput(input);
+	        }
 	      }
 	    };
 	    this.addRsx = (key, RsxConstructor) => {
@@ -600,6 +606,22 @@
 	  }
 	  static fnHereDoc(fn) {
 	    return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
+	  }
+	  prepareInput(input) {
+	    let inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
+	    inputString = inputString.replace(/^\n/, "").replace(/\n$/, "");
+	    const { implicitLines, linesOnLoad } = this.model.getAllProperties();
+	    if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
+	      inputString = BasicFormatter.addLineNumbers(inputString);
+	    }
+	    return inputString;
+	  }
+	  static getDefaultImplementation(implementations, defaultId) {
+	    const implementation = defaultId ? implementations.find((item) => item.id === defaultId) : implementations[0];
+	    if (!implementation) {
+	      throw new Error("addItem: no implementations supplied or default implementation not found");
+	    }
+	    return implementation;
 	  }
 	  parseArgs(args, config) {
 	    for (const arg of args) {
@@ -14525,6 +14547,7 @@
 	  example: "cpcbasic",
 	  exampleIndex: "0index.js",
 	  // example index for every databaseDir
+	  implementation: "",
 	  implicitLines: false,
 	  // allow implicit line numbers
 	  input: "",
