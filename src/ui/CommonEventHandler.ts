@@ -642,6 +642,10 @@ export class CommonEventHandler implements EventListenerObject {
 						controllerFunc: this.controller.onExampleSelectChange
 					},
 					{
+						id: ViewID.implementationSelect,
+						controllerFunc: this.controller.onImplementationSelectChange
+					},
+					{
 						id: ViewID.implicitLinesInput,
 						viewType: "checked",
 						property: ModelPropID.implicitLines,

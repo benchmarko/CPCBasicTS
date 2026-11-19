@@ -96,7 +96,7 @@ export class View {
 	}
 
 	setDisabled(id: ViewID, disabled: boolean): this {
-		const element = View.getElementByIdAs<HTMLButtonElement>(id);
+		const element = View.getElementByIdAs<HTMLButtonElement | HTMLSelectElement>(id);
 
 		element.disabled = disabled;
 		return this;

@@ -341,6 +341,22 @@ export class Controller implements IController {
 		this.view.setSelectOptions(ViewID.exampleSelect, items);
 	}
 
+	setImplementationSelectOptions(): void {
+		const key = this.model.getAllProperties().example,
+			example = this.model.getExample(key),
+			implementations = example?.implementations || [],
+			selectedId = example?.implementation || implementations[0]?.id || "",
+			items: SelectOptionElement[] = implementations.map((implementation) => ({
+				value: implementation.id,
+				text: implementation.title,
+				title: implementation.title,
+				selected: implementation.id === selectedId
+			}));
+
+		this.view.setSelectOptions(ViewID.implementationSelect, items);
+		this.view.setDisabled(ViewID.implementationSelect, items.length === 0);
+	}
+
 	setGalleryAreaInputs(): void {
 		const database = this.model.getDatabase(),
 			directory = this.view.getSelectValue(ViewID.directorySelect),
@@ -663,6 +679,7 @@ export class Controller implements IController {
 				UiUtils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + "loaded");
 			}
 			this.model.setProperty(ModelPropID.example, inFile.memorizedExample);
+			this.setImplementationSelectOptions();
 			const input = exampleEntry.script;
 			this.runtime.completeExampleLoad(input, exampleEntry.rsx, (loadedInput) => { this.loadFileContinue(loadedInput); });
 		};
@@ -1895,6 +1912,28 @@ export class Controller implements IController {
 			exampleName = directoryName + "/" + exampleName;
 		}
 		this.loadExample(exampleName);
+	}
+
+	onImplementationSelectChange(): void {
+		const key = this.model.getAllProperties().example,
+			example = this.model.getExample(key),
+			implementationId = this.view.getSelectValue(ViewID.implementationSelect),
+			implementation = example?.implementations?.find((item) => item.id === implementationId);
+
+		if (!example || !implementation) {
+			UiUtils.console.error("onImplementationSelectChange: implementation not available:", implementationId);
+			return;
+		}
+
+		const currentImplementation = example.implementations?.find((item) => item.id === example.implementation);
+		if (currentImplementation) {
+			currentImplementation.script = this.getInputText();
+		}
+		example.implementation = implementation.id;
+		this.model.setProperty("implementation", implementation.id);
+		example.script = implementation.script;
+		this.invalidateScript();
+		this.setInputText(implementation.script);
 	}
 
 	loadExample(key: string, options: ExampleLoadOptions = {}): void {

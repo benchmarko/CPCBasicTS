@@ -1,4 +1,4 @@
-import type { ICore, IEngine, INodeUtils, ICpcVmRsx, LoadScriptFn, ICanvasVm, IKeyboard, CpcKeyExpansionsOptions, VolEnvData, ToneEnvData, SoundData, ISound, IStorage, CanvasCharType } from "../Interfaces";
+import type { AddItemInput, ICore, IEngine, INodeUtils, ICpcVmRsx, LoadScriptFn, ICanvasVm, IKeyboard, CpcKeyExpansionsOptions, VolEnvData, ToneEnvData, SoundData, ISound, IStorage, CanvasCharType } from "../Interfaces";
 import { Utils } from "../Utils";
 import { Controller0, ControllerOptions0 } from "../Controller0";
 
@@ -147,7 +147,7 @@ export class NodeUtils implements INodeUtils {
 
 		myGlobalThis.cpcBasic = {
 			addIndex: core.addIndex,
-			addItem: (key: string, input: string | (() => void)) => {
+			addItem: (key: string, input: string | (() => void) | AddItemInput) => {
 				core.addItem(key || NodeUtils.currentScriptKey, input);
 			},
 			addRsx: (key: string, RsxConstructor: new () => ICpcVmRsx) => core.addRsx(key || NodeUtils.currentScriptKey, RsxConstructor)

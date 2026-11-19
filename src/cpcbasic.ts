@@ -7,7 +7,7 @@ import { Utils } from "./Utils";
 import { Engine } from "./Engine";
 import { cpcconfig } from "./cpcconfig";
 import { NodeUtils } from "./node/NodeUtils";
-import type { ConfigType, ICpcVmRsx, INodeUtils, IUI } from "./Interfaces";
+import type { AddItemInput, ConfigType, ICpcVmRsx, INodeUtils, IUI } from "./Interfaces";
 
 interface WindowProperties {
 	cpcConfig?: Partial<ConfigType>;
@@ -17,7 +17,7 @@ interface WindowProperties {
 	onload: (() => void) | null;
 	cpcBasic: {
 		addIndex: (dir: string, input: Record<string, unknown> | (() => void)) => void,
-		addItem: (key: string, input: string | (() => void)) => void,
+		addItem: (key: string, input: string | (() => void) | AddItemInput) => void,
 		addRsx: (key: string, RsxConstructor: new () => ICpcVmRsx) => void
 	};
 }
@@ -41,6 +41,7 @@ const startConfig: ConfigType = {
 	debug: 0,
 	example: "cpcbasic",
 	exampleIndex: "0index.js", // example index for every databaseDir
+	implementation: "",	
 	implicitLines: false, // allow implicit line numbers
 	input: "", // keyboard input when starting the app
 	integerOverflow: false, // check for integer overflow
@@ -111,7 +112,7 @@ export class cpcBasic {
 				}
 				win.cpcBasic = {
 					addIndex: core.addIndex,
-					addItem: (key: string, input: string | (() => void)) => {
+					addItem: (key: string, input: string | (() => void) | AddItemInput) => {
 						if (!key) { // maybe ""
 							key = ui.getCurrentDataKey();
 						}

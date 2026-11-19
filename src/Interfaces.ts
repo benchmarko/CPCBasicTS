@@ -57,6 +57,7 @@ export type ConfigType = {
 	debug: number,
 	example: string,
 	exampleIndex: string, // example index for every databaseDir
+	implementation: string,
 	implicitLines: boolean, // allow implicit line numbers
 	input: string, // keyboard input when starting the app
 	integerOverflow: boolean, // check for integer overflow
@@ -213,8 +214,27 @@ export interface ExampleEntry {
 	title: string
 	meta: string // D=data
 	script?: string
+	implementations?: ExampleImplementation[]
+	implementation?: string
 	rsx?: ICpcVmRsx
 	loaded?: boolean
+}
+
+export interface ExampleImplementation {
+	id: string
+	title: string
+	script: string
+}
+
+export interface ExampleImplementationInput {
+	id: string
+	title: string
+	source: string | (() => void)
+}
+
+export interface AddItemInput {
+	defaultImplementation?: string
+	implementations: ExampleImplementationInput[]
 }
 
 export type ExamplesType = Record<string, Record<string, ExampleEntry>>;
@@ -368,7 +388,7 @@ export interface ICore {
 	getModel(): IModel;
 	init(): void;
 	addIndex(_dir: string, input: Record<string, unknown> | (() => void)): void;
-	addItem(key: string, input: string | (() => void)): void;
+	addItem(key: string, input: string | (() => void) | AddItemInput): void;
 	addRsx(key: string, RsxConstructor: new () => ICpcVmRsx): string;
 	parseArgs(args: string[], config: Record<string, ConfigType[keyof ConfigType]>): void;
 }

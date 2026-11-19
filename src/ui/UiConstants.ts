@@ -41,6 +41,7 @@ export const enum ViewID { // eslint-disable-line no-shadow
 	galleryItem = "galleryItem",
 	helpButton = "helpButton",
 	implicitLinesInput = "implicitLinesInput",
+	implementationSelect = "implementationSelect",
 	inp2Area = "inp2Area",
 	inp2Text = "inp2Text",
 	inputArea = "inputArea",

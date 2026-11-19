@@ -74,6 +74,7 @@ The build generates the distribution files in the `dist/` directory, including `
     - For Example: The checkbox **Console Log** allows to see the console log.
   - The **Gallery** button opens a gallery with examples from which you can select one.
 - The *BASIC* window is used to input and modify the BASIC program.
+  - Programs with multiple implementations provide an implementation picker in the BASIC toolbar. Switching implementations changes the source.
   - The **Check** button checks the syntax of the program. It compiles the program to JavaScript.
   - The **Renum** button opens a popover with functions to renumber lines.
     - The **Renum** popover button renumbers the lines (see also *RENUM*)
@@ -109,6 +110,32 @@ The build generates the distribution files in the `dist/` directory, including `
 - The *Console* window shows the textual output. This is useful for copying and pasting the output. It is cleared when the CPC screen is cleared (*MODE* or *CLS*).
 - The *Variables* window allows you to see the variables used by the program. Use the selection field to select a variable and see the details. Simple variables can also be modified. Variables are updated when the program stops.
 - In the *JavaScript* window you will see the compiled JavaScript code. It can be changed and then executed with the **Run** button in this window. So it is possible to program the simulated CPC directly with JavaScript.
+
+### Multiple implementations
+
+An example can provide multiple named implementations while retaining one catalog entry:
+
+```js
+cpcBasic.addItem("", {
+    defaultImplementation: "extended",
+    implementations: [
+        { id: "extended", title: "Extended", source: function () { /*
+10 PRINT "Extended"
+*/ } },
+        { id: "compact", title: "10-line", source: function () { /*
+10 PRINT "Compact"
+*/ } }
+    ]
+});
+```
+
+The `id` is used for direct selection. Use the `implementation` URL parameter together with `example`, for example:
+
+```text
+?example=test/testpimp&implementation=compact
+```
+
+The normal `autorun` setting also applies when loading an implementation directly.
 
 ## Extensions and Features
 
@@ -283,6 +310,7 @@ Common URL parameters are listed below. Changed settings are reflected in the UR
 - debug=0 (debug level)
 - example=cpcbasic (selected sample program)
 - exampleIndex=0index.js (example index file used for each entry in databaseDirs)
+- implementation= (selected implementation ID, if the example provides multiple implementations)
 - implicitLines=false (allow implicit line numbers)
 - input= (keyboard input when starting the app, use %0D as return charcter)
 - integerOverflow=false (check for integer overflow in integer DIV, MOD, AND, OR, XOR, NOT)
@@ -328,12 +356,10 @@ The [test overview](https://benchmarko.github.io/CPCBasicTS/test/index.html) lin
 
 - Save and restore snapshot of variables, including system state variables
 - Can we detect busy loops and insert *FRAME* automatically? Or invent some "real time" mode? Or use a speed control to change the speed?
-- RSX extension libraries / plugins programmed in TypeScript/JavaScript
 - Further optimizations of the resulting JavaScript code
 - Further checks during compile time
 - Support some simple Z80 assembler programs
 - Shall we support hardware scrolling with *OUT* or is it already a hardware emulation feature?
-- Create buttons for the keys that the BASIC program checks (useful for e.g. mobile devices)
 - Extension: More colors, e.g. 256
 - Smooth character map from 8x8 to 8x16
 

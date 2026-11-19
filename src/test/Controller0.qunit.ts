@@ -820,6 +820,25 @@ QUnit.module("Controller0", function (hooks) {
 		assert.strictEqual(model.getExample("original").script, source);
 	});
 
+	QUnit.test("core loading stores named implementations and selects the default", function (assert) {
+		const host = createController(),
+			model = host.core.getModel();
+
+		host.core.addItem("original", {
+			defaultImplementation: "compact",
+			implementations: [
+				{ id: "extended", title: "Extended", source: "10 PRINT 1" },
+				{ id: "compact", title: "10-line", source: "10 PRINT 2" }
+			]
+		});
+
+		assert.deepEqual(model.getExample("original").implementations, [
+			{ id: "extended", title: "Extended", script: "10 PRINT 1" },
+			{ id: "compact", title: "10-line", script: "10 PRINT 2" }
+		]);
+		assert.strictEqual(model.getExample("original").script, "10 PRINT 2");
+	});
+
 	QUnit.test("execution uses owned source without changing the selected example", function (assert) {
 		const host = createController(),
 			source = '10 PRINT "EDITED":END';

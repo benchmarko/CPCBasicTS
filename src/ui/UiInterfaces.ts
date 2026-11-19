@@ -47,6 +47,7 @@ export interface IController extends IRuntimeController {
 
     changeVariable: () => void
     onExampleSelectChange: () => void
+    onImplementationSelectChange: () => void
     onDirectorySelectChange: () => void
     onDatabaseSelectChange: () => void
 

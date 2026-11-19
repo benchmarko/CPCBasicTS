@@ -18,7 +18,7 @@ let path: NodePath | undefined;
 
 import { ModelPropID } from "../Constants";
 import { Utils } from "../Utils";
-import type { ConfigType, DatabaseEntry, DatabasesType, ExampleEntry, ICpcVmRsx, IOutput } from "../Interfaces";
+import type { AddItemInput, ConfigType, DatabaseEntry, DatabasesType, ExampleEntry, ExampleImplementation, ICpcVmRsx, IOutput } from "../Interfaces";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { BasicTokenizer } from "../BasicTokenizer";
@@ -367,11 +367,40 @@ class cpcBasic {
 		this.addIndex2(dir, input);
 	}
 
-	static addItem(key: string, input: string | (() => void)) {
+	static addItem(key: string, input: string | (() => void) | AddItemInput) {
+		if (typeof input === "object") {
+			if (!key) { // maybe ""
+				key = cpcBasic.model.getAllProperties().example;
+			}
+			const implementationInput = input,
+				implementations = implementationInput.implementations.map((implementation): ExampleImplementation => ({
+				id: implementation.id,
+				title: implementation.title,
+				script: this.prepareImplementationInput(implementation.source)
+			})),
+				defaultImplementation = implementationInput.defaultImplementation ? implementations.find((implementation) => implementation.id === implementationInput.defaultImplementation) : implementations[0];
+
+			if (!defaultImplementation) {
+				throw new Error("addItem: no implementations supplied or default implementation not found");
+			}
+			const example = cpcBasic.model.getExample(key);
+
+			example.key = key;
+			example.implementations = implementations;
+			example.implementation = defaultImplementation.id;
+			example.script = defaultImplementation.script;
+			example.loaded = true;
+			return key;
+		}
 		if (typeof input !== "string") {
 			input = this.fnHereDoc(input);
 		}
 		return this.addItem2(key, input);
+	}
+
+	private static prepareImplementationInput(input: string | (() => void)): string {
+		input = (typeof input === "string" ? input : this.fnHereDoc(input)).replace(/^\n/, "").replace(/\n$/, "");
+		return input.startsWith("REM ") ? this.addLineNumbers(input) : input;
 	}
 
 	static addRsx(key: string, RsxConstructor: new () => ICpcVmRsx) {

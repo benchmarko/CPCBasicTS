@@ -1,6 +1,6 @@
 //import { ModelPropID } from "./Constants";
 import { BasicFormatter } from "./BasicFormatter";
-import type { ConfigType, DatabasesType, ExampleEntry, ICore, ICpcVmRsx, IModel } from "./Interfaces";
+import type { AddItemInput, ConfigType, DatabasesType, ExampleEntry, ExampleImplementation, ICore, ICpcVmRsx, IModel } from "./Interfaces";
 import { Model } from "./Model";
 import { Utils } from "./Utils";
 
@@ -89,27 +89,49 @@ export class Core implements ICore {
 		}
 	};
 
-	public addItem = (key: string, input: string | (() => void)): void => { // need property function because we need bound "this"
-		let inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
-		inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
-
+	public addItem = (key: string, input: string | (() => void) | AddItemInput): void => { // need property function because we need bound "this"
 		if (!key) { // maybe ""
 			Utils.console.warn("addItem: no key!");
 			key = "unknown";
 		}
 
-		const implicitLines = this.model.getAllProperties().implicitLines;
-		const linesOnLoad = this.model.getAllProperties().linesOnLoad;
+		const example = this.model.getExample(key);
+		if (example) {
+			if (typeof input === "object") {
+				const implementations = input.implementations.map((implementation): ExampleImplementation => ({
+					id: implementation.id,
+					title: implementation.title,
+					script: this.prepareInput(implementation.source)
+				}));
+				example.implementations = implementations;
+				const requestedImplementation = this.model.getAllProperties().implementation;
+				const defaultImplementation = Core.getDefaultImplementation(implementations, requestedImplementation || input.defaultImplementation);
+				example.implementation = defaultImplementation.id;
+				example.script = defaultImplementation.script;
+			} else {
+				example.script = this.prepareInput(input);
+			}
+		}
+	};
 
+	private prepareInput(input: string | (() => void)): string {
+		let inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
+		inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
+
+		const { implicitLines, linesOnLoad } = this.model.getAllProperties();
 		if (inputString.startsWith("REM ") && !implicitLines && linesOnLoad) {
 			inputString = BasicFormatter.addLineNumbers(inputString);
 		}
+		return inputString;
+	}
 
-		const example = this.model.getExample(key);
-		if (example) {
-			example.script = inputString;
+	private static getDefaultImplementation(implementations: ExampleImplementation[], defaultId?: string): ExampleImplementation {
+		const implementation = defaultId ? implementations.find((item) => item.id === defaultId) : implementations[0];
+		if (!implementation) {
+			throw new Error("addItem: no implementations supplied or default implementation not found");
 		}
-	};
+		return implementation;
+	}
 
 	public addRsx = (key: string, RsxConstructor: new () => ICpcVmRsx): string => {
 		const example = this.model.getExample(key);
