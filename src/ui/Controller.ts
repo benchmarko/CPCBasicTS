@@ -34,7 +34,6 @@ interface UserKeyType {
 }
 
 interface PressedUserKeyType {
-	button: HTMLButtonElement
 	cpcKey?: number
 	pressedKey: string
 	shift: boolean
@@ -59,7 +58,8 @@ export class Controller implements IController {
 	private readonly fnOnUserKeyPointerDownHandler: EventListener;
 	private readonly fnOnUserKeyPointerUpHandler: EventListener;
 	private readonly userKeyPointerEventNames: PointerEventNamesType;
-	private readonly pressedUserKeys = new Map<string, PressedUserKeyType>();
+	private readonly pressedUserKeys = new Map<HTMLButtonElement, PressedUserKeyType>();
+	private nextUserKeyPressId = 0;
 
 	private outScript = "";
 
@@ -1405,22 +1405,13 @@ export class Controller implements IController {
 		while (container.firstChild) {
 			container.removeChild(container.firstChild);
 		}
-		for (const [index, item] of keys.entries()) {
+		for (const item of keys) {
 			const button = document.createElement("button"),
-				text = item.text || String.fromCharCode(item.code),
-				userKeyInfo = VirtualKeyboard.getUserKeyInfo(item.code);
+				text = item.text || String.fromCharCode(item.code);
 
 			button.type = "button";
 			button.textContent = text;
 			button.setAttribute("data-key", String(item.code));
-			button.setAttribute("data-user-key-id", String(index));
-			if (userKeyInfo) {
-				button.setAttribute("data-cpc-key", String(userKeyInfo.cpcKey));
-				button.setAttribute("data-cpc-shift", String(userKeyInfo.shift));
-				if (item.code >= 256 && item.code <= 335) {
-					button.setAttribute("data-input-key", userKeyInfo.input ? String(userKeyInfo.input.charCodeAt(0)) : "");
-				}
-			}
 			button.setAttribute("aria-label", text);
 			button.title = text + " (" + item.code + ")";
 			container.appendChild(button);
@@ -1438,7 +1429,7 @@ export class Controller implements IController {
 			const code = Number(target.getAttribute("data-key"));
 
 			if (Number.isInteger(code) && code >= 0 && code <= 65535) {
-				const inputKey = this.getUserKeyInput(target, code);
+				const inputKey = this.getUserKeyInput(code);
 
 				if (inputKey) {
 					this.fnPutKeysInBuffer(inputKey);
@@ -1447,10 +1438,10 @@ export class Controller implements IController {
 		}
 	}
 
-	private getUserKeyInput(button: HTMLElement, code: number): string {
-		const inputCode = button.getAttribute("data-input-key");
+	private getUserKeyInput(code: number): string {
+		const userKeyInfo = VirtualKeyboard.getUserKeyInfo(code);
 
-		return inputCode === null ? String.fromCharCode(code) : inputCode ? String.fromCharCode(Number(inputCode)) : "";
+		return userKeyInfo?.input ?? String.fromCharCode(code);
 	}
 
 	private onUserKeyPointerDown(event: Event): void {
@@ -1461,32 +1452,31 @@ export class Controller implements IController {
 			return;
 		}
 
-		const code = Number(button.getAttribute("data-key")),
-			userKeyId = button.getAttribute("data-user-key-id"),
-			cpcKeyValue = button.getAttribute("data-cpc-key");
+		const code = Number(button.getAttribute("data-key"));
 
-		if (!Number.isInteger(code) || code < 0 || code > 65535 || userKeyId === null || this.pressedUserKeys.has(userKeyId)) {
+		if (!Number.isInteger(code) || code < 0 || code > 65535 || this.pressedUserKeys.has(button)) {
 			return;
 		}
 
 		const keyEvent = event as Event & {shiftKey?: boolean, ctrlKey?: boolean},
-			shift = Boolean(keyEvent.shiftKey) || button.getAttribute("data-cpc-shift") === "true",
+			userKeyInfo = VirtualKeyboard.getUserKeyInfo(code),
+			shift = Boolean(keyEvent.shiftKey) || Boolean(userKeyInfo?.shift),
 			ctrl = Boolean(keyEvent.ctrlKey),
-			pressedKey = "userKey:" + userKeyId,
-			cpcKey = cpcKeyValue === null ? undefined : Number(cpcKeyValue),
+			pressedKey = "userKey:" + this.nextUserKeyPressId,
+			cpcKey = userKeyInfo?.cpcKey,
 			pressedUserKey: PressedUserKeyType = {
-				button: button,
 				cpcKey: cpcKey,
 				pressedKey: pressedKey,
 				shift: shift,
 				ctrl: ctrl
 			};
 
-		this.pressedUserKeys.set(userKeyId, pressedUserKey);
+		this.nextUserKeyPressId += 1;
+		this.pressedUserKeys.set(button, pressedUserKey);
 		if (cpcKey !== undefined) {
 			this.keyboard.setCpcKeyState(cpcKey, pressedKey, true, shift, ctrl);
 		}
-		const inputKey = this.getUserKeyInput(button, code);
+		const inputKey = this.getUserKeyInput(code);
 
 		if (inputKey) {
 			this.fnPutKeysInBuffer(inputKey);
@@ -1503,31 +1493,27 @@ export class Controller implements IController {
 			button = target.closest<HTMLButtonElement>("button[data-key]");
 
 		if (button) {
-			const userKeyId = button.getAttribute("data-user-key-id");
-
-			if (userKeyId !== null) {
-				this.releaseUserKey(userKeyId);
-			}
+			this.releaseUserKey(button);
 		}
 	}
 
-	private releaseUserKey(userKeyId: string): void {
-		const pressedUserKey = this.pressedUserKeys.get(userKeyId);
+	private releaseUserKey(button: HTMLButtonElement): void {
+		const pressedUserKey = this.pressedUserKeys.get(button);
 
 		if (pressedUserKey) {
-			this.pressedUserKeys.delete(userKeyId);
+			this.pressedUserKeys.delete(button);
 			if (pressedUserKey.cpcKey !== undefined) {
 				this.keyboard.setCpcKeyState(pressedUserKey.cpcKey, pressedUserKey.pressedKey, false, pressedUserKey.shift, pressedUserKey.ctrl);
 			}
 			if (this.userKeyPointerEventNames.out) {
-				this.view.removeEventListener(this.userKeyPointerEventNames.out, this.fnOnUserKeyPointerUpHandler, pressedUserKey.button);
+				this.view.removeEventListener(this.userKeyPointerEventNames.out, this.fnOnUserKeyPointerUpHandler, button);
 			}
 		}
 	}
 
 	private releaseAllUserKeys(): void {
-		for (const userKeyId of this.pressedUserKeys.keys()) {
-			this.releaseUserKey(userKeyId);
+		for (const button of this.pressedUserKeys.keys()) {
+			this.releaseUserKey(button);
 		}
 	}
 
