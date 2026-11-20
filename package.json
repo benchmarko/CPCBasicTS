@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.7.10",
+  "version": "0.7.11",
   "description": "CPCBasicTS - Run CPC BASIC in a Browser or Node.js",
   "main": "./dist/cpcbasic.js",
   "exports": {
@@ -42,7 +42,6 @@
     "README.md"
   ],
   "scripts": {
-    "start": "echo TODO",
     "clean": "rm -rf dist/*",
     "cleancache": "rm -rf node_modules/.cache/gh-pages/",
     "copy": "cp src/*.html src/*.css LICENSE favicon.ico dist/ && mkdirp -p dist/src && cp -r src/*.ts dist/src && mkdirp -p dist/src/test && cp -r src/test/*.ts dist/src/test && mkdirp -p dist/test && cp src/test/*.html dist/test/ && mkdirp -p dist/examples && cp -r examples/* dist/examples && mkdirp -p dist/img && cp img/* dist/img",

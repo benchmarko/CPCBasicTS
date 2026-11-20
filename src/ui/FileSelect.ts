@@ -46,9 +46,8 @@ export class FileSelect {
 			const file = this.files[this.fileIndex];
 
 			this.fileIndex += 1;
-			const lastModified = file.lastModified,
-				lastModifiedDate = lastModified ? new Date(lastModified) : undefined,
-				text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
+			const lastModifiedDate = new Date(file.lastModified),
+				text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + lastModifiedDate.toLocaleDateString();
 
 			UiUtils.console.log(text);
 			if (file.type === "text/plain") {

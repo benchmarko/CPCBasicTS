@@ -4,7 +4,6 @@
 
 
 import { Utils } from "./Utils";
-//import { ModelPropID } from "./Constants";
 import type { ConfigType, DatabaseEntry, DatabasesType, ExampleEntry, ExamplesType, IModel } from "./Interfaces";
 
 export class Model implements IModel {
@@ -21,12 +20,6 @@ export class Model implements IModel {
 		this.examples = {}; // loaded examples per database
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-	//getProperty<T extends ConfigEntryType>(property: string): T { //getProperty<T extends ConfigEntryType>(property: ModelPropID): T
-	//	return this.config[property] as T; // keyof ConfigType?
-	//}
-	
-	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	setProperty(property: keyof ConfigType, value: ConfigType[keyof ConfigType]): void {
 		const previousValue = this.config[property] as ConfigType[keyof ConfigType] | undefined;
 
@@ -38,7 +31,7 @@ export class Model implements IModel {
 	setPropertyChangeCallback(callback: (() => void) | undefined): void {
 		this.propertyChangeCallback = callback;
 	}
-	public getAllProperties(): ConfigType { // TODO: rename to getConfigMap?
+	public getAllProperties(): ConfigType {
 		return this.config;
 	}
 

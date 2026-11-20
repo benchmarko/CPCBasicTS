@@ -215,10 +215,6 @@ export class NodeUtils implements INodeUtils {
 			setMaskFirst: (_maskFirst: number) => undefined,
 			getMode: () => 0,
 			changeMode: (_mode: number) => undefined,
-			//takeScreenShot: () => "",
-			//startUpdateCanvas: () => undefined,
-			//stopUpdateCanvas: () => undefined,
-			//onWindowClick: (_event: Event) => undefined,
 			fillTextBox: (left: number, top: number, width: number, height: number, _paper: number) => {
 				clearTextBufferBox(left, top, width, height);
 			},
@@ -242,19 +238,12 @@ export class NodeUtils implements INodeUtils {
 					height = bottom + 1 - top;
 
 				if (height > 1) { // scroll part
-					// adapt also text buffer
 					copyTextBufferBoxUp(left, top + 1, width, height - 1, left, top);
 				}
 				canvas.fillTextBox(left, bottom, width, 1, 0);
 			},
 			windowScrollDown: (_left: number, _right: number, _top: number, _bottom: number, _paper: number) => undefined
 		};
-
-		// const canvas: ICanvasVm = new NoCanvas({
-		// 		canvasID: "id" as any,
-		// 		charset: [],
-		// 		palette: "color"
-		// });
 
 		const keyboard: IKeyboard = {
 			reset: () => undefined,
