@@ -1,6 +1,7 @@
-import type { AddItemInput, ICore, IEngine, INodeUtils, ICpcVmRsx, LoadScriptFn, ICanvasVm, IKeyboard, CpcKeyExpansionsOptions, VolEnvData, ToneEnvData, SoundData, ISound, IStorage, CanvasCharType } from "../Interfaces";
+import type { AddItemInput, ICore, IEngine, INodeUtils, ICpcVmRsx, LoadScriptFn, ICanvasVm, IKeyboard, CpcKeyExpansionsOptions, VolEnvData, ToneEnvData, SoundData, ISound, CanvasCharType } from "../Interfaces";
 import { Utils } from "../Utils";
 import { Controller0, ControllerOptions0 } from "../Controller0";
+import { createMemoryStorage } from "../MemoryStorage";
 
 type NodeHttps = typeof import("node:https");
 type NodeFs = typeof import("node:fs");
@@ -15,41 +16,6 @@ function requireNodeModule(moduleName: "https" | "fs"): NodeHttps | NodeFs {
 }
 
 const myGlobalThis: NodeGlobalThis = globalThis;
-
-function createLocalStorage(): IStorage {
-	const data: Record<string, string> = {};
-	const storage: Record<string, unknown> = {
-		clear() {
-			Object.keys(data).forEach((key) => {
-				delete data[key];
-				delete storage[key];
-			});
-		},
-		getItem(key: string) {
-			return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null;
-		},
-		key(index: number) {
-			const keys = Object.keys(data);
-
-			return (index >= 0 && index < keys.length) ? keys[index] : null;
-		},
-		removeItem(key: string) {
-			delete data[key];
-			delete storage[key];
-		},
-		setItem(key: string, value: string) {
-			const value2 = String(value);
-
-			data[key] = value2;
-			storage[key] = value2;
-		},
-		get length() {
-			return Object.keys(data).length;
-		}
-	};
-
-	return storage as Storage;
-}
 
 export class NodeUtils implements INodeUtils {
 	private static currentScriptKey = "";
@@ -336,7 +302,7 @@ export class NodeUtils implements INodeUtils {
 			onProgramEnd: () => {
 				myGlobalThis.process.exit(0);
 			},
-			storage: createLocalStorage(),
+			storage: createMemoryStorage(),
 			atobFn: atobFn,
 			btoaFn: btoaFn,
 			console: console,

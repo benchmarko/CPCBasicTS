@@ -1,20 +1,6 @@
 import type { IStorage, RuntimeHost } from "../Interfaces";
+import { createMemoryStorage } from "../MemoryStorage";
 import { UiUtils } from "./UiUtils";
-
-function createMemoryStorage(): IStorage {
-	const items = new Map<string, string>();
-
-	return {
-		get length() {
-			return items.size;
-		},
-		clear: () => { items.clear(); },
-		getItem: (key) => items.get(key) ?? null,
-		key: (index) => Array.from(items.keys())[index] ?? null,
-		removeItem: (key) => { items.delete(key); },
-		setItem: (key, value) => { items.set(key, String(value)); }
-	};
-}
 
 export function createBrowserHost(overrides: Partial<RuntimeHost> = {}): RuntimeHost {
 	let fallbackStorage: IStorage | undefined;

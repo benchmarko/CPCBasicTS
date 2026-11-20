@@ -1,4 +1,5 @@
 import type { RuntimeHost } from "../Interfaces";
+import { createMemoryStorage } from "../MemoryStorage";
 import { createBrowserHost } from "../ui/BrowserHost";
 
 QUnit.module("BrowserHost", function () {
@@ -52,6 +53,17 @@ QUnit.module("BrowserHost", function () {
 		assert.strictEqual(typeof host.atobFn, "function");
 		assert.strictEqual(typeof host.btoaFn, "function");
 		assert.strictEqual(typeof host.setTimeout, "function");
+	});
+
+	QUnit.test("memory storage safely stores keys matching method names", function (assert) {
+		const storage = createMemoryStorage();
+
+		storage.setItem("clear", "stored value");
+		storage.setItem("toString", "another value");
+		assert.strictEqual(storage.getItem("clear"), "stored value");
+		assert.strictEqual(storage.getItem("toString"), "another value");
+		storage.clear();
+		assert.strictEqual(storage.length, 0);
 	});
 
 	QUnit.test("unavailable localStorage falls back to temporary memory storage", function (assert) {
