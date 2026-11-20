@@ -1,19 +1,11 @@
 import { Utils } from "../Utils";
 import type { LoadScriptFn } from "../Interfaces";
 
-interface PolyfillProperties {
-	atob: typeof window.atob;
-	btoa: typeof window.btoa;
-	getList: () => string[];
-}
-
 type LegacyScriptElement = (HTMLScriptElement | HTMLLinkElement) & {
 	readyState?: string
 	attachEvent?: (type: string, listener: (event?: Event) => void) => void
 	detachEvent?: (type: string, listener: (event?: Event) => void) => void
 };
-
-declare const Polyfills: PolyfillProperties | undefined;
 
 export class TestUiUtils {
 	private static fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement, fnSuccess: (url: string, key: string) => void, fnError: (url: string, key: string) => void) {
@@ -95,12 +87,6 @@ export class TestUiUtils {
 	};
 
 	public static atob(s: string): string {
-		const atobFn = typeof Polyfills !== "undefined" ? Polyfills.atob : window.atob;
-		return atobFn(s);
-	}
-
-	public static getPolyfills() {
-		const polyfills = typeof Polyfills !== "undefined" ? Polyfills.getList() : [];
-		return polyfills;
+		return window.atob(s);
 	}
 }

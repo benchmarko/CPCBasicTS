@@ -47,6 +47,7 @@ npm run build
 ```
 
 The build generates the distribution files in the `dist/` directory, including `dist/index.html`. Open `dist/index.html` in a browser to run the app locally, or serve the contents of `dist/` from a web server.
+The browser app targets ES2020 and does not include legacy browser polyfills.
 
 ## Usage
 

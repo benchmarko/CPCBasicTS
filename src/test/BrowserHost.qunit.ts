@@ -53,4 +53,37 @@ QUnit.module("BrowserHost", function () {
 		assert.strictEqual(typeof host.btoaFn, "function");
 		assert.strictEqual(typeof host.setTimeout, "function");
 	});
+
+	QUnit.test("unavailable localStorage falls back to temporary memory storage", function (assert) {
+		const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, "window"),
+			hostWindow = typeof window !== "undefined" ? window : {},
+			storageDescriptor = Object.getOwnPropertyDescriptor(hostWindow, "localStorage");
+
+		try {
+			if (!windowDescriptor) {
+				Object.defineProperty(globalThis, "window", { configurable: true, value: hostWindow });
+			}
+			Object.defineProperty(hostWindow, "localStorage", {
+				configurable: true,
+				get: () => { throw new DOMException("Storage is blocked", "SecurityError"); }
+			});
+
+			const storage = createBrowserHost().storage;
+			storage.setItem("saved.bas", "10 PRINT 1");
+			assert.strictEqual(storage.getItem("saved.bas"), "10 PRINT 1");
+			assert.strictEqual(storage.key(0), "saved.bas");
+			assert.strictEqual(storage.length, 1);
+		} finally {
+			if (storageDescriptor) {
+				Object.defineProperty(hostWindow, "localStorage", storageDescriptor);
+			} else {
+				Reflect.deleteProperty(hostWindow, "localStorage");
+			}
+			if (windowDescriptor) {
+				Object.defineProperty(globalThis, "window", windowDescriptor);
+			} else {
+				Reflect.deleteProperty(globalThis, "window");
+			}
+		}
+	});
 });

@@ -1,4 +1,3 @@
-import "./Polyfills";
 import { UiUtils } from "./UiUtils";
 import type { ConfigType, ICanvasVm, IEngine, IUI } from "../Interfaces";
 import { Controller, ControllerOptions } from "./Controller";

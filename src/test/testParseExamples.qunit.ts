@@ -786,10 +786,6 @@ function testStart() {
 
 	Utils.console.log("testParseExamples: isNodeRuntime:", isNodeRuntime);
 
-	if (!isNodeRuntime) {
-		Utils.console.log("testParseExamples: Polyfills.length:", TestUiUtils.getPolyfills().length);
-	}
-
 	cpcBasic.initVmMock1();
 	cpcBasic.totalExamples = 0;
 	cpcBasic.ignoredExamples = 0;

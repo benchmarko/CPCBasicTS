@@ -89,12 +89,5 @@ export default [
 			"prefer-spread": "off",
 			"max-depth": "warn"
 		}
-	},
-	{
-		files: ["src/ui/Polyfills.ts"],
-		rules: {
-			"no-var": "off",
-			"@typescript-eslint/no-wrapper-object-types": "off"
-		}
 	}
 ];
