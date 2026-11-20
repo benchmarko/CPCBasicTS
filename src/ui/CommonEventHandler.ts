@@ -165,11 +165,6 @@ export class CommonEventHandler implements EventListenerObject {
 		this.model.setProperty(property, visible);
 		this.view.setHidden(toggleId, !visible, eventDef.display);
 
-		// on old browsers display "flex" is not available, so set default "" (="block"), if still hidden
-		if (visible && eventDef.display === "flex" && this.view.getHidden(toggleId)) {
-			this.view.setHidden(toggleId, !visible);
-		}
-
 		if (visible && eventDef.isPopover) {
 			this.setPopoversHiddenExcept(toggleId);
 		}
@@ -835,10 +830,6 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 
 		if (id) {
-			if (target.disabled) { // check needed for IE which also fires for disabled buttons
-				return; // ignore
-			}
-
 			if (id.startsWith("galleryItem")) {
 				id = "galleryItem"; // replace galleryitem<num> by galleryitem
 			}

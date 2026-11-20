@@ -64,7 +64,7 @@ export class Canvas implements ICanvas, ICanvasVm {
 	private littleEndian = true;
 	private pen2Color32?: Uint32Array;
 	private data32?: Uint32Array;
-	private use32BitCopy = true; // determined later
+	private hasCanvasContext = false;
 
 	private gPen = 0;
 	private gPaper = 0;
@@ -117,27 +117,19 @@ export class Canvas implements ICanvas, ICanvasVm {
 		this.animationTimeoutId = undefined;
 		this.animationFrame = undefined;
 
-		if (this.canvas.getContext) { // not available on e.g. IE8
+		if (this.canvas.getContext) {
 			this.ctx = this.canvas.getContext("2d") as CanvasRenderingContext2D;
 
 			this.imageData = this.ctx.getImageData(0, 0, width, height);
 
-			if (typeof Uint32Array !== "undefined" && this.imageData.data.buffer) {	// imageData.data.buffer not available on IE10
-				this.littleEndian = Canvas.isLittleEndian();
-				this.pen2Color32 = new Uint32Array(new ArrayBuffer(Canvas.modeData[3].pens * 4));
-				this.data32 = new Uint32Array(this.imageData.data.buffer);
-				this.use32BitCopy = true;
-				UiUtils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
-			} else {
-				this.setAlpha(255);
-				this.use32BitCopy = false;
-				UiUtils.console.log("Canvas: using copy2Canvas8bit");
-			}
-
+			this.littleEndian = Canvas.isLittleEndian();
+			this.pen2Color32 = new Uint32Array(new ArrayBuffer(Canvas.modeData[3].pens * 4));
+			this.data32 = new Uint32Array(this.imageData.data.buffer);
+			this.hasCanvasContext = true;
+			UiUtils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
 			this.fnCopy2Canvas = this.getCopy2CanvasFunction(this.offset);
 		} else {
 			UiUtils.console.warn("Error: canvas.getContext is not supported.");
-			// not available on e.g. IE8, nodeJS
 			this.fnCopy2Canvas = () => {
 				// nothing
 			};
@@ -319,15 +311,6 @@ export class Canvas implements ICanvas, ICanvasVm {
 		Canvas.extractAllColorValues(palette, this.colorValues);
 	}
 
-	private setAlpha(alpha: number) {
-		const buf8 = this.imageData.data,
-			length = this.dataset8.length; // or: this.width * this.height
-
-		for (let i = 0; i < length; i += 1) {
-			buf8[i * 4 + 3] = alpha; // alpha
-		}
-	}
-
 	private setNeedUpdate() {
 		this.needUpdate = true;
 	}
@@ -372,24 +355,6 @@ export class Canvas implements ICanvas, ICanvasVm {
 		}
 	}
 
-	private copy2Canvas8bit() {
-		const buf8 = this.imageData.data, // use Uint8ClampedArray from canvas
-			dataset8 = this.dataset8,
-			length = dataset8.length, // or: this.width * this.height
-			pen2ColorMap = this.pen2ColorMap;
-
-		for (let i = 0; i < length; i += 1) {
-			const color = pen2ColorMap[dataset8[i]],
-				j = i * 4;
-
-			buf8[j] = color[0]; // r
-			buf8[j + 1] = color[1]; // g
-			buf8[j + 2] = color[2]; // b
-			// alpha already set to 255
-		}
-		this.ctx.putImageData(this.imageData, 0, 0);
-	}
-
 	private copy2Canvas32bit() {
 		const dataset8 = this.dataset8,
 			data32 = this.data32 as Uint32Array,
@@ -420,10 +385,12 @@ export class Canvas implements ICanvas, ICanvasVm {
 	}
 
 	private getCopy2CanvasFunction(offset: number): () => void {
-		if (this.use32BitCopy) {
-			return offset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
+		if (!this.hasCanvasContext) {
+			return () => {
+				// nothing
+			};
 		}
-		return offset ? this.copy2Canvas8bit : this.copy2Canvas8bit; // TODO: for older browsers
+		return offset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
 	}
 
 	setScreenOffset(offset: number): void {
@@ -530,12 +497,7 @@ export class Canvas implements ICanvas, ICanvasVm {
 	}
 
 	private getMousePos(event: MouseEvent) {
-		const legacyDocument = document as Document & {
-			mozFullScreenElement?: Element | null
-			webkitFullscreenElement?: Element | null
-			msFullscreenElement?: Element | null
-		},
-			isFullScreen = Boolean(document.fullscreenElement || legacyDocument.mozFullScreenElement || legacyDocument.webkitFullscreenElement || legacyDocument.msFullscreenElement),
+		const isFullScreen = Boolean(document.fullscreenElement),
 			rect = this.canvas.getBoundingClientRect();
 
 		if (isFullScreen) {

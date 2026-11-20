@@ -22,20 +22,6 @@ export interface AreaInputElement {
 
 export type PointerEventNamesType = Record<"down"|"move"|"up"|"cancel"|"out"|"type", string>;
 
-type LegacyFullscreenElement = HTMLElement & {
-	webkitRequestFullscreen?: () => Promise<void> | void
-	mozRequestFullScreen?: () => Promise<void> | void
-	msRequestFullscreen?: () => Promise<void> | void
-};
-
-type LegacyActiveXWindow = Window & {
-	ActiveXObject?: new (classId: string) => { SendKeys(keys: string): void }
-};
-
-type LegacyNavigator = Navigator & {
-	msSaveOrOpenBlob?: (blob: Blob, filename: string) => boolean
-};
-
 export class View {
 	private static myDocument?: Document;
 
@@ -382,40 +368,9 @@ export class View {
 		type: "pointer"
 	};
 
-	private static readonly touchEventNames: PointerEventNamesType = {
-		down: "touchstart",
-		move: "touchmove",
-		up: "touchend",
-		cancel: "touchcancel",
-		out: "", // n.a.
-		type: "touch"
-	};
-
-	private static readonly mouseEventNames: PointerEventNamesType = {
-		down: "mousedown",
-		move: "mousemove",
-		up: "mouseup",
-		cancel: "", // n.a.
-		out: "mouseout",
-		type: "mouse"
-	};
-
-	private static getPointerEventNames() {
-		let eventNames: typeof View.pointerEventNames;
-
-		if (window.PointerEvent) {
-			eventNames = View.pointerEventNames;
-		} else if ("ontouchstart" in window || navigator.maxTouchPoints) {
-			eventNames = View.touchEventNames;
-		} else {
-			eventNames = View.mouseEventNames;
-		}
-		return eventNames;
-	}
-
 	fnAttachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType {
 		const element = id === ViewID.window ? undefined : View.getElementById1(id),
-			eventNames = View.getPointerEventNames();
+			eventNames = View.pointerEventNames;
 
 		if (fnDown) {
 			this.addEventListener(eventNames.down, fnDown, element);
@@ -434,7 +389,7 @@ export class View {
 
 	fnDetachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType {
 		const element = id === ViewID.window ? undefined : View.getElementById1(id),
-			eventNames = View.getPointerEventNames();
+			eventNames = View.pointerEventNames;
 
 		if (fnDown) {
 			this.removeEventListener(eventNames.down, fnDown, element);
@@ -453,20 +408,16 @@ export class View {
 
 	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	static getEventTarget<T extends HTMLElement>(event: Event): T {
-		// eslint-disable-next-line @typescript-eslint/no-deprecated
-		const target = event.target || event.srcElement; // target, not currentTarget; srcElement for IE8
+		const target = event.target;
 
 		if (!target) {
-			UiUtils.console.error("getEventTarget: Undefined event target: " + target);
+			throw new Error("getEventTarget: Event target is undefined");
 		}
 		return target as T;
 	}
 
 	requestFullscreenForId(id: ViewID): boolean {
 		const element = View.getElementById1(id),
-			legacyElement = element as LegacyFullscreenElement,
-			activeXObject = (window as LegacyActiveXWindow).ActiveXObject,
-			requestMethod = element.requestFullscreen || legacyElement.webkitRequestFullscreen || legacyElement.mozRequestFullScreen || legacyElement.msRequestFullscreen,
 			fullscreenchangedHandler = (event: Event) => {
 				const target = View.getEventTarget(event),
 					fullscreenElement = View.getDocument().fullscreenElement;
@@ -489,50 +440,27 @@ export class View {
 				}
 			};
 
-		if (requestMethod) {
-			const promise = requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
-
-			// eslint-disable-next-line @typescript-eslint/no-misused-promises
-			if (promise) {
-				promise.then(() => {
-					if (UiUtils.debug > 0) {
-						UiUtils.console.debug("requestFullscreenForId: " + id + ": success");
-					}
-					this.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
-				}).catch(function (err: unknown) {
-					UiUtils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
-				});
-			}
-		} else if (activeXObject) { // older IE
-			const wscript = new activeXObject("WScript.Shell");
-
-			if (wscript !== null) {
-				wscript.SendKeys("{F11}"); // eslint-disable-line new-cap
-			}
-		} else {
+		if (!element.requestFullscreen) {
 			return false;
 		}
+		element.requestFullscreen().then(() => {
+			if (UiUtils.debug > 0) {
+				UiUtils.console.debug("requestFullscreenForId: " + id + ": success");
+			}
+			this.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
+		}).catch((err: unknown) => {
+			UiUtils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
+		});
 		return true;
 	}
 
 	// https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
 	fnDownloadBlob(data: string, filename: string): void {
-		if (typeof Blob === "undefined") {
-			UiUtils.console.warn("fnDownloadBlob: Blob undefined");
-			return;
-		}
-
 		const data8 = UiUtils.string2Uint8Array(data),
 			type = "octet/stream",
 			blob = new Blob([data8.buffer as ArrayBuffer], {
 				type: type
 			});
-
-		const legacyNavigator = window.navigator as LegacyNavigator;
-		if (window.navigator && legacyNavigator.msSaveOrOpenBlob) { // IE11 support
-			legacyNavigator.msSaveOrOpenBlob(blob, filename);
-			return;
-		}
 
 		const url = URL.createObjectURL(blob),
 			a = View.getDocument().createElement("a"),

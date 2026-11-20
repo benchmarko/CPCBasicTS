@@ -14,8 +14,7 @@ function requireNodeModule(moduleName: "https" | "fs"): NodeHttps | NodeFs {
 	return eval("require")(moduleName) as NodeHttps | NodeFs;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
-const myGlobalThis: NodeGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")() as NodeGlobalThis;
+const myGlobalThis: NodeGlobalThis = globalThis;
 
 function createLocalStorage(): IStorage {
 	const data: Record<string, string> = {};

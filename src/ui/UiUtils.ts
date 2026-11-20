@@ -1,11 +1,5 @@
 import type { CustomError, LoadScriptFn } from "../Interfaces";
 
-type LegacyScriptElement = (HTMLScriptElement | HTMLLinkElement) & {
-	readyState?: string
-	attachEvent?: (type: string, listener: (event?: Event) => void) => void
-	detachEvent?: (type: string, listener: (event?: Event) => void) => void
-};
-
 export class UiUtils {
 	public static debug = 0;
 	public static console = console;
@@ -15,67 +9,21 @@ export class UiUtils {
 	}
 
 	private static fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement, fnSuccess: (url: string, key: string) => void, fnError: (url: string, key: string) => void) {
-		// inspired by https://github.com/requirejs/requirejs/blob/master/require.js
-		let ieTimeoutCount = 3; // IE timeout count
-		const onScriptLoad = function (event: Event) {
-				const type = event.type, // "load" or "error"
-					// eslint-disable-next-line @typescript-eslint/no-deprecated
-					node = (event.currentTarget || event.srcElement) as HTMLScriptElement | HTMLLinkElement,
-					fullUrl = (node as HTMLScriptElement).src || (node as HTMLLinkElement).href, // src for script, href for link
-					key = node.getAttribute("data-key") as string;
-
-				if (UiUtils.debug > 1) {
-					console.debug("onScriptLoad:", type, fullUrl, key);
-				}
-				node.removeEventListener("load", onScriptLoad, false);
-				node.removeEventListener("error", onScriptLoad, false);
-
-				if (type === "load") {
-					fnSuccess(fullUrl, key);
-				} else {
-					fnError(fullUrl, key);
-				}
+		const fullUrl = (script as HTMLScriptElement).src || (script as HTMLLinkElement).href,
+			key = script.getAttribute("data-key") ?? "",
+			onLoad = () => {
+				script.removeEventListener("load", onLoad);
+				script.removeEventListener("error", onError);
+				fnSuccess(fullUrl, key);
 			},
-			onScriptReadyStateChange = function (event?: Event) { // for old IE8
-				// eslint-disable-next-line @typescript-eslint/no-deprecated
-				const node = (event ? (event.currentTarget || event.srcElement) : script) as HTMLScriptElement | HTMLLinkElement,
-					fullUrl = (node as HTMLScriptElement).src || (node as HTMLLinkElement).href, // src for script, href for link
-					key = node.getAttribute("data-key") as string,
-						node2 = node as LegacyScriptElement;
-
-				if (node2.detachEvent) {
-					node2.detachEvent("onreadystatechange", onScriptReadyStateChange);
-				}
-
-				if (UiUtils.debug > 1) {
-					console.debug("onScriptReadyStateChange: " + fullUrl);
-				}
-				if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
-					if (node2.readyState === "loading" && ieTimeoutCount) {
-						ieTimeoutCount -= 1;
-						const timeout = 200;
-
-						console.error("onScriptReadyStateChange: Still loading: " + fullUrl + " Waiting " + timeout + "ms (count=" + ieTimeoutCount + ")");
-						setTimeout(function () {
-							onScriptReadyStateChange();
-						}, timeout);
-					} else {
-						console.error("onScriptReadyStateChange: Cannot load file " + fullUrl + " readystate=" + node2.readyState);
-						fnError(fullUrl, key);
-					}
-				} else {
-					fnSuccess(fullUrl, key);
-				}
+			onError = () => {
+				script.removeEventListener("load", onLoad);
+				script.removeEventListener("error", onError);
+				fnError(fullUrl, key);
 			};
 
-		const legacyScript = script as LegacyScriptElement;
-		if (legacyScript.readyState && legacyScript.attachEvent) { // old IE8
-			ieTimeoutCount = 3;
-			legacyScript.attachEvent("onreadystatechange", onScriptReadyStateChange);
-		} else {
-			script.addEventListener("load", onScriptLoad, false);
-			script.addEventListener("error", onScriptLoad, false);
-		}
+		script.addEventListener("load", onLoad);
+		script.addEventListener("error", onError);
 		document.getElementsByTagName("head")[0].appendChild(script);
 	}
 
@@ -83,8 +31,6 @@ export class UiUtils {
 		const script = document.createElement("script");
 
 		script.type = "text/javascript";
-		// eslint-disable-next-line @typescript-eslint/no-deprecated
-		script.charset = "utf-8";
 		script.async = true;
 		script.src = url;
 		script.setAttribute("data-key", key);
@@ -122,7 +68,7 @@ export class UiUtils {
 
 		while (len) {
 			const chunkLen = Math.min(len, callSize),
-				chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen); // array.slice on Uint8Array not for IE11
+				chunk = data.slice(offset, offset + chunkLen);
 
 			out += String.fromCharCode.apply(null, Array.from(chunk)); // on Chrome this is faster than single character processing
 			offset += chunkLen;

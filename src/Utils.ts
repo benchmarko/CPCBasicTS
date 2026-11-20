@@ -6,7 +6,7 @@
 import type { CustomError, Diagnostic } from "./Interfaces";
 export class Utils {
 	static debug = 0;
-	static console = console; //typeof globalThis !== "undefined" ? globalThis.console : undefined;
+	static console = console;
 
 	public static setDebug(debug: number) {
 		Utils.debug = debug;
@@ -57,20 +57,6 @@ export class Utils {
 		return result;
 	}
 
-	private static testIsSupported(testExpression: string) { // does the browser support something?
-		try {
-			// eslint-disable-next-line @typescript-eslint/no-implied-eval
-			Function(testExpression); // eslint-disable-line no-new-func
-		} catch (_e) {
-			return false;
-		}
-		return true;
-	}
-
-	static supportsBinaryLiterals = Utils.testIsSupported("0b01"); // does the browser support binary literals?
-
-	static supportReservedNames = Utils.testIsSupported("({}).return()"); // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
-
 	static stringTrimEnd(str: string): string {
 		return str.replace(/[\s\uFEFF\xA0]+$/, "");
 	}
@@ -118,7 +104,7 @@ export class Utils {
 
 		while (len) {
 			const chunkLen = Math.min(len, callSize),
-				chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen); // array.slice on Uint8Array not for IE11
+				chunk = data.slice(offset, offset + chunkLen);
 
 			out += String.fromCharCode.apply(null, Array.from(chunk)); // on Chrome this is faster than single character processing
 			offset += chunkLen;

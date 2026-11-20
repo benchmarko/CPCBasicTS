@@ -47,7 +47,7 @@ export class FileSelect {
 
 			this.fileIndex += 1;
 			const lastModified = file.lastModified,
-				lastModifiedDate = lastModified ? new Date(lastModified) : (file as File & { lastModifiedDate?: Date }).lastModifiedDate, // lastModifiedDate deprecated, but for old IE
+				lastModifiedDate = lastModified ? new Date(lastModified) : undefined,
 				text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
 
 			UiUtils.console.log(text);

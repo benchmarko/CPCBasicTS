@@ -736,32 +736,20 @@ export class VirtualKeyboard {
 	private createButtonRow(id: ViewID, options: VirtualButtonRowOptions[]) {
 		const place = View.getElementById1(id);
 
-		if (place.insertAdjacentElement) {
-			const buttonList = document.createElement("div");
+		const buttonList = document.createElement("div");
 
-			buttonList.className = "displayFlex";
-			for (let i = 0; i < options.length; i += 1) {
-				const item = options[i],
-					button = document.createElement("button");
+		buttonList.className = "displayFlex";
+		for (let i = 0; i < options.length; i += 1) {
+			const item = options[i],
+				button = document.createElement("button");
 
-				button.innerText = item.text;
-				button.setAttribute("title", item.title);
-				button.className = item.className;
-				button.setAttribute("data-key", String(item.key));
-				buttonList.insertAdjacentElement("beforeend", button);
-			}
-			place.insertAdjacentElement("beforeend", buttonList);
-		} else { // Polyfill for old browsers
-			let html = "<div class=displayFlex>\n";
-
-			for (let i = 0; i < options.length; i += 1) {
-				const item = options[i];
-
-				html += '<button title="' + item.title + '" class="' + item.className + '" data-key="' + item.key + '">' + item.text + "</button>\n";
-			}
-			html += "</div>";
-			place.innerHTML += html;
+			button.innerText = item.text;
+			button.setAttribute("title", item.title);
+			button.className = item.className;
+			button.setAttribute("data-key", String(item.key));
+			buttonList.appendChild(button);
 		}
+		place.appendChild(buttonList);
 		return this;
 	}
 
@@ -914,26 +902,8 @@ export class VirtualKeyboard {
 		return false;
 	}
 
-	private static keyIdentifier2Char(event: KeyboardEvent) { // duplicate from Keyboard)
-		// SliTaz web browser has not key but keyIdentifier
-		const identifier = (event as KeyboardEvent & { keyIdentifier?: string }).keyIdentifier ?? "",
-			shiftKey = event.shiftKey;
-		let char: string;
-
-		if ((/^U\+/i).test(identifier || "")) { // unicode string?
-			char = String.fromCharCode(parseInt(identifier.slice(2), 16));
-			if (char === "\0") { // ignore
-				char = "";
-			}
-			char = shiftKey ? char.toUpperCase() : char.toLowerCase(); // do we get keys in unicode always in uppercase?
-		} else {
-			char = identifier; // take it, could be "Enter"
-		}
-		return char;
-	}
-
 	private onKeydownOrKeyup(event: KeyboardEvent) {
-		const key = event.key || VirtualKeyboard.keyIdentifier2Char(event) || "", // SliTaz web browser has not key but keyIdentifier (also in Keyboard)
+		const key = event.key,
 			activeElement = window.document.activeElement;
 
 		if (key === "Enter" || key === " ") { // enter or space

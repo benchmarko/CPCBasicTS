@@ -305,7 +305,7 @@ export class BasicLexer {
 			this.addToken(char, char, pos); // ","
 			char = this.advance();
 
-			if (char === "\r") { // IE8 has "/r/n" newlines
+			if (char === "\r") { // normalize carriage-return line endings
 				char = this.advance();
 			}
 		}

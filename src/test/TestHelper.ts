@@ -126,17 +126,6 @@ export class TestHelper {
 		}
 	}
 
-	private static fnBinaryLiteralReplacer(bin: string) {
-		return "0x" + parseInt(bin.substring(2), 2).toString(16).toLowerCase();
-	}
-
-	static handleBinaryLiterals(str: string): string {
-		if (!Utils.supportsBinaryLiterals) {
-			str = str.replace(/(0b[01]+)/g, TestHelper.fnBinaryLiteralReplacer); // for old IE
-		}
-		return str;
-	}
-
 	static hexInQuotes(s: string): string {
 		let out = "";
 
@@ -162,7 +151,7 @@ export class TestHelper {
 		return '"' + s.replace(/"/g, '\\"') + '"';
 	}
 
-	// ECMA 3 JS Keywords which must be avoided in dot notation for properties when using IE8
+	// Reserved words are escaped when used as function parameters.
 	private static readonly jsKeywords = [
 		"do",
 		"if",

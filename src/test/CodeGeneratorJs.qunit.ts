@@ -803,7 +803,7 @@ QUnit.module("CodeGeneratorJs: Tests", function (hooks) {
 
 		for (const key in tests) {
 			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const expected = TestHelper.handleBinaryLiterals(tests[key]),
+				const expected = tests[key],
 					result = runSingleTest(codeGeneratorJs, key);
 
 				if (results) {

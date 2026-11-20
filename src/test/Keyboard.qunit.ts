@@ -75,4 +75,31 @@ QUnit.module("Keyboard", function () {
 		keyboard.setCpcKeyState(69, "program-key", false);
 		assert.strictEqual(keyboard.getKeyState(69), -1, "released");
 	});
+
+	QUnit.test("maps keyboard input using standard key and code fields", function (assert) {
+		const listeners: Record<string, EventListener> = {},
+			view = {
+				addEventListenerById: (type: string, listener: EventListener) => {
+					listeners[type] = listener;
+				}
+			} as unknown as View,
+			keyboard = new Keyboard({ view });
+
+		keyboard.setActive(true);
+		const dispatch = (type: "keydown" | "keyup", code: string, key: string) => {
+			const event = { type: type, code: code, key: key, shiftKey: false, ctrlKey: false, preventDefault: () => undefined } as KeyboardEvent;
+
+			listeners[type](event);
+		};
+
+		dispatch("keydown", "KeyA", "a");
+		assert.strictEqual(keyboard.getKeyState(69), 0, "letter key");
+		dispatch("keyup", "KeyA", "a");
+		assert.strictEqual(keyboard.getKeyState(69), -1, "letter key released");
+
+		dispatch("keydown", "Numpad8", "ArrowUp");
+		assert.strictEqual(keyboard.getKeyState(72), 0, "numpad cursor key");
+		dispatch("keyup", "Numpad8", "ArrowUp");
+		assert.strictEqual(keyboard.getKeyState(72), -1, "numpad cursor key released");
+	});
 });

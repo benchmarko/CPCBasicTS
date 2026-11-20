@@ -91,7 +91,7 @@ export class CodeGeneratorJs {
 		this.options.lexer.setOptions({ keywords: this.options.parser.getKeywords() });
 	}
 
-	// ECMA 3 JS Keywords which must be avoided in dot notation for properties when using IE8
+	// Reserved words are escaped when used as function parameters.
 	private static readonly jsKeywords = [
 		"do",
 		"if",
@@ -210,8 +210,8 @@ export class CodeGeneratorJs {
 
 		const firstChar = name.charAt(0);
 
-		if ((defScopeArgs && !defScopeArgs.suppressEscape) || !Utils.supportReservedNames) { // avoid keywords as def fn parameters (keep for ERASE); and for IE8 avoid keywords in dot notation
-			if (this.reJsKeywords.test(name)) { // IE8: avoid keywords in dot notation
+		if (defScopeArgs && !defScopeArgs.suppressEscape) { // avoid keywords as def fn parameters (keep for ERASE)
+			if (this.reJsKeywords.test(name)) {
 				name = "_" + name; // prepend underscore
 			}
 		}
@@ -646,15 +646,10 @@ export class CodeGeneratorJs {
 	}
 
 	private static binnumber(node: CodeNode) {
-		let value = node.value.slice(2); // remove &x
+		const value = node.value.slice(2); // remove &x
 
-		if (Utils.supportsBinaryLiterals) {
-			value = "0b" + ((value.length) ? value : "0"); // &x->0b; 0b is ES6
-		} else {
-			value = "0x" + ((value.length) ? parseInt(value, 2).toString(16) : "0"); // we convert it to hex
-		}
 		node.pt = "I";
-		node.pv = value;
+		node.pv = "0b" + (value || "0");
 	}
 	private static hexnumber(node: CodeNode) {
 		let value = node.value.slice(1); // remove &
@@ -963,7 +958,7 @@ export class CodeGeneratorJs {
 	}
 	private fnDelete(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args),
-			name = Utils.supportReservedNames ? ("o." + node.type) : 'o["' + node.type + '"]';
+			name = "o." + node.type;
 
 		if (!nodeArgs.length) { // no arguments? => complete range
 			nodeArgs.push("1");
@@ -1314,7 +1309,7 @@ export class CodeGeneratorJs {
 	}
 
 	private static fnNew(node: CodeNode) {
-		const name = Utils.supportReservedNames ? ("o." + node.type) : 'o["' + node.type + '"]';
+		const name = "o." + node.type;
 
 		node.pv = name + "();";
 	}
@@ -1462,7 +1457,7 @@ export class CodeGeneratorJs {
 		node.pv = "//" + nodeArgs.join("") + "\n";
 	}
 	private static fnReturn(node: CodeNode) {
-		const name = Utils.supportReservedNames ? ("o." + node.type) : 'o["' + node.type + '"]';
+		const name = "o." + node.type;
 
 		node.pv = name + "(); break;";
 	}

@@ -875,7 +875,7 @@ QUnit.module("CodeGeneratorBasic: keepWhiteSpace", function (hooks) {
 		for (const key in tests) {
 			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				spaceCount = 1;
-				const expected = TestHelper.handleBinaryLiterals(tests[key]);
+				const expected = tests[key];
 				let keyWithSpaces = key;
 
 				keyWithSpaces = keyWithSpaces.replace(/(\w)#/g, "$1 #").replace(/:\s+(\w)/g, ":$1");

@@ -4133,7 +4133,7 @@ export class CpcVm implements ICpcVm {
 
 		this.vmAssertString(format, "USING");
 
-		// We simulate format.split(reFormat) here since it does not work with IE8
+		// Keep escaped format characters in the literal segment.
 		let index = 0,
 			match: RegExpExecArray | null;
 

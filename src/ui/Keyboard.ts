@@ -43,8 +43,7 @@ export class Keyboard implements IKeyboard {
 
 	private active = false; // flag if keyboard is active/focused, set from outside
 
-	private key2CpcKey: Key2CpcKeyType;
-	private codeStringsRemoved = false;
+	private readonly key2CpcKey: Key2CpcKeyType;
 
 	private pressedKeys: PressedKeysType = {}; // currently pressed browser keys
 
@@ -79,129 +78,97 @@ export class Keyboard implements IKeyboard {
 		Object.assign(this.options, options);
 	}
 
-	// use this:
 	private static readonly key2CpcKey = {
-		"38ArrowUp": 0,
-		"39ArrowRight": 1,
-		"40ArrowDown": 2,
-		"105Numpad9": 3,
-		"120F9": 3,
-		"102Numpad6": 4,
-		"117F6": 4,
-		"99Numpad3": 5,
-		"114F3": 5,
-		"13NumpadEnter": 6,
-		"110NumpadDecimal": 7,
-		"37ArrowLeft": 8,
-		"18AltLeft": 9,
-		"103Numpad7": 10,
-		"118F7": 10,
-		"104Numpad8": 11,
-		"119F8": 11,
-		"101Numpad5": 12,
-		"116F5": 12,
-		"97Numpad1": 13,
-		"112F1": 13,
-		"98Numpad2": 14,
-		"113F2": 14,
-		"96Numpad0": 15,
-		"121F10": 15,
-		"46Delete": 16,
-		"187BracketRight": 17,
-		"171BracketRight": 17,
-		"221BracketRight": 17,
-		"13Enter": 18,
-		"191Backslash": 19,
-		"163Backslash": 19,
-		"220Backslash": 19,
-		"100Numpad4": 20,
-		"115F4": 20,
-		"16ShiftLeft": 21,
-		"16ShiftRight": 21,
-		"220Backquote": 22,
-		"160Backquote": 22,
-		"192Backquote": 22,
-		"17ControlLeft": 23,
-		"17ControlRight": 23,
-		"221Equal": 24,
-		"192Equal": 24,
-		"187Equal": 24,
-		"219Minus": 25,
-		"63Minus": 25,
-		"189Minus": 25,
-		"186BracketLeft": 26,
-		"59BracketLeft": 26,
-		"219BracketLeft": 26,
-		"80KeyP": 27,
-		"222Quote": 28,
-		"192Quote": 28,
-		"192Semicolon": 29,
-		"186Semicolon": 29,
-		"189Slash": 30,
-		"173Slash": 30,
-		"191Slash": 30,
-		"190Period": 31,
-		"48Digit0": 32,
-		"57Digit9": 33,
-		"79KeyO": 34,
-		"73KeyI": 35,
-		"76KeyL": 36,
-		"75KeyK": 37,
-		"77KeyM": 38,
-		"188Comma": 39,
-		"56Digit8": 40,
-		"55Digit7": 41,
-		"85KeyU": 42,
-		"90KeyY": 43,
-		"89KeyY": 43,
-		"72KeyH": 44,
-		"74KeyJ": 45,
-		"78KeyN": 46,
-		"32Space": 47,
-		"54Digit6": 48,
-		"53Digit5": 49,
-		"82KeyR": 50,
-		"84KeyT": 51,
-		"71KeyG": 52,
-		"70KeyF": 53,
-		"66KeyB": 54,
-		"86KeyV": 55,
-		"52Digit4": 56,
-		"51Digit3": 57,
-		"69KeyE": 58,
-		"87KeyW": 59,
-		"83KeyS": 60,
-		"68KeyD": 61,
-		"67KeyC": 62,
-		"88KeyX": 63,
-		"49Digit1": 64,
-		"50Digit2": 65,
-		"27Escape": 66,
-		"81KeyQ": 67,
-		"9Tab": 68,
-		"65KeyA": 69,
-		"20CapsLock": 70,
-		"89KeyZ": 71,
-		"90KeyZ": 71,
-		"38Numpad8": 72,
-		"40Numpad2": 73,
-		"37Numpad4": 74,
-		"39Numpad6": 75,
-		"12Numpad5": 76,
-		"45Numpad0": 76,
-		"46NumpadDecimal": 77,
-		"8Backspace": 79,
-		"36Numpad7": 80,
-		"33Numpad9": 81,
-		"35Numpad1": 82,
-		"34Numpad3": 83,
-		"226IntlBackslash": 85,
-		"60IntlBackslash": 85,
-		"220IntlBackslash": 85,
-		"111NumpadDivide": 86,
-		"106NumpadMultiply": 87,
-		"109NumpadSubtract": 88,
-		"107NumpadAdd": 89
+		"ArrowUp": 0,
+		"ArrowRight": 1,
+		"ArrowDown": 2,
+		"Numpad9": 3,
+		"F9": 3,
+		"Numpad6": 4,
+		"F6": 4,
+		"Numpad3": 5,
+		"F3": 5,
+		"NumpadEnter": 6,
+		"NumpadDecimal": 7,
+		"ArrowLeft": 8,
+		"AltLeft": 9,
+		"Numpad7": 10,
+		"F7": 10,
+		"Numpad8": 11,
+		"F8": 11,
+		"Numpad5": 12,
+		"F5": 12,
+		"Numpad1": 13,
+		"F1": 13,
+		"Numpad2": 14,
+		"F2": 14,
+		"Numpad0": 15,
+		"F10": 15,
+		"Delete": 16,
+		"BracketRight": 17,
+		"Enter": 18,
+		"Backslash": 19,
+		"Numpad4": 20,
+		"F4": 20,
+		"ShiftLeft": 21,
+		"ShiftRight": 21,
+		"Backquote": 22,
+		"ControlLeft": 23,
+		"ControlRight": 23,
+		"Equal": 24,
+		"Minus": 25,
+		"BracketLeft": 26,
+		"KeyP": 27,
+		"Quote": 28,
+		"Semicolon": 29,
+		"Slash": 30,
+		"Period": 31,
+		"Digit0": 32,
+		"Digit9": 33,
+		"KeyO": 34,
+		"KeyI": 35,
+		"KeyL": 36,
+		"KeyK": 37,
+		"KeyM": 38,
+		"Comma": 39,
+		"Digit8": 40,
+		"Digit7": 41,
+		"KeyU": 42,
+		"KeyY": 43,
+		"KeyH": 44,
+		"KeyJ": 45,
+		"KeyN": 46,
+		"Space": 47,
+		"Digit6": 48,
+		"Digit5": 49,
+		"KeyR": 50,
+		"KeyT": 51,
+		"KeyG": 52,
+		"KeyF": 53,
+		"KeyB": 54,
+		"KeyV": 55,
+		"Digit4": 56,
+		"Digit3": 57,
+		"KeyE": 58,
+		"KeyW": 59,
+		"KeyS": 60,
+		"KeyD": 61,
+		"KeyC": 62,
+		"KeyX": 63,
+		"Digit1": 64,
+		"Digit2": 65,
+		"Escape": 66,
+		"KeyQ": 67,
+		"Tab": 68,
+		"KeyA": 69,
+		"CapsLock": 70,
+		"KeyZ": 71,
+		"Backspace": 79,
+		"IntlBackslash": 85,
+		"NumpadDivide": 86,
+		"NumpadMultiply": 87,
+		"NumpadSubtract": 88,
+		"NumpadAdd": 89
 	};
 
 	private static readonly specialKeys: Record<string, string> = {
@@ -230,7 +197,6 @@ export class Keyboard implements IKeyboard {
 		JoyLeft: String.fromCharCode(8),
 		JoyRight: String.fromCharCode(9),
 		Clear: "X", // joy fire 2
-		Spacebar: " ", // for IE
 		Tab: String.fromCharCode(9),
 		ä: ";",
 		Ä: "+",
@@ -242,7 +208,7 @@ export class Keyboard implements IKeyboard {
 		DeadBackquote: "^",
 		"°": "£",
 		DeadEqual: String.fromCharCode(161), // tick
-		"´": String.fromCharCode(161), // IE: tick
+		"´": String.fromCharCode(161),
 		DeadEqualShift: "`" // backtick
 	};
 
@@ -310,23 +276,6 @@ export class Keyboard implements IKeyboard {
 		this.active = active;
 	}
 
-	private removeCodeStringsFromKeymap() { // for certain browsers (IE, Edge) we get only codes but no code strings from the keyboard, so remove the code strings
-		const key2CpcKey = this.key2CpcKey,
-			newMap: Key2CpcKeyType = {};
-
-		if (UiUtils.debug > 1) {
-			UiUtils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
-		}
-		for (const key in key2CpcKey) {
-			if (Object.prototype.hasOwnProperty.call(key2CpcKey, key)) {
-				const keyCode = parseInt(key, 10); // get just the number
-
-				newMap[keyCode] = key2CpcKey[key];
-			}
-		}
-		this.key2CpcKey = newMap;
-	}
-
 	fnPressCpcKey(event: KeyboardEvent | PointerEvent, cpcKeyCode: number, pressedKey: string, key: string): void { // eslint-disable-line complexity
 		const shiftKey = event.shiftKey,
 			ctrlKey = event.ctrlKey,
@@ -386,7 +335,7 @@ export class Keyboard implements IKeyboard {
 			this.putKeyInBuffer(key);
 		}
 
-		if (cpcKeyCode === 66 && this.options.fnOnEscapeHandler) {	// or: key === "Escape" or "Esc" (on IE)
+		if (cpcKeyCode === 66 && this.options.fnOnEscapeHandler) {
 			this.options.fnOnEscapeHandler(key, pressedKey);
 		}
 
@@ -444,60 +393,31 @@ export class Keyboard implements IKeyboard {
 		}
 	}
 
-	private static keyIdentifier2Char(event: KeyboardEvent) {
-		// SliTaz web browser has not key but keyIdentifier
-		const identifier = (event as KeyboardEvent & { keyIdentifier?: string }).keyIdentifier ?? "",
-			shiftKey = event.shiftKey;
-		let char: string;
-
-		if ((/^U\+/i).test(identifier || "")) { // unicode string?
-			char = String.fromCharCode(parseInt(identifier.slice(2), 16));
-			if (char === "\0") { // ignore
-				char = "";
-			}
-			char = shiftKey ? char.toUpperCase() : char.toLowerCase(); // do we get keys in unicode always in uppercase?
-		} else {
-			char = identifier; // take it, could be "Enter"
-		}
-		return char;
-	}
-
-	private static readonly numPadOffKeyMap: Record<string, string> = {
-		"96Numpad0": "45Numpad0",
-		"97Numpad1": "35Numpad1",
-		"98Numpad2": "40Numpad2",
-		"99Numpad3": "34Numpad3",
-		"100Numpad4": "37Numpad4",
-		"101Numpad5": "12Numpad5",
-		"102Numpad6": "39Numpad6",
-		"103Numpad7": "36Numpad7",
-		"104Numpad8": "38Numpad8",
-		"105Numpad9": "33Numpad9",
-		"110NumpadDecimal": "46NumpadDecimal"
+	private static readonly numPadOffKeyMap: Record<string, number> = {
+		Numpad0: 76,
+		Numpad1: 82,
+		Numpad2: 73,
+		Numpad3: 83,
+		Numpad4: 74,
+		Numpad5: 76,
+		Numpad6: 75,
+		Numpad7: 80,
+		Numpad8: 72,
+		Numpad9: 81,
+		NumpadDecimal: 77
 	};
 
 	private fnKeyboardKeydown(event: KeyboardEvent) { // eslint-disable-line complexity
-		// eslint-disable-next-line @typescript-eslint/no-deprecated
-		const keyCode = event.which || event.keyCode; //TODO: deprecated
-		let pressedKey = String(keyCode) + (event.code ? event.code : ""), // event.code available for e.g. Chrome, Firefox
-			key = event.key || Keyboard.keyIdentifier2Char(event) || ""; // SliTaz web browser has not key but keyIdentifier
-
-		if (!event.code && !this.codeStringsRemoved) { // event.code not available on e.g. IE, Edge
-			this.removeCodeStringsFromKeymap(); // remove code information from the mapping. Not all keys can be detected any more
-			this.codeStringsRemoved = true;
-		}
+		const pressedKey = event.code;
+		let key = event.key;
 
 		if (UiUtils.debug > 1) {
-			UiUtils.console.log("fnKeyboardKeydown: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
+			UiUtils.console.log("fnKeyboardKeydown: code=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
 		}
 
 		if (pressedKey in this.key2CpcKey) {
-			const numTabOffKey = this.simulatedNumLock === false ? Keyboard.numPadOffKeyMap[pressedKey] : undefined;
-
-			if (numTabOffKey) {
-				pressedKey = numTabOffKey;
-			}
-			let cpcKey = this.key2CpcKey[pressedKey];
+			const numPadOffKey = (this.simulatedNumLock === false || key.length > 1) ? Keyboard.numPadOffKeyMap[pressedKey] : undefined;
+			let cpcKey = numPadOffKey ?? this.key2CpcKey[pressedKey];
 
 			if (cpcKey === 85) { // map virtual cpc key 85 to 22 (english keyboard)
 				cpcKey = 22;
@@ -514,24 +434,12 @@ export class Keyboard implements IKeyboard {
 				key = "JoyRight";
 			} else if (key === "Dead") { // Chrome, FF
 				key += event.code + (event.shiftKey ? "Shift" : ""); // special handling => "DeadBackquote" or "DeadEqual"; and "Shift"
-			} else if (key === "Unidentified") { // IE, Edge
-				if (keyCode === 220) {
-					key = event.shiftKey ? "°" : "DeadBackquote";
-				} else if (keyCode === 221) {
-					key = "DeadEqual" + (event.shiftKey ? "Shift" : "");
-				} else if (keyCode === 226) { // "|"
-					key = "|";
-				}
-			} else if (key.length === 2) {
-				if (key.charAt(0) === "^" || key.charAt(0) === "´" || key.charAt(0) === "`") { // IE, Edge? prefix key
-					key = key.substring(1); // remove prefix
-				}
 			}
 			this.fnPressCpcKey(event, cpcKey, pressedKey, key);
 		} else if (key.length === 1) { // put normal keys in buffer, ignore special keys with more than 1 character
 			this.putKeyInBuffer(key);
 			UiUtils.console.log("fnKeyboardKeydown: Partly unhandled key", pressedKey + ":", key);
-		} else if (pressedKey === "12NumLock") { // key = "Clear"; MacOS
+		} else if (pressedKey === "NumLock") { // key = "Clear"; MacOS
 			this.simulatedNumLock = this.simulatedNumLock !== undefined ? !this.simulatedNumLock : false;
 			if (UiUtils.debug > 1) {
 				UiUtils.console.log("fnKeyboardKeydown: simulatedNumLock=" + this.simulatedNumLock);
@@ -542,28 +450,22 @@ export class Keyboard implements IKeyboard {
 	}
 
 	private fnKeyboardKeyup(event: KeyboardEvent) {
-		// eslint-disable-next-line @typescript-eslint/no-deprecated
-		const keyCode = event.which || event.keyCode, //TODO: deprecated
-			key = event.key || Keyboard.keyIdentifier2Char(event) || ""; // SliTaz web browser has not key but keyIdentifier
-		let pressedKey = String(keyCode) + (event.code ? event.code : ""); // event.code available for e.g. Chrome, Firefox
+		const pressedKey = event.code,
+			key = event.key;
 
 		if (UiUtils.debug > 1) {
-			UiUtils.console.log("fnKeyboardKeyup: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
+			UiUtils.console.log("fnKeyboardKeyup: code=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
 		}
 
 		if (pressedKey in this.key2CpcKey) {
-			const numTabOffKey = this.simulatedNumLock === false ? Keyboard.numPadOffKeyMap[pressedKey] : undefined;
-
-			if (numTabOffKey) {
-				pressedKey = numTabOffKey;
-			}
-			let cpcKey = this.key2CpcKey[pressedKey];
+			const numPadOffKey = (this.simulatedNumLock === false || key.length > 1) ? Keyboard.numPadOffKeyMap[pressedKey] : undefined;
+			let cpcKey = numPadOffKey ?? this.key2CpcKey[pressedKey];
 
 			if (cpcKey === 85) { // map virtual cpc key 85 to 22 (english keyboard)
 				cpcKey = 22;
 			}
 			this.fnReleaseCpcKey(event, cpcKey, pressedKey, key);
-		} else if (pressedKey === "12NumLock") { // key = "Clear"; MacOS
+		} else if (pressedKey === "NumLock") { // key = "Clear"; MacOS
 			if (UiUtils.debug > 1) {
 				UiUtils.console.log("fnKeyboardKeyup: simulatedNumLock=" + this.simulatedNumLock);
 			}

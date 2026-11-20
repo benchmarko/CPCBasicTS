@@ -90,7 +90,7 @@ export class DragElement {
 		}
 		this.dragInfo = entry;
 		const dragInfo = this.dragInfo,
-			clientObject = (event.type === "touchstart") ? (event as TouchEvent).touches[0] : event as PointerEvent; // special handling for TouchEvent (otherwise MouseEvent or similar PointerEvent)
+			clientObject = event as PointerEvent;
 
 		this.initialX = clientObject.clientX - dragInfo.xOffset;
 		this.initialY = clientObject.clientY - dragInfo.yOffset;
@@ -110,7 +110,7 @@ export class DragElement {
 
 		if (dragInfo) {
 			event.preventDefault();
-			const clientObject = (event.type === "touchstart") ? (event as TouchEvent).touches[0] : event as PointerEvent;
+			const clientObject = event as PointerEvent;
 
 			this.currentX = clientObject.clientX - this.initialX;
 			this.currentY = clientObject.clientY - this.initialY;

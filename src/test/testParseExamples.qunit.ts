@@ -33,8 +33,7 @@ import { TestHelper } from "./TestHelper";
 import { TestNodeUtils } from "./TestNodeUtils";
 import { TestUiUtils } from "./TestUiUtils";
 
-// eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func, @typescript-eslint/no-unsafe-call
-const myGlobalThis: ParseExamplesGlobal = (typeof globalThis !== "undefined") ? globalThis : Function("return this")() as ParseExamplesGlobal; // for old IE
+const myGlobalThis: ParseExamplesGlobal = globalThis;
 
 function isUrl(s: string) {
 	return s.startsWith("http"); // http or https

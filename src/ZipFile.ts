@@ -88,7 +88,7 @@ export class ZipFile {
 		const data = this.data,
 			end = begin + length;
 
-		return data.slice ? data.slice(begin, end) : data.subarray(begin, end); // array.slice on Uint8Array not for IE11
+		return data.slice(begin, end);
 	}
 
 	private readUTF(offset: number, len: number) {

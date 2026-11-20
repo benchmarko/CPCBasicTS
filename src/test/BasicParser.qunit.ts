@@ -801,7 +801,6 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 				Utils.console.error(e); // only if unexpected
 			}
 			const error: Record<string, unknown> = e !== null && typeof e === "object" ? e as Record<string, unknown> : {};
-			// on IE we have additional properties description, number, stack in the object, so we use a positive list...
 			// eslint-disable-next-line object-property-newline, object-curly-newline
 			const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(error);
 			// (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
@@ -819,7 +818,7 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 
 		for (const key in tests) {
 			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const expected = TestHelper.handleBinaryLiterals(tests[key]);
+				const expected = tests[key];
 				let expectedEntry: ExpectedTestEntry;
 
 				try {
@@ -959,7 +958,7 @@ QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
 		for (const key in tests) {
 			if (Object.prototype.hasOwnProperty.call(tests, key)) {
 				spaceCount = 1;
-				const expected = TestHelper.handleBinaryLiterals(tests[key]),
+				const expected = tests[key],
 					keyWithSpaces = key.replace(/([=?+\-*^/\\,;()#])/g, " $1 ").replace(/ +/g, fnSpaceReplacer).replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/e[ ]+\+[ ]+(\d+)/g, "e+$1"), // with fast hacks
 					result = runSingleTestForWhitespace(basicLexer, basicParser, keyWithSpaces, expected);
 
