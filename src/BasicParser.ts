@@ -390,18 +390,16 @@ export class BasicParser {
 			...BasicParser.keywordsBasic11
 		}; // clone
 
-		for (const key in keywords10) {
-			if (Object.prototype.hasOwnProperty.call(keywords10, key)) {
-				const keyWithSpaces = " " + key + " ";
+		for (const key of Object.keys(keywords10)) {
+			const keyWithSpaces = " " + key + " ";
 
-				// what about DEC$ ?
-				if (BasicParser.fnIsInString(" clearInput copychr$ cursor derr fill frame graphics graphicsPaper graphicsPen mask onBreakCont ", keyWithSpaces)) {
-					delete keywords10[key]; // remove keywords which do not exist in BASIC 1.0
-				} else if (BasicParser.fnIsInString(" draw drawr move mover pen plot plotr ", keyWithSpaces)) {
-					keywords10[key] = keywords10[key].substring(0, keywords10[key].lastIndexOf(" ")); // remove the last parameter <ink mode>; or <background mode> for pen
-					if (BasicParser.fnIsInString(" move mover ", keyWithSpaces)) {
-						keywords10[key] = keywords10[key].substring(0, keywords10[key].lastIndexOf(" ")); // also remove parameter <ink>
-					}
+			// what about DEC$ ?
+			if (BasicParser.fnIsInString(" clearInput copychr$ cursor derr fill frame graphics graphicsPaper graphicsPen mask onBreakCont ", keyWithSpaces)) {
+				delete keywords10[key]; // remove keywords which do not exist in BASIC 1.0
+			} else if (BasicParser.fnIsInString(" draw drawr move mover pen plot plotr ", keyWithSpaces)) {
+				keywords10[key] = keywords10[key].substring(0, keywords10[key].lastIndexOf(" ")); // remove the last parameter <ink mode>; or <background mode> for pen
+				if (BasicParser.fnIsInString(" move mover ", keyWithSpaces)) {
+					keywords10[key] = keywords10[key].substring(0, keywords10[key].lastIndexOf(" ")); // also remove parameter <ink>
 				}
 			}
 		}
@@ -1625,17 +1623,15 @@ export class BasicParser {
 	}
 
 	private fnGenerateKeywordSymbols() {
-		for (const key in this.keywords) {
-			if (Object.prototype.hasOwnProperty.call(this.keywords, key)) {
-				const keywordType = this.keywords[key].charAt(0);
+		for (const key of Object.keys(this.keywords)) {
+			const keywordType = this.keywords[key].charAt(0);
 
-				if (keywordType === "f") {
-					this.createNudSymbol(key, () => this.fnCreateFuncCall(this.previousToken));
-				} else if (keywordType === "c") {
-					this.createStatement(key, this.specialStatements[key] || this.fnCreateCmdCall);
-				} else if (keywordType === "p") { // additional parts of command
-					this.createSymbol(key);
-				}
+			if (keywordType === "f") {
+				this.createNudSymbol(key, () => this.fnCreateFuncCall(this.previousToken));
+			} else if (keywordType === "c") {
+				this.createStatement(key, this.specialStatements[key] || this.fnCreateCmdCall);
+			} else if (keywordType === "p") { // additional parts of command
+				this.createSymbol(key);
 			}
 		}
 	}

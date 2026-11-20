@@ -110,15 +110,7 @@ export class Controller0 implements IRuntimeController {
 	private getHasStorageDatabase() {
 		const databases = this.core.getModel().getAllDatabases();
 
-		let hasStorageDatabase = false;
-		for (const value in databases) {
-			if (Object.prototype.hasOwnProperty.call(databases, value)) {
-				if (value === "storage") {
-					hasStorageDatabase = true;
-				}
-			}
-		}
-		return hasStorageDatabase;
+		return Object.keys(databases).includes("storage");
 	}
 
 	private updateStorageDatabase(action: string, key: string) {

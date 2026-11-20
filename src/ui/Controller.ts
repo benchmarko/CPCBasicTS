@@ -233,15 +233,7 @@ export class Controller implements IController {
 	private getHasStorageDatabase() {
 		const databases = this.model.getAllDatabases();
 
-		let hasStorageDatabase = false;
-		for (const value in databases) {
-			if (Object.prototype.hasOwnProperty.call(databases, value)) {
-				if (value === "storage") {
-					hasStorageDatabase = true;
-				}
-			}
-		}
-		return hasStorageDatabase;
+		return Object.keys(databases).includes("storage");
 	}
 
 	private onUserAction(/* event, id */) {
@@ -255,18 +247,15 @@ export class Controller implements IController {
 			databases = this.model.getAllDatabases(),
 			database = this.model.getAllProperties().database;
 
-		for (const value in databases) {
-			if (Object.prototype.hasOwnProperty.call(databases, value)) {
-				const db = databases[value],
-					item: SelectOptionElement = {
-						value: value,
-						text: db.text,
-						title: db.title,
-						selected: value === database
-					};
+		for (const [value, db] of Object.entries(databases)) {
+			const item: SelectOptionElement = {
+				value: value,
+				text: db.text,
+				title: db.title,
+				selected: value === database
+			};
 
-				items.push(item);
-			}
+			items.push(item);
 		}
 		this.view.setSelectOptions(ViewID.databaseSelect, items);
 	}
@@ -297,22 +286,19 @@ export class Controller implements IController {
 			examplePath = Controller.getPathFromExample(this.model.getAllProperties().example),
 			directorySeen: Record<string, boolean> = {};
 
-		for (const key in allExamples) {
-			if (Object.prototype.hasOwnProperty.call(allExamples, key)) {
-				const exampleEntry = allExamples[key],
-					value = Controller.getPathFromExample(exampleEntry.key);
+		for (const exampleEntry of Object.values(allExamples)) {
+			const value = Controller.getPathFromExample(exampleEntry.key);
 
-				if (!directorySeen[value]) {
-					const item: SelectOptionElement = {
-						value: value,
-						text: value,
-						title: value,
-						selected: value === examplePath
-					};
+			if (!directorySeen[value]) {
+				const item: SelectOptionElement = {
+					value: value,
+					text: value,
+					title: value,
+					selected: value === examplePath
+				};
 
-					items.push(item);
-					directorySeen[value] = true;
-				}
+				items.push(item);
+				directorySeen[value] = true;
 			}
 		}
 		this.view.setSelectOptions(ViewID.directorySelect, items);
@@ -329,10 +315,9 @@ export class Controller implements IController {
 
 		let exampleSelected = false;
 
-		for (const key in allExamples) {
-			if (Object.prototype.hasOwnProperty.call(allExamples, key) && (Controller.getPathFromExample(key) === directoryName)) {
-				const exampleEntry = allExamples[key],
-					exampleName2 = Controller.getNameFromExample(exampleEntry.key);
+		for (const [key, exampleEntry] of Object.entries(allExamples)) {
+			if (Controller.getPathFromExample(key) === directoryName) {
+				const exampleName2 = Controller.getNameFromExample(exampleEntry.key);
 
 				if (selectDataFiles || (exampleEntry.meta !== "D")) { // skip data files
 					const title = (exampleName2 + ": " + exampleEntry.title).substring(0, maxTitleLength),
@@ -1906,10 +1891,11 @@ export class Controller implements IController {
 	fnDragElementsActive(enabled: boolean): void {
 		const dragElement = this.getDragElement(),
 			dragElementsData = this.dragElementsData;
+		const entries = dragElementsData.entries;
 
-		for (const entry in dragElementsData.entries) {
-			if (Object.prototype.hasOwnProperty.call(dragElementsData.entries, entry)) {
-				dragElementsData.entries[entry].enabled = enabled;
+		if (entries) {
+			for (const entry of Object.values(entries)) {
+				entry.enabled = enabled;
 			}
 		}
 

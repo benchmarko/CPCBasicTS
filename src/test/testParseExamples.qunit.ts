@@ -250,13 +250,11 @@ class cpcBasic {
 			vmMockExtensions = vmMock as unknown as Record<string, unknown>,
 			keywords = cpcBasic.basicParser.getKeywords();
 
-		for (const key in keywords) {
-			if (Object.prototype.hasOwnProperty.call(keywords, key)) {
-				if (!vmMockExtensions[key]) {
-					vmMockExtensions[key] = function () {
-						return key;
-					};
-				}
+		for (const key of Object.keys(keywords)) {
+			if (!vmMockExtensions[key]) {
+				vmMockExtensions[key] = function () {
+					return key;
+				};
 			}
 		}
 	}
@@ -300,14 +298,12 @@ class cpcBasic {
 	}
 
 	private static addIndex2(_dir: string, input: Record<string, unknown>) { // dir maybe ""
-		for (const value in input) {
-			if (Object.prototype.hasOwnProperty.call(input, value)) {
-				const item = input[value] as ExampleEntry[];
+		for (const value of Object.values(input)) {
+			const item = value as ExampleEntry[];
 
-				for (let i = 0; i < item.length; i += 1) {
-					//item[i].dir = dir; // TTT to check
-					this.model.setExample(item[i]);
-				}
+			for (let i = 0; i < item.length; i += 1) {
+				//item[i].dir = dir; // TTT to check
+				this.model.setExample(item[i]);
 			}
 		}
 	}

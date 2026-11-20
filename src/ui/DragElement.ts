@@ -58,15 +58,11 @@ export class DragElement {
 
 		const entries = this.options.entries;
 
-		for (const key in entries) {
-			if (Object.prototype.hasOwnProperty.call(entries, key)) {
-				const item = entries[key];
-
-				if (item.enabled) {
-					this.options.view.fnAttachPointerEvents(item.itemId, this.fnDragStartHandler);
-				} else {
-					this.options.view.fnDetachPointerEvents(item.itemId, this.fnDragStartHandler);
-				}
+		for (const item of Object.values(entries)) {
+			if (item.enabled) {
+				this.options.view.fnAttachPointerEvents(item.itemId, this.fnDragStartHandler);
+			} else {
+				this.options.view.fnDetachPointerEvents(item.itemId, this.fnDragStartHandler);
 			}
 		}
 	}

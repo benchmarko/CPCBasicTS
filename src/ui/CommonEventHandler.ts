@@ -104,17 +104,9 @@ export class CommonEventHandler implements EventListenerObject {
 	initToggles(): void {
 		const eventDefInternalMap = this.eventDefInternalMap;
 
-		for (const type in eventDefInternalMap) {
-			if (Object.prototype.hasOwnProperty.call(eventDefInternalMap, type)) {
-				const eventDefMap4Type = eventDefInternalMap[type];
-
-				for (const id in eventDefMap4Type) {
-					if (Object.prototype.hasOwnProperty.call(eventDefMap4Type, id)) {
-						const eventDef = eventDefMap4Type[id as unknown as ViewID];
-
-						this.initOneToggle(type, id as unknown as ViewID, eventDef);
-					}
-				}
+		for (const [type, eventDefMap4Type] of Object.entries(eventDefInternalMap)) {
+			for (const [id, eventDef] of Object.entries(eventDefMap4Type)) {
+				this.initOneToggle(type, id as unknown as ViewID, eventDef);
 			}
 		}
 	}
@@ -139,19 +131,15 @@ export class CommonEventHandler implements EventListenerObject {
 		const eventDefInternalMap = this.eventDefInternalMap,
 			eventDefMapClick = eventDefInternalMap.click;
 
-		for (const id in eventDefMapClick) {
-			if (Object.prototype.hasOwnProperty.call(eventDefMapClick, id)) {
-				const eventDef = eventDefMapClick[id as unknown as ViewID];
+		for (const eventDef of Object.values(eventDefMapClick)) {
+			if (eventDef.isPopover && (eventDef.toggleId !== exceptId)) {
+				const toggleId = CommonEventHandler.getToggleId(eventDef),
+					property = CommonEventHandler.getproperty(eventDef);
 
-				if (eventDef.isPopover && (eventDef.toggleId !== exceptId)) {
-					const toggleId = CommonEventHandler.getToggleId(eventDef),
-						property = CommonEventHandler.getproperty(eventDef);
-
-					if (!this.view.getHidden(toggleId)) {
-						// we cannot use toggleAreaHidden because it would be recursive
-						this.model.setProperty(property, false);
-						this.view.setHidden(toggleId, true, eventDef.display);
-					}
+				if (!this.view.getHidden(toggleId)) {
+					// we cannot use toggleAreaHidden because it would be recursive
+					this.model.setProperty(property, false);
+					this.view.setHidden(toggleId, true, eventDef.display);
 				}
 			}
 		}
@@ -295,10 +283,8 @@ export class CommonEventHandler implements EventListenerObject {
 			initial = this.model.getAllInitialProperties(),
 			changed = this.model.getChangedProperties();
 
-		for (const name in initial) {
-			if (Object.prototype.hasOwnProperty.call(initial, name)) {
-				url.searchParams.delete(name);
-			}
+		for (const name of Object.keys(initial)) {
+			url.searchParams.delete(name);
 		}
 		for (const name in changed) {
 			url.searchParams.set(name, String((changed as Record<string, ConfigType[keyof ConfigType]>)[name]));
@@ -807,15 +793,12 @@ export class CommonEventHandler implements EventListenerObject {
 				]
 			};
 
-		for (const type in eventDefs) {
-			if (Object.prototype.hasOwnProperty.call(eventDefs, type)) {
-				eventDefInternalMap[type] = {} as Record<ViewID, EventDefType>;
-				const eventDefList = eventDefs[type],
-					itemForType = eventDefInternalMap[type];
+		for (const [type, eventDefList] of Object.entries(eventDefs)) {
+			eventDefInternalMap[type] = {} as Record<ViewID, EventDefType>;
+			const itemForType = eventDefInternalMap[type];
 
-				for (let i = 0; i < eventDefList.length; i += 1) {
-					itemForType[eventDefList[i].id] = eventDefList[i];
-				}
+			for (let i = 0; i < eventDefList.length; i += 1) {
+				itemForType[eventDefList[i].id] = eventDefList[i];
 			}
 		}
 	}

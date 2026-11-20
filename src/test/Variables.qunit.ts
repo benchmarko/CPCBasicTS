@@ -168,18 +168,15 @@ QUnit.module("Variables: determineStaticVarType", function (hooks) {
 	function runTestsForDetermineStaticVarType(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		const variables = new Variables({});
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const expected = tests[key],
-					result = variables.determineStaticVarType(key);
+		for (const [key, expected] of Object.entries(tests)) {
+			const result = variables.determineStaticVarType(key);
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					assert.strictEqual(result, expected, key);
-				}
+			if (assert) {
+				assert.strictEqual(result, expected, key);
 			}
 		}
 	}

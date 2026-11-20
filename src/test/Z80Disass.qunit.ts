@@ -1934,18 +1934,15 @@ QUnit.module("Z80Disass: Tests", function (hooks) {
 			return;
 		}
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const expected = tests[key],
-					result = runSingleTest(z80Disass, key);
+		for (const [key, expected] of Object.entries(tests)) {
+			const result = runSingleTest(z80Disass, key);
 
-				if (results) {
-					results[category].push(TestHelper.hexInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.hexInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					assert.strictEqual(result, expected, TestHelper.hexInQuotes(key));
-				}
+			if (assert) {
+				assert.strictEqual(result, expected, TestHelper.hexInQuotes(key));
 			}
 		}
 	}

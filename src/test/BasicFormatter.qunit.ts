@@ -266,18 +266,15 @@ QUnit.module("BasicFormatter:renumber: Tests", function (hooks) {
 				parser: basicParser
 			});
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const expected = tests[key],
-					result = runSingleTest(basicFormatter, key);
+		for (const [key, expected] of Object.entries(tests)) {
+			const result = runSingleTest(basicFormatter, key);
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					assert.strictEqual(result, expected, key);
-				}
+			if (assert) {
+				assert.strictEqual(result, expected, key);
 			}
 		}
 	}

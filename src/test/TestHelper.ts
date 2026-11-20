@@ -67,7 +67,7 @@ export class TestHelper {
 			if (Object.prototype.hasOwnProperty.call(config, name)) {
 				let value: string|number|boolean = nameValueList[1];
 
-				if (value !== undefined && Object.prototype.hasOwnProperty.call(config, name)) {
+				if (value !== undefined) {
 					switch (typeof config[name]) {
 					case "string":
 						break;
@@ -113,16 +113,14 @@ export class TestHelper {
 	}
 
 	private static generateTests(allTests: AllTestsType, runTestsFor: runTestsForType, results?: ResultType) {
-		for (const category in allTests) {
-			if (Object.prototype.hasOwnProperty.call(allTests, category)) {
-				if (results) {
-					results[category] = [];
-				}
-
-				QUnit.test(category, function (assert) { // category must be a local variable
-					runTestsFor(category, allTests[category], assert, results);
-				});
+		for (const category of Object.keys(allTests)) {
+			if (results) {
+				results[category] = [];
 			}
+
+			QUnit.test(category, function (assert) { // category must be a local variable
+				runTestsFor(category, allTests[category], assert, results);
+			});
 		}
 	}
 
@@ -219,17 +217,15 @@ export class TestHelper {
 	}
 
 	private static listKeys(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const result = "";
+		for (const key of Object.keys(tests)) {
+			const result = "";
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					assert.strictEqual(result, result);
-				}
+			if (assert) {
+				assert.strictEqual(result, result);
 			}
 		}
 	}
@@ -238,18 +234,15 @@ export class TestHelper {
 		const reJsKeywords = TestHelper.createJsKeywordRegex();
 		let result = "";
 
-		for (const category in allResults) {
-			if (Object.prototype.hasOwnProperty.call(allResults, category)) {
-				const results = allResults[category],
-					containsSpace = category.indexOf(" ") >= 0,
-					isJsKeyword = reJsKeywords.test(category);
+		for (const [category, results] of Object.entries(allResults)) {
+			const containsSpace = category.indexOf(" ") >= 0,
+				isJsKeyword = reJsKeywords.test(category);
 
-				if (results.length) {
-					result += containsSpace || isJsKeyword ? TestHelper.stringInQuotes(category) : category;
-					result += ": {\n";
-					result += results.join(",\n");
-					result += "\n},\n";
-				}
+			if (results.length) {
+				result += containsSpace || isJsKeyword ? TestHelper.stringInQuotes(category) : category;
+				result += ": {\n";
+				result += results.join(",\n");
+				result += "\n},\n";
 			}
 		}
 		result = result.replace(/,\n$/, "\n"); // remove last comma
@@ -294,7 +287,7 @@ export class TestHelper {
 		let isEqual = TestHelper.compareKeys(categories1, categories2, "categories", referenceFile, comparedFile);
 
 		for (const category of categories1) {
-			if (Object.prototype.hasOwnProperty.call(allTests2, category)) {
+			if (categories2.includes(category)) {
 				const keys1 = Object.keys(allTests1[category]),
 					keys2 = Object.keys(allTests2[category]);
 

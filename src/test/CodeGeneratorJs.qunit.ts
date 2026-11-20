@@ -801,18 +801,15 @@ QUnit.module("CodeGeneratorJs: Tests", function (hooks) {
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		const codeGeneratorJs = (hooks as hooksWithCodeGeneratorJs).codeGeneratorJs;
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const expected = tests[key],
-					result = runSingleTest(codeGeneratorJs, key);
+		for (const [key, expected] of Object.entries(tests)) {
+			const result = runSingleTest(codeGeneratorJs, key);
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					assert.strictEqual(result, expected, key);
-				}
+			if (assert) {
+				assert.strictEqual(result, expected, key);
 			}
 		}
 	}

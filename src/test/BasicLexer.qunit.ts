@@ -815,29 +815,26 @@ QUnit.module("BasicLexer: Tests", function (hooks) {
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		const basicLexer = (hooks as hooksWithBasicLexer).basicLexer;
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const expected = tests[key];
-				let expectedEntry: ExpectedTestEntry;
+		for (const [key, expected] of Object.entries(tests)) {
+			let expectedEntry: ExpectedTestEntry;
 
-				try {
-					expectedEntry = TestHelper.parseExpectedEntry(expected);
-				} catch (e) {
-					Utils.console.error(e);
-					expectedEntry = {}; // continue
-				}
+			try {
+				expectedEntry = TestHelper.parseExpectedEntry(expected);
+			} catch (e) {
+				Utils.console.error(e);
+				expectedEntry = {}; // continue
+			}
 
-				const result = runSingleTest(basicLexer, key, expectedEntry);
+			const result = runSingleTest(basicLexer, key, expectedEntry);
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					const tokens: unknown = JSON.parse(result);
+			if (assert) {
+				const tokens: unknown = JSON.parse(result);
 
-					assert.deepEqual(tokens, expectedEntry, key);
-				}
+				assert.deepEqual(tokens, expectedEntry, key);
 			}
 		}
 	}
@@ -912,20 +909,17 @@ QUnit.module("BasicLexer: keepWhiteSpace", function (hooks) {
 			return " ".repeat(spaceCount);
 		};
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				spaceCount = 1;
-				const expected = tests[key],
-					keyWithSpaces = key.replace(/([=?+\-*^/\\,;()#])/g, " $1 ").replace(/\s+/g, fnSpaceReplacer),
-					result = runSingleTestForWhitespace(basicLexer, keyWithSpaces, expected);
+		for (const [key, expected] of Object.entries(tests)) {
+			spaceCount = 1;
+			const keyWithSpaces = key.replace(/([=?+\-*^/\\,;()#])/g, " $1 ").replace(/\s+/g, fnSpaceReplacer),
+				result = runSingleTestForWhitespace(basicLexer, keyWithSpaces, expected);
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(keyWithSpaces) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(keyWithSpaces) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					assert.strictEqual(result, keyWithSpaces, keyWithSpaces);
-				}
+			if (assert) {
+				assert.strictEqual(result, keyWithSpaces, keyWithSpaces);
 			}
 		}
 	}

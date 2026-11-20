@@ -330,17 +330,14 @@ export class FileHandler {
 		for (const entry of entries) {
 			fileExists[entry] = true;
 		}
-		for (const key in examples) {
-			if (Object.prototype.hasOwnProperty.call(examples, key)) {
-				const example = examples[key],
-					name = example.key,
-					matchName = name + (name.indexOf(".") < 0 ? "." : "");
-				if (!regExp || regExp.test(matchName)) {
-					const entry = name.substring(path.length);
-					if (!fileExists[entry]) {
-						fileExists[entry] = true;
-						entries.push(entry);
-					}
+		for (const example of Object.values(examples)) {
+			const name = example.key,
+				matchName = name + (name.indexOf(".") < 0 ? "." : "");
+			if (!regExp || regExp.test(matchName)) {
+				const entry = name.substring(path.length);
+				if (!fileExists[entry]) {
+					fileExists[entry] = true;
+					entries.push(entry);
 				}
 			}
 		}

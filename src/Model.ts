@@ -51,24 +51,18 @@ export class Model implements IModel {
 			initial = this.initialConfig as Record<string, ConfigType[keyof ConfigType]>,
 			changed = {} as ConfigType;
 
-		for (const name in current) {
-			if (Object.prototype.hasOwnProperty.call(current, name)) {
-				if (current[name] !== initial[name]) {
-					(changed as Record<string, ConfigType[keyof ConfigType]>)[name] = current[name];
-				}
+		for (const [name, value] of Object.entries(current)) {
+			if (value !== initial[name]) {
+				(changed as Record<string, ConfigType[keyof ConfigType]>)[name] = value;
 			}
 		}
 		return changed;
 	}
 
 	addDatabases(db: DatabasesType): void {
-		for (const par in db) {
-			if (Object.prototype.hasOwnProperty.call(db, par)) {
-				const entry = db[par];
-
-				this.databases[par] = entry;
-				this.examples[par] = {};
-			}
+		for (const [par, entry] of Object.entries(db)) {
+			this.databases[par] = entry;
+			this.examples[par] = {};
 		}
 	}
 	getAllDatabases(): DatabasesType {

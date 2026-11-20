@@ -43,33 +43,30 @@ QUnit.module("ZipFile: Tests", function (hooks) {
 	}
 
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const parts = Utils.split2(key, ","),
-					meta = parts[0],
-					atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob,
-					data = atobFn(parts[1]), // decode base64
-					zip = new ZipFile({
-						data: Utils.string2Uint8Array(data),
-						zipName: "name"
-					}),
-					expected = tests[key];
-				let result: string;
+		for (const [key, expected] of Object.entries(tests)) {
+			const parts = Utils.split2(key, ","),
+				meta = parts[0],
+				atobFn = TestNodeUtils.isNodeRuntime() ? TestNodeUtils.atob : TestUiUtils.atob,
+				data = atobFn(parts[1]), // decode base64
+				zip = new ZipFile({
+					data: Utils.string2Uint8Array(data),
+					zipName: "name"
+				});
+			let result: string;
 
-				try {
-					result = fnExtractZipFiles(zip);
-				} catch (e) {
-					Utils.console.error(e);
-					result = String(e);
-				}
+			try {
+				result = fnExtractZipFiles(zip);
+			} catch (e) {
+				Utils.console.error(e);
+				result = String(e);
+			}
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					assert.strictEqual(result, expected, meta);
-				}
+			if (assert) {
+				assert.strictEqual(result, expected, meta);
 			}
 		}
 	}

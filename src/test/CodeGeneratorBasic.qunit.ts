@@ -820,19 +820,16 @@ QUnit.module("CodeGeneratorBasic: Tests", function (hooks) {
 			keepWhiteSpace: category === "keepSpaces" // keepWhiteSpace active for category "keepSpaces"
 		});
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const expected = tests[key],
-					output = codeGeneratorBasic.generate(key),
-					result = output.error ? String(output.error) : output.text;
+		for (const [key, expected] of Object.entries(tests)) {
+			const output = codeGeneratorBasic.generate(key),
+				result = output.error ? String(output.error) : output.text;
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					assert.strictEqual(result, expected, key);
-				}
+			if (assert) {
+				assert.strictEqual(result, expected, key);
 			}
 		}
 	}
@@ -872,45 +869,42 @@ QUnit.module("CodeGeneratorBasic: keepWhiteSpace", function (hooks) {
 			return " ".repeat(spaceCount) + value + " ".repeat(spaceCount + 1);
 		};
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
+		for (const [key, expected] of Object.entries(tests)) {
+			spaceCount = 1;
+			let keyWithSpaces = key;
+
+			keyWithSpaces = keyWithSpaces.replace(/(\w)#/g, "$1 #").replace(/:\s+(\w)/g, ":$1");
+
+			if (keyWithSpaces.startsWith("chain")) {
+				keyWithSpaces = keyWithSpaces.replace(/\s+,/g, ",").replace(/,\s+/g, ","); // fast hack: prepare
+			} else if (keyWithSpaces.startsWith("else")) {
+				keyWithSpaces = keyWithSpaces.replace(/(=)/g, " $1 ");// hack ELSE a=7 => ELSE a = 7
+			}
+
+			keyWithSpaces = keyWithSpaces.replace(/(\d+)e(\d+)/, "$1e+$2"); // 1e9, 2.5e10 => 1e+9
+
+			keyWithSpaces = keyWithSpaces.replace(/([=?+\-*^/\\,;()#])/g, fnSpaceReplacer);
+			keyWithSpaces = keyWithSpaces.replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/e[ ]+\+[ ]+(\d+)/g, "e+$1"); // with fast hacks
+
+			const result = runSingleTestForWhitespace(codeGeneratorBasic, keyWithSpaces, expected);
+
+			let expectedWithSpaces = expected;
+
+			if (expected !== result) { // fast hack: not for error messages
 				spaceCount = 1;
-				const expected = tests[key];
-				let keyWithSpaces = key;
+				expectedWithSpaces = expectedWithSpaces.replace(/:\s+(\w)/g, ":$1");
+				expectedWithSpaces = expectedWithSpaces.replace(/(chain)"/g, '$1"');
 
-				keyWithSpaces = keyWithSpaces.replace(/(\w)#/g, "$1 #").replace(/:\s+(\w)/g, ":$1");
+				expectedWithSpaces = expectedWithSpaces.replace(/([=?+\-*^/\\,;()#])/g, fnSpaceReplacer);
+				expectedWithSpaces = expectedWithSpaces.replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/E[ ]+\+[ ]+(\d+)/g, "E+$1"); // with fast hacks
+			}
 
-				if (keyWithSpaces.startsWith("chain")) {
-					keyWithSpaces = keyWithSpaces.replace(/\s+,/g, ",").replace(/,\s+/g, ","); // fast hack: prepare
-				} else if (keyWithSpaces.startsWith("else")) {
-					keyWithSpaces = keyWithSpaces.replace(/(=)/g, " $1 ");// hack ELSE a=7 => ELSE a = 7
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(keyWithSpaces) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				keyWithSpaces = keyWithSpaces.replace(/(\d+)e(\d+)/, "$1e+$2"); // 1e9, 2.5e10 => 1e+9
-
-				keyWithSpaces = keyWithSpaces.replace(/([=?+\-*^/\\,;()#])/g, fnSpaceReplacer);
-				keyWithSpaces = keyWithSpaces.replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/e[ ]+\+[ ]+(\d+)/g, "e+$1"); // with fast hacks
-
-				const result = runSingleTestForWhitespace(codeGeneratorBasic, keyWithSpaces, expected);
-
-				let expectedWithSpaces = expected;
-
-				if (expected !== result) { // fast hack: not for error messages
-					spaceCount = 1;
-					expectedWithSpaces = expectedWithSpaces.replace(/:\s+(\w)/g, ":$1");
-					expectedWithSpaces = expectedWithSpaces.replace(/(chain)"/g, '$1"');
-
-					expectedWithSpaces = expectedWithSpaces.replace(/([=?+\-*^/\\,;()#])/g, fnSpaceReplacer);
-					expectedWithSpaces = expectedWithSpaces.replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/E[ ]+\+[ ]+(\d+)/g, "E+$1"); // with fast hacks
-				}
-
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(keyWithSpaces) + ": " + TestHelper.stringInQuotes(result));
-				}
-
-				if (assert) {
-					assert.strictEqual(result, expectedWithSpaces, keyWithSpaces);
-				}
+			if (assert) {
+				assert.strictEqual(result, expectedWithSpaces, keyWithSpaces);
 			}
 		}
 	}
@@ -936,26 +930,24 @@ QUnit.module("CodeGeneratorBasic: Not keepColons", function (hooks) {
 			keepWhiteSpace: category === "keepSpaces" // keepWhiteSpace active for category "keepSpaces"
 		});
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const output = codeGeneratorBasic.generate(key),
-					result = output.error ? String(output.error) : output.text;
-				let expected = tests[key];
+		for (const [key, originalExpected] of Object.entries(tests)) {
+			const output = codeGeneratorBasic.generate(key),
+				result = output.error ? String(output.error) : output.text;
+			let expected = originalExpected;
 
-				if (!output.error) {
-					expected = expected.replace(":'", "'");
-					expected = expected.replace(/^:+/, "");
-					expected = expected.replace(/:+$/, "");
-					expected = expected.replace(/:+( *)$/, "$1");
-				}
+			if (!output.error) {
+				expected = expected.replace(":'", "'");
+				expected = expected.replace(/^:+/, "");
+				expected = expected.replace(/:+$/, "");
+				expected = expected.replace(/:+( *)$/, "$1");
+			}
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					assert.strictEqual(result, expected, key);
-				}
+			if (assert) {
+				assert.strictEqual(result, expected, key);
 			}
 		}
 	}
@@ -981,34 +973,32 @@ QUnit.module("CodeGeneratorBasic: Not keepBrackets", function (hooks) {
 			keepWhiteSpace: category === "keepSpaces" // keepWhiteSpace active for category "keepSpaces"
 		});
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const output = codeGeneratorBasic.generate(key),
-					result = output.error ? String(output.error) : output.text;
-				let	expected = tests[key];
+		for (const [key, originalExpected] of Object.entries(tests)) {
+			const output = codeGeneratorBasic.generate(key),
+				result = output.error ? String(output.error) : output.text;
+			let	expected = originalExpected;
 
-				if (!output.error) {
-					if (key === "a=(1=0)") { // test where brackets are not needed
-						expected = "a=1=0";
-					} else if (key === "a = (((3+2))*((3-7)))") {
-						expected = "a =( 3+2)*(3-7)";
-					} else if (key.indexOf("hi=de+(f*10+g)") >= 0) {
-						expected =	expected.replace("hi=de+(f*10+g)", "hi=de+f*10+g");
-					}
-
-					if (category !== "PRG") { // not in string of PRG example
-						expected = expected.replace(/( +)\(/g, "($1");
-						expected = expected.replace(/( +)\)/g, ")$1");
-					}
+			if (!output.error) {
+				if (key === "a=(1=0)") { // test where brackets are not needed
+					expected = "a=1=0";
+				} else if (key === "a = (((3+2))*((3-7)))") {
+					expected = "a =( 3+2)*(3-7)";
+				} else if (key.indexOf("hi=de+(f*10+g)") >= 0) {
+					expected =	expected.replace("hi=de+(f*10+g)", "hi=de+f*10+g");
 				}
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+				if (category !== "PRG") { // not in string of PRG example
+					expected = expected.replace(/( +)\(/g, "($1");
+					expected = expected.replace(/( +)\)/g, ")$1");
 				}
+			}
 
-				if (assert) {
-					assert.strictEqual(result, expected, key);
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
+
+			if (assert) {
+				assert.strictEqual(result, expected, key);
 			}
 		}
 	}

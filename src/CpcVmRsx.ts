@@ -22,10 +22,8 @@ export class CpcVmRsx {
 		const rsxRegister = permanent ? this.rsxPermanent : this.rsxTemporary,
 			rsxCommands = rsxModule.getRsxCommands();
 
-		for (const command in rsxCommands) {
-			if (Object.prototype.hasOwnProperty.call(rsxCommands, command)) {
-				rsxRegister[command] = rsxCommands[command];
-			}
+		for (const [command, handler] of Object.entries(rsxCommands)) {
+			rsxRegister[command] = handler;
 		}
 	}
 
