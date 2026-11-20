@@ -3662,12 +3662,12 @@ export class CpcVm implements ICpcVm {
 			if (Utils.debug > 0) {
 				Utils.console.debug("restore: search for dataLine >", line);
 			}
-			for (const dataLine in dataLineIndex) { // linear search a data line > line
-				if (Object.prototype.hasOwnProperty.call(dataLineIndex, dataLine)) {
-					if (Number(dataLine) >= line) {
-						dataLineIndex[line] = dataLineIndex[dataLine]; // set data index also for line
-						break;
-					}
+			for (const dataLine of Object.keys(dataLineIndex)) { // linear search a data line > line
+				const dataLineNumber = Number(dataLine);
+
+				if (dataLineNumber >= line) {
+					dataLineIndex[line] = dataLineIndex[dataLineNumber]; // set data index also for line
+					break;
 				}
 			}
 			if (line in dataLineIndex) { // now found a data line?
@@ -4133,7 +4133,7 @@ export class CpcVm implements ICpcVm {
 
 		this.vmAssertString(format, "USING");
 
-		// We simulate format.split(reFormat) here since it does not work with IE8
+		// Keep escaped format characters in the literal segment.
 		let index = 0,
 			match: RegExpExecArray | null;
 

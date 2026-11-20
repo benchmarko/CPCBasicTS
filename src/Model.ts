@@ -4,7 +4,6 @@
 
 
 import { Utils } from "./Utils";
-//import { ModelPropID } from "./Constants";
 import type { ConfigType, DatabaseEntry, DatabasesType, ExampleEntry, ExamplesType, IModel } from "./Interfaces";
 
 export class Model implements IModel {
@@ -21,12 +20,6 @@ export class Model implements IModel {
 		this.examples = {}; // loaded examples per database
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-	//getProperty<T extends ConfigEntryType>(property: string): T { //getProperty<T extends ConfigEntryType>(property: ModelPropID): T
-	//	return this.config[property] as T; // keyof ConfigType?
-	//}
-	
-	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	setProperty(property: keyof ConfigType, value: ConfigType[keyof ConfigType]): void {
 		const previousValue = this.config[property] as ConfigType[keyof ConfigType] | undefined;
 
@@ -38,7 +31,7 @@ export class Model implements IModel {
 	setPropertyChangeCallback(callback: (() => void) | undefined): void {
 		this.propertyChangeCallback = callback;
 	}
-	public getAllProperties(): ConfigType { // TODO: rename to getConfigMap?
+	public getAllProperties(): ConfigType {
 		return this.config;
 	}
 
@@ -51,24 +44,18 @@ export class Model implements IModel {
 			initial = this.initialConfig as Record<string, ConfigType[keyof ConfigType]>,
 			changed = {} as ConfigType;
 
-		for (const name in current) {
-			if (Object.prototype.hasOwnProperty.call(current, name)) {
-				if (current[name] !== initial[name]) {
-					(changed as Record<string, ConfigType[keyof ConfigType]>)[name] = current[name];
-				}
+		for (const [name, value] of Object.entries(current)) {
+			if (value !== initial[name]) {
+				(changed as Record<string, ConfigType[keyof ConfigType]>)[name] = value;
 			}
 		}
 		return changed;
 	}
 
 	addDatabases(db: DatabasesType): void {
-		for (const par in db) {
-			if (Object.prototype.hasOwnProperty.call(db, par)) {
-				const entry = db[par];
-
-				this.databases[par] = entry;
-				this.examples[par] = {};
-			}
+		for (const [par, entry] of Object.entries(db)) {
+			this.databases[par] = entry;
+			this.examples[par] = {};
 		}
 	}
 	getAllDatabases(): DatabasesType {

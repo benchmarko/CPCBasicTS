@@ -4,659 +4,22 @@
 	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.cpcbasicUI = {}, global.cpcbasic));
 })(this, (function (exports, Engine) { 'use strict';
 
-	var Polyfills$1 = {
-	  list: [],
-	  getList: function() {
-	    return Polyfills$1.list;
-	  },
-	  log: function(part) {
-	    Polyfills$1.list.push(part);
-	  },
-	  console: typeof window !== "undefined" ? window.console : globalThis.console,
-	  localStorage: (function() {
-	    let rc;
-	    if (typeof window !== "undefined") {
-	      try {
-	        rc = window.localStorage;
-	      } catch (_e) {
-	      }
-	    }
-	    return rc;
-	  })(),
-	  isDefinePropertyOk: (function() {
-	    if (!Object.defineProperty) {
-	      return false;
-	    }
-	    try {
-	      Object.defineProperty({}, "p1", {
-	        value: "1"
-	      });
-	    } catch (_e) {
-	      return false;
-	    }
-	    return true;
-	  })(),
-	  atob: typeof window !== "undefined" ? window.atob : void 0,
-	  btoa: typeof window !== "undefined" ? window.btoa : void 0
-	};
-	if (!Polyfills$1.console) {
-	  let logText = "LOG:\n";
-	  const appendLog = (...args) => {
-	    if (logText) {
-	      logText += args.join(" ") + "\n";
-	    }
-	  };
-	  const polyFillConsole = {
-	    get cpcBasicLog() {
-	      return logText;
-	    },
-	    set cpcBasicLog(value) {
-	      logText = value;
-	    },
-	    log: appendLog,
-	    info: appendLog,
-	    warn: appendLog,
-	    error: appendLog,
-	    debug: appendLog
-	  };
-	  Polyfills$1.console = polyFillConsole;
-	  Polyfills$1.log("window.console");
-	}
-	if (!Polyfills$1.console.debug) {
-	  Polyfills$1.console.debug = Polyfills$1.console.log;
-	  Polyfills$1.log("window.console.debug");
-	}
-	if (!Array.prototype.copyWithin) {
-	  Polyfills$1.log("Array.prototype.copyWithin");
-	  Array.prototype.copyWithin = function(target, start, end) {
-	    for (let i = start; i <= end; i += 1) {
-	      this[target] = this[i];
-	      target += 1;
-	    }
-	    return this;
-	  };
-	}
-	if (!Array.prototype.indexOf) {
-	  Polyfills$1.log("Array.prototype.indexOf");
-	  Array.prototype.indexOf = function(searchElement, from) {
-	    const len = this.length >>> 0;
-	    from = Number(from) || 0;
-	    from = from < 0 ? Math.ceil(from) : Math.floor(from);
-	    if (from < 0) {
-	      from += len;
-	    }
-	    for (; from < len; from += 1) {
-	      if (from in this && this[from] === searchElement) {
-	        return from;
-	      }
-	    }
-	    return -1;
-	  };
-	}
-	if (!Array.prototype.fill) {
-	  Polyfills$1.log("Array.prototype.fill");
-	  Array.prototype.fill = function(value, start, end) {
-	    const length = this.length;
-	    start = start || 0;
-	    end = end === void 0 ? length : end || 0;
-	    let i = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
-	    const l = end < 0 ? Math.max(length + end, 0) : Math.min(end, length);
-	    for (; i < l; i += 1) {
-	      this[i] = value;
-	    }
-	    return this;
-	  };
-	}
-	if (!Array.prototype.filter) {
-	  Polyfills$1.log("Array.prototype.filter");
-	  Array.prototype.filter = function(callbackFn) {
-	    const arr = [];
-	    for (let i = 0; i < this.length; i += 1) {
-	      if (callbackFn.call(this, this[i], i, this)) {
-	        arr.push(this[i]);
-	      }
-	    }
-	    return arr;
-	  };
-	}
-	if (!Array.prototype.map) {
-	  Polyfills$1.log("Array.prototype.map");
-	  Array.prototype.map = function(callback, thisArg) {
-	    const values = [], object = Object(this), len = object.length;
-	    let T;
-	    if (arguments.length > 1) {
-	      T = thisArg;
-	    }
-	    for (let i = 0; i < len; i += 1) {
-	      if (i in object) {
-	        const kValue = object[i], mappedValue = callback.call(T, kValue, i, object);
-	        values[i] = mappedValue;
-	      }
-	    }
-	    return values;
-	  };
-	}
-	if (window.Element) {
-	  if (!Element.prototype.addEventListener) {
-	    Polyfills$1.log("Element.prototype.addEventListener");
-	    Element.prototype.addEventListener = function(event, fnCallback) {
-	      event = "on" + event;
-	      this.attachEvent?.(event, fnCallback);
-	    };
-	  }
-	  if (!Element.prototype.removeEventListener) {
-	    Polyfills$1.log("Element.prototype.removeEventListener");
-	    Element.prototype.removeEventListener = function(event, fnCallback) {
-	      event = "on" + event;
-	      this.detachEvent?.(event, fnCallback);
-	    };
-	  }
-	}
-	if (window.Event) {
-	  if (!Event.prototype.preventDefault) {
-	    Polyfills$1.log("Event.prototype.preventDefault");
-	    Event.prototype.preventDefault = function() {
-	    };
-	  }
-	  if (!Event.prototype.stopPropagation) {
-	    Polyfills$1.log("Event.prototype.stopPropagation");
-	    Event.prototype.stopPropagation = function() {
-	    };
-	  }
-	}
-	if (!window.getComputedStyle) {
-	  Polyfills$1.log("window.getComputedStyle");
-	  const legacyWindow = window;
-	  legacyWindow.getComputedStyle = function(el, _pseudo) {
-	    this.getPropertyValue = function(prop) {
-	      const re = /(-([a-z]){1})/g;
-	      if (prop === "float") {
-	        prop = "styleFloat";
-	      }
-	      if (re.test(prop)) {
-	        prop = prop.replace(re, function() {
-	          return arguments[2].toUpperCase();
-	        });
-	      }
-	      const currentStyle = el.currentStyle, currentStyleValue = currentStyle ? currentStyle[prop] : void 0;
-	      return currentStyleValue ? currentStyleValue : null;
-	    };
-	    return this;
-	  };
-	}
-	if (!Date.now) {
-	  Polyfills$1.log("Date.now");
-	  Date.now = function() {
-	    return (/* @__PURE__ */ new Date()).getTime();
-	  };
-	}
-	if (window.document) {
-	  if (!document.addEventListener) {
-	    Polyfills$1.log("document.addEventListener, removeEventListener");
-	    if (document.attachEvent) {
-	      (function() {
-	        const eventListeners = [];
-	        document.addEventListener = function(eventString, fnHandler) {
-	          const fnFindCaret = function(event) {
-	            const documentSelection = document.selection;
-	            if (documentSelection) {
-	              const target = event.target || event.srcElement;
-	              target.focus();
-	              const range = documentSelection.createRange(), range2 = range.duplicate();
-	              if (range2.moveToElementTxt) {
-	                range2.moveToElementTxt(target);
-	              }
-	              range2.setEndPoint("EndToEnd", range);
-	              target.selectionStart = range2.text.length - range.text.length;
-	              target.selectionEnd = target.selectionStart + range.text.length;
-	            }
-	          }, fnOnEvent = function(event) {
-	            event = event || window.event;
-	            const target = event.target || event.srcElement;
-	            if (event.type === "click" && target && target.tagName === "TEXTAREA") {
-	              fnFindCaret(event);
-	            }
-	            if (typeof fnHandler === "function") {
-	              fnHandler(event);
-	            } else if (typeof fnHandler === "object") {
-	              fnHandler.handleEvent(event);
-	            } else {
-	              Polyfills$1.console.error("Unknown fnHandler:", fnHandler);
-	            }
-	            return false;
-	          };
-	          if (eventString === "change") {
-	            const elements = document.getElementsByTagName("select");
-	            for (let i = 0; i < elements.length; i += 1) {
-	              elements[i].attachEvent?.("on" + eventString, fnOnEvent);
-	              eventListeners.push({
-	                //TTT does this work?
-	                object: this,
-	                eventString,
-	                fnHandler,
-	                fnOnEvent
-	              });
-	            }
-	          } else {
-	            document.attachEvent?.("on" + eventString, fnOnEvent);
-	            eventListeners.push({
-	              object: this,
-	              eventString,
-	              fnHandler,
-	              fnOnEvent
-	            });
-	          }
-	        };
-	        document.removeEventListener = function(event, fnHandler) {
-	          let counter = 0;
-	          while (counter < eventListeners.length) {
-	            const eventListener = eventListeners[counter];
-	            if (eventListener.object === this && eventListener.eventString === event && eventListener.fnHandler === fnHandler) {
-	              this.detachEvent?.("on" + event, eventListener.fnOnEvent);
-	              eventListeners.splice(counter, 1);
-	              break;
-	            }
-	            counter += 1;
-	          }
-	        };
-	      })();
-	    } else {
-	      (Polyfills$1.console || window.console).error("No document.attachEvent found.");
-	      const documentPrototype = document.__proto__;
-	      if (documentPrototype?.addEventListener) {
-	        document.addEventListener = documentPrototype.addEventListener;
-	      }
-	    }
-	  }
-	}
-	if (!Function.prototype.bind) {
-	  Polyfills$1.log("Function.prototype.bind");
-	  (function() {
-	    const ArrayPrototypeSlice = Array.prototype.slice;
-	    Function.prototype.bind = function() {
-	      const that = this, thatArg = arguments[0], args = ArrayPrototypeSlice.call(arguments, 1), argLen = args.length;
-	      if (typeof that !== "function") {
-	        throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
-	      }
-	      return function() {
-	        args.length = argLen;
-	        for (let i = 0; i < arguments.length; i += 1) {
-	          args.push(arguments[i]);
-	        }
-	        return that.apply(thatArg, args);
-	      };
-	    };
-	  })();
-	}
-	if (!Math.log10) {
-	  Polyfills$1.log("Math.log10");
-	  Math.log10 = function(x) {
-	    return Math.log(x) * Math.LOG10E;
-	  };
-	}
-	if (!Math.sign) {
-	  Polyfills$1.log("Math.sign");
-	  Math.sign = function(x) {
-	    return Number(x > 0) - Number(x < 0) || Number(x);
-	  };
-	}
-	if (!Math.trunc) {
-	  Polyfills$1.log("Math.trunc");
-	  Math.trunc = function(v) {
-	    return v < 0 ? Math.ceil(v) : Math.floor(v);
-	  };
-	}
-	if (!Object.assign) {
-	  Polyfills$1.log("Object.assign");
-	  Object.assign = function(target) {
-	    const to = target;
-	    for (let i = 1; i < arguments.length; i += 1) {
-	      const nextSource = arguments[i];
-	      for (const nextKey in nextSource) {
-	        if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
-	          to[nextKey] = nextSource[nextKey];
-	        }
-	      }
-	    }
-	    return to;
-	  };
-	}
-	if (!Object.defineProperty || !Polyfills$1.isDefinePropertyOk) {
-	  Polyfills$1.log("Object.defineProperty");
-	  Object.defineProperty = function(target, prop, PropDescriptor) {
-	    const targetWithProperty = target;
-	    targetWithProperty[prop] = PropDescriptor.value;
-	    return target;
-	  };
-	}
-	if (!Object.keys) {
-	  Polyfills$1.log("Object.keys");
-	  Object.keys = function(o) {
-	    const k = [];
-	    if (o !== Object(o)) {
-	      throw new TypeError("Object.keys called on a non-object");
-	    }
-	    for (const p in o) {
-	      if (Object.prototype.hasOwnProperty.call(o, p)) {
-	        k.push(p);
-	      }
-	    }
-	    return k;
-	  };
-	}
-	if (!Object.values) {
-	  Polyfills$1.log("Object.values");
-	  Object.values = function(o) {
-	    const objectRecord = o;
-	    return Object.keys(o).map(function(key) {
-	      return objectRecord[key];
-	    });
-	  };
-	}
-	if (!String.prototype.endsWith) {
-	  Polyfills$1.log("String.prototype.endsWith");
-	  String.prototype.endsWith = function(search, position) {
-	    if (position === void 0) {
-	      position = this.length;
-	    }
-	    position -= search.length;
-	    const lastIndex = this.indexOf(search, position);
-	    return lastIndex !== -1 && lastIndex === position;
-	  };
-	}
-	if (!String.prototype.includes) {
-	  Polyfills$1.log("String.prototype.includes");
-	  String.prototype.includes = function(search, start = 0) {
-	    let ret;
-	    if (start + search.length > this.length) {
-	      ret = false;
-	    } else {
-	      ret = this.indexOf(search, start) !== -1;
-	    }
-	    return ret;
-	  };
-	}
-	if (!String.prototype.padStart) {
-	  Polyfills$1.log("String.prototype.padStart");
-	  String.prototype.padStart = function(targetLength, pad) {
-	    let ret = String(this);
-	    targetLength >>= 0;
-	    if (this.length < targetLength) {
-	      pad = String(typeof pad !== "undefined" ? pad : " ");
-	      targetLength -= this.length;
-	      if (targetLength > pad.length) {
-	        pad += pad.repeat(targetLength / pad.length);
-	      }
-	      ret = pad.slice(0, targetLength) + ret;
-	    }
-	    return ret;
-	  };
-	}
-	if (!String.prototype.padEnd) {
-	  Polyfills$1.log("String.prototype.padEnd");
-	  String.prototype.padEnd = function(targetLength, pad) {
-	    let ret = String(this);
-	    targetLength >>= 0;
-	    if (this.length < targetLength) {
-	      pad = String(typeof pad !== "undefined" ? pad : " ");
-	      targetLength -= this.length;
-	      if (targetLength > pad.length) {
-	        pad += pad.repeat(targetLength / pad.length);
-	      }
-	      ret += pad.slice(0, targetLength);
-	    }
-	    return ret;
-	  };
-	}
-	if (!String.prototype.repeat) {
-	  Polyfills$1.log("String.prototype.repeat");
-	  String.prototype.repeat = function(count) {
-	    const str = String(this);
-	    let out = "";
-	    for (let i = 0; i < count; i += 1) {
-	      out += str;
-	    }
-	    return out;
-	  };
-	}
-	if (!String.prototype.startsWith) {
-	  Polyfills$1.log("String.prototype.startsWith");
-	  String.prototype.startsWith = function(search, position) {
-	    position = position || 0;
-	    return this.indexOf(search, position) === position;
-	  };
-	}
-	if (!String.prototype.trim) {
-	  Polyfills$1.log("String.prototype.trim");
-	  String.prototype.trim = function() {
-	    return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, "");
-	  };
-	}
-	if (!window.atob) {
-	  Polyfills$1.log("window.atob, window.btoa");
-	  (function() {
-	    const table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", reSpaceCharacters = /[\t\n\f\r ]/g;
-	    window.atob = function(input) {
-	      input = String(input).replace(reSpaceCharacters, "");
-	      let length = input.length;
-	      if (length % 4 === 0) {
-	        input = input.replace(/[=]=?$/, "");
-	        length = input.length;
-	      }
-	      if (length % 4 === 1 || /[^+a-zA-Z0-9/]/.test(input)) {
-	        throw new TypeError("Polyfills:atob: Invalid character: the string to be decoded is not correctly encoded.");
-	      }
-	      let bitCounter = 0, output = "", position = 0, bitStorage = 0;
-	      while (position < length) {
-	        const buffer = table.indexOf(input.charAt(position));
-	        bitStorage = bitCounter % 4 ? bitStorage * 64 + buffer : buffer;
-	        bitCounter += 1;
-	        if ((bitCounter - 1) % 4) {
-	          output += String.fromCharCode(255 & bitStorage >> (-2 * bitCounter & 6));
-	        }
-	        position += 1;
-	      }
-	      return output;
-	    };
-	    window.btoa = function(input) {
-	      input = String(input);
-	      if (/[^\0-\xFF]/.test(input)) {
-	        throw new TypeError("Polyfills:btoa: The string to be encoded contains characters outside of the Latin1 range.");
-	      }
-	      const padding = input.length % 3, length = input.length - padding;
-	      let output = "", position = 0;
-	      while (position < length) {
-	        const a = input.charCodeAt(position) << 16;
-	        position += 1;
-	        const b = input.charCodeAt(position) << 8;
-	        position += 1;
-	        const c = input.charCodeAt(position);
-	        position += 1;
-	        const buffer = a + b + c;
-	        output += table.charAt(buffer >> 18 & 63) + table.charAt(buffer >> 12 & 63) + table.charAt(buffer >> 6 & 63) + table.charAt(buffer & 63);
-	      }
-	      if (padding === 2) {
-	        const a = input.charCodeAt(position) << 8;
-	        position += 1;
-	        const b = input.charCodeAt(position), buffer = a + b;
-	        output += table.charAt(buffer >> 10) + table.charAt(buffer >> 4 & 63) + table.charAt(buffer << 2 & 63) + "=";
-	      } else if (padding === 1) {
-	        const buffer = input.charCodeAt(position);
-	        output += table.charAt(buffer >> 2) + table.charAt(buffer << 4 & 63) + "==";
-	      }
-	      return output;
-	    };
-	  })();
-	  Polyfills$1.atob = window.atob;
-	  Polyfills$1.btoa = window.btoa;
-	}
-	if (!Polyfills$1.localStorage) {
-	  Polyfills$1.log("window.localStorage");
-	  (function() {
-	    class Storage {
-	      constructor() {
-	        this.length = 0;
-	      }
-	      get data() {
-	        return this;
-	      }
-	      clear() {
-	        for (const key in this) {
-	          if (Object.prototype.hasOwnProperty.call(this, key)) {
-	            delete this[key];
-	          }
-	        }
-	        this.length = 0;
-	      }
-	      key(index) {
-	        let i = 0;
-	        for (const key in this) {
-	          if (Object.prototype.hasOwnProperty.call(this, key) && key !== "length") {
-	            if (i === index) {
-	              return key;
-	            }
-	            i += 1;
-	          }
-	        }
-	        return null;
-	      }
-	      getItem(key) {
-	        return Object.prototype.hasOwnProperty.call(this, key) ? this.data[key] : null;
-	      }
-	      setItem(key, value) {
-	        if (this.getItem(key) === null) {
-	          this.length += 1;
-	        }
-	        this.data[key] = String(value);
-	      }
-	      removeItem(key) {
-	        if (this.getItem(key) !== null) {
-	          delete this.data[key];
-	          this.length -= 1;
-	        }
-	      }
-	    }
-	    Polyfills$1.localStorage = new Storage();
-	  })();
-	}
-	if (!window.ArrayBuffer) {
-	  Polyfills$1.log("window.ArrayBuffer");
-	  window.ArrayBuffer = Array;
-	}
-	if (!window.AudioContext) {
-	  const legacyWindow = window, audioContext = legacyWindow.webkitAudioContext || legacyWindow.mozAudioContext;
-	  if (audioContext) {
-	    window.AudioContext = audioContext;
-	    Polyfills$1.log("window.AudioContext");
-	  } else {
-	    Polyfills$1.log("window.AudioContext not ok!");
-	  }
-	}
-	if (!window.JSON) {
-	  Polyfills$1.log("window.JSON.parse");
-	  window.JSON = {
-	    parse: function(text) {
-	      return eval("(" + text + ")");
-	    },
-	    stringify: function(o) {
-	      (Polyfills$1.console || window.console).error("Not implemented: window.JSON.stringify");
-	      return String(o);
-	    }
-	  };
-	}
-	if (!window.requestAnimationFrame) {
-	  const legacyWindow = window;
-	  const requestAnimationFrame = legacyWindow.mozRequestAnimationFrame || legacyWindow.webkitRequestAnimationFrame || legacyWindow.msRequestAnimationFrame, cancelAnimationFrame = legacyWindow.mozCancelAnimationFrame || legacyWindow.webkitCancelAnimationFrame || legacyWindow.msCancelAnimationFrame;
-	  if (requestAnimationFrame) {
-	    window.requestAnimationFrame = requestAnimationFrame;
-	  }
-	  if (cancelAnimationFrame) {
-	    window.cancelAnimationFrame = cancelAnimationFrame;
-	  }
-	  if (!window.requestAnimationFrame || !window.cancelAnimationFrame) {
-	    (function() {
-	      let lastTime = 0;
-	      Polyfills$1.log("window.requestAnimationFrame, cancelAnimationFrame");
-	      window.requestAnimationFrame = function(callback) {
-	        const currTime = Date.now(), frameDuration = 1e3 / 60, timeToCall = Math.max(0, frameDuration - (currTime - lastTime)), id = window.setTimeout(function() {
-	          callback(currTime + timeToCall);
-	        }, timeToCall);
-	        lastTime = currTime + timeToCall;
-	        return id;
-	      };
-	      window.cancelAnimationFrame = function(id) {
-	        clearTimeout(id);
-	      };
-	    })();
-	  } else {
-	    Polyfills$1.log("window.requestAnimationFrame, cancelAnimationFrame: Using vendor specific method.");
-	  }
-	}
-	if (!window.Uint8Array) {
-	  Polyfills$1.log("Uint8Array (fallback only)");
-	  const polyfillUint8Array = function(arrayBuffer) {
-	    return arrayBuffer;
-	  };
-	  polyfillUint8Array.BYTES_PER_ELEMENT = 1;
-	  window.Uint8Array = polyfillUint8Array;
-	}
-	if (!window.Uint8Array.prototype.copyWithin) {
-	  Polyfills$1.log("Uint8Array.prototype.copyWithin");
-	  window.Uint8Array.prototype.copyWithin = Array.prototype.copyWithin;
-	}
-	(Polyfills$1.console || window.console).debug("Polyfills: (" + Polyfills$1.getList().length + ") " + Polyfills$1.getList().join("; "));
-	window.Polyfills = Polyfills$1;
-
 	const _UiUtils = class _UiUtils {
 	  static setDebug(debug) {
 	    _UiUtils.debug = debug;
 	  }
 	  static fnLoadScriptOrStyle(script, fnSuccess, fnError) {
-	    let ieTimeoutCount = 3;
-	    const onScriptLoad = function(event) {
-	      const type = event.type, node = event.currentTarget || event.srcElement, fullUrl = node.src || node.href, key = node.getAttribute("data-key");
-	      if (_UiUtils.debug > 1) {
-	        console.debug("onScriptLoad:", type, fullUrl, key);
-	      }
-	      node.removeEventListener("load", onScriptLoad, false);
-	      node.removeEventListener("error", onScriptLoad, false);
-	      if (type === "load") {
-	        fnSuccess(fullUrl, key);
-	      } else {
-	        fnError(fullUrl, key);
-	      }
-	    }, onScriptReadyStateChange = function(event) {
-	      const node = event ? event.currentTarget || event.srcElement : script, fullUrl = node.src || node.href, key = node.getAttribute("data-key"), node2 = node;
-	      if (node2.detachEvent) {
-	        node2.detachEvent("onreadystatechange", onScriptReadyStateChange);
-	      }
-	      if (_UiUtils.debug > 1) {
-	        console.debug("onScriptReadyStateChange: " + fullUrl);
-	      }
-	      if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
-	        if (node2.readyState === "loading" && ieTimeoutCount) {
-	          ieTimeoutCount -= 1;
-	          const timeout = 200;
-	          console.error("onScriptReadyStateChange: Still loading: " + fullUrl + " Waiting " + timeout + "ms (count=" + ieTimeoutCount + ")");
-	          setTimeout(function() {
-	            onScriptReadyStateChange();
-	          }, timeout);
-	        } else {
-	          console.error("onScriptReadyStateChange: Cannot load file " + fullUrl + " readystate=" + node2.readyState);
-	          fnError(fullUrl, key);
-	        }
-	      } else {
-	        fnSuccess(fullUrl, key);
-	      }
+	    const fullUrl = script.src || script.href, key = script.getAttribute("data-key") ?? "", onLoad = () => {
+	      script.removeEventListener("load", onLoad);
+	      script.removeEventListener("error", onError);
+	      fnSuccess(fullUrl, key);
+	    }, onError = () => {
+	      script.removeEventListener("load", onLoad);
+	      script.removeEventListener("error", onError);
+	      fnError(fullUrl, key);
 	    };
-	    const legacyScript = script;
-	    if (legacyScript.readyState && legacyScript.attachEvent) {
-	      ieTimeoutCount = 3;
-	      legacyScript.attachEvent("onreadystatechange", onScriptReadyStateChange);
-	    } else {
-	      script.addEventListener("load", onScriptLoad, false);
-	      script.addEventListener("error", onScriptLoad, false);
-	    }
+	    script.addEventListener("load", onLoad);
+	    script.addEventListener("error", onError);
 	    document.getElementsByTagName("head")[0].appendChild(script);
 	  }
 	  static stringCapitalize(str) {
@@ -679,7 +42,7 @@
 	    const callSize = 25e3;
 	    let len = data.length, offset = 0, out = "";
 	    while (len) {
-	      const chunkLen = Math.min(len, callSize), chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen);
+	      const chunkLen = Math.min(len, callSize), chunk = data.slice(offset, offset + chunkLen);
 	      out += String.fromCharCode.apply(null, Array.from(chunk));
 	      offset += chunkLen;
 	      len -= chunkLen;
@@ -718,7 +81,6 @@
 	_UiUtils.loadScript = (url, fnSuccess, fnError, key) => {
 	  const script = document.createElement("script");
 	  script.type = "text/javascript";
-	  script.charset = "utf-8";
 	  script.async = true;
 	  script.src = url;
 	  script.setAttribute("data-key", key);
@@ -1148,19 +510,8 @@
 	    this.removeEventListener(type, eventListener, element);
 	    return this;
 	  }
-	  static getPointerEventNames() {
-	    let eventNames;
-	    if (window.PointerEvent) {
-	      eventNames = _View.pointerEventNames;
-	    } else if ("ontouchstart" in window || navigator.maxTouchPoints) {
-	      eventNames = _View.touchEventNames;
-	    } else {
-	      eventNames = _View.mouseEventNames;
-	    }
-	    return eventNames;
-	  }
 	  fnAttachPointerEvents(id, fnDown, fnMove, fnUp) {
-	    const element = id === ViewID.window ? void 0 : _View.getElementById1(id), eventNames = _View.getPointerEventNames();
+	    const element = id === ViewID.window ? void 0 : _View.getElementById1(id), eventNames = _View.pointerEventNames;
 	    if (fnDown) {
 	      this.addEventListener(eventNames.down, fnDown, element);
 	    }
@@ -1176,7 +527,7 @@
 	    return eventNames;
 	  }
 	  fnDetachPointerEvents(id, fnDown, fnMove, fnUp) {
-	    const element = id === ViewID.window ? void 0 : _View.getElementById1(id), eventNames = _View.getPointerEventNames();
+	    const element = id === ViewID.window ? void 0 : _View.getElementById1(id), eventNames = _View.pointerEventNames;
 	    if (fnDown) {
 	      this.removeEventListener(eventNames.down, fnDown, element);
 	    }
@@ -1193,14 +544,14 @@
 	  }
 	  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	  static getEventTarget(event) {
-	    const target = event.target || event.srcElement;
+	    const target = event.target;
 	    if (!target) {
-	      UiUtils.console.error("getEventTarget: Undefined event target: " + target);
+	      throw new Error("getEventTarget: Event target is undefined");
 	    }
 	    return target;
 	  }
 	  requestFullscreenForId(id) {
-	    const element = _View.getElementById1(id), legacyElement = element, activeXObject = window.ActiveXObject, requestMethod = element.requestFullscreen || legacyElement.webkitRequestFullscreen || legacyElement.mozRequestFullScreen || legacyElement.msRequestFullscreen, fullscreenchangedHandler = (event) => {
+	    const element = _View.getElementById1(id), fullscreenchangedHandler = (event) => {
 	      const target = _View.getEventTarget(event), fullscreenElement = _View.getDocument().fullscreenElement;
 	      if (fullscreenElement) {
 	        if (UiUtils.debug > 0) {
@@ -1217,42 +568,24 @@
 	        }, 0);
 	      }
 	    };
-	    if (requestMethod) {
-	      const promise = requestMethod.call(element);
-	      if (promise) {
-	        promise.then(() => {
-	          if (UiUtils.debug > 0) {
-	            UiUtils.console.debug("requestFullscreenForId: " + id + ": success");
-	          }
-	          this.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
-	        }).catch(function(err) {
-	          UiUtils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
-	        });
-	      }
-	    } else if (activeXObject) {
-	      const wscript = new activeXObject("WScript.Shell");
-	      if (wscript !== null) {
-	        wscript.SendKeys("{F11}");
-	      }
-	    } else {
+	    if (!element.requestFullscreen) {
 	      return false;
 	    }
+	    element.requestFullscreen().then(() => {
+	      if (UiUtils.debug > 0) {
+	        UiUtils.console.debug("requestFullscreenForId: " + id + ": success");
+	      }
+	      this.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
+	    }).catch((err) => {
+	      UiUtils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
+	    });
 	    return true;
 	  }
 	  // https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
 	  fnDownloadBlob(data, filename) {
-	    if (typeof Blob === "undefined") {
-	      UiUtils.console.warn("fnDownloadBlob: Blob undefined");
-	      return;
-	    }
 	    const data8 = UiUtils.string2Uint8Array(data), type = "octet/stream", blob = new Blob([data8.buffer], {
 	      type
 	    });
-	    const legacyNavigator = window.navigator;
-	    if (window.navigator && legacyNavigator.msSaveOrOpenBlob) {
-	      legacyNavigator.msSaveOrOpenBlob(blob, filename);
-	      return;
-	    }
 	    const url = URL.createObjectURL(blob), a = _View.getDocument().createElement("a"), clickHandler = function() {
 	      setTimeout(function() {
 	        URL.revokeObjectURL(url);
@@ -1272,24 +605,6 @@
 	  cancel: "pointercancel",
 	  out: "pointerout",
 	  type: "pointer"
-	};
-	_View.touchEventNames = {
-	  down: "touchstart",
-	  move: "touchmove",
-	  up: "touchend",
-	  cancel: "touchcancel",
-	  out: "",
-	  // n.a.
-	  type: "touch"
-	};
-	_View.mouseEventNames = {
-	  down: "mousedown",
-	  move: "mousemove",
-	  up: "mouseup",
-	  cancel: "",
-	  // n.a.
-	  out: "mouseout",
-	  type: "mouse"
 	};
 	let View = _View;
 
@@ -1313,8 +628,7 @@
 	    this.inkSet = 0;
 	    this.pen2ColorMap = [];
 	    this.littleEndian = true;
-	    this.use32BitCopy = true;
-	    // determined later
+	    this.hasCanvasContext = false;
 	    this.gPen = 0;
 	    this.gPaper = 0;
 	    this.speedInkCount = 0;
@@ -1351,17 +665,11 @@
 	    if (this.canvas.getContext) {
 	      this.ctx = this.canvas.getContext("2d");
 	      this.imageData = this.ctx.getImageData(0, 0, width, height);
-	      if (typeof Uint32Array !== "undefined" && this.imageData.data.buffer) {
-	        this.littleEndian = _Canvas.isLittleEndian();
-	        this.pen2Color32 = new Uint32Array(new ArrayBuffer(_Canvas.modeData[3].pens * 4));
-	        this.data32 = new Uint32Array(this.imageData.data.buffer);
-	        this.use32BitCopy = true;
-	        UiUtils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
-	      } else {
-	        this.setAlpha(255);
-	        this.use32BitCopy = false;
-	        UiUtils.console.log("Canvas: using copy2Canvas8bit");
-	      }
+	      this.littleEndian = _Canvas.isLittleEndian();
+	      this.pen2Color32 = new Uint32Array(new ArrayBuffer(_Canvas.modeData[3].pens * 4));
+	      this.data32 = new Uint32Array(this.imageData.data.buffer);
+	      this.hasCanvasContext = true;
+	      UiUtils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
 	      this.fnCopy2Canvas = this.getCopy2CanvasFunction(this.offset);
 	    } else {
 	      UiUtils.console.warn("Error: canvas.getContext is not supported.");
@@ -1446,12 +754,6 @@
 	  setColorValues(palette) {
 	    _Canvas.extractAllColorValues(palette, this.colorValues);
 	  }
-	  setAlpha(alpha) {
-	    const buf8 = this.imageData.data, length = this.dataset8.length;
-	    for (let i = 0; i < length; i += 1) {
-	      buf8[i * 4 + 3] = alpha;
-	    }
-	  }
 	  setNeedUpdate() {
 	    this.needUpdate = true;
 	  }
@@ -1490,16 +792,6 @@
 	      this.animationTimeoutId = void 0;
 	    }
 	  }
-	  copy2Canvas8bit() {
-	    const buf8 = this.imageData.data, dataset8 = this.dataset8, length = dataset8.length, pen2ColorMap = this.pen2ColorMap;
-	    for (let i = 0; i < length; i += 1) {
-	      const color = pen2ColorMap[dataset8[i]], j = i * 4;
-	      buf8[j] = color[0];
-	      buf8[j + 1] = color[1];
-	      buf8[j + 2] = color[2];
-	    }
-	    this.ctx.putImageData(this.imageData, 0, 0);
-	  }
 	  copy2Canvas32bit() {
 	    const dataset8 = this.dataset8, data32 = this.data32, pen2Color32 = this.pen2Color32;
 	    for (let i = 0; i < data32.length; i += 1) {
@@ -1518,10 +810,11 @@
 	    this.ctx.putImageData(this.imageData, 0, 0);
 	  }
 	  getCopy2CanvasFunction(offset) {
-	    if (this.use32BitCopy) {
-	      return offset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
+	    if (!this.hasCanvasContext) {
+	      return () => {
+	      };
 	    }
-	    return offset ? this.copy2Canvas8bit : this.copy2Canvas8bit;
+	    return offset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
 	  }
 	  setScreenOffset(offset) {
 	    if (offset) {
@@ -1598,7 +891,7 @@
 	    this.hasFocus = true;
 	  }
 	  getMousePos(event) {
-	    const legacyDocument = document, isFullScreen = Boolean(document.fullscreenElement || legacyDocument.mozFullScreenElement || legacyDocument.webkitFullscreenElement || legacyDocument.msFullscreenElement), rect = this.canvas.getBoundingClientRect();
+	    const isFullScreen = Boolean(document.fullscreenElement), rect = this.canvas.getBoundingClientRect();
 	    if (isFullScreen) {
 	      const areaX = 0, areaY = 0, rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2, rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2, ratioX = rectwidth / this.canvas.width, ratioY = rectHeight / this.canvas.height, minRatio = ratioX <= ratioY ? ratioX : ratioY, diffX = rectwidth - this.canvas.width * minRatio, diffY = rectHeight - this.canvas.height * minRatio;
 	      return {
@@ -2845,7 +2138,7 @@
 	    if (this.files && this.fileIndex < this.files.length) {
 	      const file = this.files[this.fileIndex];
 	      this.fileIndex += 1;
-	      const lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
+	      const lastModifiedDate = new Date(file.lastModified), text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + lastModifiedDate.toLocaleDateString();
 	      UiUtils.console.log(text);
 	      if (file.type === "text/plain") {
 	        reader.readAsText(file);
@@ -2939,7 +2232,6 @@
 	    this.expansionTokens = [];
 	    // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
 	    this.active = false;
-	    this.codeStringsRemoved = false;
 	    this.pressedKeys = {};
 	    this.fnKeydownOrKeyupHandler = (event) => this.onKeydownOrKeyup(event);
 	    this.options = {};
@@ -3023,34 +2315,9 @@
 	  setActive(active) {
 	    this.active = active;
 	  }
-	  removeCodeStringsFromKeymap() {
-	    const key2CpcKey = this.key2CpcKey, newMap = {};
-	    if (UiUtils.debug > 1) {
-	      UiUtils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
-	    }
-	    for (const key in key2CpcKey) {
-	      if (Object.prototype.hasOwnProperty.call(key2CpcKey, key)) {
-	        const keyCode = parseInt(key, 10);
-	        newMap[keyCode] = key2CpcKey[key];
-	      }
-	    }
-	    this.key2CpcKey = newMap;
-	  }
 	  fnPressCpcKey(event, cpcKeyCode, pressedKey, key) {
-	    const shiftKey = event.shiftKey, ctrlKey = event.ctrlKey, pressedKeys = this.pressedKeys, cpcKeyExpansions = this.cpcKeyExpansions, specialKeys = _Keyboard.specialKeys, cpcKey = String(cpcKeyCode);
-	    let cpcKeyEntry = pressedKeys[cpcKey];
-	    if (!cpcKeyEntry) {
-	      pressedKeys[cpcKey] = {
-	        keys: {},
-	        shift: false,
-	        ctrl: false
-	      };
-	      cpcKeyEntry = pressedKeys[cpcKey];
-	    }
-	    const keyAlreadyPressed = cpcKeyEntry.keys[pressedKey];
-	    cpcKeyEntry.keys[pressedKey] = true;
-	    cpcKeyEntry.shift = shiftKey;
-	    cpcKeyEntry.ctrl = ctrlKey;
+	    const shiftKey = event.shiftKey, ctrlKey = event.ctrlKey, cpcKeyExpansions = this.cpcKeyExpansions, specialKeys = _Keyboard.specialKeys, cpcKey = String(cpcKeyCode);
+	    const keyAlreadyPressed = this.setCpcKeyState(cpcKeyCode, pressedKey, true, shiftKey, ctrlKey);
 	    if (UiUtils.debug > 1) {
 	      UiUtils.console.log("fnPressCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKey);
 	    }
@@ -3100,53 +2367,57 @@
 	      this.options.fnOnKeyDown();
 	    }
 	  }
+	  setCpcKeyState(cpcKeyCode, pressedKey, isPressed, shiftKey = false, ctrlKey = false) {
+	    const pressedKeys = this.pressedKeys, cpcKey = String(cpcKeyCode);
+	    let cpcKeyEntry = pressedKeys[cpcKey];
+	    const keyAlreadyPressed = Boolean(cpcKeyEntry && cpcKeyEntry.keys[pressedKey]);
+	    if (isPressed) {
+	      if (!cpcKeyEntry) {
+	        cpcKeyEntry = {
+	          keys: {},
+	          shift: false,
+	          ctrl: false
+	        };
+	        pressedKeys[cpcKey] = cpcKeyEntry;
+	      }
+	      cpcKeyEntry.keys[pressedKey] = {
+	        shift: shiftKey,
+	        ctrl: ctrlKey
+	      };
+	    } else if (cpcKeyEntry) {
+	      delete cpcKeyEntry.keys[pressedKey];
+	      if (!Object.keys(cpcKeyEntry.keys).length) {
+	        delete pressedKeys[cpcKey];
+	        return keyAlreadyPressed;
+	      }
+	    } else {
+	      return keyAlreadyPressed;
+	    }
+	    const keyStates = Object.values(cpcKeyEntry.keys);
+	    cpcKeyEntry.shift = keyStates.some((keyState) => keyState.shift);
+	    cpcKeyEntry.ctrl = keyStates.some((keyState) => keyState.ctrl);
+	    return keyAlreadyPressed;
+	  }
 	  fnReleaseCpcKey(event, cpcKeyCode, pressedKey, key) {
-	    const shiftKey = event.shiftKey, ctrlKey = event.ctrlKey, pressedKeys = this.pressedKeys, cpcKey = pressedKeys[cpcKeyCode];
+	    const cpcKey = this.pressedKeys[cpcKeyCode];
 	    if (UiUtils.debug > 1) {
 	      UiUtils.console.log("fnReleaseCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKeyCode + ", keys:", cpcKey ? cpcKey.keys : "undef.");
 	    }
 	    if (!cpcKey) {
 	      UiUtils.console.warn("fnReleaseCpcKey: cpcKey was not pressed:", cpcKeyCode);
 	    } else {
-	      delete cpcKey.keys[pressedKey];
-	      if (!Object.keys(cpcKey.keys).length) {
-	        delete pressedKeys[cpcKeyCode];
-	      } else {
-	        cpcKey.shift = shiftKey;
-	        cpcKey.ctrl = ctrlKey;
-	      }
+	      this.setCpcKeyState(cpcKeyCode, pressedKey, false, event.shiftKey, event.ctrlKey);
 	    }
-	  }
-	  static keyIdentifier2Char(event) {
-	    const identifier = event.keyIdentifier ?? "", shiftKey = event.shiftKey;
-	    let char;
-	    if (/^U\+/i.test(identifier || "")) {
-	      char = String.fromCharCode(parseInt(identifier.slice(2), 16));
-	      if (char === "\0") {
-	        char = "";
-	      }
-	      char = shiftKey ? char.toUpperCase() : char.toLowerCase();
-	    } else {
-	      char = identifier;
-	    }
-	    return char;
 	  }
 	  fnKeyboardKeydown(event) {
-	    const keyCode = event.which || event.keyCode;
-	    let pressedKey = String(keyCode) + (event.code ? event.code : ""), key = event.key || _Keyboard.keyIdentifier2Char(event) || "";
-	    if (!event.code && !this.codeStringsRemoved) {
-	      this.removeCodeStringsFromKeymap();
-	      this.codeStringsRemoved = true;
-	    }
+	    const pressedKey = event.code;
+	    let key = event.key;
 	    if (UiUtils.debug > 1) {
-	      UiUtils.console.log("fnKeyboardKeydown: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
+	      UiUtils.console.log("fnKeyboardKeydown: code=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
 	    }
 	    if (pressedKey in this.key2CpcKey) {
-	      const numTabOffKey = this.simulatedNumLock === false ? _Keyboard.numPadOffKeyMap[pressedKey] : void 0;
-	      if (numTabOffKey) {
-	        pressedKey = numTabOffKey;
-	      }
-	      let cpcKey = this.key2CpcKey[pressedKey];
+	      const numPadOffKey = this.simulatedNumLock === false || key.length > 1 ? _Keyboard.numPadOffKeyMap[pressedKey] : void 0;
+	      let cpcKey = numPadOffKey ?? this.key2CpcKey[pressedKey];
 	      if (cpcKey === 85) {
 	        cpcKey = 22;
 	      }
@@ -3160,24 +2431,12 @@
 	        key = "JoyRight";
 	      } else if (key === "Dead") {
 	        key += event.code + (event.shiftKey ? "Shift" : "");
-	      } else if (key === "Unidentified") {
-	        if (keyCode === 220) {
-	          key = event.shiftKey ? "\xB0" : "DeadBackquote";
-	        } else if (keyCode === 221) {
-	          key = "DeadEqual" + (event.shiftKey ? "Shift" : "");
-	        } else if (keyCode === 226) {
-	          key = "|";
-	        }
-	      } else if (key.length === 2) {
-	        if (key.charAt(0) === "^" || key.charAt(0) === "\xB4" || key.charAt(0) === "`") {
-	          key = key.substring(1);
-	        }
 	      }
 	      this.fnPressCpcKey(event, cpcKey, pressedKey, key);
 	    } else if (key.length === 1) {
 	      this.putKeyInBuffer(key);
 	      UiUtils.console.log("fnKeyboardKeydown: Partly unhandled key", pressedKey + ":", key);
-	    } else if (pressedKey === "12NumLock") {
+	    } else if (pressedKey === "NumLock") {
 	      this.simulatedNumLock = this.simulatedNumLock !== void 0 ? !this.simulatedNumLock : false;
 	      if (UiUtils.debug > 1) {
 	        UiUtils.console.log("fnKeyboardKeydown: simulatedNumLock=" + this.simulatedNumLock);
@@ -3187,22 +2446,18 @@
 	    }
 	  }
 	  fnKeyboardKeyup(event) {
-	    const keyCode = event.which || event.keyCode, key = event.key || _Keyboard.keyIdentifier2Char(event) || "";
-	    let pressedKey = String(keyCode) + (event.code ? event.code : "");
+	    const pressedKey = event.code, key = event.key;
 	    if (UiUtils.debug > 1) {
-	      UiUtils.console.log("fnKeyboardKeyup: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
+	      UiUtils.console.log("fnKeyboardKeyup: code=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
 	    }
 	    if (pressedKey in this.key2CpcKey) {
-	      const numTabOffKey = this.simulatedNumLock === false ? _Keyboard.numPadOffKeyMap[pressedKey] : void 0;
-	      if (numTabOffKey) {
-	        pressedKey = numTabOffKey;
-	      }
-	      let cpcKey = this.key2CpcKey[pressedKey];
+	      const numPadOffKey = this.simulatedNumLock === false || key.length > 1 ? _Keyboard.numPadOffKeyMap[pressedKey] : void 0;
+	      let cpcKey = numPadOffKey ?? this.key2CpcKey[pressedKey];
 	      if (cpcKey === 85) {
 	        cpcKey = 22;
 	      }
 	      this.fnReleaseCpcKey(event, cpcKey, pressedKey, key);
-	    } else if (pressedKey === "12NumLock") {
+	    } else if (pressedKey === "NumLock") {
 	      if (UiUtils.debug > 1) {
 	        UiUtils.console.log("fnKeyboardKeyup: simulatedNumLock=" + this.simulatedNumLock);
 	      }
@@ -3293,129 +2548,97 @@
 	    return void 0;
 	  }
 	};
-	// use this:
 	_Keyboard.key2CpcKey = {
-	  "38ArrowUp": 0,
-	  "39ArrowRight": 1,
-	  "40ArrowDown": 2,
-	  "105Numpad9": 3,
-	  "120F9": 3,
-	  "102Numpad6": 4,
-	  "117F6": 4,
-	  "99Numpad3": 5,
-	  "114F3": 5,
-	  "13NumpadEnter": 6,
-	  "110NumpadDecimal": 7,
-	  "37ArrowLeft": 8,
-	  "18AltLeft": 9,
-	  "103Numpad7": 10,
-	  "118F7": 10,
-	  "104Numpad8": 11,
-	  "119F8": 11,
-	  "101Numpad5": 12,
-	  "116F5": 12,
-	  "97Numpad1": 13,
-	  "112F1": 13,
-	  "98Numpad2": 14,
-	  "113F2": 14,
-	  "96Numpad0": 15,
-	  "121F10": 15,
-	  "46Delete": 16,
-	  "187BracketRight": 17,
-	  "171BracketRight": 17,
-	  "221BracketRight": 17,
-	  "13Enter": 18,
-	  "191Backslash": 19,
-	  "163Backslash": 19,
-	  "220Backslash": 19,
-	  "100Numpad4": 20,
-	  "115F4": 20,
-	  "16ShiftLeft": 21,
-	  "16ShiftRight": 21,
-	  "220Backquote": 22,
-	  "160Backquote": 22,
-	  "192Backquote": 22,
-	  "17ControlLeft": 23,
-	  "17ControlRight": 23,
-	  "221Equal": 24,
-	  "192Equal": 24,
-	  "187Equal": 24,
-	  "219Minus": 25,
-	  "63Minus": 25,
-	  "189Minus": 25,
-	  "186BracketLeft": 26,
-	  "59BracketLeft": 26,
-	  "219BracketLeft": 26,
-	  "80KeyP": 27,
-	  "222Quote": 28,
-	  "192Quote": 28,
-	  "192Semicolon": 29,
-	  "186Semicolon": 29,
-	  "189Slash": 30,
-	  "173Slash": 30,
-	  "191Slash": 30,
-	  "190Period": 31,
-	  "48Digit0": 32,
-	  "57Digit9": 33,
-	  "79KeyO": 34,
-	  "73KeyI": 35,
-	  "76KeyL": 36,
-	  "75KeyK": 37,
-	  "77KeyM": 38,
-	  "188Comma": 39,
-	  "56Digit8": 40,
-	  "55Digit7": 41,
-	  "85KeyU": 42,
-	  "90KeyY": 43,
-	  "89KeyY": 43,
-	  "72KeyH": 44,
-	  "74KeyJ": 45,
-	  "78KeyN": 46,
-	  "32Space": 47,
-	  "54Digit6": 48,
-	  "53Digit5": 49,
-	  "82KeyR": 50,
-	  "84KeyT": 51,
-	  "71KeyG": 52,
-	  "70KeyF": 53,
-	  "66KeyB": 54,
-	  "86KeyV": 55,
-	  "52Digit4": 56,
-	  "51Digit3": 57,
-	  "69KeyE": 58,
-	  "87KeyW": 59,
-	  "83KeyS": 60,
-	  "68KeyD": 61,
-	  "67KeyC": 62,
-	  "88KeyX": 63,
-	  "49Digit1": 64,
-	  "50Digit2": 65,
-	  "27Escape": 66,
-	  "81KeyQ": 67,
-	  "9Tab": 68,
-	  "65KeyA": 69,
-	  "20CapsLock": 70,
-	  "89KeyZ": 71,
-	  "90KeyZ": 71,
-	  "38Numpad8": 72,
-	  "40Numpad2": 73,
-	  "37Numpad4": 74,
-	  "39Numpad6": 75,
-	  "12Numpad5": 76,
-	  "45Numpad0": 76,
-	  "46NumpadDecimal": 77,
-	  "8Backspace": 79,
-	  "36Numpad7": 80,
-	  "33Numpad9": 81,
-	  "35Numpad1": 82,
-	  "34Numpad3": 83,
-	  "226IntlBackslash": 85,
-	  "60IntlBackslash": 85,
-	  "220IntlBackslash": 85,
-	  "111NumpadDivide": 86,
-	  "106NumpadMultiply": 87,
-	  "109NumpadSubtract": 88,
-	  "107NumpadAdd": 89
+	  "ArrowUp": 0,
+	  "ArrowRight": 1,
+	  "ArrowDown": 2,
+	  "Numpad9": 3,
+	  "F9": 3,
+	  "Numpad6": 4,
+	  "F6": 4,
+	  "Numpad3": 5,
+	  "F3": 5,
+	  "NumpadEnter": 6,
+	  "NumpadDecimal": 7,
+	  "ArrowLeft": 8,
+	  "AltLeft": 9,
+	  "Numpad7": 10,
+	  "F7": 10,
+	  "Numpad8": 11,
+	  "F8": 11,
+	  "Numpad5": 12,
+	  "F5": 12,
+	  "Numpad1": 13,
+	  "F1": 13,
+	  "Numpad2": 14,
+	  "F2": 14,
+	  "Numpad0": 15,
+	  "F10": 15,
+	  "Delete": 16,
+	  "BracketRight": 17,
+	  "Enter": 18,
+	  "Backslash": 19,
+	  "Numpad4": 20,
+	  "F4": 20,
+	  "ShiftLeft": 21,
+	  "ShiftRight": 21,
+	  "Backquote": 22,
+	  "ControlLeft": 23,
+	  "ControlRight": 23,
+	  "Equal": 24,
+	  "Minus": 25,
+	  "BracketLeft": 26,
+	  "KeyP": 27,
+	  "Quote": 28,
+	  "Semicolon": 29,
+	  "Slash": 30,
+	  "Period": 31,
+	  "Digit0": 32,
+	  "Digit9": 33,
+	  "KeyO": 34,
+	  "KeyI": 35,
+	  "KeyL": 36,
+	  "KeyK": 37,
+	  "KeyM": 38,
+	  "Comma": 39,
+	  "Digit8": 40,
+	  "Digit7": 41,
+	  "KeyU": 42,
+	  "KeyY": 43,
+	  "KeyH": 44,
+	  "KeyJ": 45,
+	  "KeyN": 46,
+	  "Space": 47,
+	  "Digit6": 48,
+	  "Digit5": 49,
+	  "KeyR": 50,
+	  "KeyT": 51,
+	  "KeyG": 52,
+	  "KeyF": 53,
+	  "KeyB": 54,
+	  "KeyV": 55,
+	  "Digit4": 56,
+	  "Digit3": 57,
+	  "KeyE": 58,
+	  "KeyW": 59,
+	  "KeyS": 60,
+	  "KeyD": 61,
+	  "KeyC": 62,
+	  "KeyX": 63,
+	  "Digit1": 64,
+	  "Digit2": 65,
+	  "Escape": 66,
+	  "KeyQ": 67,
+	  "Tab": 68,
+	  "KeyA": 69,
+	  "CapsLock": 70,
+	  "KeyZ": 71,
+	  "Backspace": 79,
+	  "IntlBackslash": 85,
+	  "NumpadDivide": 86,
+	  "NumpadMultiply": 87,
+	  "NumpadSubtract": 88,
+	  "NumpadAdd": 89
 	};
 	_Keyboard.specialKeys = {
 	  Alt: String.fromCharCode(224),
@@ -3441,8 +2664,6 @@
 	  JoyRight: String.fromCharCode(9),
 	  Clear: "X",
 	  // joy fire 2
-	  Spacebar: " ",
-	  // for IE
 	  Tab: String.fromCharCode(9),
 	  \u00E4: ";",
 	  \u00C4: "+",
@@ -3456,7 +2677,6 @@
 	  DeadEqual: String.fromCharCode(161),
 	  // tick
 	  "\xB4": String.fromCharCode(161),
-	  // IE: tick
 	  DeadEqualShift: "`"
 	  // backtick
 	};
@@ -3466,17 +2686,17 @@
 	  [48, 49, 50, 51, 52, 53]
 	];
 	_Keyboard.numPadOffKeyMap = {
-	  "96Numpad0": "45Numpad0",
-	  "97Numpad1": "35Numpad1",
-	  "98Numpad2": "40Numpad2",
-	  "99Numpad3": "34Numpad3",
-	  "100Numpad4": "37Numpad4",
-	  "101Numpad5": "12Numpad5",
-	  "102Numpad6": "39Numpad6",
-	  "103Numpad7": "36Numpad7",
-	  "104Numpad8": "38Numpad8",
-	  "105Numpad9": "33Numpad9",
-	  "110NumpadDecimal": "46NumpadDecimal"
+	  Numpad0: 76,
+	  Numpad1: 82,
+	  Numpad2: 73,
+	  Numpad3: 83,
+	  Numpad4: 74,
+	  Numpad5: 76,
+	  Numpad6: 75,
+	  Numpad7: 80,
+	  Numpad8: 72,
+	  Numpad9: 81,
+	  NumpadDecimal: 77
 	};
 	let Keyboard = _Keyboard;
 
@@ -3878,6 +3098,46 @@
 	  setOptions(options) {
 	    Object.assign(this.options, options);
 	  }
+	  static getUserKeyInfo(code) {
+	    if (code >= 256 && code <= 335) {
+	      const cpcKey = code - 256, keyEntry = _VirtualKeyboard.cpcKey2Key[cpcKey], input = keyEntry.key.length === 1 ? keyEntry.key : _VirtualKeyboard.userKey2Input[keyEntry.key];
+	      return {
+	        cpcKey,
+	        shift: false,
+	        input: input || ""
+	      };
+	    }
+	    const specialCpcKey = _VirtualKeyboard.userSpecialKey2CpcKey[code];
+	    if (specialCpcKey !== void 0) {
+	      return {
+	        cpcKey: specialCpcKey,
+	        shift: false
+	      };
+	    }
+	    if (code === 13) {
+	      return {
+	        cpcKey: 18,
+	        shift: false
+	      };
+	    }
+	    const key = String.fromCharCode(code);
+	    for (let cpcKey = 16; cpcKey < _VirtualKeyboard.cpcKey2Key.length; cpcKey += 1) {
+	      const keyEntry = _VirtualKeyboard.cpcKey2Key[cpcKey];
+	      if (keyEntry.key === key) {
+	        return {
+	          cpcKey,
+	          shift: false
+	        };
+	      }
+	      if (keyEntry.keyShift === key) {
+	        return {
+	          cpcKey,
+	          shift: true
+	        };
+	      }
+	    }
+	    return void 0;
+	  }
 	  /* eslint-enable array-element-newline */
 	  reset() {
 	    this.virtualKeyboardAdaptKeys(false, false);
@@ -3913,27 +3173,17 @@
 	  }
 	  createButtonRow(id, options) {
 	    const place = View.getElementById1(id);
-	    if (place.insertAdjacentElement) {
-	      const buttonList = document.createElement("div");
-	      buttonList.className = "displayFlex";
-	      for (let i = 0; i < options.length; i += 1) {
-	        const item = options[i], button = document.createElement("button");
-	        button.innerText = item.text;
-	        button.setAttribute("title", item.title);
-	        button.className = item.className;
-	        button.setAttribute("data-key", String(item.key));
-	        buttonList.insertAdjacentElement("beforeend", button);
-	      }
-	      place.insertAdjacentElement("beforeend", buttonList);
-	    } else {
-	      let html = "<div class=displayFlex>\n";
-	      for (let i = 0; i < options.length; i += 1) {
-	        const item = options[i];
-	        html += '<button title="' + item.title + '" class="' + item.className + '" data-key="' + item.key + '">' + item.text + "</button>\n";
-	      }
-	      html += "</div>";
-	      place.innerHTML += html;
+	    const buttonList = document.createElement("div");
+	    buttonList.className = "displayFlex";
+	    for (let i = 0; i < options.length; i += 1) {
+	      const item = options[i], button = document.createElement("button");
+	      button.innerText = item.text;
+	      button.setAttribute("title", item.title);
+	      button.className = item.className;
+	      button.setAttribute("data-key", String(item.key));
+	      buttonList.appendChild(button);
 	    }
+	    place.appendChild(buttonList);
 	    return this;
 	  }
 	  virtualKeyboardCreatePart(id, virtualKeyboard) {
@@ -4041,22 +3291,8 @@
 	    event.preventDefault();
 	    return false;
 	  }
-	  static keyIdentifier2Char(event) {
-	    const identifier = event.keyIdentifier ?? "", shiftKey = event.shiftKey;
-	    let char;
-	    if (/^U\+/i.test(identifier || "")) {
-	      char = String.fromCharCode(parseInt(identifier.slice(2), 16));
-	      if (char === "\0") {
-	        char = "";
-	      }
-	      char = shiftKey ? char.toUpperCase() : char.toLowerCase();
-	    } else {
-	      char = identifier;
-	    }
-	    return char;
-	  }
 	  onKeydownOrKeyup(event) {
-	    const key = event.key || _VirtualKeyboard.keyIdentifier2Char(event) || "", activeElement = window.document.activeElement;
+	    const key = event.key, activeElement = window.document.activeElement;
 	    if (key === "Enter" || key === " ") {
 	      const simPointerEvent = {
 	        type: event.type,
@@ -4416,7 +3652,7 @@
 	    keys: "54Digit6",
 	    // 48: 6 &
 	    key: "6",
-	    keyShift: "("
+	    keyShift: "&"
 	  },
 	  {
 	    keys: "53Digit5",
@@ -4687,6 +3923,48 @@
 	  // only on PC:
 	  // "226IntlBackslash", "122F11", "123F12", "44PrintScreen", "145ScrollLock", "19Pause", "45Insert", "36Home", "33PageUp", "35End", "34PageDown", "111NumpadDivide", "106NumpadMultiply", "109NumpadSubtract", "107NumpadAdd"
 	];
+	_VirtualKeyboard.userKey2Input = {
+	  Alt: String.fromCharCode(224),
+	  ArrowUp: String.fromCharCode(240),
+	  ArrowDown: String.fromCharCode(241),
+	  ArrowLeft: String.fromCharCode(242),
+	  ArrowRight: String.fromCharCode(243),
+	  Backspace: String.fromCharCode(127),
+	  Delete: String.fromCharCode(16),
+	  Enter: "\r",
+	  Escape: String.fromCharCode(27),
+	  JoyUp: String.fromCharCode(11),
+	  JoyDown: String.fromCharCode(10),
+	  JoyLeft: String.fromCharCode(8),
+	  JoyRight: String.fromCharCode(9),
+	  Tab: String.fromCharCode(9)
+	};
+	_VirtualKeyboard.userSpecialKey2CpcKey = {
+	  8: 74,
+	  // joystick left
+	  9: 75,
+	  // joystick right
+	  10: 73,
+	  // joystick down
+	  11: 72,
+	  // joystick up
+	  16: 16,
+	  // delete / clear
+	  27: 66,
+	  // escape
+	  127: 79,
+	  // delete
+	  224: 9,
+	  // copy
+	  240: 0,
+	  // cursor up
+	  241: 2,
+	  // cursor down
+	  242: 8,
+	  // cursor left
+	  243: 1
+	  // cursor right
+	};
 	/* eslint-disable array-element-newline */
 	_VirtualKeyboard.virtualKeyboardAlpha = [
 	  [66, 64, 65, 57, 56, 49, 48, 41, 40, 33, 32, 25, 24, 16, 79],
@@ -5234,14 +4512,11 @@
 	  setOptions(options) {
 	    Object.assign(this.options, options);
 	    const entries = this.options.entries;
-	    for (const key in entries) {
-	      if (Object.prototype.hasOwnProperty.call(entries, key)) {
-	        const item = entries[key];
-	        if (item.enabled) {
-	          this.options.view.fnAttachPointerEvents(item.itemId, this.fnDragStartHandler);
-	        } else {
-	          this.options.view.fnDetachPointerEvents(item.itemId, this.fnDragStartHandler);
-	        }
+	    for (const item of Object.values(entries)) {
+	      if (item.enabled) {
+	        this.options.view.fnAttachPointerEvents(item.itemId, this.fnDragStartHandler);
+	      } else {
+	        this.options.view.fnDetachPointerEvents(item.itemId, this.fnDragStartHandler);
 	      }
 	    }
 	  }
@@ -5260,7 +4535,7 @@
 	      this.dragItem = node;
 	    }
 	    this.dragInfo = entry;
-	    const dragInfo = this.dragInfo, clientObject = event.type === "touchstart" ? event.touches[0] : event;
+	    const dragInfo = this.dragInfo, clientObject = event;
 	    this.initialX = clientObject.clientX - dragInfo.xOffset;
 	    this.initialY = clientObject.clientY - dragInfo.yOffset;
 	    this.options.view.fnAttachPointerEvents(this.containerId, void 0, this.fnDragMoveHandler, this.fnDragEndHandler);
@@ -5275,7 +4550,7 @@
 	    const dragInfo = this.dragInfo;
 	    if (dragInfo) {
 	      event.preventDefault();
-	      const clientObject = event.type === "touchstart" ? event.touches[0] : event;
+	      const clientObject = event;
 	      this.currentX = clientObject.clientX - this.initialX;
 	      this.currentY = clientObject.clientY - this.initialY;
 	      dragInfo.xOffset = this.currentX;
@@ -5349,15 +4624,9 @@
 	  }
 	  initToggles() {
 	    const eventDefInternalMap = this.eventDefInternalMap;
-	    for (const type in eventDefInternalMap) {
-	      if (Object.prototype.hasOwnProperty.call(eventDefInternalMap, type)) {
-	        const eventDefMap4Type = eventDefInternalMap[type];
-	        for (const id in eventDefMap4Type) {
-	          if (Object.prototype.hasOwnProperty.call(eventDefMap4Type, id)) {
-	            const eventDef = eventDefMap4Type[id];
-	            this.initOneToggle(type, id, eventDef);
-	          }
-	        }
+	    for (const [type, eventDefMap4Type] of Object.entries(eventDefInternalMap)) {
+	      for (const [id, eventDef] of Object.entries(eventDefMap4Type)) {
+	        this.initOneToggle(type, id, eventDef);
 	      }
 	    }
 	  }
@@ -5377,15 +4646,12 @@
 	  }
 	  setPopoversHiddenExcept(exceptId) {
 	    const eventDefInternalMap = this.eventDefInternalMap, eventDefMapClick = eventDefInternalMap.click;
-	    for (const id in eventDefMapClick) {
-	      if (Object.prototype.hasOwnProperty.call(eventDefMapClick, id)) {
-	        const eventDef = eventDefMapClick[id];
-	        if (eventDef.isPopover && eventDef.toggleId !== exceptId) {
-	          const toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef);
-	          if (!this.view.getHidden(toggleId)) {
-	            this.model.setProperty(property, false);
-	            this.view.setHidden(toggleId, true, eventDef.display);
-	          }
+	    for (const eventDef of Object.values(eventDefMapClick)) {
+	      if (eventDef.isPopover && eventDef.toggleId !== exceptId) {
+	        const toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef);
+	        if (!this.view.getHidden(toggleId)) {
+	          this.model.setProperty(property, false);
+	          this.view.setHidden(toggleId, true, eventDef.display);
 	        }
 	      }
 	    }
@@ -5394,9 +4660,6 @@
 	    const toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef), visible = !this.model.getAllProperties()[property];
 	    this.model.setProperty(property, visible);
 	    this.view.setHidden(toggleId, !visible, eventDef.display);
-	    if (visible && eventDef.display === "flex" && this.view.getHidden(toggleId)) {
-	      this.view.setHidden(toggleId, !visible);
-	    }
 	    if (visible && eventDef.isPopover) {
 	      this.setPopoversHiddenExcept(toggleId);
 	    }
@@ -5485,10 +4748,8 @@
 	  }
 	  updateUrlFromConfig() {
 	    const url = new URL(window.location.href), initial = this.model.getAllInitialProperties(), changed = this.model.getChangedProperties();
-	    for (const name in initial) {
-	      if (Object.prototype.hasOwnProperty.call(initial, name)) {
-	        url.searchParams.delete(name);
-	      }
+	    for (const name of Object.keys(initial)) {
+	      url.searchParams.delete(name);
 	    }
 	    for (const name in changed) {
 	      url.searchParams.set(name, String(changed[name]));
@@ -5964,13 +5225,11 @@
 	        }
 	      ]
 	    };
-	    for (const type in eventDefs) {
-	      if (Object.prototype.hasOwnProperty.call(eventDefs, type)) {
-	        eventDefInternalMap[type] = {};
-	        const eventDefList = eventDefs[type], itemForType = eventDefInternalMap[type];
-	        for (let i = 0; i < eventDefList.length; i += 1) {
-	          itemForType[eventDefList[i].id] = eventDefList[i];
-	        }
+	    for (const [type, eventDefList] of Object.entries(eventDefs)) {
+	      eventDefInternalMap[type] = {};
+	      const itemForType = eventDefInternalMap[type];
+	      for (let i = 0; i < eventDefList.length; i += 1) {
+	        itemForType[eventDefList[i].id] = eventDefList[i];
 	      }
 	    }
 	  }
@@ -5981,9 +5240,6 @@
 	      this.fnUserAction(event, id);
 	    }
 	    if (id) {
-	      if (target.disabled) {
-	        return;
-	      }
 	      if (id.startsWith("galleryItem")) {
 	        id = "galleryItem";
 	      }
@@ -6623,10 +5879,53 @@
 	};
 	let Z80Disass = _Z80Disass;
 
+	function createMemoryStorage() {
+	  const items = /* @__PURE__ */ new Map();
+	  return {
+	    get length() {
+	      return items.size;
+	    },
+	    clear: () => {
+	      items.clear();
+	    },
+	    getItem: (key) => items.get(key) ?? null,
+	    key: (index) => Array.from(items.keys())[index] ?? null,
+	    removeItem: (key) => {
+	      items.delete(key);
+	    },
+	    setItem: (key, value) => {
+	      items.set(key, String(value));
+	    }
+	  };
+	}
+
 	function createBrowserHost(overrides = {}) {
+	  let fallbackStorage;
 	  return {
 	    get storage() {
-	      return overrides.storage ?? (Polyfills.localStorage || window.localStorage);
+	      if (overrides.storage) {
+	        return overrides.storage;
+	      }
+	      if (fallbackStorage) {
+	        return fallbackStorage;
+	      }
+	      let storage, accessFailed = false, accessError;
+	      try {
+	        storage = window.localStorage;
+	      } catch (error) {
+	        accessFailed = true;
+	        accessError = error;
+	      }
+	      if (storage) {
+	        return storage;
+	      }
+	      if (accessFailed) {
+	        UiUtils.console.warn("BrowserHost: localStorage is inaccessible; using temporary in-memory storage.", accessError);
+	      } else {
+	        UiUtils.console.warn("BrowserHost: localStorage is unavailable; using temporary in-memory storage.");
+	      }
+	      fallbackStorage = createMemoryStorage();
+	      return fallbackStorage;
 	    },
 	    loadScript: overrides.loadScript ?? UiUtils.loadScript,
 	    atobFn: (input) => overrides.atobFn ? overrides.atobFn(input) : window.atob(input),
@@ -6637,6 +5936,8 @@
 
 	const _Controller = class _Controller {
 	  constructor(engine, view, options = {}) {
+	    this.pressedUserKeys = /* @__PURE__ */ new Map();
+	    this.nextUserKeyPressId = 0;
 	    this.outScript = "";
 	    this.initialLoopTimeout = 0;
 	    this.inputSet = false;
@@ -6740,6 +6041,12 @@
 	    this.fnWaitForContinueHandler = this.fnWaitForContinue.bind(this);
 	    this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
 	    this.fnOnUserKeyClickHandler = this.onUserKeyClick.bind(this);
+	    this.fnOnUserKeyPointerDownHandler = (event) => {
+	      this.onUserKeyPointerDown(event);
+	    };
+	    this.fnOnUserKeyPointerUpHandler = (event) => {
+	      this.onUserKeyPointerUp(event);
+	    };
 	    this.engine = engine;
 	    this.core = engine.core;
 	    const model = this.core.getModel();
@@ -6748,6 +6055,7 @@
 	    this.outScript = view.getAreaValue(ViewID.outputText);
 	    this.options = options;
 	    this.host = createBrowserHost(options);
+	    this.userKeyPointerEventNames = this.view.fnAttachPointerEvents(ViewID.userKeys, this.fnOnUserKeyPointerDownHandler, void 0, this.fnOnUserKeyPointerUpHandler);
 	    this.view.addEventListenerById("click", this.fnOnUserKeyClickHandler, ViewID.userKeys);
 	    this.uiController = new UiController(this.core, view, this, this.fnOnUserActionHandler);
 	    this.canvas = this.setCanvasType(model.getAllProperties().canvasType);
@@ -6850,15 +6158,7 @@
 	  }
 	  getHasStorageDatabase() {
 	    const databases = this.model.getAllDatabases();
-	    let hasStorageDatabase = false;
-	    for (const value in databases) {
-	      if (Object.prototype.hasOwnProperty.call(databases, value)) {
-	        if (value === "storage") {
-	          hasStorageDatabase = true;
-	        }
-	      }
-	    }
-	    return hasStorageDatabase;
+	    return Object.keys(databases).includes("storage");
 	  }
 	  onUserAction() {
 	    this.uiController.deactivateUserAction();
@@ -6867,16 +6167,14 @@
 	  }
 	  setDatabaseSelectOptions() {
 	    const items = [], databases = this.model.getAllDatabases(), database = this.model.getAllProperties().database;
-	    for (const value in databases) {
-	      if (Object.prototype.hasOwnProperty.call(databases, value)) {
-	        const db = databases[value], item = {
-	          value,
-	          text: db.text,
-	          title: db.title,
-	          selected: value === database
-	        };
-	        items.push(item);
-	      }
+	    for (const [value, db] of Object.entries(databases)) {
+	      const item = {
+	        value,
+	        text: db.text,
+	        title: db.title,
+	        selected: value === database
+	      };
+	      items.push(item);
 	    }
 	    this.view.setSelectOptions(ViewID.databaseSelect, items);
 	  }
@@ -6898,19 +6196,17 @@
 	  }
 	  setDirectorySelectOptions() {
 	    const items = [], allExamples = this.model.getAllExamples(), examplePath = _Controller.getPathFromExample(this.model.getAllProperties().example), directorySeen = {};
-	    for (const key in allExamples) {
-	      if (Object.prototype.hasOwnProperty.call(allExamples, key)) {
-	        const exampleEntry = allExamples[key], value = _Controller.getPathFromExample(exampleEntry.key);
-	        if (!directorySeen[value]) {
-	          const item = {
-	            value,
-	            text: value,
-	            title: value,
-	            selected: value === examplePath
-	          };
-	          items.push(item);
-	          directorySeen[value] = true;
-	        }
+	    for (const exampleEntry of Object.values(allExamples)) {
+	      const value = _Controller.getPathFromExample(exampleEntry.key);
+	      if (!directorySeen[value]) {
+	        const item = {
+	          value,
+	          text: value,
+	          title: value,
+	          selected: value === examplePath
+	        };
+	        items.push(item);
+	        directorySeen[value] = true;
 	      }
 	    }
 	    this.view.setSelectOptions(ViewID.directorySelect, items);
@@ -6918,9 +6214,9 @@
 	  setExampleSelectOptions() {
 	    const maxTitleLength = 160, maxTextLength = 60, items = [], exampleName = _Controller.getNameFromExample(this.model.getAllProperties().example), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue(ViewID.directorySelect), selectDataFiles = this.model.getAllProperties().selectDataFiles;
 	    let exampleSelected = false;
-	    for (const key in allExamples) {
-	      if (Object.prototype.hasOwnProperty.call(allExamples, key) && _Controller.getPathFromExample(key) === directoryName) {
-	        const exampleEntry = allExamples[key], exampleName2 = _Controller.getNameFromExample(exampleEntry.key);
+	    for (const [key, exampleEntry] of Object.entries(allExamples)) {
+	      if (_Controller.getPathFromExample(key) === directoryName) {
+	        const exampleName2 = _Controller.getNameFromExample(exampleEntry.key);
 	        if (selectDataFiles || exampleEntry.meta !== "D") {
 	          const title = (exampleName2 + ": " + exampleEntry.title).substring(0, maxTitleLength), item = {
 	            value: exampleName2,
@@ -7848,6 +7144,7 @@
 	  }
 	  updateUserKeys(source) {
 	    const container = View.getElementById1(ViewID.userKeys), keys = _Controller.parseUserKeys(source);
+	    this.releaseAllUserKeys();
 	    while (container.firstChild) {
 	      container.removeChild(container.firstChild);
 	    }
@@ -7863,12 +7160,74 @@
 	    container.hidden = !keys.length;
 	  }
 	  onUserKeyClick(event) {
+	    if (event.detail !== 0) {
+	      return;
+	    }
 	    const target = View.getEventTarget(event);
 	    if (target.tagName === "BUTTON") {
 	      const code = Number(target.getAttribute("data-key"));
 	      if (Number.isInteger(code) && code >= 0 && code <= 65535) {
-	        this.fnPutKeysInBuffer(String.fromCharCode(code));
+	        const inputKey = this.getUserKeyInput(code);
+	        if (inputKey) {
+	          this.fnPutKeysInBuffer(inputKey);
+	        }
 	      }
+	    }
+	  }
+	  getUserKeyInput(code) {
+	    const userKeyInfo = VirtualKeyboard.getUserKeyInfo(code);
+	    return userKeyInfo?.input ?? String.fromCharCode(code);
+	  }
+	  onUserKeyPointerDown(event) {
+	    const target = View.getEventTarget(event), button = target.closest("button[data-key]");
+	    if (!button) {
+	      return;
+	    }
+	    const code = Number(button.getAttribute("data-key"));
+	    if (!Number.isInteger(code) || code < 0 || code > 65535 || this.pressedUserKeys.has(button)) {
+	      return;
+	    }
+	    const keyEvent = event, userKeyInfo = VirtualKeyboard.getUserKeyInfo(code), shift = Boolean(keyEvent.shiftKey) || Boolean(userKeyInfo?.shift), ctrl = Boolean(keyEvent.ctrlKey), pressedKey = "userKey:" + this.nextUserKeyPressId, cpcKey = userKeyInfo?.cpcKey, pressedUserKey = {
+	      cpcKey,
+	      pressedKey,
+	      shift,
+	      ctrl
+	    };
+	    this.nextUserKeyPressId += 1;
+	    this.pressedUserKeys.set(button, pressedUserKey);
+	    if (cpcKey !== void 0) {
+	      this.keyboard.setCpcKeyState(cpcKey, pressedKey, true, shift, ctrl);
+	    }
+	    const inputKey = this.getUserKeyInput(code);
+	    if (inputKey) {
+	      this.fnPutKeysInBuffer(inputKey);
+	    }
+	    if (this.userKeyPointerEventNames.out) {
+	      this.view.addEventListener(this.userKeyPointerEventNames.out, this.fnOnUserKeyPointerUpHandler, button);
+	    }
+	    event.preventDefault();
+	  }
+	  onUserKeyPointerUp(event) {
+	    const target = View.getEventTarget(event), button = target.closest("button[data-key]");
+	    if (button) {
+	      this.releaseUserKey(button);
+	    }
+	  }
+	  releaseUserKey(button) {
+	    const pressedUserKey = this.pressedUserKeys.get(button);
+	    if (pressedUserKey) {
+	      this.pressedUserKeys.delete(button);
+	      if (pressedUserKey.cpcKey !== void 0) {
+	        this.keyboard.setCpcKeyState(pressedUserKey.cpcKey, pressedUserKey.pressedKey, false, pressedUserKey.shift, pressedUserKey.ctrl);
+	      }
+	      if (this.userKeyPointerEventNames.out) {
+	        this.view.removeEventListener(this.userKeyPointerEventNames.out, this.fnOnUserKeyPointerUpHandler, button);
+	      }
+	    }
+	  }
+	  releaseAllUserKeys() {
+	    for (const button of this.pressedUserKeys.keys()) {
+	      this.releaseUserKey(button);
 	    }
 	  }
 	  startEnter() {
@@ -8118,9 +7477,10 @@
 	  }
 	  fnDragElementsActive(enabled) {
 	    const dragElement = this.getDragElement(), dragElementsData = this.dragElementsData;
-	    for (const entry in dragElementsData.entries) {
-	      if (Object.prototype.hasOwnProperty.call(dragElementsData.entries, entry)) {
-	        dragElementsData.entries[entry].enabled = enabled;
+	    const entries = dragElementsData.entries;
+	    if (entries) {
+	      for (const entry of Object.values(entries)) {
+	        entry.enabled = enabled;
 	      }
 	    }
 	    dragElement.setOptions(this.dragElementsData);

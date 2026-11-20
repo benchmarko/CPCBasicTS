@@ -12,8 +12,7 @@ function requireNodeModule(moduleName: "https" | "fs"): NodeHttps | NodeFs {
 	return eval("require")(moduleName) as NodeHttps | NodeFs;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func, @typescript-eslint/no-unsafe-call
-const myGlobalThis: TestNodeGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")() as TestNodeGlobalThis; // for old IE
+const myGlobalThis: TestNodeGlobalThis = globalThis;
 
 export class TestNodeUtils {
 	private static nodeReadUrl(url: string, fnDataLoaded: (error: Error | undefined, data?: string) => void) {

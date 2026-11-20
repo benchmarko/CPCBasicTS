@@ -5,7 +5,6 @@
 })(this, (function (exports) { 'use strict';
 
 	const _Utils = class _Utils {
-	  //typeof globalThis !== "undefined" ? globalThis.console : undefined;
 	  static setDebug(debug) {
 	    _Utils.debug = debug;
 	  }
@@ -38,15 +37,6 @@
 	    const numStr = num.toPrecision(9), [decimal, exponent] = numStr.split("e"), result = String(Number(decimal)) + (exponent !== void 0 ? "E" + exponent.replace(/(\D)(\d)$/, "$10$2") : "");
 	    return result;
 	  }
-	  static testIsSupported(testExpression) {
-	    try {
-	      Function(testExpression);
-	    } catch (_e) {
-	      return false;
-	    }
-	    return true;
-	  }
-	  // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
 	  static stringTrimEnd(str) {
 	    return str.replace(/[\s\uFEFF\xA0]+$/, "");
 	  }
@@ -82,7 +72,7 @@
 	    const callSize = 25e3;
 	    let len = data.length, offset = 0, out = "";
 	    while (len) {
-	      const chunkLen = Math.min(len, callSize), chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen);
+	      const chunkLen = Math.min(len, callSize), chunk = data.slice(offset, offset + chunkLen);
 	      out += String.fromCharCode.apply(null, Array.from(chunk));
 	      offset += chunkLen;
 	      len -= chunkLen;
@@ -123,9 +113,6 @@
 	};
 	_Utils.debug = 0;
 	_Utils.console = console;
-	_Utils.supportsBinaryLiterals = _Utils.testIsSupported("0b01");
-	// does the browser support binary literals?
-	_Utils.supportReservedNames = _Utils.testIsSupported("({}).return()");
 	let Utils = _Utils;
 
 	class BasicFormatter {
@@ -451,11 +438,6 @@
 	    this.databases = {};
 	    this.examples = {};
 	  }
-	  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-	  //getProperty<T extends ConfigEntryType>(property: string): T { //getProperty<T extends ConfigEntryType>(property: ModelPropID): T
-	  //	return this.config[property] as T; // keyof ConfigType?
-	  //}
-	  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 	  setProperty(property, value) {
 	    const previousValue = this.config[property];
 	    this.config[property] = value;
@@ -474,22 +456,17 @@
 	  }
 	  getChangedProperties() {
 	    const current = this.config, initial = this.initialConfig, changed = {};
-	    for (const name in current) {
-	      if (Object.prototype.hasOwnProperty.call(current, name)) {
-	        if (current[name] !== initial[name]) {
-	          changed[name] = current[name];
-	        }
+	    for (const [name, value] of Object.entries(current)) {
+	      if (value !== initial[name]) {
+	        changed[name] = value;
 	      }
 	    }
 	    return changed;
 	  }
 	  addDatabases(db) {
-	    for (const par in db) {
-	      if (Object.prototype.hasOwnProperty.call(db, par)) {
-	        const entry = db[par];
-	        this.databases[par] = entry;
-	        this.examples[par] = {};
-	      }
+	    for (const [par, entry] of Object.entries(db)) {
+	      this.databases[par] = entry;
+	      this.examples[par] = {};
 	    }
 	  }
 	  getAllDatabases() {
@@ -1023,11 +1000,8 @@
 	  }
 	  // do not know if we need to sort the extents per file, but...
 	  static sortFileExtents(dir) {
-	    for (const name in dir) {
-	      if (Object.prototype.hasOwnProperty.call(dir, name)) {
-	        const fileExtents = dir[name];
-	        fileExtents.sort(_DiskImage.fnSortByExtentNumber);
-	      }
+	    for (const fileExtents of Object.values(dir)) {
+	      fileExtents.sort(_DiskImage.fnSortByExtentNumber);
 	    }
 	  }
 	  static prepareDirectoryList(extents, fill, reFilePattern) {
@@ -1666,7 +1640,7 @@
 	  }
 	  subArr(begin, length) {
 	    const data = this.data, end = begin + length;
-	    return data.slice ? data.slice(begin, end) : data.subarray(begin, end);
+	    return data.slice(begin, end);
 	  }
 	  readUTF(offset, len) {
 	    const callSize = 25e3;
@@ -2234,15 +2208,13 @@
 	    for (const entry of entries) {
 	      fileExists[entry] = true;
 	    }
-	    for (const key in examples) {
-	      if (Object.prototype.hasOwnProperty.call(examples, key)) {
-	        const example = examples[key], name = example.key, matchName = name + (name.indexOf(".") < 0 ? "." : "");
-	        if (!regExp || regExp.test(matchName)) {
-	          const entry = name.substring(path.length);
-	          if (!fileExists[entry]) {
-	            fileExists[entry] = true;
-	            entries.push(entry);
-	          }
+	    for (const example of Object.values(examples)) {
+	      const name = example.key, matchName = name + (name.indexOf(".") < 0 ? "." : "");
+	      if (!regExp || regExp.test(matchName)) {
+	        const entry = name.substring(path.length);
+	        if (!fileExists[entry]) {
+	          fileExists[entry] = true;
+	          entries.push(entry);
 	        }
 	      }
 	    }
@@ -3028,16 +3000,14 @@
 	    const keywords10 = {
 	      ..._BasicParser.keywordsBasic11
 	    };
-	    for (const key in keywords10) {
-	      if (Object.prototype.hasOwnProperty.call(keywords10, key)) {
-	        const keyWithSpaces = " " + key + " ";
-	        if (_BasicParser.fnIsInString(" clearInput copychr$ cursor derr fill frame graphics graphicsPaper graphicsPen mask onBreakCont ", keyWithSpaces)) {
-	          delete keywords10[key];
-	        } else if (_BasicParser.fnIsInString(" draw drawr move mover pen plot plotr ", keyWithSpaces)) {
+	    for (const key of Object.keys(keywords10)) {
+	      const keyWithSpaces = " " + key + " ";
+	      if (_BasicParser.fnIsInString(" clearInput copychr$ cursor derr fill frame graphics graphicsPaper graphicsPen mask onBreakCont ", keyWithSpaces)) {
+	        delete keywords10[key];
+	      } else if (_BasicParser.fnIsInString(" draw drawr move mover pen plot plotr ", keyWithSpaces)) {
+	        keywords10[key] = keywords10[key].substring(0, keywords10[key].lastIndexOf(" "));
+	        if (_BasicParser.fnIsInString(" move mover ", keyWithSpaces)) {
 	          keywords10[key] = keywords10[key].substring(0, keywords10[key].lastIndexOf(" "));
-	          if (_BasicParser.fnIsInString(" move mover ", keyWithSpaces)) {
-	            keywords10[key] = keywords10[key].substring(0, keywords10[key].lastIndexOf(" "));
-	          }
 	        }
 	      }
 	    }
@@ -4005,16 +3975,14 @@
 	    return symbol;
 	  }
 	  fnGenerateKeywordSymbols() {
-	    for (const key in this.keywords) {
-	      if (Object.prototype.hasOwnProperty.call(this.keywords, key)) {
-	        const keywordType = this.keywords[key].charAt(0);
-	        if (keywordType === "f") {
-	          this.createNudSymbol(key, () => this.fnCreateFuncCall(this.previousToken));
-	        } else if (keywordType === "c") {
-	          this.createStatement(key, this.specialStatements[key] || this.fnCreateCmdCall);
-	        } else if (keywordType === "p") {
-	          this.createSymbol(key);
-	        }
+	    for (const key of Object.keys(this.keywords)) {
+	      const keywordType = this.keywords[key].charAt(0);
+	      if (keywordType === "f") {
+	        this.createNudSymbol(key, () => this.fnCreateFuncCall(this.previousToken));
+	      } else if (keywordType === "c") {
+	        this.createStatement(key, this.specialStatements[key] || this.fnCreateCmdCall);
+	      } else if (keywordType === "p") {
+	        this.createSymbol(key);
 	      }
 	    }
 	  }
@@ -5251,7 +5219,7 @@
 	    const defScopeArgs = this.defScopeArgs;
 	    name = name.toLowerCase().replace(/\./g, "_");
 	    const firstChar = name.charAt(0);
-	    if (defScopeArgs && !defScopeArgs.suppressEscape || !Utils.supportReservedNames) {
+	    if (defScopeArgs && !defScopeArgs.suppressEscape) {
 	      if (this.reJsKeywords.test(name)) {
 	        name = "_" + name;
 	      }
@@ -5571,14 +5539,9 @@
 	    node.pv = node.value;
 	  }
 	  static binnumber(node) {
-	    let value = node.value.slice(2);
-	    if (Utils.supportsBinaryLiterals) {
-	      value = "0b" + (value.length ? value : "0");
-	    } else {
-	      value = "0x" + (value.length ? parseInt(value, 2).toString(16) : "0");
-	    }
+	    const value = node.value.slice(2);
 	    node.pt = "I";
-	    node.pv = value;
+	    node.pv = "0b" + (value || "0");
 	  }
 	  static hexnumber(node) {
 	    let value = node.value.slice(1);
@@ -5810,7 +5773,7 @@
 	    node.pv = args.join("; ");
 	  }
 	  fnDelete(node) {
-	    const nodeArgs = this.fnParseArgs(node.args), name = Utils.supportReservedNames ? "o." + node.type : 'o["' + node.type + '"]';
+	    const nodeArgs = this.fnParseArgs(node.args), name = "o." + node.type;
 	    if (!nodeArgs.length) {
 	      nodeArgs.push("1");
 	      nodeArgs.push("65535");
@@ -6058,7 +6021,7 @@
 	    node.pv = name + ' = o.vmAssign("' + varType + '", o.mid$Assign(' + nodeArgs.join(", ") + "))";
 	  }
 	  static fnNew(node) {
-	    const name = Utils.supportReservedNames ? "o." + node.type : 'o["' + node.type + '"]';
+	    const name = "o." + node.type;
 	    node.pv = name + "();";
 	  }
 	  next(node) {
@@ -6177,7 +6140,7 @@
 	    node.pv = "//" + nodeArgs.join("") + "\n";
 	  }
 	  static fnReturn(node) {
-	    const name = Utils.supportReservedNames ? "o." + node.type : 'o["' + node.type + '"]';
+	    const name = "o." + node.type;
 	    node.pv = name + "(); break;";
 	  }
 	  run(node) {
@@ -6475,7 +6438,7 @@
 	    return out;
 	  }
 	};
-	// ECMA 3 JS Keywords which must be avoided in dot notation for properties when using IE8
+	// Reserved words are escaped when used as function parameters.
 	_CodeGeneratorJs.jsKeywords = [
 	  "do",
 	  "if",
@@ -7970,10 +7933,8 @@
 	  }
 	  registerRsx(rsxModule, permanent) {
 	    const rsxRegister = permanent ? this.rsxPermanent : this.rsxTemporary, rsxCommands = rsxModule.getRsxCommands();
-	    for (const command in rsxCommands) {
-	      if (Object.prototype.hasOwnProperty.call(rsxCommands, command)) {
-	        rsxRegister[command] = rsxCommands[command];
-	      }
+	    for (const [command, handler] of Object.entries(rsxCommands)) {
+	      rsxRegister[command] = handler;
 	    }
 	  }
 	  resetRsx() {
@@ -10729,12 +10690,11 @@
 	      if (Utils.debug > 0) {
 	        Utils.console.debug("restore: search for dataLine >", line);
 	      }
-	      for (const dataLine in dataLineIndex) {
-	        if (Object.prototype.hasOwnProperty.call(dataLineIndex, dataLine)) {
-	          if (Number(dataLine) >= line) {
-	            dataLineIndex[line] = dataLineIndex[dataLine];
-	            break;
-	          }
+	      for (const dataLine of Object.keys(dataLineIndex)) {
+	        const dataLineNumber = Number(dataLine);
+	        if (dataLineNumber >= line) {
+	          dataLineIndex[line] = dataLineIndex[dataLineNumber];
+	          break;
 	        }
 	      }
 	      if (line in dataLineIndex) {
@@ -13161,15 +13121,7 @@
 	  }
 	  getHasStorageDatabase() {
 	    const databases = this.core.getModel().getAllDatabases();
-	    let hasStorageDatabase = false;
-	    for (const value in databases) {
-	      if (Object.prototype.hasOwnProperty.call(databases, value)) {
-	        if (value === "storage") {
-	          hasStorageDatabase = true;
-	        }
-	      }
-	    }
-	    return hasStorageDatabase;
+	    return Object.keys(databases).includes("storage");
 	  }
 	  updateStorageDatabase(action, key) {
 	    if (!this.hasStorageDatabase) {
@@ -13904,41 +13856,30 @@
 	  /* eslint-enable no-invalid-this */
 	}
 
+	function createMemoryStorage() {
+	  const items = /* @__PURE__ */ new Map();
+	  return {
+	    get length() {
+	      return items.size;
+	    },
+	    clear: () => {
+	      items.clear();
+	    },
+	    getItem: (key) => items.get(key) ?? null,
+	    key: (index) => Array.from(items.keys())[index] ?? null,
+	    removeItem: (key) => {
+	      items.delete(key);
+	    },
+	    setItem: (key, value) => {
+	      items.set(key, String(value));
+	    }
+	  };
+	}
+
 	function requireNodeModule(moduleName) {
 	  return eval("require")(moduleName);
 	}
-	const myGlobalThis = typeof globalThis !== "undefined" ? globalThis : Function("return this")();
-	function createLocalStorage() {
-	  const data = {};
-	  const storage = {
-	    clear() {
-	      Object.keys(data).forEach((key) => {
-	        delete data[key];
-	        delete storage[key];
-	      });
-	    },
-	    getItem(key) {
-	      return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null;
-	    },
-	    key(index) {
-	      const keys = Object.keys(data);
-	      return index >= 0 && index < keys.length ? keys[index] : null;
-	    },
-	    removeItem(key) {
-	      delete data[key];
-	      delete storage[key];
-	    },
-	    setItem(key, value) {
-	      const value2 = String(value);
-	      data[key] = value2;
-	      storage[key] = value2;
-	    },
-	    get length() {
-	      return Object.keys(data).length;
-	    }
-	  };
-	  return storage;
-	}
+	const myGlobalThis = globalThis;
 	const _NodeUtils = class _NodeUtils {
 	  static nodeReadUrl(url, fnDataLoaded) {
 	    const nodeHttps = requireNodeModule("https");
@@ -14080,10 +14021,6 @@
 	      setMaskFirst: (_maskFirst) => void 0,
 	      getMode: () => 0,
 	      changeMode: (_mode) => void 0,
-	      //takeScreenShot: () => "",
-	      //startUpdateCanvas: () => undefined,
-	      //stopUpdateCanvas: () => undefined,
-	      //onWindowClick: (_event: Event) => undefined,
 	      fillTextBox: (left, top, width, height, _paper) => {
 	        clearTextBufferBox(left, top, width, height);
 	      },
@@ -14152,7 +14089,7 @@
 	      onProgramEnd: () => {
 	        myGlobalThis.process.exit(0);
 	      },
-	      storage: createLocalStorage(),
+	      storage: createMemoryStorage(),
 	      atobFn,
 	      btoaFn,
 	      console,

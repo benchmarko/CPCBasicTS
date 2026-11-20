@@ -17,28 +17,25 @@ const allTests: AllTestsType = {
 
 QUnit.module("Diff: Tests", function (hooks) {
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const parts = Utils.split2(key, "#"),
-					text1 = parts[0],
-					text2 = parts[1],
-					expected = tests[key];
-				let result: string;
+		for (const [key, expected] of Object.entries(tests)) {
+			const parts = Utils.split2(key, "#"),
+				text1 = parts[0],
+				text2 = parts[1];
+			let result: string;
 
-				try {
-					result = Diff.testDiff(text1, text2);
-				} catch (e) {
-					Utils.console.error(e);
-					result = String(e);
-				}
+			try {
+				result = Diff.testDiff(text1, text2);
+			} catch (e) {
+				Utils.console.error(e);
+				result = String(e);
+			}
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					assert.strictEqual(result, expected, "test1");
-				}
+			if (assert) {
+				assert.strictEqual(result, expected, "test1");
 			}
 		}
 	}

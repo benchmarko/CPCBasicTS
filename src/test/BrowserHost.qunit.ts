@@ -1,4 +1,5 @@
 import type { RuntimeHost } from "../Interfaces";
+import { createMemoryStorage } from "../MemoryStorage";
 import { createBrowserHost } from "../ui/BrowserHost";
 
 QUnit.module("BrowserHost", function () {
@@ -52,5 +53,49 @@ QUnit.module("BrowserHost", function () {
 		assert.strictEqual(typeof host.atobFn, "function");
 		assert.strictEqual(typeof host.btoaFn, "function");
 		assert.strictEqual(typeof host.setTimeout, "function");
+	});
+
+	QUnit.test("memory storage safely stores keys matching method names", function (assert) {
+		const storage = createMemoryStorage();
+
+		storage.setItem("clear", "stored value");
+		storage.setItem("toString", "another value");
+		assert.strictEqual(storage.getItem("clear"), "stored value");
+		assert.strictEqual(storage.getItem("toString"), "another value");
+		storage.clear();
+		assert.strictEqual(storage.length, 0);
+	});
+
+	QUnit.test("unavailable localStorage falls back to temporary memory storage", function (assert) {
+		const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, "window"),
+			hostWindow = typeof window !== "undefined" ? window : {},
+			storageDescriptor = Object.getOwnPropertyDescriptor(hostWindow, "localStorage");
+
+		try {
+			if (!windowDescriptor) {
+				Object.defineProperty(globalThis, "window", { configurable: true, value: hostWindow });
+			}
+			Object.defineProperty(hostWindow, "localStorage", {
+				configurable: true,
+				get: () => { throw new DOMException("Storage is blocked", "SecurityError"); }
+			});
+
+			const storage = createBrowserHost().storage;
+			storage.setItem("saved.bas", "10 PRINT 1");
+			assert.strictEqual(storage.getItem("saved.bas"), "10 PRINT 1");
+			assert.strictEqual(storage.key(0), "saved.bas");
+			assert.strictEqual(storage.length, 1);
+		} finally {
+			if (storageDescriptor) {
+				Object.defineProperty(hostWindow, "localStorage", storageDescriptor);
+			} else {
+				Reflect.deleteProperty(hostWindow, "localStorage");
+			}
+			if (windowDescriptor) {
+				Object.defineProperty(globalThis, "window", windowDescriptor);
+			} else {
+				Reflect.deleteProperty(globalThis, "window");
+			}
+		}
 	});
 });

@@ -801,7 +801,6 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 				Utils.console.error(e); // only if unexpected
 			}
 			const error: Record<string, unknown> = e !== null && typeof e === "object" ? e as Record<string, unknown> : {};
-			// on IE we have additional properties description, number, stack in the object, so we use a positive list...
 			// eslint-disable-next-line object-property-newline, object-curly-newline
 			const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(error);
 			// (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
@@ -817,29 +816,26 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 			basicLexer = thisHooks.basicLexer,
 			basicParser = thisHooks.basicParser;
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const expected = TestHelper.handleBinaryLiterals(tests[key]);
-				let expectedEntry: ExpectedTestEntry;
+		for (const [key, expected] of Object.entries(tests)) {
+			let expectedEntry: ExpectedTestEntry;
 
-				try {
-					expectedEntry = TestHelper.parseExpectedEntry(expected);
-				} catch (e) {
-					Utils.console.error(e);
-					expectedEntry = {}; // continue
-				}
+			try {
+				expectedEntry = TestHelper.parseExpectedEntry(expected);
+			} catch (e) {
+				Utils.console.error(e);
+				expectedEntry = {}; // continue
+			}
 
-				const result = runSingleTest(basicLexer, basicParser, key, expectedEntry);
+			const result = runSingleTest(basicLexer, basicParser, key, expectedEntry);
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					const parseTree: unknown = JSON.parse(result);
+			if (assert) {
+				const parseTree: unknown = JSON.parse(result);
 
-					assert.deepEqual(parseTree, expectedEntry, key);
-				}
+				assert.deepEqual(parseTree, expectedEntry, key);
 			}
 		}
 	}
@@ -956,20 +952,17 @@ QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
 			return " ".repeat(spaceCount);
 		};
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				spaceCount = 1;
-				const expected = TestHelper.handleBinaryLiterals(tests[key]),
-					keyWithSpaces = key.replace(/([=?+\-*^/\\,;()#])/g, " $1 ").replace(/ +/g, fnSpaceReplacer).replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/e[ ]+\+[ ]+(\d+)/g, "e+$1"), // with fast hacks
-					result = runSingleTestForWhitespace(basicLexer, basicParser, keyWithSpaces, expected);
+		for (const [key, expected] of Object.entries(tests)) {
+			spaceCount = 1;
+			const keyWithSpaces = key.replace(/([=?+\-*^/\\,;()#])/g, " $1 ").replace(/ +/g, fnSpaceReplacer).replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/e[ ]+\+[ ]+(\d+)/g, "e+$1"), // with fast hacks
+				result = runSingleTestForWhitespace(basicLexer, basicParser, keyWithSpaces, expected);
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(keyWithSpaces) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(keyWithSpaces) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					assert.strictEqual(result, keyWithSpaces, keyWithSpaces);
-				}
+			if (assert) {
+				assert.strictEqual(result, keyWithSpaces, keyWithSpaces);
 			}
 		}
 	}

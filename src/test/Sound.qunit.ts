@@ -354,18 +354,15 @@ QUnit.module("Sound: Tests", function (hooks) {
 		sound.soundOn();
 		sound.setActivatedByUser();
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const expected = tests[key],
-					result = runSingleTest(testFunction, sound, key, expected, category);
+		for (const [key, expected] of Object.entries(tests)) {
+			const result = runSingleTest(testFunction, sound, key, expected, category);
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					assert.strictEqual(result, expected, key);
-				}
+			if (assert) {
+				assert.strictEqual(result, expected, key);
 			}
 		}
 		sound.soundOff();

@@ -732,12 +732,8 @@ export class DiskImage {
 
 	// do not know if we need to sort the extents per file, but...
 	private static sortFileExtents(dir: DirectoryListType) {
-		for (const name in dir) {
-			if (Object.prototype.hasOwnProperty.call(dir, name)) {
-				const fileExtents = dir[name];
-
-				fileExtents.sort(DiskImage.fnSortByExtentNumber);
-			}
+		for (const fileExtents of Object.values(dir)) {
+			fileExtents.sort(DiskImage.fnSortByExtentNumber);
 		}
 	}
 

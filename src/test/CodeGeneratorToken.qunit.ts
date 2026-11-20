@@ -808,19 +808,16 @@ QUnit.module("CodeGeneratorToken: Tests", function (hooks) {
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		const codeGeneratorToken = (hooks as hooksWithCodeGeneratorToken).codeGeneratorToken;
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const expected = tests[key],
-					output = codeGeneratorToken.generate(key),
-					result = output.error ? String(output.error) : fnBin2Hex(output.text);
+		for (const [key, expected] of Object.entries(tests)) {
+			const output = codeGeneratorToken.generate(key),
+				result = output.error ? String(output.error) : fnBin2Hex(output.text);
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					assert.strictEqual(result, expected, key);
-				}
+			if (assert) {
+				assert.strictEqual(result, expected, key);
 			}
 		}
 	}

@@ -2446,10 +2446,8 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 	});
 
 	function deleteObjectContents(obj: Record<string, unknown>) {
-		for (const prop in obj) {
-			if (Object.prototype.hasOwnProperty.call(obj, prop)) {
-				delete obj[prop];
-			}
+		for (const prop of Object.keys(obj)) {
+			delete obj[prop];
 		}
 	}
 
@@ -3319,17 +3317,15 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 	}
 
 	function getStateDiff(vmState0: unknown, vmState1: unknown) {
-		if (typeof vmState0 === "object" && typeof vmState1 === "object") {
+		if (vmState0 !== null && vmState1 !== null && typeof vmState0 === "object" && typeof vmState1 === "object") {
 			const stateObj0 = vmState0 as Record<string, unknown>,
 				stateObj1 = vmState1 as Record<string, unknown>;
 
-			for (const key in stateObj1) {
-				if (Object.prototype.hasOwnProperty.call(stateObj1, key)) {
-					if (key !== "_key" && stateObj1[key] === stateObj0[key]) {
-						// same values set to undefined (will be ignored by JSON.stringify)
-						stateObj0[key] = undefined;
-						stateObj1[key] = undefined;
-					}
+			for (const key of Object.keys(stateObj1)) {
+				if (key !== "_key" && stateObj1[key] === stateObj0[key]) {
+					// same values set to undefined (will be ignored by JSON.stringify)
+					stateObj0[key] = undefined;
+					stateObj1[key] = undefined;
 				}
 			}
 		}
@@ -3352,13 +3348,11 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 			combinedResult.push(result);
 		}
 
-		for (const state in vmState0) {
-			if (Object.prototype.hasOwnProperty.call(vmState0, state)) {
-				const stateDiff = getStateDiff(vmState0[state], vmState1[state]);
+		for (const state of Object.keys(vmState0)) {
+			const stateDiff = getStateDiff(vmState0[state], vmState1[state]);
 
-				if (stateDiff !== undefined) {
-					combinedResult.push(stateDiff);
-				}
+			if (stateDiff !== undefined) {
+				combinedResult.push(stateDiff);
 			}
 		}
 		return combinedResult.join(" -- ");
@@ -3401,17 +3395,14 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 		const cpcVm = (hooks as hooksWithCpcVm).cpcVm,
 			testFunction = allTestFunctions[category];
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const expected = tests[key],
-					result = runSingleTest(testFunction, cpcVm, cpcVm.getOptions(), key, expected, category);
+		for (const [key, expected] of Object.entries(tests)) {
+			const result = runSingleTest(testFunction, cpcVm, cpcVm.getOptions(), key, expected, category);
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
-				if (assert) {
-					assert.strictEqual(result, expected, key);
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
+			if (assert) {
+				assert.strictEqual(result, expected, key);
 			}
 		}
 	}

@@ -98,35 +98,32 @@ function extractFirstFileFromZip(key: string) {
 
 QUnit.module("DiskImage: Read files tests", function (hooks) {
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const uncompressed = extractFirstFileFromZip(key),
-					disk = new DiskImage({
-						data: uncompressed,
-						diskName: "name",
-						quiet: true
-					}),
-					expected = tests[key];
-				let result: string;
+		for (const [key, expected] of Object.entries(tests)) {
+			const uncompressed = extractFirstFileFromZip(key),
+				disk = new DiskImage({
+					data: uncompressed,
+					diskName: "name",
+					quiet: true
+				});
+			let result: string;
 
-				try {
-					result = readFilesFromDiskImage(disk);
-				} catch (e) {
-					result = String(e);
-					if (result !== expected) { // output in console only if error not expected
-						Utils.console.error(e);
-					}
+			try {
+				result = readFilesFromDiskImage(disk);
+			} catch (e) {
+				result = String(e);
+				if (result !== expected) { // output in console only if error not expected
+					Utils.console.error(e);
 				}
+			}
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					const message = "uncompressed DSK: " + uncompressed.length;
+			if (assert) {
+				const message = "uncompressed DSK: " + uncompressed.length;
 
-					assert.strictEqual(result, expected, message);
-				}
+				assert.strictEqual(result, expected, message);
 			}
 		}
 	}
@@ -222,67 +219,64 @@ function assertDiskImageRoundTrip(assert: Assert, category: string, diskImage: D
 
 QUnit.module("DiskImage: Write files tests", function (hooks) {
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				if (category === "data" || category === "system") {
-					const input = tests[key],
-						fileInfos = input.split(" --- "),
-						diskImage = new DiskImage({
-							quiet: true,
-							data: ""
-						});
-
-					diskImage.setOptions({
-						diskName: "test",
-						data: diskImage.formatImage(category)
+		for (const [key, input] of Object.entries(tests)) {
+			if (category === "data" || category === "system") {
+				const fileInfos = input.split(" --- "),
+					diskImage = new DiskImage({
+						quiet: true,
+						data: ""
 					});
 
-					const codeGeneratorToken = createCodeGeneratorToken();
+				diskImage.setOptions({
+					diskName: "test",
+					data: diskImage.formatImage(category)
+				});
 
-					for (let i = 0; i < fileInfos.length; i += 1) {
-						const fileInfo = fileInfos[i],
-							[name, metaJson, data1] = fileInfo.split(" -- "), // eslint-disable-line array-element-newline
-							headerEntry = JSON.parse(metaJson) as AmsdosHeader;
+				const codeGeneratorToken = createCodeGeneratorToken();
 
-						let data = data1;
+				for (let i = 0; i < fileInfos.length; i += 1) {
+					const fileInfo = fileInfos[i],
+						[name, metaJson, data1] = fileInfo.split(" -- "), // eslint-disable-line array-element-newline
+						headerEntry = JSON.parse(metaJson) as AmsdosHeader;
 
-						// eslint-disable-next-line max-depth
-						if (headerEntry.typeString === "P") { // protected BASIC?
-							const output = codeGeneratorToken.generate(data);
+					let data = data1;
 
-							data = output.error ? String(output.error) : output.text;
-							data = DiskImage.unOrProtectData(data);
-						} else if (headerEntry.typeString === "T") { // tokenized BASIC?
-							const output2 = codeGeneratorToken.generate(data);
+					// eslint-disable-next-line max-depth
+					if (headerEntry.typeString === "P") { // protected BASIC?
+						const output = codeGeneratorToken.generate(data);
 
-							data = output2.error ? String(output2.error) : output2.text;
-						} else if (headerEntry.typeString === "B") { // Binary
-							// take it as it is
-						} else if (headerEntry.typeString === "A") { // ASCII
-							// take it as it is
-						} else {
-							Utils.console.error("runTestsFor: Unknon file type:", headerEntry.typeString);
-						}
+						data = output.error ? String(output.error) : output.text;
+						data = DiskImage.unOrProtectData(data);
+					} else if (headerEntry.typeString === "T") { // tokenized BASIC?
+						const output2 = codeGeneratorToken.generate(data);
 
-						data = addAmsdosHeader(name, headerEntry, data);
-
-						diskImage.writeFile(name, data);
+						data = output2.error ? String(output2.error) : output2.text;
+					} else if (headerEntry.typeString === "B") { // Binary
+						// take it as it is
+					} else if (headerEntry.typeString === "A") { // ASCII
+						// take it as it is
+					} else {
+						Utils.console.error("runTestsFor: Unknon file type:", headerEntry.typeString);
 					}
 
-					const result = diskImage.stripEmptyTracks(),
-						uncompressed = extractFirstFileFromZip(key),
-						expected = uncompressed;
+					data = addAmsdosHeader(name, headerEntry, data);
 
-					if (results) {
-						results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-					}
-
-					if (assert) {
-						assertDiskImageRoundTrip(assert, category, diskImage, result, expected, input);
-					}
-				} else if (assert) {
-					assert.expect(0); // not testing this
+					diskImage.writeFile(name, data);
 				}
+
+				const result = diskImage.stripEmptyTracks(),
+					uncompressed = extractFirstFileFromZip(key),
+					expected = uncompressed;
+
+				if (results) {
+					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+				}
+
+				if (assert) {
+					assertDiskImageRoundTrip(assert, category, diskImage, result, expected, input);
+				}
+			} else if (assert) {
+				assert.expect(0); // not testing this
 			}
 		}
 	}

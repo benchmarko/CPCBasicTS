@@ -793,20 +793,17 @@ QUnit.module("BasicTokenizer:decode: Tests", function (hooks) {
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		const basicTokenizer = (hooks as hooksWithBasicTokenizer).basicTokenizer;
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const expected = tests[key],
-					result = runSingleTest(basicTokenizer, key);
+		for (const [key, expected] of Object.entries(tests)) {
+			const result = runSingleTest(basicTokenizer, key);
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					const firstLine = expected.substring(0, expected.indexOf("\n")) || expected;
+			if (assert) {
+				const firstLine = expected.substring(0, expected.indexOf("\n")) || expected;
 
-					assert.strictEqual(result, expected, firstLine);
-				}
+				assert.strictEqual(result, expected, firstLine);
 			}
 		}
 	}
@@ -823,20 +820,17 @@ QUnit.module("BasicTokenizer:decode: More Tests", function (hooks) {
 	function runTestsForMore(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		const basicTokenizer = (hooks as hooksWithBasicTokenizer).basicTokenizer;
 
-		for (const key in tests) {
-			if (Object.prototype.hasOwnProperty.call(tests, key)) {
-				const expected = tests[key],
-					result = runSingleTest(basicTokenizer, key);
+		for (const [key, expected] of Object.entries(tests)) {
+			const result = runSingleTest(basicTokenizer, key);
 
-				if (results) {
-					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
-				}
+			if (results) {
+				results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+			}
 
-				if (assert) {
-					const firstLine = expected.substring(0, expected.indexOf("\n")) || expected;
+			if (assert) {
+				const firstLine = expected.substring(0, expected.indexOf("\n")) || expected;
 
-					assert.strictEqual(result, expected, firstLine);
-				}
+				assert.strictEqual(result, expected, firstLine);
 			}
 		}
 	}
