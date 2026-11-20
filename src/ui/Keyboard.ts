@@ -22,7 +22,7 @@ type KeyExpansionsRepeatType = Record<string, number>; // numbers as keys are st
 
 type Key2CpcKeyType = Record<string, number>;
 
-type PressedBrowseKeysType = Record<string, boolean>;
+type PressedBrowseKeysType = Record<string, {shift: boolean, ctrl: boolean}>;
 
 type PressedKeysType = Record<string, {keys: PressedBrowseKeysType, shift: boolean, ctrl: boolean}>;
 interface CpcKeyExpansions {
@@ -330,26 +330,12 @@ export class Keyboard implements IKeyboard {
 	fnPressCpcKey(event: KeyboardEvent | PointerEvent, cpcKeyCode: number, pressedKey: string, key: string): void { // eslint-disable-line complexity
 		const shiftKey = event.shiftKey,
 			ctrlKey = event.ctrlKey,
-			pressedKeys = this.pressedKeys,
 			cpcKeyExpansions = this.cpcKeyExpansions,
 			specialKeys = Keyboard.specialKeys,
 			cpcKey = String(cpcKeyCode);
 
-		let	cpcKeyEntry = pressedKeys[cpcKey];
+		const keyAlreadyPressed = this.setCpcKeyState(cpcKeyCode, pressedKey, true, shiftKey, ctrlKey);
 
-		if (!cpcKeyEntry) {
-			pressedKeys[cpcKey] = {
-				keys: {},
-				shift: false,
-				ctrl: false
-			};
-			cpcKeyEntry = pressedKeys[cpcKey];
-		}
-		const keyAlreadyPressed = cpcKeyEntry.keys[pressedKey];
-
-		cpcKeyEntry.keys[pressedKey] = true;
-		cpcKeyEntry.shift = shiftKey;
-		cpcKeyEntry.ctrl = ctrlKey;
 		if (UiUtils.debug > 1) {
 			UiUtils.console.log("fnPressCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKey);
 		}
@@ -409,11 +395,44 @@ export class Keyboard implements IKeyboard {
 		}
 	}
 
+	setCpcKeyState(cpcKeyCode: number, pressedKey: string, isPressed: boolean, shiftKey = false, ctrlKey = false): boolean {
+		const pressedKeys = this.pressedKeys,
+			cpcKey = String(cpcKeyCode);
+		let cpcKeyEntry = pressedKeys[cpcKey];
+		const keyAlreadyPressed = Boolean(cpcKeyEntry && cpcKeyEntry.keys[pressedKey]);
+
+		if (isPressed) {
+			if (!cpcKeyEntry) {
+				cpcKeyEntry = {
+					keys: {},
+					shift: false,
+					ctrl: false
+				};
+				pressedKeys[cpcKey] = cpcKeyEntry;
+			}
+			cpcKeyEntry.keys[pressedKey] = {
+				shift: shiftKey,
+				ctrl: ctrlKey
+			};
+		} else if (cpcKeyEntry) {
+			delete cpcKeyEntry.keys[pressedKey];
+			if (!Object.keys(cpcKeyEntry.keys).length) {
+				delete pressedKeys[cpcKey];
+				return keyAlreadyPressed;
+			}
+		} else {
+			return keyAlreadyPressed;
+		}
+
+		const keyStates = Object.values(cpcKeyEntry.keys);
+
+		cpcKeyEntry.shift = keyStates.some((keyState) => keyState.shift);
+		cpcKeyEntry.ctrl = keyStates.some((keyState) => keyState.ctrl);
+		return keyAlreadyPressed;
+	}
+
 	fnReleaseCpcKey(event: KeyboardEvent | PointerEvent, cpcKeyCode: number, pressedKey: string, key: string): void {
-		const shiftKey = event.shiftKey,
-			ctrlKey = event.ctrlKey,
-			pressedKeys = this.pressedKeys,
-			cpcKey = pressedKeys[cpcKeyCode];
+		const cpcKey = this.pressedKeys[cpcKeyCode];
 
 		if (UiUtils.debug > 1) {
 			UiUtils.console.log("fnReleaseCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKeyCode + ", keys:", (cpcKey ? cpcKey.keys : "undef."));
@@ -421,13 +440,7 @@ export class Keyboard implements IKeyboard {
 		if (!cpcKey) {
 			UiUtils.console.warn("fnReleaseCpcKey: cpcKey was not pressed:", cpcKeyCode);
 		} else {
-			delete cpcKey.keys[pressedKey];
-			if (!Object.keys(cpcKey.keys).length) {
-				delete pressedKeys[cpcKeyCode];
-			} else {
-				cpcKey.shift = shiftKey;
-				cpcKey.ctrl = ctrlKey;
-			}
+			this.setCpcKeyState(cpcKeyCode, pressedKey, false, event.shiftKey, event.ctrlKey);
 		}
 	}
 

@@ -182,12 +182,15 @@ The browser entrypoints are `cpcbasicUI.js` followed by `cpcbasic.js`. The UI bu
 
 ### Program Keys
 
-Programs can declare on-screen keys for CPCBasicTS in a standalone BASIC comment. The value is a flat array of `key, text` pairs, where `key` is a single-character string or an integer CPC character
-codes from 0 to 255, `text` is the button text or a code which is converted to a button text letter. The button text can contain Unicode escapes, e.g. `\u21BB`. In JavaScript it must be written as `\\u21BB`.
+Programs can declare on-screen keys for CPCBasicTS in a standalone BASIC comment. The value is a flat array of `key, text` pairs, where `key` is a single-character string, an integer CPC character code from 0 to 255, or 256 plus a CPC key number from 0 to 79. `text` is the button text or a code which is converted to a button text letter. The button text can contain Unicode escapes, e.g. `\u21BB`. In JavaScript it must be written as `\\u21BB`.
 
 ```basic
 REM CPCBasic-keys: ["a","a","d",""," ","Space",13,"Enter"]
 ```
+
+While pressed, program keys for `a-z`, `A-Z`, `0-9`, punctuation, space, and Enter also set the corresponding CPC keyboard state for `INKEY(n)`. For example, `INKEY(64)` checks the `1` key, and `INKEY(69)` checks `a`/`A` (`A` also sets the shift bit). CPC codes for Copy (224), cursor keys (240-243), Escape (27), Delete/Clear (16), Backspace (127), and joystick directions (8-11) are also mapped. Other program keys continue to provide character input without an `INKEY` state.
+
+Use `256+n` to explicitly map a program key to CPC keyboard key `n`, and enqueue that CPC key's usual character. For example, `324` (`256+68`) is Tab, `331` is joystick right, and `332` is joystick fire 1. Modifier keys without an input character enqueue nothing.
 
 ## Restrictions
 

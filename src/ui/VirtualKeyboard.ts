@@ -358,7 +358,7 @@ export class VirtualKeyboard {
 		{
 			keys: "54Digit6", // 48: 6 &
 			key: "6",
-			keyShift: "("
+			keyShift: "&"
 		},
 		{
 			keys: "53Digit5", // 49: 5 %
@@ -586,6 +586,88 @@ export class VirtualKeyboard {
 		// only on PC:
 		// "226IntlBackslash", "122F11", "123F12", "44PrintScreen", "145ScrollLock", "19Pause", "45Insert", "36Home", "33PageUp", "35End", "34PageDown", "111NumpadDivide", "106NumpadMultiply", "109NumpadSubtract", "107NumpadAdd"
 	];
+
+	static getUserKeyInfo(code: number): {cpcKey: number, shift: boolean, input?: string} | undefined {
+		if (code >= 256 && code <= 335) {
+			const cpcKey = code - 256,
+				keyEntry = VirtualKeyboard.cpcKey2Key[cpcKey],
+				input = keyEntry.key.length === 1 ? keyEntry.key : VirtualKeyboard.userKey2Input[keyEntry.key];
+
+			return {
+				cpcKey: cpcKey,
+				shift: false,
+				input: input || ""
+			};
+		}
+
+		const specialCpcKey = VirtualKeyboard.userSpecialKey2CpcKey[code];
+
+		if (specialCpcKey !== undefined) {
+			return {
+				cpcKey: specialCpcKey,
+				shift: false
+			};
+		}
+
+		if (code === 13) {
+			return {
+				cpcKey: 18,
+				shift: false
+			};
+		}
+
+		const key = String.fromCharCode(code);
+
+		for (let cpcKey = 16; cpcKey < VirtualKeyboard.cpcKey2Key.length; cpcKey += 1) {
+			const keyEntry = VirtualKeyboard.cpcKey2Key[cpcKey];
+
+			if (keyEntry.key === key) {
+				return {
+					cpcKey: cpcKey,
+					shift: false
+				};
+			}
+			if (keyEntry.keyShift === key) {
+				return {
+					cpcKey: cpcKey,
+					shift: true
+				};
+			}
+		}
+		return undefined;
+	}
+
+	private static readonly userKey2Input: Record<string, string> = {
+		Alt: String.fromCharCode(224),
+		ArrowUp: String.fromCharCode(240),
+		ArrowDown: String.fromCharCode(241),
+		ArrowLeft: String.fromCharCode(242),
+		ArrowRight: String.fromCharCode(243),
+		Backspace: String.fromCharCode(127),
+		Delete: String.fromCharCode(16),
+		Enter: "\r",
+		Escape: String.fromCharCode(27),
+		JoyUp: String.fromCharCode(11),
+		JoyDown: String.fromCharCode(10),
+		JoyLeft: String.fromCharCode(8),
+		JoyRight: String.fromCharCode(9),
+		Tab: String.fromCharCode(9)
+	};
+
+	private static readonly userSpecialKey2CpcKey: Record<number, number> = {
+		8: 74, // joystick left
+		9: 75, // joystick right
+		10: 73, // joystick down
+		11: 72, // joystick up
+		16: 16, // delete / clear
+		27: 66, // escape
+		127: 79, // delete
+		224: 9, // copy
+		240: 0, // cursor up
+		241: 2, // cursor down
+		242: 8, // cursor left
+		243: 1 // cursor right
+	};
 
 	/* eslint-disable array-element-newline */
 	private static readonly virtualKeyboardAlpha: VirtualKeyboardLayoutType2[][] = [
