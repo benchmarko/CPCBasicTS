@@ -177,7 +177,7 @@ console.log(result.reason, machine.getOutput());
 
 Each machine has its own runtime state. Compilation failures throw `HeadlessCompileError`; unsupported hardware and timing features are reported by the headless runtime rather than requiring browser APIs.
 
-See [HEADLESS.md](HEADLESS.md) for the controller API, execution limits, supported devices, and focused tests.
+See [HEADLESS.md](./docs/HEADLESS.md) for the controller API, execution limits, supported devices, and focused tests.
 
 The browser entrypoints are `cpcbasicUI.js` followed by `cpcbasic.js`. The UI bundle exposes the `cpcbasicUI.UI` implementation; the engine entrypoint consumes that interface, so a different UI can be supplied instead.
 

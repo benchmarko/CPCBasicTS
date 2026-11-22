@@ -1,0 +1,317 @@
+(* CPCBasicTS source grammar
+ * Based on BasicLexer.ts and BasicParser.ts.
+ * The default parser keyword set is Locomotive BASIC 1.1; BASIC 1.0 removes
+ * the features noted in BasicParser.getKeywords10().
+ *
+ * This grammar describes source structure and argument forms. The keyword
+ * signatures and special handlers in BasicParser remain authoritative for
+ * argument types, ranges, and version-specific behavior.
+ *)
+
+(* 1. Program structure *)
+
+Program          = { Line } , [ FinalLine ] ;
+Line             = [ LineNumber ] , [ StatementList ] , Eol ;
+FinalLine        = [ LineNumber ] , [ StatementList ] ;
+StatementList    = ApostropheComment
+                 | Statement , { ":" , Statement } , [ ":" ] , [ ApostropheComment ] ;
+
+(* A numeric token at the start of a line is taken as its line number.
+   Line numbers may be omitted (implicit-line mode). *)
+LineNumber       = number ;
+Eol              = "\n" ;
+
+
+(* 2. Statements *)
+
+Statement        = Assignment
+                 | FunctionDefinition
+                 | IfStatement
+                 | ForStatement
+       | Command
+                 | FunctionCall
+                 | RsxStatement
+       | RemComment
+       | ApostropheComment ;
+
+Assignment       = [ "let" ] , LValue , "=" , Expression
+                 | MidStringAssignment ;
+MidStringAssignment = "mid$" , "(" , Expression , "," , Expression ,
+                      [ "," , Expression ] , ")" , "=" , Expression ;
+FunctionDefinition = "def" , "fn" , FunctionIdentifier ,
+                     [ "(" , [ VariableList ] , ")" ] , "=" , Expression ;
+LValue           = Identifier , [ ArraySubscripts ] ;
+ArraySubscripts  = "(" , Expression , { "," , Expression } , ")"
+                 | "[" , Expression , { "," , Expression } , "]" ;
+VariableList     = Identifier , { "," , Identifier } ;
+
+IfStatement      = "if" , Expression ,
+                   ( "goto" , LineNumber
+                   | "then" , [ LineNumber ] , [ InlineStatementList ] ) ,
+                   [ "else" , [ LineNumber ] , [ InlineStatementList ] ] ;
+InlineStatementList = Statement , { ":" , Statement } ;
+
+ForStatement     = "for" , Identifier , "=" , Expression , "to" , Expression ,
+                   [ "step" , Expression ] ;
+
+Command          = SimpleCommand
+                         | NumericCommand
+                         | StringCommand
+                         | VariableCommand
+                         | LineCommand
+                         | GraphicsCommand
+                         | InputCommand
+                         | PrintCommand
+                         | DataCommand
+                         | DefinitionCommand
+                         | FlowCommand
+                         | FileCommand
+                         | MiscCommand ;
+
+SimpleCommand    = "cat" | "closein" | "closeout" | "cont" | "deg" | "di"
+                         | "ei" | "end" | "frame" | "new" | "rad" | "return"
+                         | "stop" | "troff" | "tron" | "wend" ;
+
+NumericCommand   = ( "error" | "fill" | "memory" | "mode" | "release"
+                            | "speed" , "write" | "symbol" , "after" | "width" | "zone" ) ,
+                            NumberExpression
+                         | "randomize" , [ NumberExpression ]
+                         | "clg" , [ NumberExpression ]
+                         | "border" , NumberExpression , [ "," , NumberExpression ]
+                         | "ink" , NumberExpression , "," , NumberExpression ,
+                            [ "," , NumberExpression ]
+                         | "key" , NumberExpression , "," , StringExpression
+                         | "key" , "def" , NumberExpression , "," , NumberExpression ,
+                            [ "," , NumberExpression , [ "," , NumberExpression ,
+                               [ "," , NumberExpression ] ] ]
+                         | "locate" , [ Stream , "," ] , NumberExpression , "," , NumberExpression
+                         | "out" , NumberExpression , "," , NumberExpression
+                         | "poke" , NumberExpression , "," , NumberExpression
+                         | "wait" , NumberExpression , "," , NumberExpression ,
+                            [ "," , NumberExpression ] ;
+
+StringCommand    = ( "merge" | "openin" | "openout" ) , StringExpression
+                         | "load" , StringExpression , [ "," , NumberExpression ]
+                         | "save" , StringExpression , [ "," , AnyExpression ,
+                            [ "," , NumberExpression , [ "," , NumberExpression ,
+                               [ "," , NumberExpression ] ] ] ] ;
+
+VariableCommand  = "dim" , ArrayVariable , { "," , ArrayVariable }
+                         | "erase" , Variable , { "," , Variable }
+                         | "read" , Variable , { "," , Variable }
+                         | "next" , [ Identifier , { "," , Identifier } ] ;
+
+LineCommand      = ( "edit" | "gosub" | "goto" ) , LineNumber
+                         | "restore" , [ LineNumber ]
+                         | "resume" , ( "next" | [ LineNumber ] )
+                         | "delete" , [ LineRange ]
+                         | "list" , [ LineRange ] , [ "," , Stream ]
+                         | "renum" , [ NumberExpression ] , [ "," , NumberExpression ] ,
+                            [ "," , NumberExpression ]
+                         | "run" , [ StringExpression | LineNumber ] ;
+
+GraphicsCommand  = ( "draw" | "drawr" | "move" | "mover" | "plot" | "plotr" ) ,
+                            NumberExpression , "," , NumberExpression ,
+                            [ "," , NumberExpression , [ "," , NumberExpression ] ]
+                         | "graphics" , ( "pen" | "paper" ) , [ NumberExpression ] ,
+                            [ "," , NumberExpression ]
+                         | "origin" , NumberExpression , "," , NumberExpression ,
+                            [ "," , NumberExpression ] , [ "," , NumberExpression ] ,
+                            [ "," , NumberExpression ] , [ "," , NumberExpression ]
+                         | "pen" , [ Stream , "," ] , [ NumberExpression ] ,
+                            [ "," , NumberExpression ]
+                         | "paper" , [ Stream , "," ] , NumberExpression
+                         | "cls" , [ Stream ]
+                         | "tag" , [ Stream ]
+                         | "tagoff" , [ Stream ]
+                         | "window" , [ Stream , "," ] , NumberExpression , "," ,
+                            NumberExpression , "," , NumberExpression , "," , NumberExpression
+                         | "window" , "swap" , NumberExpression , [ "," , NumberExpression ]
+                         | "symbol" , NumberExpression , NumberExpression ,
+                            { "," , NumberExpression }
+                         | "mask" , [ NumberExpression ] , [ "," , NumberExpression ] ;
+
+InputCommand     = "input" , [ Stream , "," ] , [ ";" ] ,
+                            [ StringLiteral , ( ";" | "," ) ] , Variable ,
+                            { "," , Variable }
+                         | "line" , "input" , [ Stream , "," ] , [ ";" ] ,
+                            [ StringLiteral , ( ";" | "," ) ] , StringVariable ;
+
+PrintCommand     = ( "print" | "?" ) , [ Stream , "," ] , [ PrintItems ] ;
+PrintItems       = PrintItem , { [ PrintSeparator ] , PrintItem } , [ PrintSeparator ] ;
+PrintItem        = Expression
+                         | "spc" , "(" , NumberExpression , ")"
+                         | "tab" , "(" , NumberExpression , ")"
+                         | "using" , StringExpression , ";" ,
+                            [ Expression , { ( "," | ";" ) , Expression } ] ;
+PrintSeparator  = "," | ";" ;
+
+DataCommand      = "data" , [ DataList ] ;
+DataList         = [ DataItem ] , { "," , [ DataItem ] } ;
+DataItem         = StringLiteral | UnquotedData ;
+
+DefinitionCommand = "defint" , LetterRange , { "," , LetterRange }
+                           | "defreal" , LetterRange , { "," , LetterRange }
+                           | "defstr" , LetterRange , { "," , LetterRange } ;
+
+FlowCommand      = ( "after" | "every" ) , NumberExpression ,
+                            [ "," , NumberExpression ] , "gosub" , LineNumber
+                         | "on" , ( "break" , ( "cont" | "stop" | "gosub" , LineNumber )
+                                        | "error" , "goto" , LineNumber
+                                        | "sq" , "(" , Expression , ")" , "gosub" , LineNumber
+                                        | Expression , ( "goto" | "gosub" ) ,
+                                           LineNumber , { "," , LineNumber } )
+                         | "while" , Expression
+                         | "else" , [ LineNumber ] , { ? any character except line end ? } ;
+
+FileCommand      = "chain" , [ "merge" ] , StringExpression ,
+                            [ "," , NumberExpression ] ,
+                            [ "," , "delete" , [ LineRange ] ]
+                         | "write" , [ Stream , "," ] ,
+                            [ Expression , { ( "," | ";" ) , Expression } ] ;
+
+MiscCommand      = "auto" , [ NumberExpression ] , [ "," , NumberExpression ]
+                         | "call" , NumberExpression , { "," , Expression }
+                         | "clear" , [ "input" ]
+                         | "cursor" , [ Stream ] , [ NumberExpression ] ,
+                            [ "," , NumberExpression ]
+                         | "ent" , NumberExpression , { "," , [ "=" ] , Expression }
+                         | "env" , NumberExpression , { "," , [ "=" ] , Expression }
+                         | "sound" , NumberExpression , "," , NumberExpression ,
+                            [ "," , NumberExpression , [ "," , NumberExpression ,
+                               [ "," , NumberExpression , [ "," , NumberExpression ,
+                                  [ "," , NumberExpression ] ] ] ] ]
+                         | "speed" , ( "ink" | "key" ) , NumberExpression , "," , NumberExpression
+                          ;
+
+(* The parser has dedicated handlers for the forms above. NEXT, WHILE/WEND,
+    and FOR are line-oriented; loop bodies are not nested grammar blocks.
+    A bare line number after THEN/ELSE is interpreted as a branch target. *)
+
+RsxStatement     = "|" , RsxName , [ "," , RsxArgument , { "," , RsxArgument } ] ;
+RsxArgument      = [ "@" ] , ( Identifier | Expression ) ;
+RemComment       = "rem" , { ? any character except line end ? } ;
+ApostropheComment = "'" , { ? any character except line end ? } ;
+
+(* 3. Expressions
+   Precedence and associativity follow BasicParser.fnGenerateSymbols(),
+   from tightest to loosest. *)
+
+Expression       = XorExpression ;
+XorExpression    = OrExpression , [ "xor" , XorExpression ] ;
+OrExpression     = AndExpression , [ "or" , OrExpression ] ;
+AndExpression   = NotExpression , [ "and" , AndExpression ] ;
+NotExpression    = [ "not" ] , Comparison ;
+Comparison       = AddExpression , { CompareOperator , AddExpression } ;
+CompareOperator  = "=" | "<>" | "<" | "<=" | ">" | ">=" ;
+AddExpression    = MultiplyExpression , { ( "+" | "-" ) , MultiplyExpression } ;
+MultiplyExpression = UnaryExpression ,
+                     { ( "*" | "/" | "\\" | "mod" ) , UnaryExpression } ;
+UnaryExpression  = ( "+" | "-" ) , UnaryExpression
+                 | PowerExpression ;
+PowerExpression  = PrimaryExpression , [ "^" , UnaryExpression ] ;
+
+PrimaryExpression = number
+                  | string
+                  | Identifier , [ ArraySubscripts ]
+                  | FunctionCall
+                  | UserFunctionCall
+                  | AddressOfExpression
+                  | Stream
+                  | "(" , Expression , ")" ;
+
+UserFunctionCall = "fn" , Identifier , [ "(" , [ ArgumentList ] , ")" ] ;
+ArgumentList     = Expression , { "," , Expression } ;
+AddressOfExpression = "@" , Identifier , [ ArraySubscripts ] ;
+Stream           = "#" , Expression ;
+
+
+(* 4. Built-in function forms
+    BASIC expressions share one syntax; argument type constraints are checked
+    from the built-in signature table in BasicParser. *)
+
+FunctionCall     = NumericFunction | StringFunction ;
+
+NumericFunction  = ( "abs" | "atn" | "cint" | "cos" | "creal" | "exp" | "fix"
+                            | "int" | "log" | "log10" | "peek" | "remain" | "sgn"
+                            | "sin" | "sqr" | "tan" ) , "(" , NumberExpression , ")"
+                         | "asc" , "(" , StringExpression , ")"
+                         | "inkey" , "(" , NumberExpression , ")"
+                         | "inp" , "(" , NumberExpression , ")"
+                          | "joy" , "(" , NumberExpression , ")"
+                         | "instr" , "(" , [ NumberExpression , "," ] , StringExpression ,
+                            "," , StringExpression , ")"
+                         | ( "max" | "min" ) , "(" , Expression , { "," , Expression } , ")"
+                         | "fre" , "(" , ( NumberExpression | StringExpression ) , ")"
+                         | "rnd" , [ "(" , [ NumberExpression ] , ")" ]
+                         | "round" , "(" , NumberExpression , [ "," , NumberExpression ] , ")"
+                         | "pos" , "(" , Stream , ")"
+                         | "vpos" , "(" , Stream , ")"
+                         | "sq" , "(" , NumberExpression , ")"
+                         | ( "test" | "testr" ) , "(" , NumberExpression , "," ,
+                            NumberExpression , ")"
+                         | "unt" , "(" , NumberExpression , ")"
+                         | ( "derr" | "eof" | "erl" | "err" | "himem" | "pi" | "time"
+                            | "xpos" | "ypos" ) , [ "(" , ")" ] ;
+
+StringFunction   = "bin$" , "(" , NumberExpression , [ "," , NumberExpression ] , ")"
+                         | "chr$" , "(" , NumberExpression , ")"
+                         | "copychr$" , "(" , Stream , ")"
+                         | "dec$" , "(" , NumberExpression , "," , StringExpression , ")"
+                         | "hex$" , "(" , NumberExpression , [ "," , NumberExpression ] , ")"
+                         | "inkey$" , [ "(" , ")" ]
+                         | "left$" , "(" , StringExpression , "," , NumberExpression , ")"
+                         | "len" , "(" , StringExpression , ")"
+                         | "lower$" , "(" , StringExpression , ")"
+                         | "mid$" , "(" , StringExpression , "," , NumberExpression ,
+                            [ "," , NumberExpression ] , ")"
+                         | "right$" , "(" , StringExpression , "," , NumberExpression , ")"
+                         | "space$" , "(" , NumberExpression , ")"
+                         | "spc" , "(" , NumberExpression , ")"
+                         | "str$" , "(" , NumberExpression , ")"
+                         | "string$" , "(" , NumberExpression , "," ,
+                            ( StringExpression | NumberExpression ) , ")"
+                         | "tab" , "(" , NumberExpression , ")"
+                         | "upper$" , "(" , StringExpression , ")"
+                         | "val" , "(" , StringExpression , ")" ;
+
+(* Operators are also keywords: NOT, AND, OR, XOR, MOD. BASIC 1.0 removes
+    some BASIC 1.1 commands/functions and graphics parameters; see
+    BasicParser.getKeywords10() for the version-specific set. *)
+
+
+(* 5. Identifiers and literals *)
+
+Identifier       = IdentifierName , [ "$" | "%" | "!" ] ;
+IdentifierName   = Letter , { Letter | Digit | "." } ;
+FunctionIdentifier = Identifier ;
+Variable         = Identifier , [ ArraySubscripts ] ;
+StringVariable   = IdentifierName , "$" , [ ArraySubscripts ] ;
+ArrayVariable    = Identifier , ArraySubscripts ;
+RsxName          = IdentifierName ;
+LetterRange      = Letter , [ "-" , Letter ] ;
+LineRange        = [ number ] , "-" , [ number ] ;
+
+NumberExpression = Expression ;
+StringExpression = Expression ;
+AnyExpression    = Expression ;
+
+number           = DecimalNumber | HexNumber | BinaryNumber ;
+DecimalNumber    = ( [ Digit , { Digit } ] , "." , Digit , { Digit }
+                            | Digit , { Digit } , [ "." , { Digit } ] ) ,
+                            [ ( "e" | "E" ) , [ "+" | "-" ] , Digit , { Digit } ] ;
+HexNumber        = "&" , [ "h" | "H" ] , HexDigit , { HexDigit } ;
+BinaryNumber     = "&" , ( "x" | "X" ) , BinaryDigit , { BinaryDigit } ;
+string           = '"' , { ? any character except quote or line end ? } , '"' ;
+StringLiteral    = string ;
+UnquotedData     = { ? any character except comma or line end ? } ;
+
+Letter           = ? ASCII letter ? ;
+Digit            = ? decimal digit ? ;
+HexDigit         = Digit | "a" | "b" | "c" | "d" | "e" | "f"
+                 | "A" | "B" | "C" | "D" | "E" | "F" ;
+BinaryDigit      = "0" | "1" ;
+
+(* Keywords are case-insensitive. Identifiers may contain dots and may end
+   in $, %, or !. The lexer also tolerates unterminated strings and has a
+   heuristic for strings continued across source lines. *)

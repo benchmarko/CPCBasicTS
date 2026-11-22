@@ -1,0 +1,17 @@
+{
+  "name": "cpcbasic-ebnf-check",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lint and render the CPCBasicTS EBNF grammar",
+  "scripts": {
+    "check": "ebnf2railroad --lint ./cpcbasic.ebnf --no-target",
+    "render": "ebnf2railroad --title \"CPCBasicTS BASIC\" ./cpcbasic.ebnf --target ../dist/cpcbasic-grammar.html"
+  },
+  "devDependencies": {
+    "ebnf2railroad": "1.14.3"
+  },
+  "overrides": {
+    "js-yaml": "5.5.0",
+    "showdown": "2.1.0"
+  }
+}
