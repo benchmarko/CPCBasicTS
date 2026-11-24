@@ -2341,6 +2341,185 @@
 	    this.options.lexer.setOptions({ keepWhiteSpace: false });
 	    this.options.parser.setOptions({ keepBrackets: false, keepColons: false, keepDataComma: false, keepTokens: false });
 	  }
+	  getStatementStart(node) {
+	    return node.type === "assign" && node.left ? node.left.pos : node.pos;
+	  }
+	  getSourceLines(input, nodes) {
+	    return nodes.filter((node) => node.type === "label").map((node) => {
+	      const start = input.lastIndexOf("\n", node.pos - 1) + 1, newLine = input.indexOf("\n", node.pos);
+	      let end = newLine < 0 ? input.length : newLine;
+	      if (end > start && input[end - 1] === "\r") {
+	        end -= 1;
+	      }
+	      const args = (node.args || []).filter((arg) => arg.type !== "(eol)" && arg.type !== "(end)"), statements = args.map((arg, index) => {
+	        const statementStart = this.getStatementStart(arg), statementEnd = index + 1 < args.length ? this.getStatementStart(args[index + 1]) : end, text = input.substring(statementStart, statementEnd).replace(/:\s*$/, "").trim();
+	        return {
+	          node: arg,
+	          start: statementStart,
+	          end: statementEnd,
+	          text
+	        };
+	      });
+	      return {
+	        node,
+	        start,
+	        end,
+	        hasLabel: Boolean(node.value),
+	        statements
+	      };
+	    });
+	  }
+	  parseSource(input) {
+	    this.prepareParser();
+	    return this.options.parser.parse(this.options.lexer.lex(input));
+	  }
+	  sourceTransform(input, transform) {
+	    const out = {
+	      text: ""
+	    };
+	    this.label = "";
+	    try {
+	      out.text = transform(this.parseSource(input));
+	    } catch (e) {
+	      if (Utils.isCustomError(e)) {
+	        out.error = e;
+	      } else {
+	        out.error = e;
+	        Utils.console.error(e);
+	      }
+	    }
+	    return out;
+	  }
+	  fnApplyReferenceChanges(text, start, end, refs, newLines) {
+	    const changes = {};
+	    for (const ref of refs) {
+	      if (ref.pos >= start && ref.pos < end) {
+	        const newValue = newLines[ref.value];
+	        if (newValue !== void 0 && newValue !== ref.value) {
+	          changes[ref.pos - start] = {
+	            value: ref.value,
+	            pos: ref.pos - start,
+	            len: ref.len,
+	            newValue
+	          };
+	        }
+	      }
+	    }
+	    return BasicFormatter.fnApplyChanges(text, changes);
+	  }
+	  expandStatements(input) {
+	    if (!input) {
+	      return { text: input };
+	    }
+	    return this.sourceTransform(input, (parseTree) => {
+	      const lines = this.getSourceLines(input, parseTree), refs = [], labels = this.fnCreateLabelMap(parseTree, Boolean(this.options.implicitLines));
+	      this.fnAddReferences(parseTree, labels, refs);
+	      const sourceLines = lines.filter((line) => line.statements.length || line.hasLabel || this.options.implicitLines && line.node.value), provisionalLines = [], newLines = {};
+	      let nextLine = 1;
+	      for (const line of sourceLines) {
+	        const lineNumber = String(nextLine);
+	        if (line.node.value) {
+	          newLines[line.node.value] = lineNumber;
+	        }
+	        nextLine += Math.max(line.statements.length, 1);
+	      }
+	      nextLine = 1;
+	      for (const line of sourceLines) {
+	        const statements = line.statements.length ? line.statements : [{ node: line.node, start: line.end, end: line.end, text: "" }];
+	        for (const statement of statements) {
+	          const text = this.fnApplyReferenceChanges(statement.text, statement.start, statement.end, refs, newLines);
+	          provisionalLines.push(String(nextLine) + (text ? " " + text : ""));
+	          nextLine += 1;
+	        }
+	      }
+	      const numbered = provisionalLines.join("\n"), renumbered = this.renumber(numbered, 10, 1, 10, 65535);
+	      if (renumbered.error) {
+	        throw renumbered.error;
+	      }
+	      return renumbered.text;
+	    });
+	  }
+	  fnCreateCollapsedLine(input, line, keepComments, referencedLines) {
+	    const isComment = (statement) => statement.node.type === "rem" || statement.node.type === "'", statements = line.statements.filter((statement) => !isComment(statement));
+	    if (!statements.length) {
+	      if (keepComments) {
+	        return {
+	          text: input.substring(line.start, line.end),
+	          number: "",
+	          hasIf: false,
+	          isTarget: false,
+	          hasUnterminatedString: false,
+	          isCode: false
+	        };
+	      }
+	      if (line.hasLabel && referencedLines.has(String(line.node.value))) {
+	        const number2 = String(line.node.value);
+	        return {
+	          text: number2,
+	          number: number2,
+	          hasIf: false,
+	          isTarget: true,
+	          hasUnterminatedString: false,
+	          isCode: false
+	        };
+	      }
+	      return void 0;
+	    }
+	    const body = statements.map((statement) => statement.text).filter(Boolean).join(":");
+	    if (!body) {
+	      return void 0;
+	    }
+	    const number = line.hasLabel ? String(line.node.value) : "", hasIf = statements.some((statement) => statement.node.type === "if"), hasUnterminatedString = statements.some((statement) => this.fnHasUnterminatedString(statement.node));
+	    return {
+	      text: (number ? number + " " : "") + body,
+	      number,
+	      hasIf,
+	      isTarget: line.hasLabel && referencedLines.has(String(line.node.value)),
+	      hasUnterminatedString,
+	      isCode: true
+	    };
+	  }
+	  fnHasUnterminatedString(node) {
+	    return node.type === "ustring" || Boolean(node.left && this.fnHasUnterminatedString(node.left)) || Boolean(node.right && this.fnHasUnterminatedString(node.right)) || Boolean(node.args?.some((arg) => this.fnHasUnterminatedString(arg)));
+	  }
+	  fnMergeCollapsedLines(previous, current) {
+	    if (!previous.isCode || previous.hasIf || current.hasIf || current.isTarget || previous.hasUnterminatedString || current.hasUnterminatedString) {
+	      return false;
+	    }
+	    const previousBody = previous.text.replace(/^\s*\d+\s*/, ""), combinedText = (previous.number ? previous.number + " " : "") + previousBody + ":" + current.text.replace(/^\s*\d+\s*/, "");
+	    if (combinedText.length > 255) {
+	      return false;
+	    }
+	    previous.text = combinedText;
+	    return true;
+	  }
+	  collapseStatements(input) {
+	    if (!input) {
+	      return { text: input };
+	    }
+	    return this.sourceTransform(input, (parseTree) => {
+	      const lines = this.getSourceLines(input, parseTree), refs = [], labels = this.fnCreateLabelMap(parseTree, Boolean(this.options.implicitLines));
+	      this.fnAddReferences(parseTree, labels, refs);
+	      const referencedLines = new Set(refs.map((ref) => ref.value)), output = [];
+	      let hasProgramCode = false;
+	      for (const line of lines) {
+	        const collapsedLine = this.fnCreateCollapsedLine(input, line, !hasProgramCode, referencedLines);
+	        if (!collapsedLine) {
+	          continue;
+	        }
+	        if (!collapsedLine.isCode) {
+	          output.push(collapsedLine);
+	          continue;
+	        }
+	        hasProgramCode = true;
+	        const previous = output.length ? output[output.length - 1] : void 0;
+	        if (!previous || !this.fnMergeCollapsedLines(previous, collapsedLine)) {
+	          output.push(collapsedLine);
+	        }
+	      }
+	      return output.map((line) => line.text).join("\n");
+	    });
+	  }
 	  renumber(input, newLine, oldLine, step, keep) {
 	    this.prepareParser();
 	    const out = {
@@ -2839,6 +3018,47 @@
 	    assert.deepEqual(BasicFormatter.getLinesInRange(lines, 21, 29), []);
 	    assert.deepEqual(BasicFormatter.getLinesInRange([], 0, 65535), []);
 	    assert.deepEqual(lines, ["10 REM first", "20 REM second", "30 END", ""]);
+	  });
+	});
+	QUnit.module("BasicFormatter:statementLayout", function() {
+	  QUnit.test("expands top-level statements and updates branches while keeping IF together", function(assert) {
+	    const formatter = createBasicFormatter(), output = formatter.expandStatements('10 GOTO 20\n20 PRINT "A":PRINT "B"\n30 IF A THEN PRINT "C":PRINT "D"\n40 END');
+	    assert.notOk(output.error);
+	    assert.strictEqual(output.text, '10 GOTO 20\n20 PRINT "A"\n30 PRINT "B"\n40 IF A THEN PRINT "C":PRINT "D"\n50 END');
+	  });
+	  QUnit.test("retains the left side of assignments while expanding or collapsing", function(assert) {
+	    const formatter = createBasicFormatter(), expanded = formatter.expandStatements("10 a$=CHR$(150):PRINT a$"), expandedAfterDeclaration = formatter.expandStatements("10 DEFINT a-z:a$=CHR$(150)"), collapsed = formatter.collapseStatements("10 a$=CHR$(150)\n20 PRINT a$");
+	    assert.notOk(expanded.error);
+	    assert.strictEqual(expanded.text, "10 a$=CHR$(150)\n20 PRINT a$");
+	    assert.notOk(expandedAfterDeclaration.error);
+	    assert.strictEqual(expandedAfterDeclaration.text, "10 DEFINT a-z\n20 a$=CHR$(150)");
+	    assert.notOk(collapsed.error);
+	    assert.strictEqual(collapsed.text, "10 a$=CHR$(150):PRINT a$");
+	  });
+	  QUnit.test("collapses lines while retaining header comments and jump targets", function(assert) {
+	    const formatter = createBasicFormatter(), output = formatter.collapseStatements("10 REM header\n20 PRINT 1\n30 PRINT 2\n40 GOTO 20\n50 REM internal\n60 END");
+	    assert.notOk(output.error);
+	    assert.strictEqual(output.text, "10 REM header\n20 PRINT 1:PRINT 2:GOTO 20:END");
+	  });
+	  QUnit.test("reports invalid source instead of returning a partial transformation", function(assert) {
+	    const formatter = createBasicFormatter(), output = formatter.expandStatements("10 GOTO 99\n20 END");
+	    assert.ok(output.error);
+	    assert.strictEqual(output.text, "");
+	  });
+	  QUnit.test("keeps a referenced comment-only line as an empty numbered line", function(assert) {
+	    const formatter = createBasicFormatter(), output = formatter.collapseStatements("10 GOTO 20\n20 REM branch\n30 END");
+	    assert.notOk(output.error);
+	    assert.strictEqual(output.text, "10 GOTO 20\n20\n30 END");
+	  });
+	  QUnit.test("appends following lines to a referenced line without moving its target", function(assert) {
+	    const formatter = createBasicFormatter(), output = formatter.collapseStatements("30 PRINT CHR$(199+2*RND);\n40 FRAME:GOTO 30");
+	    assert.notOk(output.error);
+	    assert.strictEqual(output.text, "30 PRINT CHR$(199+2*RND);:FRAME:GOTO 30");
+	  });
+	  QUnit.test("does not collapse adjacent lines containing unterminated strings", function(assert) {
+	    const formatter = createBasicFormatter(), source = '10 PRINT"A ... Windows\n20 PRINT"B ... XXX', output = formatter.collapseStatements(source);
+	    assert.notOk(output.error);
+	    assert.strictEqual(output.text, source);
 	  });
 	});
 	function createBasicFormatter() {
@@ -7088,6 +7308,7 @@
 	  ViewID2["basicVersionSelect"] = "basicVersionSelect";
 	  ViewID2["canvasTypeSelect"] = "canvasTypeSelect";
 	  ViewID2["clearInputButton"] = "clearInputButton";
+	  ViewID2["collapseStatementsButton"] = "collapseStatementsButton";
 	  ViewID2["consoleLogArea"] = "consoleLogArea";
 	  ViewID2["consoleLogText"] = "consoleLogText";
 	  ViewID2["continueButton"] = "continueButton";
@@ -7103,6 +7324,7 @@
 	  ViewID2["downloadButton"] = "downloadButton";
 	  ViewID2["dropZone"] = "dropZone";
 	  ViewID2["enterButton"] = "enterButton";
+	  ViewID2["expandStatementsButton"] = "expandStatementsButton";
 	  ViewID2["exampleSelect"] = "exampleSelect";
 	  ViewID2["exportArea"] = "exportArea";
 	  ViewID2["exportButton"] = "exportButton";
@@ -21820,6 +22042,10 @@
 	          func: this.onClearInputButtonClick
 	        },
 	        {
+	          id: ViewID.collapseStatementsButton,
+	          controllerFunc: this.controller.fnCollapseStatements
+	        },
+	        {
 	          id: ViewID.continueButton,
 	          func: this.onContinueButtonClick
 	        },
@@ -21838,6 +22064,10 @@
 	        {
 	          id: ViewID.enterButton,
 	          controllerFunc: this.controller.startEnter
+	        },
+	        {
+	          id: ViewID.expandStatementsButton,
+	          controllerFunc: this.controller.fnExpandStatements
 	        },
 	        {
 	          id: ViewID.exportButton,
@@ -23703,6 +23933,21 @@
 	      this.setInputText(output.text, true);
 	      this.fnPutChangedInputOnStack();
 	    }
+	  }
+	  fnApplySourceTransform(output) {
+	    if (output.error) {
+	      this.outputError(output.error);
+	      return;
+	    }
+	    this.fnPutChangedInputOnStack();
+	    this.setInputText(output.text, true);
+	    this.fnPutChangedInputOnStack();
+	  }
+	  fnExpandStatements() {
+	    this.fnApplySourceTransform(this.runtime.basicFormatter.expandStatements(this.getInputText()));
+	  }
+	  fnCollapseStatements() {
+	    this.fnApplySourceTransform(this.runtime.basicFormatter.collapseStatements(this.getInputText()));
 	  }
 	  fnGetFilename(input) {
 	    let name = "file";

@@ -224,6 +224,64 @@ QUnit.module("BasicFormatter:sourceLines", function () {
 	});
 });
 
+QUnit.module("BasicFormatter:statementLayout", function () {
+	QUnit.test("expands top-level statements and updates branches while keeping IF together", function (assert) {
+		const formatter = createBasicFormatter(),
+			output = formatter.expandStatements('10 GOTO 20\n20 PRINT "A":PRINT "B"\n30 IF A THEN PRINT "C":PRINT "D"\n40 END');
+		assert.notOk(output.error);
+		assert.strictEqual(output.text, '10 GOTO 20\n20 PRINT "A"\n30 PRINT "B"\n40 IF A THEN PRINT "C":PRINT "D"\n50 END');
+	});
+
+	QUnit.test("retains the left side of assignments while expanding or collapsing", function (assert) {
+		const formatter = createBasicFormatter(),
+			expanded = formatter.expandStatements("10 a$=CHR$(150):PRINT a$"),
+			expandedAfterDeclaration = formatter.expandStatements("10 DEFINT a-z:a$=CHR$(150)"),
+			collapsed = formatter.collapseStatements("10 a$=CHR$(150)\n20 PRINT a$");
+		assert.notOk(expanded.error);
+		assert.strictEqual(expanded.text, "10 a$=CHR$(150)\n20 PRINT a$");
+		assert.notOk(expandedAfterDeclaration.error);
+		assert.strictEqual(expandedAfterDeclaration.text, "10 DEFINT a-z\n20 a$=CHR$(150)");
+		assert.notOk(collapsed.error);
+		assert.strictEqual(collapsed.text, "10 a$=CHR$(150):PRINT a$");
+	});
+
+	QUnit.test("collapses lines while retaining header comments and jump targets", function (assert) {
+		const formatter = createBasicFormatter(),
+			output = formatter.collapseStatements("10 REM header\n20 PRINT 1\n30 PRINT 2\n40 GOTO 20\n50 REM internal\n60 END");
+		assert.notOk(output.error);
+		assert.strictEqual(output.text, "10 REM header\n20 PRINT 1:PRINT 2:GOTO 20:END");
+	});
+
+	QUnit.test("reports invalid source instead of returning a partial transformation", function (assert) {
+		const formatter = createBasicFormatter(),
+			output = formatter.expandStatements("10 GOTO 99\n20 END");
+		assert.ok(output.error);
+		assert.strictEqual(output.text, "");
+	});
+
+	QUnit.test("keeps a referenced comment-only line as an empty numbered line", function (assert) {
+		const formatter = createBasicFormatter(),
+			output = formatter.collapseStatements("10 GOTO 20\n20 REM branch\n30 END");
+		assert.notOk(output.error);
+		assert.strictEqual(output.text, "10 GOTO 20\n20\n30 END");
+	});
+
+	QUnit.test("appends following lines to a referenced line without moving its target", function (assert) {
+		const formatter = createBasicFormatter(),
+			output = formatter.collapseStatements("30 PRINT CHR$(199+2*RND);\n40 FRAME:GOTO 30");
+		assert.notOk(output.error);
+		assert.strictEqual(output.text, "30 PRINT CHR$(199+2*RND);:FRAME:GOTO 30");
+	});
+
+	QUnit.test("does not collapse adjacent lines containing unterminated strings", function (assert) {
+		const formatter = createBasicFormatter(),
+			source = '10 PRINT"A ... Windows\n20 PRINT"B ... XXX',
+			output = formatter.collapseStatements(source);
+		assert.notOk(output.error);
+		assert.strictEqual(output.text, source);
+	});
+});
+
 function createBasicFormatter() {
 	const basicParser = new BasicParser({
 		quiet: true

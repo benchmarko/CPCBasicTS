@@ -29,6 +29,30 @@ type LinesType = Record<string, LineEntry>;
 
 type ChangesType = Record<number, RefsEntry>;
 
+interface SourceStatement {
+	node: ParserNode
+	start: number
+	end: number
+	text: string
+}
+
+interface SourceLine {
+	node: ParserNode
+	start: number
+	end: number
+	hasLabel: boolean
+	statements: SourceStatement[]
+}
+
+interface CollapsedLine {
+	text: string
+	number: string
+	hasIf: boolean
+	isTarget: boolean
+	hasUnterminatedString: boolean
+	isCode: boolean
+}
+
 export class BasicFormatter {
 	static parseLineNumber(line: string): number {
 		return parseInt(line, 10); // we do not check for linenumber in range 0...65535
@@ -363,6 +387,233 @@ export class BasicFormatter {
 	private prepareParser(): void {
 		this.options.lexer.setOptions({ keepWhiteSpace: false });
 		this.options.parser.setOptions({ keepBrackets: false, keepColons: false, keepDataComma: false, keepTokens: false });
+	}
+
+	private getStatementStart(node: ParserNode): number {
+		return node.type === "assign" && node.left ? node.left.pos : node.pos;
+	}
+
+	private getSourceLines(input: string, nodes: ParserNode[]): SourceLine[] {
+		return nodes.filter((node) => node.type === "label").map((node) => {
+			const start = input.lastIndexOf("\n", node.pos - 1) + 1,
+				newLine = input.indexOf("\n", node.pos);
+			let end = newLine < 0 ? input.length : newLine;
+
+			if (end > start && input[end - 1] === "\r") {
+				end -= 1;
+			}
+
+			const args = (node.args || []).filter((arg) => arg.type !== "(eol)" && arg.type !== "(end)"),
+				statements = args.map((arg, index) => {
+					const statementStart = this.getStatementStart(arg),
+						statementEnd = index + 1 < args.length ? this.getStatementStart(args[index + 1]) : end,
+						text = input.substring(statementStart, statementEnd).replace(/:\s*$/, "").trim();
+
+					return {
+						node: arg,
+						start: statementStart,
+						end: statementEnd,
+						text: text
+					};
+				});
+
+			return {
+				node: node,
+				start: start,
+				end: end,
+				hasLabel: Boolean(node.value),
+				statements: statements
+			};
+		});
+	}
+
+	private parseSource(input: string): ParserNode[] {
+		this.prepareParser();
+		return this.options.parser.parse(this.options.lexer.lex(input));
+	}
+
+	private sourceTransform(input: string, transform: (parseTree: ParserNode[]) => string): IOutput {
+		const out: IOutput = {
+			text: ""
+		};
+
+		this.label = "";
+		try {
+			out.text = transform(this.parseSource(input));
+		} catch (e) {
+			if (Utils.isCustomError(e)) {
+				out.error = e;
+			} else {
+				out.error = e as CustomError;
+				Utils.console.error(e);
+			}
+		}
+		return out;
+	}
+
+	private fnApplyReferenceChanges(text: string, start: number, end: number, refs: RefsEntry[], newLines: Record<string, string>): string {
+		const changes: ChangesType = {};
+
+		for (const ref of refs) {
+			if (ref.pos >= start && ref.pos < end) {
+				const newValue = newLines[ref.value];
+				if (newValue !== undefined && newValue !== ref.value) {
+					changes[ref.pos - start] = {
+						value: ref.value,
+						pos: ref.pos - start,
+						len: ref.len,
+						newValue: newValue
+					};
+				}
+			}
+		}
+		return BasicFormatter.fnApplyChanges(text, changes);
+	}
+
+	expandStatements(input: string): IOutput {
+		if (!input) {
+			return { text: input };
+		}
+		return this.sourceTransform(input, (parseTree) => {
+			const lines = this.getSourceLines(input, parseTree),
+				refs: RefsEntry[] = [],
+				labels = this.fnCreateLabelMap(parseTree, Boolean(this.options.implicitLines));
+
+			this.fnAddReferences(parseTree, labels, refs);
+
+			const sourceLines = lines.filter((line) => line.statements.length || line.hasLabel || (this.options.implicitLines && line.node.value)),
+				provisionalLines: string[] = [],
+				newLines: Record<string, string> = {};
+			let nextLine = 1;
+
+			for (const line of sourceLines) {
+				const lineNumber = String(nextLine);
+				if (line.node.value) {
+					newLines[line.node.value] = lineNumber;
+				}
+				nextLine += Math.max(line.statements.length, 1);
+			}
+
+			nextLine = 1;
+			for (const line of sourceLines) {
+				const statements = line.statements.length ? line.statements : [{ node: line.node, start: line.end, end: line.end, text: "" }];
+				for (const statement of statements) {
+					const text = this.fnApplyReferenceChanges(statement.text, statement.start, statement.end, refs, newLines);
+					provisionalLines.push(String(nextLine) + (text ? " " + text : ""));
+					nextLine += 1;
+				}
+			}
+
+			const numbered = provisionalLines.join("\n"),
+				renumbered = this.renumber(numbered, 10, 1, 10, 65535);
+			if (renumbered.error) {
+				throw renumbered.error;
+			}
+			return renumbered.text;
+		});
+	}
+
+	private fnCreateCollapsedLine(input: string, line: SourceLine, keepComments: boolean, referencedLines: Set<string>): CollapsedLine | undefined {
+		const isComment = (statement: SourceStatement) => statement.node.type === "rem" || statement.node.type === "'",
+			statements = line.statements.filter((statement) => !isComment(statement));
+
+		if (!statements.length) {
+			if (keepComments) {
+				return {
+					text: input.substring(line.start, line.end),
+					number: "",
+					hasIf: false,
+					isTarget: false,
+					hasUnterminatedString: false,
+					isCode: false
+				};
+			}
+			if (line.hasLabel && referencedLines.has(String(line.node.value))) {
+				const number = String(line.node.value);
+				return {
+					text: number,
+					number: number,
+					hasIf: false,
+					isTarget: true,
+					hasUnterminatedString: false,
+					isCode: false
+				};
+			}
+			return undefined;
+		}
+
+		const body = statements.map((statement) => statement.text).filter(Boolean).join(":");
+		if (!body) {
+			return undefined;
+		}
+		const number = line.hasLabel ? String(line.node.value) : "",
+			hasIf = statements.some((statement) => statement.node.type === "if"),
+			hasUnterminatedString = statements.some((statement) => this.fnHasUnterminatedString(statement.node));
+
+		return {
+			text: (number ? number + " " : "") + body,
+			number: number,
+			hasIf: hasIf,
+			isTarget: line.hasLabel && referencedLines.has(String(line.node.value)),
+			hasUnterminatedString: hasUnterminatedString,
+			isCode: true
+		};
+	}
+
+	private fnHasUnterminatedString(node: ParserNode): boolean {
+		return node.type === "ustring"
+			|| Boolean(node.left && this.fnHasUnterminatedString(node.left))
+			|| Boolean(node.right && this.fnHasUnterminatedString(node.right))
+			|| Boolean(node.args?.some((arg) => this.fnHasUnterminatedString(arg)));
+	}
+
+	private fnMergeCollapsedLines(previous: CollapsedLine, current: CollapsedLine): boolean {
+		if (!previous.isCode || previous.hasIf || current.hasIf || current.isTarget || previous.hasUnterminatedString || current.hasUnterminatedString) {
+			return false;
+		}
+		const previousBody = previous.text.replace(/^\s*\d+\s*/, ""),
+			combinedText = (previous.number ? previous.number + " " : "") + previousBody + ":" + current.text.replace(/^\s*\d+\s*/, "");
+
+		if (combinedText.length > 255) {
+			return false;
+		}
+		previous.text = combinedText;
+		return true;
+	}
+
+	collapseStatements(input: string): IOutput {
+		if (!input) {
+			return { text: input };
+		}
+		return this.sourceTransform(input, (parseTree) => {
+			const lines = this.getSourceLines(input, parseTree),
+				refs: RefsEntry[] = [],
+				labels = this.fnCreateLabelMap(parseTree, Boolean(this.options.implicitLines));
+
+			this.fnAddReferences(parseTree, labels, refs);
+
+			const referencedLines = new Set(refs.map((ref) => ref.value)),
+				output: CollapsedLine[] = [];
+			let hasProgramCode = false;
+
+			for (const line of lines) {
+				const collapsedLine = this.fnCreateCollapsedLine(input, line, !hasProgramCode, referencedLines);
+				if (!collapsedLine) {
+					continue;
+				}
+				if (!collapsedLine.isCode) {
+					output.push(collapsedLine);
+					continue;
+				}
+				hasProgramCode = true;
+
+				const previous = output.length ? output[output.length - 1] : undefined;
+				if (!previous || !this.fnMergeCollapsedLines(previous, collapsedLine)) {
+					output.push(collapsedLine);
+				}
+			}
+			return output.map((line) => line.text).join("\n");
+		});
 	}
 
 	renumber(input: string, newLine: number, oldLine: number, step: number, keep: number): IOutput {

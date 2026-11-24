@@ -6,7 +6,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="stylesheet" href="cpcbasic.css">
 	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-	<title id="title">CPCBasicTS v0.7.12</title>
+	<title id="title">CPCBasicTS v0.7.13</title>
 </head>
 
 <body id="pageBody">
@@ -239,17 +239,17 @@
 						<span id="renumArea" class="popover right-align displayNone">
 							<fieldset>
 								<legend title="Line Numbers">Line Numbers</legend>
-								<input id="renumNewInput" value="10" min="0" max="65535" type="number" title="New" placeholder="value">
-								<label for="renumNewInput" title="New Line">New</label>
+								<input id="renumNewInput" value="10" min="0" max="65535" type="number" title="First resulting line number" placeholder="value">
+								<label for="renumNewInput" title="First resulting line number">New</label>
 								<br>
-								<input id="renumStartInput" value="1" min="0" max="65535" type="number" title="Start" placeholder="value">
-								<label for="renumStartInput" title="Start Line">Start</label>
+								<input id="renumStartInput" value="1" min="0" max="65535" type="number" title="First existing line to renumber" placeholder="value">
+								<label for="renumStartInput" title="First existing line to renumber">Start</label>
 								<br>
-								<input id="renumStepInput" value="10" min="0" max="65535" type="number" title="Step" placeholder="value">
-								<label for="renumStepInput" title="Step">Step</label>
+								<input id="renumStepInput" value="10" min="0" max="65535" type="number" title="Increment between resulting line numbers" placeholder="value">
+								<label for="renumStepInput" title="Increment between resulting line numbers">Step</label>
 								<br>
-								<input id="renumKeepInput" value="65535" min="0" max="65535" type="number" title="Keep" placeholder="value">
-								<label for="renumKeepInput" title="First line to keep">Keep</label>
+								<input id="renumKeepInput" value="65535" min="0" max="65535" type="number" title="First existing line number to leave unchanged" placeholder="value">
+								<label for="renumKeepInput" title="First existing line number to leave unchanged">Keep</label>
 								<br>
 								<button id="renumButton" class="popoverElement" title="Renumber lines">Renum</button>
 								<br>
@@ -280,6 +280,9 @@
 								<label for="prettySpaceInput" title="Keep Spaces">Spaces</label>
 								<br>
 								<button id="prettyButton" class="popoverElement" title="Pretty print">Pretty</button>
+								<br>
+								<button id="expandStatementsButton" class="popoverElement" title="Put each top-level statement on its own line; IF statements stay together">Expand</button>
+								<button id="collapseStatementsButton" class="popoverElement" title="Remove non-leading comments and combine safe adjacent lines">Collapse</button>
 							</fieldset>
 							<span>
 								<button id="undoButton2" class="popoverElement" title="Undo code changes" disabled>Undo</button>

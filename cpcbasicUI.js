@@ -141,6 +141,7 @@
 	  ViewID2["basicVersionSelect"] = "basicVersionSelect";
 	  ViewID2["canvasTypeSelect"] = "canvasTypeSelect";
 	  ViewID2["clearInputButton"] = "clearInputButton";
+	  ViewID2["collapseStatementsButton"] = "collapseStatementsButton";
 	  ViewID2["consoleLogArea"] = "consoleLogArea";
 	  ViewID2["consoleLogText"] = "consoleLogText";
 	  ViewID2["continueButton"] = "continueButton";
@@ -156,6 +157,7 @@
 	  ViewID2["downloadButton"] = "downloadButton";
 	  ViewID2["dropZone"] = "dropZone";
 	  ViewID2["enterButton"] = "enterButton";
+	  ViewID2["expandStatementsButton"] = "expandStatementsButton";
 	  ViewID2["exampleSelect"] = "exampleSelect";
 	  ViewID2["exportArea"] = "exportArea";
 	  ViewID2["exportButton"] = "exportButton";
@@ -4845,6 +4847,10 @@
 	          func: this.onClearInputButtonClick
 	        },
 	        {
+	          id: ViewID.collapseStatementsButton,
+	          controllerFunc: this.controller.fnCollapseStatements
+	        },
+	        {
 	          id: ViewID.continueButton,
 	          func: this.onContinueButtonClick
 	        },
@@ -4863,6 +4869,10 @@
 	        {
 	          id: ViewID.enterButton,
 	          controllerFunc: this.controller.startEnter
+	        },
+	        {
+	          id: ViewID.expandStatementsButton,
+	          controllerFunc: this.controller.fnExpandStatements
 	        },
 	        {
 	          id: ViewID.exportButton,
@@ -6783,6 +6793,21 @@
 	      this.setInputText(output.text, true);
 	      this.fnPutChangedInputOnStack();
 	    }
+	  }
+	  fnApplySourceTransform(output) {
+	    if (output.error) {
+	      this.outputError(output.error);
+	      return;
+	    }
+	    this.fnPutChangedInputOnStack();
+	    this.setInputText(output.text, true);
+	    this.fnPutChangedInputOnStack();
+	  }
+	  fnExpandStatements() {
+	    this.fnApplySourceTransform(this.runtime.basicFormatter.expandStatements(this.getInputText()));
+	  }
+	  fnCollapseStatements() {
+	    this.fnApplySourceTransform(this.runtime.basicFormatter.collapseStatements(this.getInputText()));
 	  }
 	  fnGetFilename(input) {
 	    let name = "file";
