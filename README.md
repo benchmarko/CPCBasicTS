@@ -88,6 +88,8 @@ The browser app targets ES2020 and does not include legacy browser polyfills.
       - The checkbox **Brackets** keeps the brackets (parenthesis) during pretty print. If unchecked, brackets are used only where needed. Please note that this could lead to overflows in expressions in some cases, where brackets were used to priorize a computation without overflow.
       - The checkbox **Colons** keeps the colons. If unset, colons are only used where needed. Multiple columns are removed.
       - The checkbox **Spaces** keeps whitespace and preserves the input as much as possible.
+    - **Expand** puts each top-level statement on its own line, renumbers the program in steps of 10, and updates line references. An `IF ... THEN ... ELSE ...` statement stays together.
+    - **Collapse** removes comments outside the leading comment block and combines adjacent lines when this does not remove a referenced line number, combine an `IF` statement, combine an unterminated string, or exceed the BASIC line-length limit. Review the result when using line references that are computed dynamically.
     - The **Undo** button reverts the last renum or pretty print.
     - The **Redo** button activates the last renum or pretty print.
   - The **Export** button opens an file export dialog. The BASIC source can be exported as ASCII, tokenized BASIC with AMSDOS header or in a DSK image file.

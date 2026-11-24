@@ -952,6 +952,24 @@ export class Controller implements IController {
 		}
 	}
 
+	private fnApplySourceTransform(output: IOutput): void {
+		if (output.error) {
+			this.outputError(output.error);
+			return;
+		}
+		this.fnPutChangedInputOnStack();
+		this.setInputText(output.text, true);
+		this.fnPutChangedInputOnStack();
+	}
+
+	fnExpandStatements(): void {
+		this.fnApplySourceTransform(this.runtime.basicFormatter.expandStatements(this.getInputText()));
+	}
+
+	fnCollapseStatements(): void {
+		this.fnApplySourceTransform(this.runtime.basicFormatter.collapseStatements(this.getInputText()));
+	}
+
 	private fnGetFilename(input: string) {
 		let name = "file";
 		const reRemMatcher = /^\d* ?(?:REM|rem) ([\w.]+)+/,

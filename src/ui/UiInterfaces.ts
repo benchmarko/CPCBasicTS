@@ -46,6 +46,8 @@ export interface IController extends IRuntimeController {
     setDisassAddr: (addr: number, endAddr?: number) => void
 
     changeVariable: () => void
+    fnCollapseStatements: () => void
+    fnExpandStatements: () => void
     onExampleSelectChange: () => void
     onImplementationSelectChange: () => void
     onDirectorySelectChange: () => void

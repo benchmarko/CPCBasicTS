@@ -419,6 +419,10 @@ export class CommonEventHandler implements EventListenerObject {
 						func: this.onClearInputButtonClick
 					},
 					{
+						id: ViewID.collapseStatementsButton,
+						controllerFunc: this.controller.fnCollapseStatements
+					},
+					{
 						id: ViewID.continueButton,
 						func: this.onContinueButtonClick
 					},
@@ -437,6 +441,10 @@ export class CommonEventHandler implements EventListenerObject {
 					{
 						id: ViewID.enterButton,
 						controllerFunc: this.controller.startEnter
+					},
+					{
+						id: ViewID.expandStatementsButton,
+						controllerFunc: this.controller.fnExpandStatements
 					},
 					{
 						id: ViewID.exportButton,
